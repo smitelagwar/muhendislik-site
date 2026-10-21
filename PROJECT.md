@@ -31,6 +31,7 @@ Bu proje aşağıdaki AI araçlarıyla birlikte yönetilmektedir:
 | **Gemini CLI** | `GEMINI.md` | Alternatif model, multimodal görevler |
 | **GSD (get-shit-done)** | `.claude/commands/gsd/` | Proje yönetimi, faz planlaması |
 | **Antigravity Skills** | `~/.gemini/antigravity/skills/` | Skill tabanlı görevler |
+| **ECC (Everything Claude Code)** | `ecc/` | 71 ajan, 311 skill, harness optimizasyonu ve güvenlik kontrol listesi (`GEMINI.md` okuma zorunlu & toggle destekli) |
 
 ### GSD Workflow
 
@@ -46,8 +47,14 @@ Kurulum yolu: `~/.gemini/antigravity/skills/`
 **skiller ile ilgili bilmen gerekenler**
 
 skillerin hepsi zaten githubtan alındı ve dosyalar arasında var. dolayısıyla internette aramana gerek yok.
-skiller için muhendis-mimar-portali\.agent  ve muhendis-mimar-portali\get-shit-done  kısımlarından yararlan. Bunları tara ve ihtiyacın olabilecek şeyleri al.
+skiller için muhendis-mimar-portali\.agent, muhendis-mimar-portali\get-shit-done ve muhendis-mimar-portali\ecc (ECC aktifken) kısımlarından yararlan. Bunları tara ve ihtiyacın olabilecek şeyleri al.
 skilleri otomatik olarak verdiğim işin konusuna ve ihtiyacına göre sen belirle.
+
+### ECC (Everything Claude Code) Entegrasyonu
+- **Dizin:** `ecc/` (Yerel olarak klonlanmış ve hazır durumdadır)
+- **Okuma Kuralı:** Gemini için `GEMINI.md` ve `.agents/rules/ecc-kurallari.md` içinde zorunlu kılınmıştır.
+- **Açma / Kapama (Toggle):** Kullanıcı "ecc github reposunu kullanma" veya "deaktive et" dediğinde durum `PASİF`e geçer. Tekrar "ecc kullan" veya "aktive et" dediğinde `AKTİF`e geçer.
+- **Hızlı Komutlar:** `npm run ecc:status` | `npm run ecc:disable` | `npm run ecc:enable` | `npm run ecc:toggle`
 ---
 
 ## Mimari

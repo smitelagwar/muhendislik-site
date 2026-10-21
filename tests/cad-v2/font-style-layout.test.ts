@@ -15,6 +15,9 @@
 
 import assert from "node:assert";
 import crypto from "node:crypto";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import {
   FontLayoutEngine,
   FontDegradedDiagnostic,
@@ -716,6 +719,66 @@ console.log("  Gate 8: TTF Contour Tagging vs SHX Stroke Tagging...");
   assert.strictEqual(allContours, true, "TTF yazı tipinde üretilen tüm segmentler isContour: true taşımalı");
 
   console.log("    -> Gate 8: PASS");
+}
+
+// ----------------------------------------------------------------------------
+// GATE 9: Explicit external font catalog resolution and cache identity
+// ----------------------------------------------------------------------------
+console.log("  Gate 9: Explicit external font catalog resolution and cache identity...");
+{
+  const originalDirectories = process.env.CAD_V2_FONT_DIRECTORIES;
+  const originalFiles = process.env.CAD_V2_FONT_FILES;
+  const bundledFontDirectory = path.resolve(process.cwd(), "public/fonts");
+  const externalFontDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "cad-v2-external-font-"));
+  const externalFontName = "external-font-catalog-fixture.ttf";
+  const externalFontPath = path.join(externalFontDirectory, externalFontName);
+  fs.copyFileSync(path.join(bundledFontDirectory, "Arial-Regular.ttf"), externalFontPath);
+
+  try {
+    const bundledDigest = FontLayoutEngine.getFontDigest();
+    process.env.CAD_V2_FONT_DIRECTORIES = externalFontDirectory;
+    process.env.CAD_V2_FONT_FILES = externalFontName;
+    FontLayoutEngine.resetFontRegistry();
+
+    const externalFontDigest = FontLayoutEngine.getFontDigest();
+    const externalResolution = FontLayoutEngine.resolveFontStyle({
+      styleName: "EXTERNAL_FONT_FIXTURE",
+      fontFileName: externalFontName,
+    });
+    assert.notStrictEqual(externalFontDigest, bundledDigest,
+      "A configured external font must participate in the deterministic font digest before scene identity is computed");
+    assert.strictEqual(externalResolution.status, "exact",
+      "An explicitly configured external font with the requested filename must resolve exactly");
+    assert.strictEqual(externalResolution.resolvedFontName.toLowerCase(), externalFontName,
+      "The external font resolver must preserve the configured source filename");
+    assert.strictEqual(externalResolution.fontHash, crypto.createHash("sha256")
+      .update(fs.readFileSync(externalFontPath)).digest("hex"),
+    "External font bytes must be represented by their content digest");
+
+    const firstExternalDigest = externalFontDigest;
+    fs.copyFileSync(path.join(bundledFontDirectory, "IBMPlexSerif-Regular.ttf"), externalFontPath);
+    FontLayoutEngine.resetFontRegistry();
+    const changedExternalDigest = FontLayoutEngine.getFontDigest();
+    const changedResolution = FontLayoutEngine.resolveFontStyle({
+      styleName: "EXTERNAL_FONT_FIXTURE",
+      fontFileName: externalFontName,
+    });
+    assert.notStrictEqual(changedExternalDigest, firstExternalDigest,
+      "Replacing a configured font in place must invalidate the deterministic font and scene identity digest");
+    assert.strictEqual(changedResolution.fontHash, crypto.createHash("sha256")
+      .update(fs.readFileSync(externalFontPath)).digest("hex"),
+    "The changed external font content must be the resolved font after registry reset");
+
+    console.log("    -> Gate 9: PASS");
+  } finally {
+    if (originalDirectories === undefined) delete process.env.CAD_V2_FONT_DIRECTORIES;
+    else process.env.CAD_V2_FONT_DIRECTORIES = originalDirectories;
+    if (originalFiles === undefined) delete process.env.CAD_V2_FONT_FILES;
+    else process.env.CAD_V2_FONT_FILES = originalFiles;
+    FontLayoutEngine.setFontDirectory(bundledFontDirectory);
+    FontLayoutEngine.resetFontRegistry();
+    fs.rmSync(externalFontDirectory, { recursive: true, force: true });
+  }
 }
 
 console.log("\n============================================================================");

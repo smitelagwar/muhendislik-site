@@ -82,3 +82,19 @@ main();
   1. Ajan derhal `manage_task(Action='kill')` çağırarak süreci sonlandırmalıdır.
   2. Kullanıcıyı bekletmeden hatanın logunu okumalı ve scripti yukarıdaki `finally { await browser.close(); process.exit(); }` standardına getirmelidir.
 - Test tamamlandıktan sonra oluşturulan geçici `scratch-*.mjs` dosyaları derhal silinmelidir.
+
+---
+
+## 5. Windows PowerShell ve Vercel Deploy Komutlarında Takılma Önleme Kuralları
+
+Windows PowerShell ortamında Vercel deploy ve HTTP doğrulama adımlarında arka plan görevlerinin interaktif stdin istemine düşerek sonsuza kadar asılı kalmasını önlemek için aşağıdaki kurallar **kesinlikle zorunludur**:
+
+1. **PowerShell'de Çıplak `curl` Yasağı (`curl.exe` Zorunluluğu):**
+   - Windows PowerShell'de `curl` komutu gerçek cURL değil, `Invoke-WebRequest` cmdlet'inin alias'ıdır.
+   - `curl -I <url>` gibi Unix bayrakları PowerShell'de eksik parametre (`Supply values for the following parameters: Uri:`) istemi açarak arka plan görevini sonsuza kadar kilitler.
+   - Terminalden HTTP kontrolü yapılacaksa **asla `curl` yazılmaz**; mutlaka `curl.exe -s -I --max-time 10 <url>` veya `read_url_content` aracı kullanılır.
+2. **Vercel Deploy Akışında Gereksiz Bekleme ve Komut Zinciri Yasağı:**
+   - Yerel IDE'de tüm testler ve `npm run build` geçtikten sonra `git push origin main` yapıldığında Vercel otomatik olarak Production derlemesini başlatır.
+   - Eğer `vercel inspect <url> --wait` ile derlemenin `● Ready` olduğu zaten doğrulandıysa, ardından tekrar `curl` veya başka bir shell komutuyla ek kontrol başlatıp turu sonlandırmak **yasaktır**; doğrudan kullanıcıya tamamlandı raporu verilir.
+   - `vercel` CLI çalıştırılacaksa `--help` gibi gereksiz ön komutlar çağrılmaz; `WaitMsBeforeAsync: 10000` verilir ve arka plana düşen her görev için mutlaka `schedule` aracıyla (`TimerCondition: "<task-id>"`, `DurationSeconds: 60`) emniyet zamanlayıcısı kurulur. Süresi içinde bitmeyen görev derhal `manage_task(Action='kill')` ile sonlandırılır.
+

@@ -1,0 +1,345 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "candidate browser/compiler census; not an AutoCAD oracle",
+  "source": {
+    "id": "R003",
+    "path": "eklediklerim/ornek_dosyalar/MUSTAFA SELVİ 1.KISIM STATİK.dwg",
+    "format": "DWG",
+    "magic": "AC1032",
+    "bytes": 16084252,
+    "sha256": "8ff5680fa4f9d570fed738def92bc6ca8149fde1b5aed9e0a495dd2baaf521e6"
+  },
+  "candidate": {
+    "compilerVersion": "cad-v2-compiler-2026.09-v71",
+    "pipelineVersion": "fidelity-v3-p08",
+    "renderAbi": "three172-cad2d-v2"
+  },
+  "runtime": {
+    "parseMs": 8590.4,
+    "compileMs": 69450
+  },
+  "canonical": {
+    "acadVersion": "AC1032",
+    "codepage": "ANSI_1254",
+    "units": 4,
+    "measurement": 1,
+    "modelEntityCount": 108319,
+    "entityCountsByLayout": {
+      "Model": {
+        "ARC": 5957,
+        "CIRCLE": 3298,
+        "DIMENSION": 31,
+        "ELLIPSE": 22,
+        "HATCH": 5771,
+        "INSERT": 11564,
+        "LINE": 1335,
+        "LWPOLYLINE": 74328,
+        "MTEXT": 116,
+        "TEXT": 5897
+      },
+      "Layout1": {},
+      "Layout2": {}
+    },
+    "layerCount": 87,
+    "blockDefinitionCount": 14412,
+    "textStyles": [
+      {
+        "name": "Standard",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "Annotative",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "Times roman",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "arial_1_18",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "MEKANISIMLERI",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "bergkamp",
+        "fontFileName": "verdana.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "STYLE4",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "ARIAL",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "times new roman tur_1_18",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "times new roman turbold_1_18",
+        "fontFileName": "timesbd.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "verdana_1_34",
+        "fontFileName": "verdana.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "UNIVCH",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "ROMANT",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "OLCU",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "m2",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "BCC İÇ",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "T YAZI",
+        "fontFileName": "bgothl.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "OLUŞTURULMUŞ_STİL_1",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "dim",
+        "fontFileName": "swisscl.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "symbol_1_18",
+        "fontFileName": "symbol.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "times new roman_1_18",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "RomanSTA",
+        "fontFileName": "",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "verdana_1_18",
+        "fontFileName": "verdana.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "calibri_1_18",
+        "fontFileName": "calibri.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "arialitalic_1_0",
+        "fontFileName": "ariali.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "mistral_1_0",
+        "fontFileName": "MISTRAL.TTF",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "arial_1_0",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "symbolbold_1_0",
+        "fontFileName": "",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "symbolitalic_1_0",
+        "fontFileName": "",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "symbolbold_1_18",
+        "fontFileName": "",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "abadi mt condensed lightbold_1_18",
+        "fontFileName": "",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "mistral_1_18",
+        "fontFileName": "MISTRAL.TTF",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      }
+    ],
+    "layouts": [
+      {
+        "id": "Model",
+        "name": "Model",
+        "isModelSpace": true,
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "viewportIds": []
+      },
+      {
+        "id": "Layout1",
+        "name": "Layout1",
+        "isModelSpace": false,
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "viewportIds": []
+      },
+      {
+        "id": "Layout2",
+        "name": "Layout2",
+        "isModelSpace": false,
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "viewportIds": []
+      }
+    ],
+    "viewports": [],
+    "diagnosticCountsBySeverityAndCode": {
+      "warning:UNSUPPORTED_ENTITY_TYPE": 123
+    },
+    "resourceWarnings": {}
+  },
+  "compiled": {
+    "schemaVersion": 1,
+    "renderAbi": "three172-cad2d-v2",
+    "qualityStatus": "degraded",
+    "diagnosticsSummary": {
+      "unknownEntityCount": 123,
+      "unknownObjectCount": 0,
+      "missingFontCount": 2333,
+      "missingDependencyCount": 0,
+      "diagnosticCodes": [
+        "DROPPED_TEXT_IN_BLOCK",
+        "UNSUPPORTED_ENTITY_TYPE",
+        "FONT_SUBSTITUTE_APPLIED",
+        "FILL_GLYPH_COMPOSITE_ANALYSIS_LIMIT_REACHED"
+      ]
+    },
+    "layouts": [
+      {
+        "layoutId": "Model",
+        "sourceName": "Model",
+        "kind": "model",
+        "bbox": [
+          -313588.6079555974,
+          -240502.25371369233,
+          85269.23521938325,
+          351650.6610899445
+        ],
+        "units": 4
+      },
+      {
+        "layoutId": "Layout1",
+        "sourceName": "Layout1",
+        "kind": "paper",
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "units": 4
+      },
+      {
+        "layoutId": "Layout2",
+        "sourceName": "Layout2",
+        "kind": "paper",
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "units": 4
+      }
+    ],
+    "chunkCount": 20748,
+    "maximumChunkBytes": 1812000,
+    "totalChunkBytes": 526377000
+  },
+  "nativeOracle": {
+    "status": "NOT_RUN",
+    "reason": "AutoCAD LT GUI oracle is gated by acadlt.exe Authenticode HashMismatch; exact FAIL-404 source is also absent."
+  }
+}

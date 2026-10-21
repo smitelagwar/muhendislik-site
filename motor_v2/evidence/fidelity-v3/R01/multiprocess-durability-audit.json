@@ -1,0 +1,77 @@
+{
+  "package": "R01",
+  "name": "Production hazırlama ve çok süreç dayanıklılığı",
+  "generatedAt": "2026-10-05T19:56:00.000Z",
+  "status": "LOCAL_PASS",
+  "deploymentStatus": "BLOCKED_HOSTING_ACCESS",
+  "versions": {
+    "schemaVersion": 1,
+    "compilerRevision": "cad-v2-compiler-2026.10-v3",
+    "pipelineRevision": "fidelity-v3-r01",
+    "renderAbi": "three172-cad2d-v2",
+    "qualityProfile": "cad-v2-2d-v1"
+  },
+  "tests": [
+    "tests/cad-v2/durable-multiprocess.test.ts",
+    "tests/cad-v2/api-revision-auth.test.ts",
+    "tests/cad-v2/publish-atomicity.test.ts",
+    "tests/cad-v2/durable-service.test.ts"
+  ],
+  "durabilityMatrix": [
+    {
+      "test": "MULTIPROCESS_ISOLATION",
+      "description": "Child process A compiles and publishes; child process B reads from cold disk storage with zero RAM sharing",
+      "result": "PASS"
+    },
+    {
+      "test": "PROCESS_KILL_ATOMICITY",
+      "description": "Process killed via SIGKILL during staging write does not leak corrupted scenes to published directory",
+      "result": "PASS"
+    },
+    {
+      "test": "STALE_FENCE_REJECTION",
+      "description": "Publish attempt with stale fence token or cancelled status is rejected and staging directory is purged",
+      "result": "PASS"
+    },
+    {
+      "test": "MISSING_SOURCE_HANDLING",
+      "description": "Job with empty or missing buffer transitions to failed status immediately without hanging in running state",
+      "result": "PASS"
+    },
+    {
+      "test": "UNOBSERVED_JOB_CANCELLATION",
+      "description": "Deleting sole view session cancels job and increments fence token; multi-observer jobs stay running until last observer leaves",
+      "result": "PASS"
+    },
+    {
+      "test": "SOURCE_REVISION_MISMATCH",
+      "description": "Returns HTTP 409 SOURCE_REVISION_CHANGED when expectedSourceVersionKey does not match authoritative revision",
+      "result": "PASS"
+    },
+    {
+      "test": "SSRF_PREVENTION",
+      "description": "Rejects arbitrary client-supplied accessUrl targeting metadata services, localhost, or foreign hosts",
+      "result": "PASS"
+    },
+    {
+      "test": "PATH_TRAVERSAL_SANITIZATION",
+      "description": "isValidCadV2StorageId rejects directory traversal attempts (dot-dot, slashes, null bytes) across all endpoints",
+      "result": "PASS"
+    },
+    {
+      "test": "VIEW_SESSION_180S_TTL",
+      "description": "Enforces 180s TTL contract; expired sessions return HTTP 410 VIEW_SESSION_EXPIRED; DELETE returns 204",
+      "result": "PASS"
+    },
+    {
+      "test": "SHARE_TOKEN_AUTH_BOUNDARIES",
+      "description": "Enforces 401 unauthenticated, 403 forbidden, and 410 expired/revoked share token access controls",
+      "result": "PASS"
+    }
+  ],
+  "summary": {
+    "allLocalSuitesPassed": true,
+    "multiprocessSuitesPassed": true,
+    "securityGuardsEnforced": true
+  }
+}

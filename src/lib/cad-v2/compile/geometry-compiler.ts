@@ -31,6 +31,7 @@ import {
   tessellatePolylineWithWidth,
   type PolylineVertexWidth,
 } from "../render/cad-stroke";
+import { buildHatchPatternSegments, type HatchPatternGeometryResult, type HatchPatternSegment } from "./hatch-pattern-geometry";
 
 export interface CompiledLineSegment {
   x0: number;
@@ -122,6 +123,84 @@ export function worldCurveErrorFromScreen(
 }
 
 const MAX_CURVE_TESSELLATION_SEGMENTS = 1_000_000;
+
+type HatchBoundaryValidation = { valid: true } | { valid: false; reason: "invalid" | "limit" };
+const MAX_HATCH_BOUNDARY_VALIDATION_VERTICES = 16_384;
+const MAX_HATCH_BOUNDARY_VALIDATION_COMPARISONS = 500_000;
+
+function validateSimpleHatchBoundary(ring: readonly CadPoint2D[]): HatchBoundaryValidation {
+  if (ring.length < 3 || ring.length > MAX_HATCH_BOUNDARY_VALIDATION_VERTICES ||
+      ring.some((point) => !Number.isFinite(point[0]) || !Number.isFinite(point[1]))) {
+    return { valid: false, reason: ring.length > MAX_HATCH_BOUNDARY_VALIDATION_VERTICES ? "limit" : "invalid" };
+  }
+
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const point of ring) {
+    minX = Math.min(minX, point[0]); maxX = Math.max(maxX, point[0]);
+    minY = Math.min(minY, point[1]); maxY = Math.max(maxY, point[1]);
+  }
+  const scale = Math.max(maxX - minX, maxY - minY);
+  const coordinateTolerance = scale * Number.EPSILON * 64;
+  const crossTolerance = scale * scale * Number.EPSILON * 64;
+  if (!Number.isFinite(scale) || scale <= 0 || !Number.isFinite(coordinateTolerance) || !Number.isFinite(crossTolerance)) {
+    return { valid: false, reason: "invalid" };
+  }
+
+  const anchor = ring[0]!;
+  let twiceArea = 0;
+  for (let index = 0; index < ring.length; index++) {
+    const current = ring[index]!;
+    const next = ring[(index + 1) % ring.length]!;
+    if (Math.hypot(next[0] - current[0], next[1] - current[1]) <= coordinateTolerance) {
+      return { valid: false, reason: "invalid" };
+    }
+    twiceArea += (current[0] - anchor[0]) * (next[1] - anchor[1]) -
+      (next[0] - anchor[0]) * (current[1] - anchor[1]);
+  }
+  if (!Number.isFinite(twiceArea) || Math.abs(twiceArea) <= crossTolerance) {
+    return { valid: false, reason: "invalid" };
+  }
+
+  const orientation = (a: CadPoint2D, b: CadPoint2D, c: CadPoint2D): number =>
+    (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+  const onSegment = (a: CadPoint2D, b: CadPoint2D, p: CadPoint2D): boolean =>
+    p[0] >= Math.min(a[0], b[0]) - coordinateTolerance && p[0] <= Math.max(a[0], b[0]) + coordinateTolerance &&
+    p[1] >= Math.min(a[1], b[1]) - coordinateTolerance && p[1] <= Math.max(a[1], b[1]) + coordinateTolerance;
+  const intersects = (a: CadPoint2D, b: CadPoint2D, c: CadPoint2D, d: CadPoint2D): boolean => {
+    if (Math.max(a[0], b[0]) + coordinateTolerance < Math.min(c[0], d[0]) ||
+        Math.max(c[0], d[0]) + coordinateTolerance < Math.min(a[0], b[0]) ||
+        Math.max(a[1], b[1]) + coordinateTolerance < Math.min(c[1], d[1]) ||
+        Math.max(c[1], d[1]) + coordinateTolerance < Math.min(a[1], b[1])) return false;
+    const o1 = orientation(a, b, c), o2 = orientation(a, b, d);
+    const o3 = orientation(c, d, a), o4 = orientation(c, d, b);
+    if (((o1 > crossTolerance && o2 < -crossTolerance) || (o1 < -crossTolerance && o2 > crossTolerance)) &&
+        ((o3 > crossTolerance && o4 < -crossTolerance) || (o3 < -crossTolerance && o4 > crossTolerance))) return true;
+    return (Math.abs(o1) <= crossTolerance && onSegment(a, b, c)) ||
+      (Math.abs(o2) <= crossTolerance && onSegment(a, b, d)) ||
+      (Math.abs(o3) <= crossTolerance && onSegment(c, d, a)) ||
+      (Math.abs(o4) <= crossTolerance && onSegment(c, d, b));
+  };
+
+  const segments = ring.map((start, index) => {
+    const end = ring[(index + 1) % ring.length]!;
+    return { index, start, end, minX: Math.min(start[0], end[0]), maxX: Math.max(start[0], end[0]),
+      minY: Math.min(start[1], end[1]), maxY: Math.max(start[1], end[1]) };
+  }).sort((a, b) => a.minX - b.minX);
+  let active: typeof segments = [];
+  let comparisons = 0;
+  for (const segment of segments) {
+    active = active.filter((candidate) => candidate.maxX + coordinateTolerance >= segment.minX);
+    for (const candidate of active) {
+      if (++comparisons > MAX_HATCH_BOUNDARY_VALIDATION_COMPARISONS) return { valid: false, reason: "limit" };
+      if (candidate.index === segment.index || (candidate.index + 1) % ring.length === segment.index ||
+          (segment.index + 1) % ring.length === candidate.index) continue;
+      if (candidate.maxY + coordinateTolerance < segment.minY || segment.maxY + coordinateTolerance < candidate.minY) continue;
+      if (intersects(candidate.start, candidate.end, segment.start, segment.end)) return { valid: false, reason: "invalid" };
+    }
+    active.push(segment);
+  }
+  return { valid: true };
+}
 
 function boundedSegmentLimit(maxSegments: number): number {
   return Number.isFinite(maxSegments)
@@ -314,7 +393,7 @@ export class GeometryCompiler {
     );
   }
 
-  private static getBulgeArcParameters(
+  public static getBulgeArcParameters(
     p1: CadPoint2D,
     p2: CadPoint2D,
     bulge: number,
@@ -782,11 +861,17 @@ export class GeometryCompiler {
     boundaryLines: CompiledLineSegment[];
     refinementLimitReached: boolean;
     invalidCurveGeometry: boolean;
+    invalidBoundaryGeometry: boolean;
+    boundaryValidationLimitReached: boolean;
     maxBoundaryTessellationErrorWorld: number;
+    patternSegments?: HatchPatternSegment[];
+    patternStatus?: HatchPatternGeometryResult["status"];
   } {
     const boundaryLines: CompiledLineSegment[] = [];
     let refinementLimitReached = false;
     let invalidCurveGeometry = false;
+    let invalidBoundaryGeometry = false;
+    let boundaryValidationLimitReached = false;
     let maxBoundaryTessellationErrorWorld = 0;
     const includeBoundaryError = (result: ArcTessellationResult): void => {
       if (Number.isFinite(result.maxSagittaWorld)) {
@@ -795,7 +880,8 @@ export class GeometryCompiler {
       if (!result.errorBoundMet) refinementLimitReached = true;
     };
     if (!hatch.loops || hatch.loops.length === 0) {
-      return { mesh: null, boundaryLines, refinementLimitReached, invalidCurveGeometry, maxBoundaryTessellationErrorWorld };
+      return { mesh: null, boundaryLines, refinementLimitReached, invalidCurveGeometry, invalidBoundaryGeometry,
+        boundaryValidationLimitReached, maxBoundaryTessellationErrorWorld };
     }
 
     // 1. Her döngüyü düz 2D nokta poligonuna çevir (bulge, arc, ellipse, spline desteği)
@@ -965,7 +1051,8 @@ export class GeometryCompiler {
       }
 
       // Eksik/uydurulmuş bir halka üretmemek için geçersiz spline içeren HATCH'i fail-closed tut.
-      if (invalidCurveGeometry) return { mesh: null, boundaryLines: [], refinementLimitReached, invalidCurveGeometry, maxBoundaryTessellationErrorWorld };
+      if (invalidCurveGeometry) return { mesh: null, boundaryLines: [], refinementLimitReached, invalidCurveGeometry,
+        invalidBoundaryGeometry, boundaryValidationLimitReached, maxBoundaryTessellationErrorWorld };
 
       // Halka kapalıysa son tekrarlanan noktayı çıkar
       if (ring.length > 2) {
@@ -978,15 +1065,31 @@ export class GeometryCompiler {
         }
       }
 
-      if (ring.length >= 3) {
-        polygonRings.push(ring);
-        polygonCurveSources.push(ringCurveSources);
-        polygonCurveErrors.push(ringCurveErrors);
+      if (ring.some((point) => !Number.isFinite(point[0]) || !Number.isFinite(point[1]))) {
+        return { mesh: null, boundaryLines: [], refinementLimitReached, invalidCurveGeometry, invalidBoundaryGeometry: true,
+          boundaryValidationLimitReached, maxBoundaryTessellationErrorWorld };
       }
+      if (ring.length < 3) {
+        invalidBoundaryGeometry = true;
+        continue;
+      }
+      const validation = validateSimpleHatchBoundary(ring);
+      if (validation.valid === false) {
+        invalidBoundaryGeometry = true;
+        if (validation.reason === "limit") boundaryValidationLimitReached = true;
+        if (ring.length > MAX_HATCH_BOUNDARY_VALIDATION_VERTICES) {
+          return { mesh: null, boundaryLines: [], refinementLimitReached, invalidCurveGeometry, invalidBoundaryGeometry,
+            boundaryValidationLimitReached, maxBoundaryTessellationErrorWorld };
+        }
+      }
+      polygonRings.push(ring);
+      polygonCurveSources.push(ringCurveSources);
+      polygonCurveErrors.push(ringCurveErrors);
     }
 
     if (polygonRings.length === 0) {
-      return { mesh: null, boundaryLines, refinementLimitReached, invalidCurveGeometry, maxBoundaryTessellationErrorWorld };
+      return { mesh: null, boundaryLines, refinementLimitReached, invalidCurveGeometry, invalidBoundaryGeometry,
+        boundaryValidationLimitReached, maxBoundaryTessellationErrorWorld };
     }
 
     // Döngü alanlarını hesapla (Shoelace formülü)
@@ -1031,6 +1134,11 @@ export class GeometryCompiler {
           ...(Number.isFinite(curveErrors[i]) ? { hatchBoundaryTessellationErrorWorld: curveErrors[i] } : {}),
         });
       }
+    }
+
+    if (invalidBoundaryGeometry) {
+      return { mesh: null, boundaryLines, refinementLimitReached, invalidCurveGeometry, invalidBoundaryGeometry,
+        boundaryValidationLimitReached, maxBoundaryTessellationErrorWorld };
     }
 
     // 2. Yuvalanma derinliklerini (nesting depth) ve doğrudan ebeveynleri hesapla
@@ -1130,7 +1238,8 @@ export class GeometryCompiler {
     }
 
     if (allTriangleCoords.length === 0) {
-      return { mesh: null, boundaryLines, refinementLimitReached, invalidCurveGeometry, maxBoundaryTessellationErrorWorld };
+      return { mesh: null, boundaryLines, refinementLimitReached, invalidCurveGeometry, invalidBoundaryGeometry,
+        boundaryValidationLimitReached, maxBoundaryTessellationErrorWorld };
     }
 
     const meshVerts = new Float64Array(allTriangleCoords);
@@ -1141,7 +1250,12 @@ export class GeometryCompiler {
       alpha: 1,
     };
 
-    return { mesh, boundaryLines, refinementLimitReached, invalidCurveGeometry, maxBoundaryTessellationErrorWorld };
+    const isPatternFill = hatch.isSolid !== true && hatch.solidFill !== true;
+    const pattern = isPatternFill ? buildHatchPatternSegments(hatch, polygonRings) : undefined;
+
+    return { mesh, boundaryLines, refinementLimitReached, invalidCurveGeometry, invalidBoundaryGeometry,
+      boundaryValidationLimitReached, maxBoundaryTessellationErrorWorld,
+      ...(pattern ? { patternSegments: pattern.segments, patternStatus: pattern.status } : {}) };
   }
 
   /**

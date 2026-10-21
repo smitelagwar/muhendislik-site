@@ -1,0 +1,115 @@
+; L06 evidence lane. Open a disposable, read-only copy before running.
+; This routine reads tables/entities and writes a text census under %TEMP%.
+; It does not save, audit, purge, explode, convert, or mutate the drawing.
+
+(defun l06:value-string (value)
+  (cond
+    ((null value) "")
+    ((= (type value) 'STR) value)
+    ((= (type value) 'INT) (itoa value))
+    ((= (type value) 'REAL) (rtos value 2 8))
+    ((listp value)
+      (strcat
+        (l06:value-string (car value))
+        (if (cdr value) (strcat "," (l06:value-string (cadr value))) "")
+        (if (cddr value) (strcat "," (l06:value-string (caddr value))) "")
+      )
+    )
+    (T "")
+  )
+)
+
+(defun l06:write-var (file key)
+  (write-line (strcat "SYSVAR\t" key "\t" (l06:value-string (getvar key))) file)
+)
+
+(defun l06:increment (key counts / item)
+  (if (setq item (assoc key counts))
+    (subst (cons key (1+ (cdr item))) item counts)
+    (cons (cons key 1) counts)
+  )
+)
+
+(defun c:L06ORACLE (/ tempPath reportPath report ss index entity data entityType handle layout owner key counts row)
+  (setq tempPath (getenv "TEMP"))
+  (if (not tempPath)
+    (princ "\nL06: TEMP is not configured; no report written.")
+    (progn
+      (setq reportPath
+        (strcat tempPath "\\cad-l06-" (getvar "DWGNAME") "-" (rtos (getvar "DATE") 2 8) ".tsv")
+      )
+      (setq report (open reportPath "w"))
+      (if (not report)
+        (princ "\nL06: could not open a TEMP report file; no drawing changes made.")
+        (progn
+          (write-line "CAD_V2_AUTOCAD_LT_READONLY_INVENTORY_V1" report)
+          (l06:write-var report "DWGNAME")
+          (l06:write-var report "DWGPREFIX")
+          (l06:write-var report "ACADVER")
+          (l06:write-var report "DWGCODEPAGE")
+          (l06:write-var report "INSUNITS")
+          (l06:write-var report "MEASUREMENT")
+          (l06:write-var report "CTAB")
+          (l06:write-var report "UCSNAME")
+          (l06:write-var report "UCSORG")
+          (l06:write-var report "UCSXDIR")
+          (l06:write-var report "UCSYDIR")
+          (l06:write-var report "EXTMIN")
+          (l06:write-var report "EXTMAX")
+          (l06:write-var report "VIEWCTR")
+          (l06:write-var report "VIEWSIZE")
+          (l06:write-var report "LTSCALE")
+          (l06:write-var report "CELTSCALE")
+          (l06:write-var report "MSLTSCALE")
+          (l06:write-var report "PSLTSCALE")
+          (l06:write-var report "LWDISPLAY")
+          (write-line "STYLE\tname\tfont\tbigfont" report)
+          (setq row (tblnext "STYLE" T))
+          (while row
+            (write-line
+              (strcat "STYLE\t" (l06:value-string (cdr (assoc 2 row))) "\t"
+                (l06:value-string (cdr (assoc 3 row))) "\t" (l06:value-string (cdr (assoc 4 row))))
+              report
+            )
+            (setq row (tblnext "STYLE"))
+          )
+          (write-line "LTYPE\tname\tdescription\tpattern-length" report)
+          (setq row (tblnext "LTYPE" T))
+          (while row
+            (write-line
+              (strcat "LTYPE\t" (l06:value-string (cdr (assoc 2 row))) "\t"
+                (l06:value-string (cdr (assoc 3 row))) "\t" (l06:value-string (cdr (assoc 40 row))))
+              report
+            )
+            (setq row (tblnext "LTYPE"))
+          )
+          (setq ss (ssget "_X"))
+          (setq counts nil index 0)
+          (if ss
+            (repeat (sslength ss)
+              (setq entity (ssname ss index))
+              (setq data (entget entity))
+              (setq entityType (l06:value-string (cdr (assoc 0 data))))
+              (setq handle (l06:value-string (cdr (assoc 5 data))))
+              (setq layout (l06:value-string (cdr (assoc 410 data))))
+              (if (= layout "") (setq layout "<no-410-layout>"))
+              (setq owner (l06:value-string (cdr (assoc 330 data))))
+              (setq key (strcat layout "\t" entityType))
+              (setq counts (l06:increment key counts))
+              (write-line (strcat "ENTITY\t" entityType "\t" handle "\t" layout "\t" owner) report)
+              (setq index (1+ index))
+            )
+          )
+          (write-line "TYPE_COUNT\tlayout\ttype\tcount" report)
+          (foreach item counts
+            (write-line (strcat "TYPE_COUNT\t" (car item) "\t" (itoa (cdr item))) report)
+          )
+          (write-line (strcat "SELECTABLE_ENTITY_COUNT\t" (itoa (if ss (sslength ss) 0))) report)
+          (close report)
+          (princ (strcat "\nL06 read-only census written under TEMP: " reportPath))
+        )
+      )
+    )
+  )
+  (princ)
+)

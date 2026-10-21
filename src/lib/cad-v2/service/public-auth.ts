@@ -16,6 +16,16 @@ export interface PublicShareAuthResult {
   fileIds?: string[];
 }
 
+export function isSameOriginPublicMutation(request: Request): boolean {
+  const origin = request.headers.get("origin");
+  if (!origin) return true;
+  try {
+    return new URL(origin).origin === new URL(request.url).origin;
+  } catch {
+    return false;
+  }
+}
+
 export async function verifyPublicShareAccess(
   token: string,
   targetFileId?: string

@@ -1,0 +1,209 @@
+{
+  "plan": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\PLAN\\DWG_DXF_MOTOR_V2_GPT_6_LUNA_EXTRA_HIGH_PLANI.md",
+  "stage": "L11",
+  "recordedAt": "2026-10-18",
+  "status": "PARTIAL_OPEN",
+  "candidate": {
+    "branch": "codex/srdr-dwg-motor-v2-fidelity",
+    "head": "4b51ebe6b1470c6a247e03158dfe4b5359621c97",
+    "compiler": "cad-v2-compiler-2026.09-v71",
+    "pipeline": "fidelity-v3-p08",
+    "isolatedNextBuild": ".test-data/l11-hardware/next-prod-p00-l11-20261018-v15",
+    "gitTreeState": "Dirty shared candidate checkout preserved; no reset, stash, commit, push, deployment, or default-engine change."
+  },
+  "implementation": {
+    "viewportAdmission": "Added deterministic greedy marginal 20x20 viewport-bbox-cell coverage per estimated byte, with center-distance and chunk-ID tie breaks; offscreen chunks follow viewport candidates. Missing bbox is conservative. The score is a scheduling heuristic, not semantic ROI, fidelity, or AutoCAD parity.",
+    "hostIntegration": "CAD V2 host uses this order for its bounded pending queue and retry gate when a camera viewport bbox is available. Manifest order remains the fallback when no bbox is available. CPU/GPU budgets and V1 fallback were not changed.",
+    "tests": [
+      "Test-first regression initially failed because prioritizeChunksByViewportCoverage was absent; after implementation the focused scheduler suite passed.",
+      "Determinism under reversed input, no input mutation, offscreen ordering, zero-byte/equal-coverage tie, cheaper zero-marginal tie, and degenerate viewport/bbox cases passed.",
+      "Host lifecycle cancellation suite passed."
+    ]
+  },
+  "verification": {
+    "cadV2Unit": {
+      "command": "npm run check:cad-v2:unit",
+      "exitCode": 0,
+      "result": "PASS on the final candidate code."
+    },
+    "typescript": {
+      "command": "npx tsc -p tsconfig.next.json --noEmit --incremental false",
+      "exitCode": 0,
+      "result": "PASS after the host/P00 changes."
+    },
+    "nextProductionBuild": {
+      "command": "npx next build --webpack",
+      "exitCode": 0,
+      "result": "PASS in the isolated v16 Next output directory."
+    },
+    "p00ReleaseSpecTypecheck": {
+      "command": "npx tsc --noEmit --skipLibCheck --target ES2022 --module ESNext --moduleResolution bundler --types node,@playwright/test tests/document-studio/cad-v2-p00-baseline.spec.ts",
+      "exitCode": 0,
+      "result": "PASS after resolving the existing WebGL canvas union, Chrome GPUDevice optional field, and HATCH validator discriminant diagnostics."
+    },
+    "p00PlaywrightList": {
+      "command": "npx playwright test tests/document-studio/cad-v2-p00-baseline.spec.ts --list",
+      "exitCode": 0,
+      "result": "PASS; one Chromium test discovered."
+    },
+    "browserP00": {
+      "command": "NEXT_DIST_DIR=.test-data/l11-hardware/next-prod-p00-l11-20261018-v16 PLAYWRIGHT_PORT=3220 PLAYWRIGHT_PRODUCTION_SERVER=1 CAD_V2_L11_BROWSER_RELEASE_BENCHMARK=1 CAD_V2_L11_BROWSER_RELEASE_REPEAT_COUNT=30 npx playwright test tests/document-studio/cad-v2-p00-baseline.spec.ts",
+      "exitCode": 0,
+      "result": "PASS; full P00 scenario and release benchmark both completed, 1 passed in 13.0 minutes.",
+      "runLog": ".test-data/l11-hardware/p00-l11-release-30x2-frame-input-20261018-v4.log",
+      "timeoutRecovery": "The preceding v3 attempt produced the release metrics but exceeded its 720000 ms Playwright test timeout before teardown/final assertions. Release repeats now use a bounded 1500000 ms test timeout; thresholds and sample counts are unchanged. Only the subsequent v4 exit-0 run counts as full P00 PASS.",
+      "hardware": {
+        "backend": "Chrome ANGLE D3D11",
+        "gpu": "NVIDIA GeForce RTX 4060",
+        "driver": "32.0.16.1742"
+      }
+    },
+    "compositorPresentedFrameProbe": {
+      "status": "NOT_RUN",
+      "attempts": [
+        "Browser-level CDP Page.startScreencast returned protocol error: method not found; no frame evidence was produced.",
+        "Page-target CDP screencast started, but the P00 run then lacked window.__cadP00.hostResourceEvents at its first host sample. No compositor measurement was accepted; experimental test changes were reverted."
+      ],
+      "conclusion": "First non-empty compositor-presented frame latency remains unmeasured. Existing first accepted-draw WebGL readback is empty in 30/30 cold and 30/30 warm repeats and remains diagnostic only."
+    },
+    "scopedDiffCheck": {
+      "exitCode": 0,
+      "files": [
+        "playwright.config.ts",
+        "src/components/dokumantasyon/cad-v2/cad-v2-host-shell.tsx",
+        "src/lib/cad-v2/compile/geometry-compiler.ts",
+        "src/lib/cad-v2/cache/chunk-spatial-scheduler.ts",
+        "tests/cad-v2/chunk-scheduler-cache.test.ts",
+        "tests/document-studio/cad-test-helpers.ts",
+        "tests/document-studio/cad-v2-p00-baseline.spec.ts"
+      ]
+    },
+    "candidateWideDiffCheck": "Exit 1 from trailing-whitespace diagnostics across the already-dirty broad candidate tree; the scoped files listed above pass. No bulk whitespace rewrite was attempted."
+  },
+  "sourceAndScene": {
+    "sourceId": "R001",
+    "sourceBytes": 3444087,
+    "sourceSha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086",
+    "decode": "LibreDWG error 68 is emitted; this is not clean-decode acceptance.",
+    "autoCadOracle": "NOT_RUN",
+    "sceneId": "scene_fc007e37326a865c96fa19eb",
+    "chunkCount": 286,
+    "totalChunkBytes": 97781856,
+    "manifestSha256": "4a1d1c6a215ef45502fbc9ac43f1abf78a1b5295df389dfb9f92d4675ff059f8",
+    "compiledSceneSha256": "b7cd020e559f8fee57ab028f06c887578444573041b910c1d4de2f47ba2e9b7e"
+  },
+  "releaseSourceCorpus": [
+    { "id": "R001", "format": "DWG", "path": "eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg", "bytes": 3444087, "sha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086", "browserRelease": "30 cold + 30 warm repeats completed" },
+    { "id": "R002", "format": "DWG", "path": "eklediklerim/ornek_dosyalar/kiris_acilimlari_tum_katlar.dwg", "bytes": 2139550, "sha256": "9a59ff9e5496e2a3c62b378f062e5f0f3cfa707b9bd4b5a0bf6749cd8bf52459", "browserRelease": "NOT_RUN; current file matches the cold-release source SHA" },
+    { "id": "R003", "format": "DWG", "path": "eklediklerim/ornek_dosyalar/MUSTAFA SELVİ 1.KISIM STATİK.dwg", "bytes": 16084252, "sha256": "8ff5680fa4f9d570fed738def92bc6ca8149fde1b5aed9e0a495dd2baaf521e6", "browserRelease": "NOT_RUN; current file matches the cold-release source SHA" },
+    { "id": "R004", "format": "DXF", "path": "eklediklerim/ornek_dosyalar/SÜHEYLA KARA STATİK (HAFİF).dxf", "bytes": 55259742, "sha256": "36f87f826fe4dd9a8f03f8c83bafeeddfc84f1e0efada5c0fded8014a2ef7cf1", "browserRelease": "NOT_RUN; current file matches the cold-release source SHA" }
+  ],
+  "browserReleaseBenchmark": {
+    "result": "PASS for the measured R001 remount, settled-visible-scene, and interaction conditions on RTX 4060/D3D11 only.",
+    "repeatCountPerCondition": 30,
+    "conditions": {
+      "coldHostOpen": {
+        "p50SettledMs": 2596.4711,
+        "p95SettledMs": 3673.4917,
+        "maxSettledMs": 3857.6845,
+        "nonEmptyRasterRepeats": 30,
+        "interactionFrameIntervals": { "sampleCount": 998, "p50Ms": 16.666, "p95Ms": 16.68, "maxMs": 16.734 },
+        "perRunFrameP95": { "p50Ms": 16.672, "p95Ms": 16.702, "maxMs": 16.702, "runsAbove20Ms": 0 },
+        "interactionInputToDraw": { "sampleCount": 60, "p50Ms": 12.9, "p95Ms": 14.7, "maxMs": 15.5 },
+        "perRunInputP95": { "p50Ms": 14, "p95Ms": 15.3, "maxMs": 15.5, "runsAbove100Ms": 0 },
+        "callbackP95PerRun": { "p50Ms": 2.6, "p95Ms": 4.1, "maxMs": 4.1 },
+        "longTasks": { "count": 0, "maxMs": 0 },
+        "firstAcceptedDrawReadback": { "nonEmptyRepeats": 0, "medianAcceptedToReadbackMs": 21.7 },
+        "interactionLoadsTerminal": true
+      },
+      "warmHostReopen": {
+        "p50SettledMs": 2651.3171,
+        "p95SettledMs": 3710.0561,
+        "maxSettledMs": 4044.7103,
+        "nonEmptyRasterRepeats": 30,
+        "interactionFrameIntervals": { "sampleCount": 989, "p50Ms": 16.666, "p95Ms": 16.672, "maxMs": 33.332 },
+        "perRunFrameP95": { "p50Ms": 16.674, "p95Ms": 16.7, "maxMs": 16.702, "runsAbove20Ms": 0 },
+        "interactionInputToDraw": { "sampleCount": 60, "p50Ms": 13.3, "p95Ms": 14.7, "maxMs": 16.1 },
+        "perRunInputP95": { "p50Ms": 14, "p95Ms": 15.5, "maxMs": 16.1, "runsAbove100Ms": 0 },
+        "callbackP95PerRun": { "p50Ms": 2.7, "p95Ms": 5.2, "maxMs": 5.9 },
+        "longTasks": { "count": 0, "maxMs": 0 },
+        "firstAcceptedDrawReadback": { "nonEmptyRepeats": 0, "medianAcceptedToReadbackMs": 21.6 },
+        "interactionLoadsTerminal": true
+      }
+    },
+    "fetchedChunkSetAndCanvasRepeatable": true,
+    "fixtureMode": "R001 compiled once into an isolated in-memory route fixture. Each repeat remounts a fresh host, verifies non-empty settled raster, measures zoom-in/out inputs and a 60-event alternating wheel-zoom interaction, then waits for interaction requests to settle. Settled-visible timing is not cold source-fetch/compile. The first accepted-draw readback was empty in all repeats and is not first-meaningful-frame evidence.",
+    "r001DesktopInteractionRepeatability": "PASS for this measured RTX 4060/D3D11 release condition: all 30 cold and 30 warm per-run frame interval p95s were <=20 ms; all per-run input-to-next-WebGL-draw p95s were <=100 ms. This does not erase the historical 24.2 ms P00 outlier or establish other source/device conditions."
+  },
+  "existingSourcePreparationReleaseEvidence": {
+    "reportPath": "motor_v2/evidence/fidelity-v3/L11/cold-release-l11-cold-2026-10-18T03-19-12-831Z-8924.json",
+    "status": "COMPLETE",
+    "sampleCountPerFile": 30,
+    "files": [
+      { "id": "R001", "format": "DWG", "p95ColdPrepareMs": 10496.605 },
+      { "id": "R002", "format": "DWG", "p95ColdPrepareMs": 12456.31 },
+      { "id": "R003", "format": "DWG", "p95ColdPrepareMs": 109752.407 },
+      { "id": "R004", "format": "DXF", "p95ColdPrepareMs": 86741.707 }
+    ],
+    "definition": "Fresh Node process and empty isolated storage; measures service.prepare and excludes child-process startup. This covers source preparation, not browser rendering, first meaningful frame, or mobile rendering."
+  },
+  "p00OneRunMetrics": {
+    "visibleChunks": 284,
+    "acceptedChunks": 251,
+    "gpuBudgetRejectedChunks": 33,
+    "cpuBudgetBytes": 67108864,
+    "peakAcceptedResidentCpuBytesEstimate": 57280060,
+    "peakAcceptedResidentGpuBytesEstimate": 66218272,
+    "peakRejectedCandidateGpuBytesEstimate": 67830576,
+    "degradedWarning": "Bellek bütçesi nedeniyle görünür alanda 33 parça atlandı. Çizim kısmi görüntülendi.",
+    "firstOpenSettledMs": 2479.9907,
+    "warmReopenSettledMs": 2103.0173,
+    "canvas": {
+      "size": "1440x852",
+      "foregroundPixels": 5277,
+      "occupiedCells20x20": 42,
+      "sha256": "38c430fd57e845714dff5a3c015728255cbbe2fd4675f3023bc84a45513530e4"
+    },
+    "interaction": {
+      "drawFrameIntervals": {
+        "sampleCount": 36,
+        "p50Ms": 16.666,
+        "p95Ms": 16.666,
+        "maxMs": 16.666
+      },
+      "drawCallbackP95Ms": 5.6,
+      "inputToNextWebGlDrawP95Ms": 16.1,
+      "longTasks": {
+        "count": 0,
+        "maxDurationMs": 0
+      }
+    },
+    "firstAcceptedContentDrawDiagnostic": {
+      "coldFirstAcceptedAtMs": 366.6,
+      "coldFirstWebGlDrawAfterAcceptedAtMs": 389.9,
+      "coldAcceptedToDrawMs": 23.3,
+      "warmFirstAcceptedAtMs": 367.2,
+      "warmFirstWebGlDrawAfterAcceptedAtMs": 386.1,
+      "warmAcceptedToDrawMs": 18.9,
+      "meaning": "WebGL draw-call timing only. It does not establish a non-empty compositor-presented first meaningful frame. Release readback was empty in 30/30 cold and 30/30 warm repeats."
+    },
+    "processSampling": {
+      "browserRendererAndGpuWorkingSets": "Per-process Windows working-set snapshots are recorded at open/reopen; they are not continuous process peaks or GPU VRAM residency.",
+      "compilerNodeRssAfterDecodeBytes": 429092864,
+      "compilerNodeRssAfterSceneCompileBytes": 1963802624,
+      "playwrightTestWorkerPeakWorkingSetBytesObserved": 13078835200,
+      "playwrightTestWorkerLimit": "Test-runner Node process only; not the product/browser process and not the CAD CPU/GPU budget.",
+      "limits": "No continuous browser-process peak/plateau or physical GPU allocation measurement."
+    }
+  },
+  "openAcceptance": [
+    "Source preparation already has 30 cold samples each for R001-R004, but this is a different condition from browser rendering. The browser host remount benchmark in this report covers R001 only; browser rendering repeats for the remaining planned file/conditions are not recorded here.",
+    "The viewport priority heuristic did not make all visible content fit the fixed 64 MiB GPU estimate: 33/284 chunks are omitted and the host correctly reports degraded partial content. No budget threshold was relaxed.",
+    "R001 RTX 4060/D3D11 frame-interval and input-to-draw repeatability passed 30 cold + 30 warm interaction repeats; this does not erase the historical 24.2 ms P00 outlier or establish other sources/devices. R002-R004 browser render release repeats remain unrecorded.",
+    "First meaningful compositor-presented frame latency remains unmeasured. First accepted-to-WebGL-draw timing is diagnostic only.",
+    "Physical heavy-phone frame p95 <=33 ms and continuous browser/GPU memory plateau are unmeasured because no physical test device/GPU residency trace is available.",
+    "Same-source AutoCAD oracle and clean R001 decode remain NOT_RUN/open; current R001 decode reports LibreDWG error 68.",
+    "The screenshot's FAIL-404 DXF source bytes/SHA, scrubbed HAR, and matching Vercel deployment/source-artifact digest remain external inputs already documented in DWG_PLAN_DURUMU.md."
+  ],
+  "nextWorkGroup": "Exercise the same browser release repeatability protocol on R002-R004 where their existing fixtures and GPU/memory limits permit; preserve explicit failures and stop only at a genuine resource or external-evidence boundary. Keep L11 OPEN until required file/condition, first-presented-frame, device, and native gates are evidenced."
+}

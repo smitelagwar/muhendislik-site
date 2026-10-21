@@ -155,7 +155,7 @@ async function testMissingBlockProducesDegraded() {
   console.log("  ✓ Eksik blok referansı -> degraded (MISSING_BLOCK_DEFINITION)");
 }
 
-async function testBlockTextLossDetected() {
+async function testBlockTextIsRenderedWithoutFalseLoss() {
   const doc = createCleanCanonicalDoc();
   doc.blocks["BLOCK_WITH_TEXT"] = {
     name: "BLOCK_WITH_TEXT",
@@ -189,17 +189,74 @@ async function testBlockTextLossDetected() {
     rotationRad: 0,
   });
 
-  const quality = evaluateDocumentQuality(doc);
-  assert.ok(
-    quality.diagnosticCodes.includes(CadDiagnosticCode.DROPPED_TEXT_IN_BLOCK),
-    "Blok içi metin tespit edilmeli ve DROPPED_TEXT_IN_BLOCK kodu üretilmelidir."
-  );
+  const compiled = compileCanonicalToScene(doc);
+  assert.ok(compiled.chunks.size > 0, "INSERT içindeki TEXT gerçek çizim geometrisine derlenmelidir.");
   assert.equal(
-    quality.qualityStatus,
-    "degraded",
-    "Blok içi metin kaybı riski varken exact olamaz."
+    compiled.manifest.qualityStatus,
+    "exact",
+    "Ortak entity visitor tarafından çizilen blok metni kayıp olarak işaretlenmemelidir."
   );
-  console.log("  ✓ Blok içi metin kaybı -> degraded (DROPPED_TEXT_IN_BLOCK)");
+  assert.ok(
+    !compiled.manifest.diagnosticsSummary.diagnosticCodes.includes(CadDiagnosticCode.DROPPED_TEXT_IN_BLOCK),
+    "DROPPED_TEXT_IN_BLOCK yalnız metin gerçekten atlandığında raporlanmalıdır."
+  );
+
+  doc.diagnostics.push({
+    id: "diag_explicit_block_text_loss",
+    code: CadDiagnosticCode.DROPPED_TEXT_IN_BLOCK,
+    severity: "warning",
+    message: "Decoder reported an actual block text omission.",
+  });
+  const explicitlyDegraded = compileCanonicalToScene(doc);
+  assert.equal(explicitlyDegraded.manifest.qualityStatus, "degraded",
+    "Decoder tarafından bildirilen gerçek blok metni kaybı exact olamaz.");
+
+  const missingFontDoc = createCleanCanonicalDoc();
+  missingFontDoc.textStyles.MISSING_BLOCK_FONT = {
+    id: "MISSING_BLOCK_FONT",
+    name: "MISSING_BLOCK_FONT",
+    fontFileName: "definitely-missing-l11-font.shx",
+    height: 0,
+    widthFactor: 1,
+    obliqueAngleDeg: 0,
+    isVertical: false,
+  };
+  missingFontDoc.blocks["BLOCK_WITH_MISSING_FONT"] = {
+    name: "BLOCK_WITH_MISSING_FONT",
+    basePoint: [0, 0],
+    entities: [{
+      handle: "BT_FONT",
+      type: "TEXT",
+      layer: "0",
+      visible: true,
+      order: BigInt(10),
+      text: "FONT PROBE",
+      insertionPoint: [5, 5],
+      height: 2.5,
+      rotationRad: 0,
+      widthFactor: 1,
+      obliqueRad: 0,
+      styleName: "MISSING_BLOCK_FONT",
+    }],
+  };
+  missingFontDoc.modelSpaceEntities.push({
+    handle: "I_FONT",
+    type: "INSERT",
+    layer: "0",
+    visible: true,
+    order: BigInt(11),
+    blockName: "BLOCK_WITH_MISSING_FONT",
+    insertionPoint: [30, 30],
+    scale: [1, 1, 1],
+    rotationRad: 0,
+  });
+  const missingFont = compileCanonicalToScene(missingFontDoc);
+  assert.ok(missingFont.chunks.size > 0, "Font fallback must preserve visible block glyph geometry.");
+  assert.equal(missingFont.manifest.qualityStatus, "degraded",
+    "A substituted font in block text must keep the scene honestly degraded.");
+  assert.ok(missingFont.manifest.diagnosticsSummary.diagnosticCodes.includes(CadDiagnosticCode.FONT_SUBSTITUTE_APPLIED),
+    "Font diagnostics from nested block entities must reach the scene manifest.");
+  console.log("  ✓ Render edilen blok metni exact; açık kayıp tanısı degraded");
 }
 
 async function testInvisibleBlockChildrenDetected() {
@@ -288,7 +345,7 @@ async function main() {
   await testCleanDocProducesExact();
   await testEmptyHatchProducesDegraded();
   await testMissingBlockProducesDegraded();
-  await testBlockTextLossDetected();
+  await testBlockTextIsRenderedWithoutFalseLoss();
   await testInvisibleBlockChildrenDetected();
   await testR001QualityAudit();
   console.log("✅ P01 Bütün testler başarıyla geçti.");

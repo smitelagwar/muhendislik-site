@@ -1,0 +1,320 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "candidate browser/compiler census; not an AutoCAD oracle",
+  "source": {
+    "id": "R004",
+    "path": "eklediklerim/ornek_dosyalar/SÜHEYLA KARA STATİK (HAFİF).dxf",
+    "format": "DXF",
+    "magic": "  0\nSE",
+    "bytes": 55259742,
+    "sha256": "36f87f826fe4dd9a8f03f8c83bafeeddfc84f1e0efada5c0fded8014a2ef7cf1"
+  },
+  "candidate": {
+    "compilerVersion": "cad-v2-compiler-2026.09-v71",
+    "pipelineVersion": "fidelity-v3-p08",
+    "renderAbi": "three172-cad2d-v2"
+  },
+  "runtime": {
+    "parseMs": 5984.7,
+    "compileMs": 73014.2
+  },
+  "canonical": {
+    "acadVersion": "[object Object]",
+    "codepage": "ANSI_1254",
+    "units": 5,
+    "measurement": 0,
+    "modelEntityCount": 132668,
+    "entityCountsByLayout": {
+      "Model": {
+        "ARC": 10293,
+        "CIRCLE": 18676,
+        "DIMENSION": 9,
+        "ELLIPSE": 20,
+        "HATCH": 984,
+        "INSERT": 13,
+        "LINE": 867,
+        "LWPOLYLINE": 73960,
+        "MTEXT": 16,
+        "TEXT": 27830
+      },
+      "Layout1": {},
+      "Layout2": {}
+    },
+    "layerCount": 69,
+    "blockDefinitionCount": 300,
+    "textStyles": [
+      {
+        "name": "Standard",
+        "fontFileName": "txt",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "arial_1_18",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "times new roman_1_18",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "symbol_1_18",
+        "fontFileName": "symbol.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "verdana_1_18",
+        "fontFileName": "verdana.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "calibri_1_18",
+        "fontFileName": "calibri.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "arialitalic_1_18",
+        "fontFileName": "ariali.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "mistral_1_18",
+        "fontFileName": "MISTRAL.TTF",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "symbolbold_1_18",
+        "fontFileName": "Symbol",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "symbolitalic_1_18",
+        "fontFileName": "Symbol",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "abadi mt condensed lightbold_1_18",
+        "fontFileName": "Abadi MT Condensed Light",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "MEKAN",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "MİMARİ YAZI",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "YAZI",
+        "fontFileName": "swisscl.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "ADNAN",
+        "fontFileName": "tahomabd.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "YENIBIÇIM3",
+        "fontFileName": "tahoma.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "STYLE1",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "AKS",
+        "fontFileName": "romant.shx",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "OLCU",
+        "fontFileName": "romant.shx",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "MAHAL 50",
+        "fontFileName": "ARIALN.TTF",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "BCC İÇ",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "BCC_İÇ",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "SANSSERIFBOLD",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "RomanSTA",
+        "fontFileName": "RomanSTA",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "Ölçü-Yazısı",
+        "fontFileName": "TROMANS.shx",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "ARIAL",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "stastyle",
+        "fontFileName": "RomanSTA",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      }
+    ],
+    "layouts": [
+      {
+        "id": "Model",
+        "name": "Model",
+        "isModelSpace": true,
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "viewportIds": []
+      },
+      {
+        "id": "Layout1",
+        "name": "Layout1",
+        "isModelSpace": false,
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "viewportIds": []
+      },
+      {
+        "id": "Layout2",
+        "name": "Layout2",
+        "isModelSpace": false,
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "viewportIds": []
+      }
+    ],
+    "viewports": [],
+    "diagnosticCountsBySeverityAndCode": {
+      "warning:UNRESOLVED_DIMENSION_SOURCE_GEOMETRY": 9,
+      "warning:UNSUPPORTED_DIMENSION_ENTITY_OVERRIDE": 5,
+      "warning:UNSUPPORTED_ENTITY_TYPE": 1
+    },
+    "resourceWarnings": {}
+  },
+  "compiled": {
+    "schemaVersion": 1,
+    "renderAbi": "three172-cad2d-v2",
+    "qualityStatus": "degraded",
+    "diagnosticsSummary": {
+      "unknownEntityCount": 1,
+      "unknownObjectCount": 0,
+      "missingFontCount": 3398,
+      "missingDependencyCount": 0,
+      "diagnosticCodes": [
+        "EMPTY_HATCH_LOOPS",
+        "DROPPED_TEXT_IN_BLOCK",
+        "UNSUPPORTED_ENTITY_TYPE",
+        "UNRESOLVED_DIMENSION_SOURCE_GEOMETRY",
+        "UNSUPPORTED_DIMENSION_ENTITY_OVERRIDE",
+        "FONT_SUBSTITUTE_APPLIED",
+        "NON_LINE_STROKE_SPATIAL_PARTITION_LIMIT_REACHED"
+      ]
+    },
+    "layouts": [
+      {
+        "layoutId": "Model",
+        "sourceName": "Model",
+        "kind": "model",
+        "bbox": [
+          -20628.635562148935,
+          -29434.977618301607,
+          207275.60196278497,
+          113057.90410493671
+        ],
+        "units": 5
+      },
+      {
+        "layoutId": "Layout1",
+        "sourceName": "Layout1",
+        "kind": "paper",
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "units": 5
+      },
+      {
+        "layoutId": "Layout2",
+        "sourceName": "Layout2",
+        "kind": "paper",
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "units": 5
+      }
+    ],
+    "chunkCount": 410,
+    "maximumChunkBytes": 1448792,
+    "totalChunkBytes": 438509088
+  },
+  "nativeOracle": {
+    "status": "NOT_RUN",
+    "reason": "AutoCAD LT GUI oracle is gated by acadlt.exe Authenticode HashMismatch; exact FAIL-404 source is also absent."
+  }
+}

@@ -17,88 +17,83 @@ import {
   type CurveRefinementResult,
   type CurveSourceRef,
 } from "../../lib/cad-v2/worker/curve-refinement";
+import {
+  refineRuntimeHatchFill,
+  type RuntimeHatchFillSource,
+  type RuntimeHatchFillRefinementOptions,
+} from "../../lib/cad-v2/worker/hatch-fill-refinement";
+import {
+  CAD_V2_REFINEMENT_CACHE_MISS_ERROR_PREFIX,
+  CAD_V2_REFINEMENT_SOURCE_CACHE_BUDGET_BYTES,
+} from "../../lib/cad-v2/worker/resource-budgets";
+import {
+  estimateCadV2PositionCodecMaxWorldError,
+  packCadV2PositionArray,
+  type CadV2PositionCodec,
+  type CadV2PositionArray,
+} from "../../lib/cad-v2/worker/position-compaction";
+import {
+  CAD_V2_OVERVIEW_MAX_COMBINED_ERROR_CSS_PIXELS,
+  compactCadV2OverviewLinework,
+} from "../../lib/cad-v2/worker/overview-linework-compaction";
 
 export interface HostToWorkerMessage {
   protocolVersion: 1;
   viewSessionId: string;
   generation: number;
   sourceVersionKey: string;
-  kind: "ping" | "load-chunk" | "refine-curves" | "cancel" | "dispose";
+  kind: "load-chunk" | "refine-curves" | "refine-hatches" | "cancel" | "dispose";
   payload?: {
     chunkId: string;
     chunkBuffer?: ArrayBuffer;
+    compactPositions?: boolean;
     requestId?: string;
     targetErrorCssPixels?: number;
     unitsPerCssPixel?: number;
     maxTransformSingularValue?: number;
     curveDataBuffer?: ArrayBuffer;
     curveSourceRefs?: CurveSourceRef[];
+    curveSourceRefsJson?: string;
     fallbackVertexCount?: number;
+    hatchSourceJson?: string;
+    maxCurveSegments?: number;
+    maxBoundaryElements?: number;
+    maxOutputTriangles?: number;
   };
 }
 
-interface WorkerToHostMessageBase {
+export interface WorkerToHostMessage {
   protocolVersion: 1;
   viewSessionId: string;
   generation: number;
   sourceVersionKey: string;
-}
-
-export type WorkerToHostMessage = WorkerToHostMessageBase & (
-  | { kind: "chunk"; payload: UnpackedSceneChunk }
-  | { kind: "refined-curves"; payload: { requestId: string; chunkId: string; result: CurveRefinementResult } }
-  | { kind: "error"; payload: { requestId?: string; error: string } }
-  | { kind: "ready"; payload: { pong: true } }
-  | { kind: "cancelled"; payload: { chunkId?: string } }
-  | { kind: "disposed"; payload: Record<string, never> }
-  | { kind: "progress" | "diagnostics"; payload: unknown }
-);
-
-export interface SceneDrawCommand {
-  kind: "line" | "triangle" | "wipeout";
-  layer: string;
-  color: [number, number, number];
-  firstVertex: number;
-  vertexCount: number;
-  order?: number;
-  globalOrderIndex?: number;
-  alpha?: number;
-  isAci7?: boolean;
-  lineweightMm?: number;
-  dashStyle?: { dashSize: number; gapSize: number };
-}
-
-export interface SceneLayerRun {
-  layer: string;
-  color: [number, number, number];
-  firstVertex: number;
-  vertexCount: number;
-  isAci7?: boolean;
-  alpha?: number;
-  lineweightMm?: number;
-}
-
-export interface UnpackedSceneChunkMetadata extends Record<string, unknown> {
-  layoutId?: string;
-  drawCommands?: SceneDrawCommand[];
-  layerRuns?: SceneLayerRun[];
-  curveSourceRefs?: CurveSourceRef[];
+  kind: "chunk" | "refined-curves" | "refined-hatches" | "progress" | "diagnostics" | "ready" | "error" | "cancelled" | "disposed";
+  payload: any;
 }
 
 export interface UnpackedSceneChunk {
   chunkId: string;
   origin: [number, number];
-  xyArray: Float32Array;
+  xyArray: CadV2PositionArray;
+  positionCodec?: CadV2PositionCodec;
   drawRunsArray: Uint32Array | null;
   trianglesArray?: Float32Array | null;
   pathDistancesArray?: Float32Array | null;
   curveDataArray?: Float32Array | null;
-  meta: UnpackedSceneChunkMetadata | null;
+  meta: Record<string, any> | null;
   vertexCount: number;
+  overviewLod?: {
+    unitsPerCssPixel: number;
+    collapsedSegmentCount: number;
+    retainedSegmentCount: number;
+    representativePointCount: number;
+    maxCenterlineDeviationCssPixels: number;
+  };
+  /** Worker-to-host bookkeeping; WorkerClient removes this before renderer admission. */
+  workerRefinementSourceCache?: { retained: boolean; evictedChunkIds: string[] };
 }
 
 const MAX_DECODED_ALLOCATION_BYTES = 8 * 1024 * 1024; // 8 MiB (Plan D08, D13)
-const MAX_REFINEMENT_SOURCE_CACHE_BYTES = 8 * 1024 * 1024;
 const refinementSourceCache = new Map<string, { curveData: Float32Array; curveSourceRefsJson: string; vertexCount: number; byteLength: number }>();
 const activeWorkerSessions = new Map<string, { generation: number; sourceVersionKey: string }>();
 let refinementSourceCacheBytes = 0;
@@ -107,9 +102,16 @@ function sourceCacheKey(viewSessionId: string, sourceVersionKey: string, chunkId
   return `${viewSessionId}\u0000${sourceVersionKey}\u0000${chunkId}`;
 }
 
-function retainRefinementSources(viewSessionId: string, sourceVersionKey: string, chunk: UnpackedSceneChunk): void {
+function retainRefinementSources(
+  viewSessionId: string,
+  sourceVersionKey: string,
+  chunk: UnpackedSceneChunk,
+): { retained: boolean; evictedChunkIds: string[] } {
+  const evictedChunkIds: string[] = [];
   const refs = chunk.meta?.curveSourceRefs;
-  if (!chunk.curveDataArray || !Array.isArray(refs) || refs.length === 0) return;
+  if (!chunk.curveDataArray || !Array.isArray(refs) || refs.length === 0) {
+    return { retained: false, evictedChunkIds };
+  }
   const refsJson = JSON.stringify(refs);
   // Account for the JS UTF-16 string storage instead of retaining a large graph of per-ref objects.
   const byteLength = chunk.curveDataArray.byteLength + refsJson.length * 2;
@@ -119,13 +121,19 @@ function retainRefinementSources(viewSessionId: string, sourceVersionKey: string
     refinementSourceCacheBytes -= previous.byteLength;
     refinementSourceCache.delete(key);
   }
-  if (byteLength > MAX_REFINEMENT_SOURCE_CACHE_BYTES) return;
-  while (refinementSourceCacheBytes + byteLength > MAX_REFINEMENT_SOURCE_CACHE_BYTES) {
+  if (byteLength > CAD_V2_REFINEMENT_SOURCE_CACHE_BUDGET_BYTES) {
+    return { retained: false, evictedChunkIds };
+  }
+  const sessionPrefix = `${viewSessionId}\u0000${sourceVersionKey}\u0000`;
+  while (refinementSourceCacheBytes + byteLength > CAD_V2_REFINEMENT_SOURCE_CACHE_BUDGET_BYTES) {
     const oldestKey = refinementSourceCache.keys().next().value as string | undefined;
     if (!oldestKey) break;
     const oldest = refinementSourceCache.get(oldestKey)!;
     refinementSourceCacheBytes -= oldest.byteLength;
     refinementSourceCache.delete(oldestKey);
+    if (oldestKey.startsWith(sessionPrefix)) {
+      evictedChunkIds.push(oldestKey.slice(sessionPrefix.length));
+    }
   }
   refinementSourceCache.set(key, {
     curveData: new Float32Array(chunk.curveDataArray),
@@ -134,6 +142,7 @@ function retainRefinementSources(viewSessionId: string, sourceVersionKey: string
     byteLength,
   });
   refinementSourceCacheBytes += byteLength;
+  return { retained: true, evictedChunkIds };
 }
 
 function clearSessionRefinementSources(viewSessionId: string): void {
@@ -148,13 +157,12 @@ function clearSessionRefinementSources(viewSessionId: string): void {
 /**
  * Manifest v1 şema doğrulaması
  */
-export function validateSceneManifest(manifest: unknown): boolean {
-  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) return false;
-  const record = manifest as Record<string, unknown>;
-  if (record.schemaVersion !== 1) return false;
-  if (typeof record.sceneId !== "string" || record.sceneId.length === 0) return false;
-  if (typeof record.sourceVersionKey !== "string" || typeof record.sourceSha256 !== "string") return false;
-  if (!Array.isArray(record.layouts) || record.layouts.length === 0) return false;
+export function validateSceneManifest(manifest: any): boolean {
+  if (!manifest || typeof manifest !== "object") return false;
+  if (manifest.schemaVersion !== 1) return false;
+  if (!manifest.sceneId || typeof manifest.sceneId !== "string") return false;
+  if (!manifest.sourceVersionKey || !manifest.sourceSha256) return false;
+  if (!Array.isArray(manifest.layouts) || manifest.layouts.length === 0) return false;
   return true;
 }
 
@@ -162,7 +170,11 @@ export function validateSceneManifest(manifest: unknown): boolean {
  * İkili sahne parçasını (DV2SCN01) doğrudan ayrıştırıp typed array'leri döner.
  * Hem Node testlerinde hem de Worker içinde çağrılabilir.
  */
-export function unpackSceneChunk(chunkId: string, buffer: ArrayBuffer | Uint8Array): UnpackedSceneChunk {
+export function unpackSceneChunk(
+  chunkId: string,
+  buffer: ArrayBuffer | Uint8Array,
+  options: { compactPositions?: boolean; overviewUnitsPerCssPixel?: number } = {},
+): UnpackedSceneChunk {
   if (buffer.byteLength > MAX_DECODED_ALLOCATION_BYTES) {
     throw new Error(`[SceneWorker] Parça boyutu izin verilen sınırı aşıyor: ${buffer.byteLength} > ${MAX_DECODED_ALLOCATION_BYTES}`);
   }
@@ -185,69 +197,147 @@ export function unpackSceneChunk(chunkId: string, buffer: ArrayBuffer | Uint8Arr
   if (!xySection || !(xySection.data instanceof Float32Array)) {
     throw new Error(`[SceneWorker] Parçada geçerli XY vertex verisi bulunamadı (chunkId: ${chunkId})`);
   }
-  const xyArray = xySection.data;
-  const vertexCount = xyArray.length / 2;
+  // Protocol sections are views into one transport buffer. Returning one of those views
+  // would keep every section (META, PATH_DISTANCE, CURVE_DATA, etc.) resident for as long
+  // as the renderer retains the vertex attribute. Copy each renderer/source-owned section
+  // into its own exact-size transferable buffer so unused payload can be collected.
+  const sourceXY = xySection.data as Float32Array;
 
-  // 3. DRAW_RUNS (Tag 9 - Uint32 draw run tanımları)
-  const runsSection = rawChunk.sections.get(SceneTag.DRAW_RUNS);
-  let drawRunsArray: Uint32Array | null = null;
-  if (runsSection && runsSection.data instanceof Uint32Array) {
-    drawRunsArray = runsSection.data;
-  }
-
-  // 4. META (Tag 1 - UTF-8 JSON)
+  // 3. META (Tag 1 - UTF-8 JSON)
   const metaSection = rawChunk.sections.get(SceneTag.META);
-  let meta: UnpackedSceneChunkMetadata | null = null;
+  let meta: Record<string, any> | null = null;
   if (metaSection && metaSection.data instanceof Uint8Array) {
     try {
       const jsonStr = new TextDecoder().decode(metaSection.data);
-      const parsed: unknown = JSON.parse(jsonStr);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        meta = parsed as UnpackedSceneChunkMetadata;
-      }
+      meta = JSON.parse(jsonStr);
     } catch {
       // Bozuk meta durumunda toleranslı ol
       meta = null;
     }
   }
 
+  let overview: ReturnType<typeof compactCadV2OverviewLinework> | null = null;
+  const overviewUnitsPerCssPixel = options.overviewUnitsPerCssPixel;
+  const hasScreenScale = Number.isFinite(overviewUnitsPerCssPixel) && (overviewUnitsPerCssPixel ?? 0) > 0;
+  const sourcePositionCodecErrorCssPixels = hasScreenScale
+    ? estimateCadV2PositionCodecMaxWorldError(sourceXY) / overviewUnitsPerCssPixel!
+    : 0;
+  const canPackPositionsWithinScreenBudget = !options.compactPositions || !hasScreenScale ||
+    sourcePositionCodecErrorCssPixels <= CAD_V2_OVERVIEW_MAX_COMBINED_ERROR_CSS_PIXELS;
+  const curveSourceRefs = Array.isArray(meta?.curveSourceRefs) ? meta.curveSourceRefs : [];
+  const pathDistSection = rawChunk.sections.get(SceneTag.PATH_DISTANCE);
+  const needsPathDistance = Array.isArray(meta?.drawCommands) && meta.drawCommands.some((command: any) =>
+    command?.kind === "line" && (command.pathDistanceRequired === true ||
+      (command.dashStyle && typeof command.dashStyle === "object")));
+  const sourcePathDistances = needsPathDistance && pathDistSection?.data instanceof Float32Array
+    ? pathDistSection.data as Float32Array
+    : null;
+  const pathDistancesAreAligned = !needsPathDistance ||
+    (sourcePathDistances !== null && sourcePathDistances.length >= sourceXY.length / 2);
+  if (Number.isFinite(options.overviewUnitsPerCssPixel) &&
+      (options.overviewUnitsPerCssPixel ?? 0) > 0 && meta &&
+      Array.isArray(meta.drawCommands) && pathDistancesAreAligned) {
+    // The U16 codec's error consumes the same screen-space budget as overview simplification.
+    // Compaction can expand the source bounds by at most its own deviation at each edge, so
+    // reserve the corresponding codec-bound growth before choosing the simplification scale.
+    const codecGrowthPerCssPixel = Math.SQRT2 / 0xffff;
+    const availableOverviewErrorCssPixels = canPackPositionsWithinScreenBudget
+      ? Math.max(0, (CAD_V2_OVERVIEW_MAX_COMBINED_ERROR_CSS_PIXELS - sourcePositionCodecErrorCssPixels) /
+        (1 + codecGrowthPerCssPixel))
+      : CAD_V2_OVERVIEW_MAX_COMBINED_ERROR_CSS_PIXELS;
+    overview = compactCadV2OverviewLinework(
+      sourceXY,
+      meta.drawCommands,
+      options.overviewUnitsPerCssPixel!,
+      availableOverviewErrorCssPixels,
+      curveSourceRefs.map((reference: any) => ({
+        firstVertex: reference?.firstVertex,
+        vertexCount: reference?.vertexCount,
+      })),
+      sourcePathDistances,
+    );
+  }
+  if (overview && overview.collapsedSegmentCount > 0 && sourcePathDistances &&
+      (!overview.remappedPathDistancesArray || overview.remappedPathDistancesArray.length !== overview.xyArray.length / 2)) {
+    // A dash phase array is vertex-aligned. Keep the exact source geometry if the worker
+    // cannot prove a complete phase remap for every output position.
+    overview = null;
+  }
+  if (overview && overview.collapsedSegmentCount > 0 && meta) {
+    const remappedRanges = overview.remappedPreservedVertexRanges;
+    if (curveSourceRefs.length > 0 && (!remappedRanges || remappedRanges.length !== curveSourceRefs.length)) {
+      // Curve fallback spans must remain addressable after overview compaction. Fail closed
+      // to the exact source geometry if the worker cannot prove a complete remapping.
+      overview = null;
+    } else {
+      meta.drawCommands = overview.drawCommands;
+      if (remappedRanges && curveSourceRefs.length > 0) {
+        meta.curveSourceRefs = curveSourceRefs.map((reference: any, index: number) => ({
+          ...reference,
+          firstVertex: remappedRanges[index]!.firstVertex,
+        }));
+      }
+    }
+  }
+  const positionSource = overview && overview.collapsedSegmentCount > 0 ? overview.xyArray : sourceXY;
+  const shouldPackPositions = options.compactPositions && canPackPositionsWithinScreenBudget;
+  const packedXY = shouldPackPositions ? packCadV2PositionArray(positionSource) : null;
+  const xyArray = packedXY?.positions ?? positionSource.slice();
+  const vertexCount = xyArray.length / 2;
+
+  // 4. DRAW_RUNS (Tag 9 - Uint32 draw run tanımları)
+  const runsSection = rawChunk.sections.get(SceneTag.DRAW_RUNS);
+  let drawRunsArray: Uint32Array | null = null;
+  if (runsSection && runsSection.data instanceof Uint32Array) {
+    drawRunsArray = runsSection.data.slice();
+  }
   // 5. TRIANGLES (Tag 4 - Float32 üçgen vertexleri)
   const triSection = rawChunk.sections.get(SceneTag.TRIANGLES);
   let trianglesArray: Float32Array | null = null;
   if (triSection && triSection.data instanceof Float32Array) {
-    trianglesArray = triSection.data;
+    trianglesArray = triSection.data.slice();
   }
 
   // 6. PATH_DISTANCE (Tag 10 - Float32 kümülatif stroke mesafeleri)
-  const pathDistSection = rawChunk.sections.get(SceneTag.PATH_DISTANCE);
   let pathDistancesArray: Float32Array | null = null;
-  if (pathDistSection && pathDistSection.data instanceof Float32Array) {
-    pathDistancesArray = pathDistSection.data;
+  if (needsPathDistance && sourcePathDistances) {
+    pathDistancesArray = overview?.collapsedSegmentCount
+      ? overview.remappedPathDistancesArray!
+      : sourcePathDistances.slice();
   }
 
   const curveSection = rawChunk.sections.get(SceneTag.CURVE_DATA);
   let curveDataArray: Float32Array | null = null;
   if (curveSection && curveSection.data instanceof Float32Array) {
-    curveDataArray = curveSection.data;
+    curveDataArray = curveSection.data.slice();
   }
 
   return {
     chunkId,
     origin,
     xyArray,
+    ...(packedXY ? { positionCodec: packedXY.codec } : {}),
     drawRunsArray,
     trianglesArray,
     pathDistancesArray,
     curveDataArray,
     meta,
     vertexCount,
+    ...(overview ? {
+      overviewLod: {
+        unitsPerCssPixel: options.overviewUnitsPerCssPixel!,
+        collapsedSegmentCount: overview.collapsedSegmentCount,
+        retainedSegmentCount: overview.retainedSegmentCount,
+        representativePointCount: overview.representativePointCount,
+        maxCenterlineDeviationCssPixels: overview.maxCenterlineDeviationCssPixels,
+      },
+    } : {}),
   };
 }
 
-export type RefineChunkCurvesOptions = Omit<
-  CurveRefinementOptions,
-  "curveData" | "curveSourceRefs" | "fallbackVertexCount"
->;
+export interface RefineChunkCurvesOptions extends Omit<CurveRefinementOptions, "curveData" | "curveSourceRefs" | "fallbackVertexCount"> {}
+
+export interface RefineRuntimeHatchOptions extends RuntimeHatchFillRefinementOptions {}
 
 /** Pure fallback also used by the worker message path; no document recompile occurs. */
 export function refineUnpackedChunkCurves(
@@ -269,7 +359,7 @@ export function refineUnpackedChunkCurves(
 // ============================================================================
 // BROWSER WEB WORKER ENTRYPOINT
 // ============================================================================
-if (typeof self !== "undefined" && typeof self.postMessage === "function" && typeof window === "undefined") {
+if (typeof self !== "undefined" && typeof (self as any).postMessage === "function" && typeof window === "undefined") {
   self.onmessage = (event: MessageEvent<HostToWorkerMessage>) => {
     const msg = event.data;
 
@@ -303,7 +393,7 @@ if (typeof self !== "undefined" && typeof self.postMessage === "function" && typ
     activeWorkerSessions.set(msg.viewSessionId, { generation: msg.generation, sourceVersionKey: msg.sourceVersionKey });
 
     switch (msg.kind) {
-      case "ping": {
+      case "ping" as any: {
         const readyResponse: WorkerToHostMessage = {
           protocolVersion: 1,
           viewSessionId: msg.viewSessionId,
@@ -321,8 +411,15 @@ if (typeof self !== "undefined" && typeof self.postMessage === "function" && typ
             throw new Error("Eksik chunkBuffer yükü");
           }
 
-          const unpacked = unpackSceneChunk(msg.payload.chunkId, msg.payload.chunkBuffer);
-          retainRefinementSources(msg.viewSessionId, msg.sourceVersionKey, unpacked);
+          const unpacked = unpackSceneChunk(msg.payload.chunkId, msg.payload.chunkBuffer, {
+            compactPositions: msg.payload.compactPositions === true,
+            overviewUnitsPerCssPixel: msg.payload.unitsPerCssPixel,
+          });
+          unpacked.workerRefinementSourceCache = retainRefinementSources(
+            msg.viewSessionId,
+            msg.sourceVersionKey,
+            unpacked,
+          );
 
           const response: WorkerToHostMessage = {
             protocolVersion: 1,
@@ -354,15 +451,15 @@ if (typeof self !== "undefined" && typeof self.postMessage === "function" && typ
             transferables.push(unpacked.pathDistancesArray.buffer);
           }
 
-          self.postMessage(response, transferables);
-        } catch (err: unknown) {
+          (self as any).postMessage(response, transferables);
+        } catch (err: any) {
           const errResponse: WorkerToHostMessage = {
             protocolVersion: 1,
             viewSessionId: msg.viewSessionId,
             generation: msg.generation,
             sourceVersionKey: msg.sourceVersionKey,
             kind: "error",
-            payload: { error: err instanceof Error ? err.message : "Bilinmeyen worker ayrıştırma hatası" },
+            payload: { error: err.message || "Bilinmeyen worker ayrıştırma hatası" },
           };
           self.postMessage(errResponse);
         }
@@ -378,15 +475,23 @@ if (typeof self !== "undefined" && typeof self.postMessage === "function" && typ
           }
           const cached = refinementSourceCache.get(sourceCacheKey(msg.viewSessionId, msg.sourceVersionKey, chunkId));
           const inlineBuffer = msg.payload?.curveDataBuffer;
-          const curveData = cached?.curveData ?? (inlineBuffer && inlineBuffer.byteLength <= MAX_REFINEMENT_SOURCE_CACHE_BYTES
-            ? new Float32Array(inlineBuffer)
+          const inlineRefsJson = typeof msg.payload?.curveSourceRefsJson === "string"
+            ? msg.payload.curveSourceRefsJson
+            : Array.isArray(msg.payload?.curveSourceRefs)
+              ? JSON.stringify(msg.payload.curveSourceRefs)
+              : null;
+          const inlineRefsBytes = inlineRefsJson === null ? Number.POSITIVE_INFINITY : inlineRefsJson.length * 2;
+          const inlinePayloadFitsBudget = Boolean(inlineBuffer) &&
+            inlineBuffer!.byteLength + inlineRefsBytes <= CAD_V2_REFINEMENT_SOURCE_CACHE_BUDGET_BYTES;
+          const curveData = cached?.curveData ?? (inlinePayloadFitsBudget
+            ? new Float32Array(inlineBuffer!)
             : null);
           const curveSourceRefs = cached
             ? JSON.parse(cached.curveSourceRefsJson) as CurveSourceRef[]
-            : msg.payload?.curveSourceRefs;
+            : inlineRefsJson === null ? undefined : JSON.parse(inlineRefsJson) as CurveSourceRef[];
           const fallbackVertexCount = cached?.vertexCount ?? msg.payload?.fallbackVertexCount;
           if (!curveData || !curveSourceRefs || typeof fallbackVertexCount !== "number" || !Number.isSafeInteger(fallbackVertexCount)) {
-            throw new Error(`Curve source unavailable or exceeds inline limit (${chunkId})`);
+            throw new Error(`${CAD_V2_REFINEMENT_CACHE_MISS_ERROR_PREFIX}${chunkId}`);
           }
           // LRU refresh; curve bytes remain capped globally to 8 MiB.
           const key = sourceCacheKey(msg.viewSessionId, msg.sourceVersionKey, chunkId);
@@ -411,18 +516,58 @@ if (typeof self !== "undefined" && typeof self.postMessage === "function" && typ
             payload: { requestId, chunkId, result },
           };
           const transferables = result.intervals.flatMap((interval) => interval.coordinates ? [interval.coordinates.buffer] : []);
-          self.postMessage(response, transferables);
-        } catch (err: unknown) {
+          (self as any).postMessage(response, transferables);
+        } catch (err: any) {
           const errResponse: WorkerToHostMessage = {
             protocolVersion: 1,
             viewSessionId: msg.viewSessionId,
             generation: msg.generation,
             sourceVersionKey: msg.sourceVersionKey,
             kind: "error",
-            payload: {
-              requestId: msg.payload?.requestId,
-              error: err instanceof Error ? err.message : "Curve refinement başarısız",
-            },
+            payload: { requestId: msg.payload?.requestId, error: err.message || "Curve refinement başarısız" },
+          };
+          self.postMessage(errResponse);
+        }
+        break;
+      }
+
+      case "refine-hatches": {
+        try {
+          const requestId = msg.payload?.requestId;
+          const chunkId = msg.payload?.chunkId;
+          const sourceJson = msg.payload?.hatchSourceJson;
+          if (typeof requestId !== "string" || !requestId || typeof chunkId !== "string" || !chunkId ||
+              typeof sourceJson !== "string" || new TextEncoder().encode(sourceJson).byteLength > 128 * 1024) {
+            throw new Error("Eksik veya sınır dışı runtime HATCH source request");
+          }
+          const source = JSON.parse(sourceJson) as RuntimeHatchFillSource;
+          const options: RefineRuntimeHatchOptions = {
+            targetErrorCssPixels: msg.payload!.targetErrorCssPixels!,
+            unitsPerCssPixel: msg.payload!.unitsPerCssPixel!,
+            maxTransformSingularValue: msg.payload!.maxTransformSingularValue!,
+            maxCurveSegments: msg.payload!.maxCurveSegments,
+            maxBoundaryElements: msg.payload!.maxBoundaryElements,
+            maxOutputTriangles: msg.payload!.maxOutputTriangles,
+          };
+          const result = refineRuntimeHatchFill(source, options);
+          const response: WorkerToHostMessage = {
+            protocolVersion: 1,
+            viewSessionId: msg.viewSessionId,
+            generation: msg.generation,
+            sourceVersionKey: msg.sourceVersionKey,
+            kind: "refined-hatches",
+            payload: { requestId, chunkId, result },
+          };
+          const transferables = result.verticesWorld ? [result.verticesWorld.buffer] : [];
+          (self as any).postMessage(response, transferables);
+        } catch (err: any) {
+          const errResponse: WorkerToHostMessage = {
+            protocolVersion: 1,
+            viewSessionId: msg.viewSessionId,
+            generation: msg.generation,
+            sourceVersionKey: msg.sourceVersionKey,
+            kind: "error",
+            payload: { requestId: msg.payload?.requestId, error: err.message || "HATCH refinement başarısız" },
           };
           self.postMessage(errResponse);
         }

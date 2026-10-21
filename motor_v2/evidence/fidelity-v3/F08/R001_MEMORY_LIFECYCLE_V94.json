@@ -1,0 +1,796 @@
+{
+  "evidenceId": "F08-R001-MEMORY-LIFECYCLE-V94",
+  "measuredAt": "2026-09-30 (Europe/Istanbul)",
+  "classification": "RTX 4060/D3D11 P00 exact-tier exploration PASS; raster/provenance report; F08 external acceptance OPEN",
+  "source": {
+    "id": "R001",
+    "sizeBytes": 3444087,
+    "sha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086",
+    "decodeStatus": "LibreDWG error code 68; clean/native decode NOT_RUN",
+    "compilerLogEvidence": [
+      "Open dwg file with error code: \u001b[33m68\u001b[39m"
+    ],
+    "canonicalEntityCount": 8787
+  },
+  "successfulHardwareRun": {
+    "command": "CI=true PLAYWRIGHT_PORT=3159 CAD_V2_P00_HARDWARE_GPU_EXPLORATION=1 npx playwright test --config=playwright.f08-gpu-v94.temp.config.ts tests/document-studio/cad-v2-p00-baseline.spec.ts --project=chromium --reporter=line --output=test-results/cad-v2-p00-hardware-v94-run2",
+    "exitCode": 0,
+    "result": "PASS: 1/1 Playwright test (5.3m)",
+    "logPath": "C:\\Users\\hsyn\\AppData\\Local\\Temp\\cad-v2-p00-hardware-v94-run2.log",
+    "testOutputPath": "test-results/cad-v2-p00-hardware-v94-run2",
+    "fixtureMode": "Opt-in hardware exploration logs rather than hard-asserts unpaced replay request/outcome prefixes. Both prefix records matched expected values. Exact paced accepted-count and accepted-ID assertions stayed hard assertions.",
+    "gpuBackend": {
+      "browser": "Installed Chrome, Playwright channel chrome",
+      "displayType": "ANGLE_D3D11",
+      "glRenderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 (0x00002882) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1664)",
+      "glVendor": "Google Inc. (NVIDIA)",
+      "driverVersion": "32.0.16.1664",
+      "inProcessGpu": false,
+      "gpuCompositing": "enabled",
+      "webgl": "enabled",
+      "webgl2": null,
+      "devicesReported": [
+        "NVIDIA GeForce RTX 4060",
+        "AMD Radeon(TM) Graphics",
+        "Microsoft Basic Render Driver"
+      ]
+    },
+    "unpacedReplayPrefixes": [
+      {
+        "label": "projected-grid-replay",
+        "requestPrefixMatches": true,
+        "outcomePrefixMatches": true,
+        "expected": [
+          "chunk_model_192",
+          "chunk_model_195",
+          "chunk_model_198",
+          "chunk_model_051",
+          "chunk_model_054",
+          "chunk_model_057",
+          "chunk_model_191",
+          "chunk_model_194",
+          "chunk_model_197",
+          "chunk_model_052",
+          "chunk_model_055",
+          "chunk_model_058"
+        ]
+      },
+      {
+        "label": "viewport-grid-replay",
+        "requestPrefixMatches": true,
+        "outcomePrefixMatches": true,
+        "expected": [
+          "chunk_model_192",
+          "chunk_model_195",
+          "chunk_model_198",
+          "chunk_model_191",
+          "chunk_model_194",
+          "chunk_model_197",
+          "chunk_model_051",
+          "chunk_model_054",
+          "chunk_model_057",
+          "chunk_model_219",
+          "chunk_model_222",
+          "chunk_model_225"
+        ]
+      }
+    ],
+    "exactTierCaptures": [
+      {
+        "targetAcceptedChunks": 6,
+        "strategy": "baseline",
+        "assertion": "Exact accepted count and exact expected accepted chunk ID order asserted by test",
+        "acceptedChunkCountAtCapture": 6,
+        "acceptedChunkIdsAtCapture": [
+          "chunk_model_001",
+          "chunk_model_002",
+          "chunk_model_003",
+          "chunk_model_004",
+          "chunk_model_005",
+          "chunk_model_006"
+        ],
+        "occupied20x20CellCount": 32,
+        "foregroundPixelCount": 5538,
+        "occupiedCellIds": [
+          151,
+          152,
+          153,
+          154,
+          155,
+          171,
+          172,
+          173,
+          174,
+          175,
+          176,
+          178,
+          191,
+          192,
+          193,
+          194,
+          195,
+          196,
+          197,
+          198,
+          199,
+          212,
+          213,
+          214,
+          216,
+          217,
+          218,
+          232,
+          233,
+          234,
+          236,
+          237
+        ],
+        "cellPixelThreshold": 3,
+        "colorDeltaThreshold": 16,
+        "framebufferIsDefault": true,
+        "captureDelayAfterFirstAcceptedMs": 46,
+        "testOnlyPacedUnrankedChunkIds": []
+      },
+      {
+        "targetAcceptedChunks": 6,
+        "strategy": "projectedGrid",
+        "assertion": "Exact accepted count and exact expected accepted chunk ID order asserted by test",
+        "acceptedChunkCountAtCapture": 6,
+        "acceptedChunkIdsAtCapture": [
+          "chunk_model_192",
+          "chunk_model_195",
+          "chunk_model_198",
+          "chunk_model_051",
+          "chunk_model_054",
+          "chunk_model_057"
+        ],
+        "occupied20x20CellCount": 6,
+        "foregroundPixelCount": 1627,
+        "occupiedCellIds": [
+          231,
+          232,
+          233,
+          234,
+          238,
+          239
+        ],
+        "cellPixelThreshold": 3,
+        "colorDeltaThreshold": 16,
+        "framebufferIsDefault": true,
+        "captureDelayAfterFirstAcceptedMs": 52.299999999813735,
+        "testOnlyPacedUnrankedChunkIds": []
+      },
+      {
+        "targetAcceptedChunks": 6,
+        "strategy": "viewportGrid",
+        "assertion": "Exact accepted count and exact expected accepted chunk ID order asserted by test",
+        "acceptedChunkCountAtCapture": 6,
+        "acceptedChunkIdsAtCapture": [
+          "chunk_model_192",
+          "chunk_model_195",
+          "chunk_model_198",
+          "chunk_model_191",
+          "chunk_model_194",
+          "chunk_model_197"
+        ],
+        "occupied20x20CellCount": 5,
+        "foregroundPixelCount": 1620,
+        "occupiedCellIds": [
+          235,
+          236,
+          237,
+          238,
+          239
+        ],
+        "cellPixelThreshold": 3,
+        "colorDeltaThreshold": 16,
+        "framebufferIsDefault": true,
+        "captureDelayAfterFirstAcceptedMs": 69.29999999981374,
+        "testOnlyPacedUnrankedChunkIds": []
+      },
+      {
+        "targetAcceptedChunks": 12,
+        "strategy": "baseline",
+        "assertion": "Exact accepted count and exact expected accepted chunk ID order asserted by test",
+        "acceptedChunkCountAtCapture": 12,
+        "acceptedChunkIdsAtCapture": [
+          "chunk_model_001",
+          "chunk_model_002",
+          "chunk_model_003",
+          "chunk_model_004",
+          "chunk_model_005",
+          "chunk_model_006",
+          "chunk_model_007",
+          "chunk_model_008",
+          "chunk_model_009",
+          "chunk_model_010",
+          "chunk_model_011",
+          "chunk_model_012"
+        ],
+        "occupied20x20CellCount": 34,
+        "foregroundPixelCount": 6505,
+        "occupiedCellIds": [
+          151,
+          152,
+          153,
+          154,
+          155,
+          171,
+          172,
+          173,
+          174,
+          175,
+          176,
+          178,
+          191,
+          192,
+          193,
+          194,
+          195,
+          196,
+          197,
+          198,
+          199,
+          211,
+          212,
+          213,
+          214,
+          215,
+          216,
+          217,
+          218,
+          232,
+          233,
+          234,
+          236,
+          237
+        ],
+        "cellPixelThreshold": 3,
+        "colorDeltaThreshold": 16,
+        "framebufferIsDefault": true,
+        "captureDelayAfterFirstAcceptedMs": 297.40000000037253,
+        "testOnlyPacedUnrankedChunkIds": []
+      },
+      {
+        "targetAcceptedChunks": 12,
+        "strategy": "projectedGrid",
+        "assertion": "Exact accepted count and exact expected accepted chunk ID order asserted by test",
+        "acceptedChunkCountAtCapture": 12,
+        "acceptedChunkIdsAtCapture": [
+          "chunk_model_192",
+          "chunk_model_195",
+          "chunk_model_198",
+          "chunk_model_051",
+          "chunk_model_054",
+          "chunk_model_057",
+          "chunk_model_191",
+          "chunk_model_194",
+          "chunk_model_197",
+          "chunk_model_052",
+          "chunk_model_055",
+          "chunk_model_058"
+        ],
+        "occupied20x20CellCount": 9,
+        "foregroundPixelCount": 3241,
+        "occupiedCellIds": [
+          231,
+          232,
+          233,
+          234,
+          235,
+          236,
+          237,
+          238,
+          239
+        ],
+        "cellPixelThreshold": 3,
+        "colorDeltaThreshold": 16,
+        "framebufferIsDefault": true,
+        "captureDelayAfterFirstAcceptedMs": 327,
+        "testOnlyPacedUnrankedChunkIds": []
+      },
+      {
+        "targetAcceptedChunks": 12,
+        "strategy": "viewportGrid",
+        "assertion": "Exact accepted count and exact expected accepted chunk ID order asserted by test",
+        "acceptedChunkCountAtCapture": 12,
+        "acceptedChunkIdsAtCapture": [
+          "chunk_model_192",
+          "chunk_model_195",
+          "chunk_model_198",
+          "chunk_model_191",
+          "chunk_model_194",
+          "chunk_model_197",
+          "chunk_model_051",
+          "chunk_model_054",
+          "chunk_model_057",
+          "chunk_model_219",
+          "chunk_model_222",
+          "chunk_model_225"
+        ],
+        "occupied20x20CellCount": 11,
+        "foregroundPixelCount": 3175,
+        "occupiedCellIds": [
+          178,
+          179,
+          231,
+          232,
+          233,
+          234,
+          235,
+          236,
+          237,
+          238,
+          239
+        ],
+        "cellPixelThreshold": 3,
+        "colorDeltaThreshold": 16,
+        "framebufferIsDefault": true,
+        "captureDelayAfterFirstAcceptedMs": 335.70000000018626,
+        "testOnlyPacedUnrankedChunkIds": []
+      },
+      {
+        "targetAcceptedChunks": 18,
+        "strategy": "baseline",
+        "assertion": "Exact accepted count and exact expected accepted chunk ID order asserted by test",
+        "acceptedChunkCountAtCapture": 18,
+        "acceptedChunkIdsAtCapture": [
+          "chunk_model_001",
+          "chunk_model_002",
+          "chunk_model_003",
+          "chunk_model_004",
+          "chunk_model_005",
+          "chunk_model_006",
+          "chunk_model_007",
+          "chunk_model_008",
+          "chunk_model_009",
+          "chunk_model_010",
+          "chunk_model_011",
+          "chunk_model_012",
+          "chunk_model_013",
+          "chunk_model_014",
+          "chunk_model_015",
+          "chunk_model_016",
+          "chunk_model_017",
+          "chunk_model_018"
+        ],
+        "occupied20x20CellCount": 34,
+        "foregroundPixelCount": 7467,
+        "occupiedCellIds": [
+          151,
+          152,
+          153,
+          154,
+          155,
+          171,
+          172,
+          173,
+          174,
+          175,
+          176,
+          178,
+          191,
+          192,
+          193,
+          194,
+          195,
+          196,
+          197,
+          198,
+          199,
+          211,
+          212,
+          213,
+          214,
+          215,
+          216,
+          217,
+          218,
+          232,
+          233,
+          234,
+          236,
+          237
+        ],
+        "cellPixelThreshold": 3,
+        "colorDeltaThreshold": 16,
+        "framebufferIsDefault": true,
+        "captureDelayAfterFirstAcceptedMs": 584.0999999996275,
+        "testOnlyPacedUnrankedChunkIds": []
+      },
+      {
+        "targetAcceptedChunks": 18,
+        "strategy": "projectedGrid",
+        "assertion": "Exact accepted count and exact expected accepted chunk ID order asserted by test",
+        "acceptedChunkCountAtCapture": 18,
+        "acceptedChunkIdsAtCapture": [
+          "chunk_model_192",
+          "chunk_model_195",
+          "chunk_model_198",
+          "chunk_model_051",
+          "chunk_model_054",
+          "chunk_model_057",
+          "chunk_model_191",
+          "chunk_model_194",
+          "chunk_model_197",
+          "chunk_model_052",
+          "chunk_model_055",
+          "chunk_model_058",
+          "chunk_model_219",
+          "chunk_model_222",
+          "chunk_model_225",
+          "chunk_model_228",
+          "chunk_model_231",
+          "chunk_model_234"
+        ],
+        "occupied20x20CellCount": 11,
+        "foregroundPixelCount": 3791,
+        "occupiedCellIds": [
+          178,
+          179,
+          231,
+          232,
+          233,
+          234,
+          235,
+          236,
+          237,
+          238,
+          239
+        ],
+        "cellPixelThreshold": 3,
+        "colorDeltaThreshold": 16,
+        "framebufferIsDefault": true,
+        "captureDelayAfterFirstAcceptedMs": 580.5999999996275,
+        "testOnlyPacedUnrankedChunkIds": []
+      },
+      {
+        "targetAcceptedChunks": 18,
+        "strategy": "viewportGrid",
+        "assertion": "Exact accepted count and exact expected accepted chunk ID order asserted by test",
+        "acceptedChunkCountAtCapture": 18,
+        "acceptedChunkIdsAtCapture": [
+          "chunk_model_192",
+          "chunk_model_195",
+          "chunk_model_198",
+          "chunk_model_191",
+          "chunk_model_194",
+          "chunk_model_197",
+          "chunk_model_051",
+          "chunk_model_054",
+          "chunk_model_057",
+          "chunk_model_219",
+          "chunk_model_222",
+          "chunk_model_225",
+          "chunk_model_228",
+          "chunk_model_231",
+          "chunk_model_234",
+          "chunk_model_237",
+          "chunk_model_240",
+          "chunk_model_243"
+        ],
+        "occupied20x20CellCount": 11,
+        "foregroundPixelCount": 3795,
+        "occupiedCellIds": [
+          178,
+          179,
+          231,
+          232,
+          233,
+          234,
+          235,
+          236,
+          237,
+          238,
+          239
+        ],
+        "cellPixelThreshold": 3,
+        "colorDeltaThreshold": 16,
+        "framebufferIsDefault": true,
+        "captureDelayAfterFirstAcceptedMs": 588,
+        "testOnlyPacedUnrankedChunkIds": []
+      }
+    ],
+    "exactTierTargetsCompleted": [
+      6,
+      12,
+      18
+    ],
+    "noUnrankedChunkRequestsDuringPacedCapture": true
+  },
+  "sourceCompilation": {
+    "sceneChunkCount": 286,
+    "encodedChunkBytes": null,
+    "compiledSceneSha256": null,
+    "manifestSha256": "f7279ec211eb51a4ab0084855b6c305df5dee150dda8fd9924a304f0a5a1274d",
+    "sourceHashPreservedByCompiler": true,
+    "decodeAndCompilePhaseMs": {
+      "decode": 3752.1585999999998,
+      "sceneCompile": 18006.0545
+    },
+    "nodeProcessMemorySamples": {
+      "afterDecode": {
+        "rssBytes": 417964032,
+        "heapUsedBytes": 149257416
+      },
+      "afterCompile": {
+        "rssBytes": 1853927424,
+        "heapUsedBytes": 510171584
+      }
+    },
+    "limitation": "Node phase samples belong to the test process and are not a browser/GPU peak measurement; LibreDWG error 68 means this is not clean/native decode evidence."
+  },
+  "settledBrowserRaster": {
+    "viewport": {
+      "canvas": {
+        "left": 0,
+        "top": 48,
+        "width": 1440,
+        "height": 852
+      },
+      "overlay": {
+        "left": 0,
+        "top": 48,
+        "width": 1440,
+        "height": 852
+      },
+      "devicePixelRatio": 1
+    },
+    "screenshotCameraMatchesInitial": true,
+    "thresholdColorDelta": 16,
+    "rasterCellMinimumForegroundPixels": 3,
+    "acceptedProjectedCells20x20": 43,
+    "rasterOccupiedCells20x20": 46,
+    "sharedCells": 43,
+    "rasterOnlyCellIds": [
+      152,
+      153,
+      154
+    ],
+    "radiusSweepProjectedOnlyCellIds": [
+      156
+    ],
+    "foregroundPixelsAtColorDelta16": 42178,
+    "rasterOnlyCellDetails": [
+      {
+        "cellId": 152,
+        "row": 7,
+        "column": 12,
+        "foregroundPixelCount": 13,
+        "candidateProjectedChunkCount": 0,
+        "acceptedProjectedChunkCount": 0
+      },
+      {
+        "cellId": 153,
+        "row": 7,
+        "column": 13,
+        "foregroundPixelCount": 9,
+        "candidateProjectedChunkCount": 0,
+        "acceptedProjectedChunkCount": 0
+      },
+      {
+        "cellId": 154,
+        "row": 7,
+        "column": 14,
+        "foregroundPixelCount": 15,
+        "candidateProjectedChunkCount": 0,
+        "acceptedProjectedChunkCount": 0
+      }
+    ],
+    "sourceTrace": [
+      {
+        "cellId": 152,
+        "foregroundPixelSamples": 13,
+        "nearbyProjectedPrimitiveCountWithin16CssPx": 4557,
+        "pixelsWithin1CssPxOfProjectedPrimitive": 13,
+        "minimumDistanceCssPx": 0.29305102223895585,
+        "maximumNearestDistanceCssPx": 0.6623685405010038,
+        "nearestProjectedSource": {
+          "distanceCssPx": 0.293,
+          "kind": "line",
+          "chunkId": "chunk_model_002",
+          "layer": "aks",
+          "commandIndex": 5,
+          "firstVertex": 31992,
+          "vertexCount": 2,
+          "lineweightMm": 1
+        }
+      },
+      {
+        "cellId": 153,
+        "foregroundPixelSamples": 9,
+        "nearbyProjectedPrimitiveCountWithin16CssPx": 3239,
+        "pixelsWithin1CssPxOfProjectedPrimitive": 9,
+        "minimumDistanceCssPx": 0.30312383334668724,
+        "maximumNearestDistanceCssPx": 0.8895905236248254,
+        "nearestProjectedSource": {
+          "distanceCssPx": 0.303,
+          "kind": "line",
+          "chunkId": "chunk_model_002",
+          "layer": "aks",
+          "commandIndex": 23,
+          "firstVertex": 33152,
+          "vertexCount": 2,
+          "lineweightMm": 1
+        }
+      },
+      {
+        "cellId": 154,
+        "foregroundPixelSamples": 15,
+        "nearbyProjectedPrimitiveCountWithin16CssPx": 2731,
+        "pixelsWithin1CssPxOfProjectedPrimitive": 15,
+        "minimumDistanceCssPx": 0.29550358266642346,
+        "maximumNearestDistanceCssPx": 0.8770363703666817,
+        "nearestProjectedSource": {
+          "distanceCssPx": 0.296,
+          "kind": "line",
+          "chunkId": "chunk_model_107",
+          "layer": "aks",
+          "commandIndex": 150,
+          "firstVertex": 2288,
+          "vertexCount": 2,
+          "lineweightMm": 1
+        }
+      },
+      {
+        "cellId": 156,
+        "foregroundPixelSamples": 1,
+        "nearbyProjectedPrimitiveCountWithin16CssPx": 232,
+        "pixelsWithin1CssPxOfProjectedPrimitive": 1,
+        "minimumDistanceCssPx": 0.41660367665391446,
+        "maximumNearestDistanceCssPx": 0.41660367665391446,
+        "nearestProjectedSource": {
+          "distanceCssPx": 0.417,
+          "kind": "line",
+          "chunkId": "chunk_model_166",
+          "layer": "aks",
+          "commandIndex": 6,
+          "firstVertex": 688,
+          "vertexCount": 2,
+          "lineweightMm": 1
+        }
+      }
+    ],
+    "diagnosticCenterlineRadiusSweep": [
+      {
+        "centerlineRadiusCssPixels": 0.25,
+        "candidateProjectedCellCount": 71,
+        "acceptedProjectedCellCount": 47,
+        "rasterOccupiedCellCount": 46,
+        "sharedCellCount": 46,
+        "rasterOnlyCellIds": [],
+        "projectedOnlyCellIds": [
+          156
+        ],
+        "rasterOnlyCellCount": 0,
+        "projectedOnlyCellCount": 1
+      },
+      {
+        "centerlineRadiusCssPixels": 0.5,
+        "candidateProjectedCellCount": 71,
+        "acceptedProjectedCellCount": 47,
+        "rasterOccupiedCellCount": 46,
+        "sharedCellCount": 46,
+        "rasterOnlyCellIds": [],
+        "projectedOnlyCellIds": [
+          156
+        ],
+        "rasterOnlyCellCount": 0,
+        "projectedOnlyCellCount": 1
+      },
+      {
+        "centerlineRadiusCssPixels": 0.75,
+        "candidateProjectedCellCount": 71,
+        "acceptedProjectedCellCount": 47,
+        "rasterOccupiedCellCount": 46,
+        "sharedCellCount": 46,
+        "rasterOnlyCellIds": [],
+        "projectedOnlyCellIds": [
+          156
+        ],
+        "rasterOnlyCellCount": 0,
+        "projectedOnlyCellCount": 1
+      },
+      {
+        "centerlineRadiusCssPixels": 1,
+        "candidateProjectedCellCount": 73,
+        "acceptedProjectedCellCount": 47,
+        "rasterOccupiedCellCount": 46,
+        "sharedCellCount": 46,
+        "rasterOnlyCellIds": [],
+        "projectedOnlyCellIds": [
+          156
+        ],
+        "rasterOnlyCellCount": 0,
+        "projectedOnlyCellCount": 1
+      }
+    ],
+    "methodLimits": "Canvas raster occupancy is a coarse thresholded grid, not pixelwise similarity, first presented compositor frame, or AutoCAD semantic fidelity. Radius-expanded centerline is diagnostic geometry only; it is not a renderer lineweight/antialias model."
+  },
+  "firstOpenAndWarmReopen": {
+    "visibleModelChunks": 284,
+    "firstOpenAcceptedGeometryChunks": 194,
+    "firstOpenRejectedGeometryChunks": 90,
+    "firstOpenPeakReportedCpuEstimateBytes": 74920882,
+    "cpuBudgetBytes": 67108864,
+    "firstOpenPeakReportedGpuBufferEstimateBytes": 51048852,
+    "gpuBudgetBytes": 67108864,
+    "firstOpenFetchedChunkCount": 245,
+    "firstOpenFetchedChunkBytes": 49298056,
+    "firstOpenFetchedChunkSetSha256": "31931fba5140d8799528b76dbfdb511c0dbede3c41ccf1b3ad6d4c1d1db32e13",
+    "warmReopenFetchedChunkCount": 227,
+    "warmReopenFetchedChunkBytes": 49213584,
+    "warmReopenFetchedChunkSetSha256": "e810f4042cfe1f02be4cbbe831c97306efb45ee167b63fe7eabed4483599431d",
+    "fetchedChunkSetStable": false,
+    "firstAndWarmCanvasSha256Stable": true,
+    "canvasSha256": "069e43abf7b663ec088616a5410da61c3a0bc17967597d97eaae5f990eb50673",
+    "caveat": "Initial/warm fetched chunk sets differ (245 vs 227); screenshot hash and measured raster cells are stable, but set repeatability remains unresolved."
+  },
+  "interactionSample": {
+    "panZoomInputToNextWebGlDrawMs": {
+      "sampleCount": 11,
+      "p50": 9,
+      "p95": 11.300000000279397,
+      "values": [
+        11.300000000279397,
+        8.600000000093132,
+        9.300000000279397,
+        9,
+        10,
+        10.100000000093132,
+        8.600000000093132,
+        10.299999999813735,
+        3.8000000002793968,
+        3.3999999999068677,
+        2.8999999999068677
+      ],
+      "kinds": [
+        "zoom-in",
+        "zoom-in",
+        "zoom-in",
+        "zoom-in",
+        "zoom-out",
+        "zoom-out",
+        "zoom-out",
+        "zoom-out",
+        "pan",
+        "pan",
+        "pan"
+      ],
+      "definition": "Input event to first subsequent WebGL draw call; not GPU presentation or display latency."
+    },
+    "longTaskCount": 70,
+    "maxLongTaskMs": 226,
+    "networkChunkRequests": 6,
+    "networkChunkBytes": 23368,
+    "definition": "Input-to-next WebGL draw is not GPU presentation/display latency."
+  },
+  "rasterComparisonLimit": "Prior SwiftShader notes recorded 31 foreground pixels across the same three 20x20 raster-only cells (13/6/12), versus 37 here (13/9/15). The previous raw pixel mask was not available for a pixelwise comparison; this is a count/cell comparison only and does not establish a hardware-only cause.",
+  "failedPriorAttempt": {
+    "command": "CI=true PLAYWRIGHT_PORT=3159 CAD_V2_P00_HARDWARE_GPU_EXPLORATION=1 npx playwright test --config=playwright.f08-gpu-v94.temp.config.ts tests/document-studio/cad-v2-p00-baseline.spec.ts --project=chromium --reporter=line --output=test-results/cad-v2-p00-hardware-v94",
+    "exitCode": 1,
+    "logPath": "C:\\Users\\hsyn\\AppData\\Local\\Temp\\cad-v2-p00-hardware-v94-playwright.log",
+    "classification": "FAILED TEST FIXTURE ATTEMPT; excluded from passing evidence",
+    "reason": "P00 paced replay did not rank chunk_model_251 although the chunk existed in the source manifest and compiled scene. Route handlers read mutable active replay state after sequential replay setup.",
+    "fix": "Snapshot per-request replay configuration using a WeakMap keyed by the Playwright Request; report and defer unranked chunk arrivals behind the test capture barrier instead of throwing. Exact 6/12/18 accepted-count and exact-ID assertions remain enforced."
+  },
+  "validations": {
+    "runtimeTypecheck": "PASS: npx tsc --noEmit -p tsconfig.next.json --incremental false (before successful browser run)",
+    "browserTest": "PASS: 1/1 Playwright test (5.3m) on RTX 4060/D3D11",
+    "diffCheck": "PASS: git -c core.whitespace=cr-at-eol diff --check; unqualified diff-check treats CRLF in the already-dirty worktree as trailing whitespace",
+    "temporaryConfig": "Removed after the run; verified absent"
+  },
+  "externalAcceptanceGates": [
+    "Clean/native R001 DWG decode; current LibreDWG reports error 68.",
+    "Same-source AutoCAD semantic hash and at least 10 ROI comparisons.",
+    "Physical Poco X6 Pro evidence; no Android device was attached for this run.",
+    "Full lifecycle/resource acceptance including actual process peak and GPU residency/ownership evidence on required targets."
+  ],
+  "decision": "Keep F08 PARTIAL / ACCEPTANCE NOT_RUN. This run re-extracted D3D11 raster/provenance and hard exact-tier accepted IDs/counts but did not run a Windows process/GPU observer. It does not close clean/native decode, AutoCAD, Poco, full peak/resource, or production acceptance. CPU/GPU 64 MiB caps and production admission order remain unchanged.",
+  "followUpInterpretation": {
+    "supersededBy": "F08-R001-MEMORY-LIFECYCLE-V95",
+    "priorObservation": "The 245/227 fetched route snapshot difference was reported as an unresolved request-set repeatability finding in this v94 run.",
+    "updatedFinding": "v94 preserved the 245/227 route counts but did not record pending host-load counters, so its exact unfinished-load counts cannot be recovered from that run. The first v95 count-idle snapshot directly reproduced the measurement hazard: at 280/270 route requests, 4/6 host loads were still awaiting terminal outcomes. After adding a test-only settle barrier requiring five stable samples and zero pending route/host loads, cold and warm each completed 284/284 requests with identical chunk-ID sets and canvas SHA.",
+    "classification": "The v94 measurement is an unresolved early route snapshot and, in light of the later v95 reproduction, is consistent with incomplete test settling; the exact v94 pending count is unverified. It is not evidence of settled production scheduler nondeterminism. Original v94 counts are preserved as historical measurements, not rewritten."
+  }
+}

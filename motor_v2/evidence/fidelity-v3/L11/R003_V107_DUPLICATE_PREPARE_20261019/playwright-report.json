@@ -1,0 +1,317 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--config=.test-data/l11-hardware/playwright.l11-release.config.ts",
+      "--project=chromium-hardware-gpu-production",
+      "--headed"
+    ],
+    "configFile": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\playwright.l11-release.config.ts",
+    "rootDir": "D:/codex-l11-builds/l11-v73-next-1638-fullsource-20261019/clean-source-v95/source/tests/document-studio",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\setup.ts",
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/codex-l11-builds/l11-v73-next-1638-fullsource-20261019/clean-source-v95/source/.test-data/l11-hardware/release-v107-r003-20261019/playwright-output",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium-hardware-gpu-production",
+        "name": "chromium-hardware-gpu-production",
+        "testDir": "D:/codex-l11-builds/l11-v73-next-1638-fullsource-20261019/clean-source-v95/source/tests/document-studio",
+        "testIgnore": [],
+        "testMatch": [
+          "**/cad-v2-l11-browser-release.spec.ts"
+        ],
+        "timeout": 360000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\release-v107-r003-20261019\\playwright-report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": {
+      "command": "npx next start --hostname 127.0.0.1 --port 3243",
+      "cwd": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source",
+      "url": "http://127.0.0.1:3243/dokumantasyon",
+      "reuseExistingServer": false,
+      "timeout": 120000,
+      "env": {
+        "3DVPATH": "C:\\Program Files (x86)\\RAIDXpert2\\",
+        "ALLUSERSPROFILE": "C:\\ProgramData",
+        "AMDRMSDKPATH": "C:\\Program Files\\AMD\\RyzenMasterSDK\\",
+        "ANDROID_HOME": "C:\\Users\\hsyn\\AppData\\Local\\Android\\Sdk",
+        "ANDROID_SDK_ROOT": "C:\\Users\\hsyn\\AppData\\Local\\Android\\Sdk",
+        "APPDATA": "C:\\Users\\hsyn\\AppData\\Roaming",
+        "BROWSERSLIST_IGNORE_OLD_DATA": "true",
+        "BROWSER_USE_ACCESS_VERIFYING_IDENTITY": "MCowBQYDK2VwAyEAMrnVn+tQTbvkt96I5KbfT5FYisBEOF2+z9L5jH0avng=",
+        "CAD_V2_L11_BROWSER_RELEASE_REPEAT_COUNT": "30",
+        "CAD_V2_L11_BROWSER_SOURCE_ID": "R003",
+        "CAD_V2_L11_REPORT_DIR": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\release-v107-r003-20261019\\release-reports",
+        "CAD_V2_L11_RUN_MODE": "production-release",
+        "CAD_V2_STORAGE_DIR": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\release-v107-r003-20261019\\cad-v2-storage",
+        "CODEX_APPLY_PATCH_PRESERVE_LINE_ENDINGS": "1",
+        "CODEX_APP_TOOLS_PIPE_PATH": "\\\\.\\pipe\\codex-app-tools-55dcf570-6b00-4514-9089-2890641a19a1",
+        "CODEX_CI": "1",
+        "CODEX_CLI_PATH": "C:\\Users\\hsyn\\AppData\\Local\\OpenAI\\Codex\\bin\\896a0166b774037a\\codex.exe",
+        "CODEX_INTERNAL_ORIGINATOR_OVERRIDE": "Codex Desktop",
+        "CODEX_MCP_NODE_PATH": "C:\\Users\\hsyn\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\78fb63cda1a9e2b2\\bin\\node.exe",
+        "CODEX_PERMISSION_PROFILE": ":danger-full-access",
+        "CODEX_SAGE_BACKFILL_TRACKER_TAB_REUSE": "1",
+        "CODEX_SESSION_ID": "01a15087-9392-7ba1-b9ad-70e9bc6806c7",
+        "CODEX_SHELL": "1",
+        "CODEX_TASK_WORKSPACE_VERIFYING_IDENTITY": "MCowBQYDK2VwAyEAMrnVn+tQTbvkt96I5KbfT5FYisBEOF2+z9L5jH0avng=",
+        "CODEX_TECTONIC_PATH": "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.1013.4894.0_x64__2p2nqsd0c76g0\\app\\resources\\tectonic\\tectonic.exe",
+        "CODEX_THREAD_ID": "01a15087-9392-7ba1-b9ad-70e9bc6806c7",
+        "CODEX_TOOL_CALL_ID": "exec-90e1e89c-0fe9-4748-b889-9ffd760a41b5",
+        "CODEX_VERSION": "0.163.0-alpha.10.2",
+        "CODEX_WINDOWS_SANDBOX_PACKAGE_FAMILY": "OpenAI.Codex_2p2nqsd0c76g0",
+        "COLOR": "0",
+        "COLORTERM": "",
+        "CommonProgramFiles": "C:\\Program Files\\Common Files",
+        "CommonProgramFiles(x86)": "C:\\Program Files (x86)\\Common Files",
+        "CommonProgramW6432": "C:\\Program Files\\Common Files",
+        "COMPUTERNAME": "DESKTOP-PKLGPNQ",
+        "ComSpec": "C:\\Windows\\system32\\cmd.exe",
+        "DISABLE_AUTO_UPDATE": "true",
+        "DOK_LOCAL_DATA_DIR": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\release-v107-r003-20261019\\local-data",
+        "DriverData": "C:\\Windows\\System32\\Drivers\\DriverData",
+        "EDITOR": "C:\\Windows\\notepad.exe",
+        "GH_PAGER": "cat",
+        "GIT_PAGER": "cat",
+        "HERMES_GIT_BASH_PATH": "C:\\Program Files\\Git\\bin\\bash.exe",
+        "HOME": "C:\\Users\\hsyn",
+        "HOMEDRIVE": "C:",
+        "HOMEPATH": "\\Users\\hsyn",
+        "INIT_CWD": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source",
+        "JAVA_HOME": "C:\\Program Files\\Microsoft\\jdk-21.0.12.101-hotspot",
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "LC_CTYPE": "C.UTF-8",
+        "LOCALAPPDATA": "C:\\Users\\hsyn\\AppData\\Local",
+        "LOGONSERVER": "\\\\DESKTOP-PKLGPNQ",
+        "LOG_FORMAT": "json",
+        "MIMALLOC_DISABLE_REDIRECT": "0",
+        "NEXT_DIST_DIR": ".next-l11-v107",
+        "NODE": "C:\\Program Files\\nodejs\\node.exe",
+        "NODE_OPTIONS": "--max-old-space-size=8192",
+        "NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S": "8e172ec9f458f2e636fc69a1b8c68c217f6bb8d10c41f70a05a0878b73863701",
+        "NO_COLOR": "1",
+        "npm_command": "exec",
+        "npm_config_cache": "C:\\Users\\hsyn\\AppData\\Local\\npm-cache",
+        "npm_config_globalconfig": "C:\\Users\\hsyn\\AppData\\Roaming\\npm\\etc\\npmrc",
+        "npm_config_global_prefix": "C:\\Users\\hsyn\\AppData\\Roaming\\npm",
+        "npm_config_init_module": "C:\\Users\\hsyn\\.npm-init.js",
+        "npm_config_local_prefix": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source",
+        "npm_config_node_gyp": "C:\\Program Files\\nodejs\\node_modules\\npm\\node_modules\\node-gyp\\bin\\node-gyp.js",
+        "npm_config_noproxy": "",
+        "npm_config_npm_version": "11.12.1",
+        "npm_config_prefix": "C:\\Users\\hsyn\\AppData\\Roaming\\npm",
+        "npm_config_userconfig": "C:\\Users\\hsyn\\.npmrc",
+        "npm_config_user_agent": "npm/11.12.1 node/v24.15.0 win32 x64 workspaces/false",
+        "npm_execpath": "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+        "npm_lifecycle_event": "npx",
+        "npm_lifecycle_script": "playwright",
+        "npm_node_execpath": "C:\\Program Files\\nodejs\\node.exe",
+        "npm_package_json": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\package.json",
+        "npm_package_name": "muhendis-mimar-portali",
+        "npm_package_version": "0.1.1",
+        "NUMBER_OF_PROCESSORS": "12",
+        "OneDrive": "C:\\Users\\hsyn\\OneDrive",
+        "OS": "Windows_NT",
+        "PAGER": "cat",
+        "Path": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\node_modules\\.bin;D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\node_modules\\.bin;D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\node_modules\\.bin;D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\node_modules\\.bin;D:\\codex-l11-builds\\node_modules\\.bin;D:\\node_modules\\.bin;C:\\Program Files\\nodejs\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin;C:\\Users\\hsyn\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell;C:\\Users\\hsyn\\.codex\\tmp\\arg0-windows\\codex-arg0bKprGT;C:\\Users\\hsyn\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\libheif\\libheif\\bin;C:\\Users\\hsyn\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\jxrlib\\jxrlib\\bin;C:\\Users\\hsyn\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\poppler\\Library\\bin;C:\\Users\\hsyn\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\override;C:\\Program Files\\Microsoft\\jdk-21.0.12.101-hotspot\\bin;C:\\Windows\\system32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Windows\\System32\\OpenSSH\\;C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\NvDLISR;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\Program Files\\dotnet\\;C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\;C:\\Program Files\\Git\\cmd;C:\\Program Files\\nodejs\\;C:\\Program Files\\GitHub CLI\\;C:\\Program Files\\Cloudflare\\Cloudflare WARP\\;C:\\Users\\hsyn\\AppData\\Local\\Android\\Sdk\\emulator;C:\\Users\\hsyn\\AppData\\Local\\Android\\Sdk\\cmdline-tools\\latest\\bin;C:\\Users\\hsyn\\AppData\\Local\\Android\\Sdk\\platform-tools;C:\\Users\\hsyn\\AppData\\Local\\qwen-code\\bin;C:\\Users\\hsyn\\AppData\\Local\\hermes\\bin;C:\\Users\\hsyn\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell;C:\\Users\\hsyn\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Users\\hsyn\\AppData\\Local\\Python\\bin;C:\\Users\\hsyn\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Users\\hsyn\\AppData\\Roaming\\npm;C:\\Users\\hsyn\\AppData\\Local\\Programs\\Antigravity IDE\\bin;C:\\Users\\hsyn\\.lmstudio\\bin;C:\\Users\\hsyn\\AppData\\Local\\Microsoft\\WinGet\\Packages\\BurntSushi.ripgrep.MSVC_Microsoft.Winget.Source_8wekyb3d8bbwe\\ripgrep-15.2.0-x86_64-pc-windows-msvc;C:\\Users\\hsyn\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-9.0-full_build\\bin;C:\\Users\\hsyn\\AppData\\Local\\Programs\\Cua\\cua-driver\\bin;C:\\Users\\hsyn\\.dotnet\\tools;C:\\Users\\hsyn\\AppData\\Local\\Microsoft\\WinGet\\Packages\\oschwartz10612.Poppler_Microsoft.Winget.Source_8wekyb3d8bbwe\\poppler-25.07.0\\Library\\bin;C:\\Users\\hsyn\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\bin\\fallback;C:\\Users\\hsyn\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin;C:\\Users\\hsyn\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\git\\cmd;C:\\Users\\hsyn\\AppData\\Local\\OpenAI\\Codex\\bin\\ce4759538b7f2f1a;C:\\Users\\hsyn\\AppData\\Local\\OpenAI\\Codex\\bin\\896a0166b774037a",
+        "PATHEXT": ".COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.CPL",
+        "PLAYWRIGHT_JSON_REPORT": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\release-v107-r003-20261019\\playwright-report.json",
+        "PLAYWRIGHT_OUTPUT_DIR": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\release-v107-r003-20261019\\playwright-output",
+        "PLAYWRIGHT_PORT": "3243",
+        "PROCESSOR_ARCHITECTURE": "AMD64",
+        "PROCESSOR_IDENTIFIER": "AMD64 Family 25 Model 97 Stepping 2, AuthenticAMD",
+        "PROCESSOR_LEVEL": "25",
+        "PROCESSOR_REVISION": "6102",
+        "ProgramData": "C:\\ProgramData",
+        "ProgramFiles": "C:\\Program Files",
+        "ProgramFiles(x86)": "C:\\Program Files (x86)",
+        "ProgramW6432": "C:\\Program Files",
+        "PROMPT": "$P$G",
+        "PSModulePath": "C:\\Users\\hsyn\\Documents\\PowerShell\\Modules;C:\\Program Files\\PowerShell\\Modules;c:\\users\\hsyn\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\Modules;C:\\Users\\hsyn\\Documents\\WindowsPowerShell\\Modules;C:\\Program Files\\WindowsPowerShell\\Modules;C:\\Windows\\system32\\WindowsPowerShell\\v1.0\\Modules",
+        "PUBLIC": "C:\\Users\\Public",
+        "RUST_LOG": "warn",
+        "SHELL": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "SystemDrive": "C:",
+        "SystemRoot": "C:\\Windows",
+        "TEMP": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\release-v107-r003-20261019\\tmp",
+        "TERM": "dumb",
+        "TMP": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\release-v107-r003-20261019\\tmp",
+        "USERDOMAIN": "DESKTOP-PKLGPNQ",
+        "USERDOMAIN_ROAMINGPROFILE": "DESKTOP-PKLGPNQ",
+        "USERNAME": "hsyn",
+        "USERPROFILE": "C:\\Users\\hsyn",
+        "VBOX_HWVIRTEX_IGNORE_SVM_IN_USE": "1",
+        "VBOX_MSI_INSTALL_PATH": "C:\\Program Files\\Oracle\\VirtualBox\\",
+        "windir": "C:\\Windows",
+        "ZSH_TMUX_AUTOSTART": "false",
+        "ZSH_TMUX_AUTOSTARTED": "true",
+        "DOK_ALLOW_LOCAL_STORAGE": "true",
+        "DOK_PRODUCTION_RUNTIME_TEST": "true",
+        "CI": "true",
+        "NEXT_TELEMETRY_DISABLED": "1",
+        "ADMIN_USERNAME": "admin",
+        "ADMIN_PASSWORD_HASH": "$2b$10$TxzKJSpWjjhIwB8honXpuOGcE4VQdEEsN2WGFadTR1GdvqiCrRfO",
+        "SESSION_SECRET": "playwright_session_secret_at_least_32_bytes",
+        "ADMIN_SESSION_VERSION": "1",
+        "RATE_LIMIT_SALT": "playwright_rate_limit_salt_at_least_32_bytes"
+      }
+    }
+  },
+  "suites": [
+    {
+      "title": "cad-v2-l11-browser-release.spec.ts",
+      "file": "cad-v2-l11-browser-release.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "CAD V2 L11 browser release — R002/R003/R004",
+          "file": "cad-v2-l11-browser-release.spec.ts",
+          "line": 333,
+          "column": 6,
+          "specs": [
+            {
+              "title": "cold host open + warm host reopen, 30 interactions and settled raster",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 21600000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-hardware-gpu-production",
+                  "projectName": "chromium-hardware-gpu-production",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 882655,
+                      "error": {
+                        "message": "Error: R003 cold 0 must have one actual prepare API duration\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m2\u001b[39m",
+                        "stack": "Error: R003 cold 0 must have one actual prepare API duration\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m2\u001b[39m\n    at sampleOpen (D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\tests\\document-studio\\cad-v2-l11-browser-release.spec.ts:569:87)\n    at D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\tests\\document-studio\\cad-v2-l11-browser-release.spec.ts:914:16",
+                        "location": {
+                          "file": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\tests\\document-studio\\cad-v2-l11-browser-release.spec.ts",
+                          "column": 87,
+                          "line": 569
+                        },
+                        "snippet": "  567 |           `${sourceId} ${label} ${repeat} actual chunk API requests must all succeed`).toBe(0);\n  568 |         expect(run.prepareDurationsMs.length,\n> 569 |           `${sourceId} ${label} ${repeat} must have one actual prepare API duration`).toBe(1);\n      |                                                                                       ^\n  570 |         expect(run.sceneId, `${sourceId} ${label} ${repeat} must resolve an actual persisted scene ID`).toBeTruthy();\n  571 |         expect(outcomes.length, `${sourceId} ${label} ${repeat} every host load must have a terminal outcome`).toBe(starts.length);\n  572 |         const warning = await page.getByTestId(\"cad-v2-quality-warning\").textContent().catch(() => null);"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\tests\\document-studio\\cad-v2-l11-browser-release.spec.ts",
+                            "column": 87,
+                            "line": 569
+                          },
+                          "message": "Error: R003 cold 0 must have one actual prepare API duration\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m2\u001b[39m\n\n  567 |           `${sourceId} ${label} ${repeat} actual chunk API requests must all succeed`).toBe(0);\n  568 |         expect(run.prepareDurationsMs.length,\n> 569 |           `${sourceId} ${label} ${repeat} must have one actual prepare API duration`).toBe(1);\n      |                                                                                       ^\n  570 |         expect(run.sceneId, `${sourceId} ${label} ${repeat} must resolve an actual persisted scene ID`).toBeTruthy();\n  571 |         expect(outcomes.length, `${sourceId} ${label} ${repeat} every host load must have a terminal outcome`).toBe(starts.length);\n  572 |         const warning = await page.getByTestId(\"cad-v2-quality-warning\").textContent().catch(() => null);\n    at sampleOpen (D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\tests\\document-studio\\cad-v2-l11-browser-release.spec.ts:569:87)\n    at D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\tests\\document-studio\\cad-v2-l11-browser-release.spec.ts:914:16"
+                        }
+                      ],
+                      "stdout": [
+                        {
+                          "text": "[L11_GPU_R003] {\"renderer\":\"ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 (0x00002882) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1742)\",\"driver\":null}\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-19T11:30:17.120Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "l11-first-nonempty-raster-R003-seed-cold.png",
+                          "contentType": "image/png",
+                          "body": "iVBORw0KGgoAAAANSUhEUgAABaAAAANUCAIAAADKER2qAAAQAElEQVR4nOzagQnCQBAAwYv4bX3xNhatQYi4ZKaMZZ9rrQEAAAAoewwAAABAnMABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAwAADUCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQAAAOQJHAAAAECewAEAAADkCRwAAABAnsABAAAA5AkcAAAAQJ7AAQDAl/beAwD/4VhrDQAAXG+f5+s4BgAu4OAAAOBHLqobn24yANyegwMAAADIc3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAOGAszAAABdlJREFUAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5AgcAAACQJ3AAAAAAeQIHAAAAkCdwAAAAAHkCBwAAAJAncAAAAAB5bwAAAP//AyG2VwAAAAZJREFUAwAf5g2QVtZtvAAAAABJRU5ErkJggg=="
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\release-v107-r003-20261019\\playwright-output\\cad-v2-l11-browser-release-0b326-ractions-and-settled-raster-chromium-hardware-gpu-production\\test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\release-v107-r003-20261019\\playwright-output\\cad-v2-l11-browser-release-0b326-ractions-and-settled-raster-chromium-hardware-gpu-production\\video.webm"
+                        },
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\release-v107-r003-20261019\\playwright-output\\cad-v2-l11-browser-release-0b326-ractions-and-settled-raster-chromium-hardware-gpu-production\\test-failed-2.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\.test-data\\l11-hardware\\release-v107-r003-20261019\\playwright-output\\cad-v2-l11-browser-release-0b326-ractions-and-settled-raster-chromium-hardware-gpu-production\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "D:\\codex-l11-builds\\l11-v73-next-1638-fullsource-20261019\\clean-source-v95\\source\\tests\\document-studio\\cad-v2-l11-browser-release.spec.ts",
+                        "column": 87,
+                        "line": 569
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "e2d4d7c09bf37311c7a6-4a58cb2c0b4414a19a30",
+              "file": "cad-v2-l11-browser-release.spec.ts",
+              "line": 337,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-19T11:30:13.989Z",
+    "duration": 886740.84,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

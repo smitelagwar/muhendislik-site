@@ -95,7 +95,7 @@ assert.strictEqual(drawCommandsABC[2].kind, "line");
 assert.strictEqual(drawCommandsABC[2].color[0], 1, "Komut 2 Kırmızı olmalı");
 assert.strictEqual(drawCommandsABC[2].color[1], 0);
 
-// Ardışık olan aynı renkler birleşmeli testi:
+// Ardışık aynı renkli fakat farklı kaynak painter rank'leri ayrı kalmalı:
 const docAdjacentSame: CadCanonicalDocument = {
   ...docABC,
   modelSpaceEntities: [
@@ -135,9 +135,11 @@ const docAdjacentSame: CadCanonicalDocument = {
 const resAdj = compileCanonicalToScene(docAdjacentSame, { sceneId: "scene_adj" });
 const unpackedAdj = unpackSceneChunk(resAdj.manifest.chunks[0].chunkId, resAdj.chunks.get(resAdj.manifest.chunks[0].chunkId)!);
 const drawCommandsAdj = unpackedAdj.meta?.drawCommands;
-assert.strictEqual(drawCommandsAdj?.length, 2, "Bitişik 2 kırmızı çizgi tek komutta birleşmeli; toplam 2 komut olmalı");
-assert.strictEqual(drawCommandsAdj[0].vertexCount, 4, "Bitişik 2 kırmızı çizgi 4 vertex içermeli");
-console.log("  ✓ Kırmızı A -> Beyaz B -> Kırmızı C ve bitişik birleştirme PASS");
+assert.strictEqual(drawCommandsAdj?.length, 3, "Farklı painter rank'lerindeki aynı renkli çizgiler ayrı komutlarda kalmalı");
+assert.deepStrictEqual(drawCommandsAdj?.map((command) => [command.globalOrderIndex, command.globalOrderEndIndex]),
+  [[0, 0], [1, 1], [2, 2]], "her kaynak varlık depth testi için tekil sıra sınırını korumalı");
+assert.ok(drawCommandsAdj?.every((command) => command.vertexCount === 2), "her kaynak çizgi yalnız kendi iki vertex aralığını taşımalı");
+console.log("  ✓ Kırmızı A -> Beyaz B -> Kırmızı C sırası ve aynı renkli rank sınırı PASS");
 
 // ----------------------------------------------------------------------------
 // TEST 2: Stroke -> Wipeout -> Text Çizim Sırası

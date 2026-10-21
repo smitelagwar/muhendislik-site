@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     await requireDokumantasyonAdmin();
 
     const body = await request.json().catch(() => ({}));
-    const { fileId, expectedSourceVersionKey, clientRequestId, accessUrl } = body;
+    const { fileId, expectedSourceVersionKey, clientRequestId } = body;
 
     if (!fileId || typeof fileId !== "string") {
       return NextResponse.json(
@@ -108,34 +108,12 @@ export async function POST(request: Request) {
         console.warn("[CAD-V2 Prepare] Blob read fallback failed:", e);
       }
 
-      if (!buffer && typeof accessUrl === "string" && accessUrl.startsWith("http")) {
-        try {
-          const httpRes = await fetch(accessUrl);
-          if (httpRes.ok) {
-            buffer = Buffer.from(await httpRes.arrayBuffer());
-          }
-        } catch (fetchErr) {
-          console.warn("[CAD-V2 Prepare] AccessUrl fetch fallback failed:", fetchErr);
-        }
-      }
-
-      if (!buffer && file.blob_url?.startsWith("http")) {
-        try {
-          const httpRes = await fetch(file.blob_url);
-          if (httpRes.ok) {
-            buffer = Buffer.from(await httpRes.arrayBuffer());
-          }
-        } catch (fetchErr) {
-          console.warn("[CAD-V2 Prepare] Direct HTTP fetch failed:", fetchErr);
-        }
-      }
-
       if (!buffer) {
         try {
           const { getAdminFileAccess } = await import("@/lib/dokumantasyon/file-access");
           const access = await getAdminFileAccess(fileId);
           if (access?.accessUrl && access.accessUrl.startsWith("http")) {
-            const fRes = await fetch(access.accessUrl);
+            const fRes = await fetch(access.accessUrl, { redirect: "error" });
             if (fRes.ok) {
               buffer = Buffer.from(await fRes.arrayBuffer());
             }
@@ -146,6 +124,13 @@ export async function POST(request: Request) {
       }
     }
 
+    if (!buffer) {
+      return NextResponse.json(
+        { error: "Dosya kaynağı kalıcı depodan okunamadı.", code: "SOURCE_UNAVAILABLE", retryable: true },
+        { status: 503, headers: { "Cache-Control": "private, no-store" } }
+      );
+    }
+
     const service = CadV2DurableService.getInstance();
     const result = await service.prepare({
       fileId,
@@ -153,6 +138,7 @@ export async function POST(request: Request) {
       clientRequestId,
       sourceBuffer: buffer,
       fileName: file.display_name,
+      deferCompilation: true,
     });
 
     const statusCode = result.status === "ready" ? 200 : 202;

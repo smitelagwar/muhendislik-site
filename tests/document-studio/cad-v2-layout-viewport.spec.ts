@@ -1,11 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
 import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { PNG } from "pngjs";
+import { CAD_V2_COMPILER_REVISION } from "../../src/lib/cad-v2/version";
 import { uploadCadPreviewV2Fixture, signInAdmin, cleanupUploadedCadFixtures } from "./cad-test-helpers";
-import { buildSceneChunk, parseSceneChunk, SceneScalarType, SceneTag } from "../../src/lib/cad-v2/protocol/binary-protocol";
+import { buildSceneChunk, DrawPrimitiveKind, MAX_CHUNK_BYTE_LENGTH, parseSceneChunk, SceneScalarType, SceneTag, UINT32_MAX } from "../../src/lib/cad-v2/protocol/binary-protocol";
 
-function makeBrowserAcceptanceScene() {
-  const sceneId = "scene_f06_browser_layout_acceptance";
+function makeBrowserAcceptanceScene(
+  sceneId = "scene_f06_browser_layout_acceptance",
+  modelColor: [number, number, number] = [1, 0.1, 0.1],
+) {
   const bbox: [number, number, number, number] = [-50, -50, 50, 50];
   const createChunk = (layoutId: string, xy: number[], color: [number, number, number]) => {
     const meta = new TextEncoder().encode(JSON.stringify({
@@ -20,7 +24,7 @@ function makeBrowserAcceptanceScene() {
     ]);
   };
   const chunks = new Map([
-    ["chunk_100", createChunk("Model", [-40, 0, 40, 0], [1, 0.1, 0.1])],
+    ["chunk_100", createChunk("Model", [-40, 0, 40, 0], modelColor)],
     ["chunk_200", createChunk("SHEET_A", [0, -40, 0, 40], [0.1, 0.8, 1])],
   ]);
   const manifest = {
@@ -40,7 +44,380 @@ function makeBrowserAcceptanceScene() {
       byteLength: bytes.byteLength,
       sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
       layoutId: chunkId === "chunk_100" ? "Model" : "SHEET_A",
+      maxHatchFillEncodedGeometryErrorWorld: 0,
     })),
+  };
+  return { sceneId, chunks, manifest };
+}
+
+function makeBrowserBudgetOverflowScene(includeTrailingSmallModel = false, largeModelCount = 4) {
+  const sceneId = "scene_f08_browser_budget_overflow";
+  const layoutId = "Model";
+  const bbox: [number, number, number, number] = [-50, -50, 50, 50];
+  const vertexCount = 100_000;
+  const xy = new Float32Array(vertexCount * 2);
+  xy[0] = -40;
+  xy[2] = 40;
+  const chunks = new Map<string, Uint8Array>();
+  const trailingSmallModelIndex = includeTrailingSmallModel ? largeModelCount : -1;
+  const sheetChunkIndex = largeModelCount + (includeTrailingSmallModel ? 1 : 0);
+  for (let chunkIndex = 0; chunkIndex <= sheetChunkIndex; chunkIndex++) {
+    const isSheet = chunkIndex === sheetChunkIndex;
+    const isTrailingSmallModel = chunkIndex === trailingSmallModelIndex;
+    const isSmallChunk = isTrailingSmallModel;
+    const chunkVertexCount = isSmallChunk ? 2 : vertexCount;
+    const chunkXy = isSmallChunk ? new Float32Array([-40, 0, 40, 0]) : xy;
+    const chunkLayoutId = isSheet ? "SHEET_A" : layoutId;
+    const meta = new TextEncoder().encode(JSON.stringify({
+      layoutId: chunkLayoutId,
+      chunkIndex,
+      drawCommands: Array.from({ length: isSmallChunk ? 1 : 30 }, (_, commandIndex) => ({
+        kind: "line", layer: "BUDGET", color: [1, 0.05 + commandIndex * 0.01, 0.05],
+        firstVertex: 0, vertexCount: chunkVertexCount, globalOrderIndex: chunkIndex * 30 + commandIndex, lineweightMm: 0,
+      })),
+    }));
+    const chunk = buildSceneChunk([
+      { tag: SceneTag.META, scalarType: SceneScalarType.U8, componentCount: 1, elementCount: meta.length, data: meta },
+      { tag: SceneTag.ORIGIN, scalarType: SceneScalarType.F64, componentCount: 2, elementCount: 1, data: new Float64Array([0, 0]) },
+      { tag: SceneTag.XY, scalarType: SceneScalarType.F32, componentCount: 2, elementCount: chunkVertexCount, data: chunkXy },
+    ]);
+    if (chunk.byteLength > 2 * 1024 * 1024) throw new Error("F08 budget fixture exceeded the chunk protocol ceiling");
+    chunks.set(`chunk_f08_budget_${chunkIndex}`, chunk);
+  }
+  const manifest = {
+    schemaVersion: 1, sceneId,
+    sourceVersionKey: includeTrailingSmallModel ? "f08-browser-budget-fairness-source" : "f08-browser-budget-source",
+    sourceSha256: includeTrailingSmallModel ? "f08-browser-budget-fairness-source" : "f08-browser-budget-source",
+    renderAbi: "three172-cad2d-v2", qualityStatus: "exact",
+    diagnosticsSummary: { unknownEntityCount: 0, unknownObjectCount: 0, missingFontCount: 0,
+      missingDependencyCount: 0, diagnosticCodes: [] },
+    layouts: [
+      { layoutId, sourceName: layoutId, kind: "model", bbox, units: 4 },
+      { layoutId: "SHEET_A", sourceName: "SHEET_A", kind: "paper", bbox, units: 4 },
+    ],
+    chunks: Array.from(chunks, ([chunkId, bytes]) => ({
+      chunkId, layoutId: chunkId.endsWith(`_${sheetChunkIndex}`) ? "SHEET_A" : layoutId, bbox,
+      byteLength: bytes.byteLength,
+      sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
+      maxHatchFillEncodedGeometryErrorWorld: 0,
+    })),
+  };
+  return { sceneId, chunks, manifest };
+}
+
+function makeBrowserViewportFetchScene() {
+  const sceneId = "scene_r03_viewport_chunk_fetch";
+  const layoutId = "Model";
+  const bbox: [number, number, number, number] = [-12, -12, 12, 12];
+  const createChunk = (chunkIndex: number, origin: [number, number]) => {
+    const meta = new TextEncoder().encode(JSON.stringify({
+      layoutId,
+      chunkIndex,
+      drawCommands: [{ kind: "line", layer: "GEOMETRY", color: [0.2, 0.8, 1], firstVertex: 0, vertexCount: 2, globalOrderIndex: chunkIndex, lineweightMm: 0.5 }],
+    }));
+    return buildSceneChunk([
+      { tag: SceneTag.META, scalarType: SceneScalarType.U8, componentCount: 1, elementCount: meta.length, data: meta },
+      { tag: SceneTag.ORIGIN, scalarType: SceneScalarType.F64, componentCount: 2, elementCount: 1, data: new Float64Array(origin) },
+      { tag: SceneTag.XY, scalarType: SceneScalarType.F32, componentCount: 2, elementCount: 2, data: new Float32Array([-0.5, 0, 0.5, 0]) },
+    ]);
+  };
+  const chunks = new Map([
+    ["chunk_r03_near", createChunk(0, [0.5, 0])],
+    ["chunk_r03_far", createChunk(1, [30.5, 0])],
+  ]);
+  const manifest = {
+    schemaVersion: 1,
+    sceneId,
+    sourceVersionKey: "r03-viewport-fetch-v1",
+    sourceSha256: "r03-viewport-fetch-v1",
+    renderAbi: "three172-cad2d-v2",
+    qualityStatus: "exact",
+    diagnosticsSummary: { unknownEntityCount: 0, unknownObjectCount: 0, missingFontCount: 0, missingDependencyCount: 0, diagnosticCodes: [] },
+    layouts: [{ layoutId, sourceName: layoutId, kind: "model", bbox, units: 4 }],
+    chunks: Array.from(chunks, ([chunkId, bytes]) => ({
+      chunkId,
+      byteLength: bytes.byteLength,
+      sha256: crypto.createHash("sha256").update(bytes).digest("hex"),
+      layoutId,
+      bbox: chunkId === "chunk_r03_near" ? [-0.25, -0.25, 1.25, 0.25] : [30.25, -0.25, 31.25, 0.25],
+      maxHatchFillEncodedGeometryErrorWorld: 0,
+    })),
+  };
+  return { sceneId, chunks, manifest };
+}
+
+function makeBrowserActivePaperFetchScene() {
+  const sceneId = "scene_r05_active_paper_fetch";
+  const layoutBBox: [number, number, number, number] = [-12, -12, 12, 12];
+  const makeChunk = (layoutId: string, chunkIndex: number, kind: "line" | "triangle", x: number) => {
+    const meta = new TextEncoder().encode(JSON.stringify({
+      layoutId, chunkIndex,
+      drawCommands: [{ kind, layer: "GEOMETRY", color: [0.25, 0.75, 1],
+        firstVertex: 0, vertexCount: kind === "triangle" ? 3 : 2,
+        globalOrderIndex: chunkIndex, lineweightMm: 0 }],
+    }));
+    return buildSceneChunk([
+      { tag: SceneTag.META, scalarType: SceneScalarType.U8, componentCount: 1, elementCount: meta.length, data: meta },
+      { tag: SceneTag.ORIGIN, scalarType: SceneScalarType.F64, componentCount: 2, elementCount: 1, data: new Float64Array([x, 0]) },
+      { tag: SceneTag.XY, scalarType: SceneScalarType.F32, componentCount: 2,
+        elementCount: kind === "triangle" ? 0 : 2,
+        data: kind === "triangle" ? new Float32Array(0) : new Float32Array([0, 0, 1, 0]) },
+      ...(kind === "triangle" ? [{ tag: SceneTag.TRIANGLES, scalarType: SceneScalarType.F32,
+        componentCount: 2, elementCount: 3, data: new Float32Array([0, 0, 1, 0, 0, 1]) }] : []),
+    ]);
+  };
+  const definitions = [
+    ["chunk_r05_model", "Model", "line", 0],
+    ["chunk_r05_a_fill", "SHEET_A", "triangle", 0],
+    ["chunk_r05_a_glyph_far", "SHEET_A", "line", 30],
+    ["chunk_r05_b_glyph", "SHEET_B", "line", 0],
+  ] as const;
+  const chunks = new Map<string, Uint8Array>(definitions.map(([chunkId, layoutId, kind, x], index) =>
+    [chunkId, makeChunk(layoutId, index, kind, x)] as const));
+  const manifest = {
+    schemaVersion: 1, sceneId,
+    sourceVersionKey: "r05-active-paper-fixture", sourceSha256: "r05-active-paper-fixture",
+    renderAbi: "three172-cad2d-v2", qualityStatus: "exact",
+    diagnosticsSummary: { unknownEntityCount: 0, unknownObjectCount: 0, missingFontCount: 0,
+      missingDependencyCount: 0, diagnosticCodes: [] },
+    layouts: ["Model", "SHEET_A", "SHEET_B"].map((layoutId) => ({
+      layoutId, sourceName: layoutId, kind: layoutId === "Model" ? "model" : "paper",
+      bbox: layoutBBox, units: 4,
+    })),
+    chunks: definitions.map(([chunkId, layoutId, , x]) => ({
+      chunkId, layoutId, bbox: [x - 0.25, -0.25, x + 1.25, 1.25] as [number, number, number, number],
+      byteLength: chunks.get(chunkId)!.byteLength,
+      sha256: crypto.createHash("sha256").update(chunks.get(chunkId)!).digest("hex"),
+      maxHatchFillEncodedGeometryErrorWorld: 0,
+    })),
+  };
+  return { sceneId, chunks, manifest };
+}
+
+function makeBrowserHatchRuntimeQualityScene(options: { includeErrorBound?: boolean } = {}) {
+  const includeErrorBound = options.includeErrorBound ?? true;
+  const sceneId = includeErrorBound ? "scene_l08_hatch_runtime_quality" : "scene_l08_hatch_legacy_quality";
+  const layoutId = "Model";
+  const bbox: [number, number, number, number] = [-50, -50, 50, 50];
+  const meta = new TextEncoder().encode(JSON.stringify({
+    layoutId,
+    chunkIndex: 0,
+    drawCommands: [{ kind: "triangle", layer: "HATCH", color: [0.2, 0.8, 1],
+      firstVertex: 0, vertexCount: 3, globalOrderIndex: 0, lineweightMm: 0 }],
+  }));
+  const chunk = buildSceneChunk([
+    { tag: SceneTag.META, scalarType: SceneScalarType.U8, componentCount: 1, elementCount: meta.length, data: meta },
+    { tag: SceneTag.ORIGIN, scalarType: SceneScalarType.F64, componentCount: 2, elementCount: 1, data: new Float64Array([0, 0]) },
+    { tag: SceneTag.XY, scalarType: SceneScalarType.F32, componentCount: 2, elementCount: 0, data: new Float32Array(0) },
+    { tag: SceneTag.TRIANGLES, scalarType: SceneScalarType.F32, componentCount: 2, elementCount: 3,
+      data: new Float32Array([-8, -6, 8, -6, 0, 8]) },
+  ]);
+  const chunks = new Map([["chunk_l08_hatch", chunk]]);
+  const manifest = {
+    schemaVersion: 1, sceneId,
+    sourceVersionKey: "l08-hatch-runtime-quality-v1", sourceSha256: "l08-hatch-runtime-quality-v1",
+    renderAbi: "three172-cad2d-v2", qualityStatus: "exact",
+    diagnosticsSummary: { unknownEntityCount: 0, unknownObjectCount: 0, missingFontCount: 0,
+      missingDependencyCount: 0, diagnosticCodes: [] },
+    layouts: [{ layoutId, sourceName: layoutId, kind: "model", bbox, units: 4 }],
+    chunks: [{ chunkId: "chunk_l08_hatch", layoutId, bbox: [-10, -10, 10, 10],
+      byteLength: chunk.byteLength, sha256: crypto.createHash("sha256").update(chunk).digest("hex"),
+      ...(includeErrorBound ? { maxHatchFillEncodedGeometryErrorWorld: 0.036 } : {}) }],
+  };
+  return { sceneId, chunks, manifest };
+}
+
+function makeBrowserHatchRuntimeSourceScene() {
+  const sceneId = "scene_l08_hatch_runtime_source";
+  const layoutId = "Model";
+  const chunkId = "chunk_l08_hatch_runtime_source";
+  const sourceId = "hatch:L08_HATCH_SOURCE:1";
+  const source = {
+    handle: "L08_HATCH_SOURCE", layer: "FILL", order: "1", isSolid: true, solidFill: true, hatchStyle: 0,
+    loops: [{ isPolyline: false, isClosed: true, edges: [
+      { type: "ARC", center: [0, 0], radius: 10, startAngleRad: 0, endAngleRad: Math.PI / 2, ccw: true },
+      { type: "LINE", start: [0, 10], end: [10, 0] },
+    ] }],
+  };
+  const meta = new TextEncoder().encode(JSON.stringify({
+    layoutId, chunkIndex: 0, primitiveCount: 2, layerIds: ["FILL", "__RUNTIME_SENTINEL"],
+    layerRuns: [{ layer: "__RUNTIME_SENTINEL", color: [0, 0, 0], firstVertex: 0, vertexCount: 2 }],
+    triangleRuns: [{ layer: "FILL", color: [0, 0.7059, 0.8235], firstVertex: 0, vertexCount: 3, isWipeout: false, alpha: 1 }],
+    drawCommands: [
+      { kind: "line", layer: "__RUNTIME_SENTINEL", color: [0, 0, 0], firstVertex: 0,
+        vertexCount: 2, order: 0, globalOrderIndex: 0, alpha: 1, lineweightMm: 0 },
+      { kind: "triangle", layer: "FILL", color: [0, 0.7059, 0.8235], firstVertex: 0,
+        vertexCount: 3, order: 1, globalOrderIndex: 1, alpha: 1, hatchSourceId: sourceId },
+    ],
+    hatchFillSourceVersion: 1, hatchFillSources: [{ sourceId, source }],
+  }));
+  const chunk = buildSceneChunk([
+    { tag: SceneTag.META, scalarType: SceneScalarType.U8, componentCount: 1, elementCount: meta.length, data: meta },
+    { tag: SceneTag.ORIGIN, scalarType: SceneScalarType.F64, componentCount: 2, elementCount: 1, data: new Float64Array([0, 0]) },
+    { tag: SceneTag.XY, scalarType: SceneScalarType.F32, componentCount: 2, elementCount: 2,
+      data: new Float32Array([1000, 1000, 1001, 1001]) },
+    { tag: SceneTag.DRAW_RUNS, scalarType: SceneScalarType.U32, componentCount: 8, elementCount: 2,
+      data: new Uint32Array([
+        DrawPrimitiveKind.STROKE_PATH, 0, 2, UINT32_MAX, 0, 0, UINT32_MAX, 0,
+        DrawPrimitiveKind.TRIANGLES, 0, 3, UINT32_MAX, 0, 0, UINT32_MAX, 1,
+      ]) },
+    { tag: SceneTag.TRIANGLES, scalarType: SceneScalarType.F32, componentCount: 2, elementCount: 3,
+      data: new Float32Array([10, 0, 0, 10, 7.0710678, 7.0710678]) },
+  ]);
+  const chunks = new Map([[chunkId, chunk]]);
+  const manifest = {
+    schemaVersion: 1, sceneId, sourceVersionKey: "l08-hatch-runtime-source-v1", sourceSha256: "l08-hatch-runtime-source-v1",
+    renderAbi: "three172-cad2d-v2", qualityStatus: "exact",
+    diagnosticsSummary: { unknownEntityCount: 0, unknownObjectCount: 0, missingFontCount: 0, missingDependencyCount: 0, diagnosticCodes: [] },
+    layouts: [{ layoutId, sourceName: layoutId, kind: "model", bbox: [-1, -1, 11, 11], units: 4 }],
+    chunks: [{ chunkId, layoutId, bbox: [0, 0, 10, 10], byteLength: chunk.byteLength,
+      sha256: crypto.createHash("sha256").update(chunk).digest("hex"), maxHatchFillEncodedGeometryErrorWorld: 0.5 }],
+  };
+  return { sceneId, chunks, manifest };
+}
+
+function makeBrowserCurveHatchPreflightBudgetScene() {
+  const sceneId = "scene_l11_curve_hatch_preflight_budget";
+  const layoutId = "Model";
+  const bbox: [number, number, number, number] = [-1, -1, 11, 11];
+  const pressureChunkCount = 57;
+  const pressureVertexCount = 260_000; // 2 MiB içinde kalır; renderer U16 packing sonrasında yaklaşık 1 MiB tutar.
+  const chunks = new Map<string, Uint8Array>();
+  const manifestChunks: Array<Record<string, unknown>> = [];
+
+  for (let chunkIndex = 0; chunkIndex < pressureChunkCount; chunkIndex++) {
+    const chunkId = `chunk_l11_pressure_${String(chunkIndex).padStart(2, "0")}`;
+    const meta = new TextEncoder().encode(JSON.stringify({
+      layoutId,
+      chunkIndex,
+      drawCommands: [{ kind: "line", layer: "CPU_PRESSURE", color: [0.1, 0.1, 0.1],
+        firstVertex: 0, vertexCount: pressureVertexCount, globalOrderIndex: chunkIndex, lineweightMm: 0 }],
+    }));
+    const xy = new Float32Array(pressureVertexCount * 2);
+    xy[0] = 1000; xy[1] = 1000; xy[2] = 1001; xy[3] = 1001;
+    const chunk = buildSceneChunk([
+      { tag: SceneTag.META, scalarType: SceneScalarType.U8, componentCount: 1, elementCount: meta.length, data: meta },
+      { tag: SceneTag.ORIGIN, scalarType: SceneScalarType.F64, componentCount: 2, elementCount: 1, data: new Float64Array([0, 0]) },
+      { tag: SceneTag.XY, scalarType: SceneScalarType.F32, componentCount: 2,
+        elementCount: pressureVertexCount, data: xy },
+    ]);
+    if (chunk.byteLength > MAX_CHUNK_BYTE_LENGTH) throw new Error(`L11 pressure chunk exceeds protocol limit: ${chunkId}`);
+    chunks.set(chunkId, chunk);
+    manifestChunks.push({ chunkId, layoutId, bbox, byteLength: chunk.byteLength,
+      sha256: crypto.createHash("sha256").update(chunk).digest("hex"), maxHatchFillEncodedGeometryErrorWorld: 0 });
+  }
+
+  const combinedChunkId = "chunk_l11_curve_hatch_combined";
+  const curveCount = 1;
+  const hatchSourceId = "hatch:L11_CURVE_HATCH:1";
+  const hatchSource = {
+    handle: "L11_CURVE_HATCH", layer: "FILL", order: "1", isSolid: true, solidFill: true, hatchStyle: 0,
+    loops: [{ isPolyline: false, isClosed: true, edges: [
+      { type: "ARC", center: [0, 0], radius: 10, startAngleRad: 0, endAngleRad: Math.PI / 2, ccw: true },
+      { type: "LINE", start: [0, 10], end: [10, 0] },
+    ] }],
+  };
+  const curveSourceRefs = Array.from({ length: curveCount }, (_, curveIndex) => ({
+    curveId: `l11-curve-${curveIndex}`,
+    sourceHandle: `L11_CURVE_${curveIndex}`,
+    sourceType: "ARC",
+    firstSegmentIndex: 0,
+    segmentCount: 1,
+    curveRecordIndex: curveIndex,
+    firstVertex: curveIndex * 2,
+    vertexCount: 2,
+  }));
+  const meta = new TextEncoder().encode(JSON.stringify({
+    layoutId,
+    chunkIndex: pressureChunkCount,
+    drawCommands: [
+      { kind: "line", layer: "CURVES", color: [0.7, 0.7, 0.7], firstVertex: 0,
+        vertexCount: curveCount * 2, globalOrderIndex: 0, lineweightMm: 0 },
+      { kind: "triangle", layer: "FILL", color: [0, 0.7059, 0.8235], firstVertex: 0,
+        vertexCount: 3, globalOrderIndex: 1, lineweightMm: 0, hatchSourceId },
+    ],
+    curveSourceRefs,
+    hatchFillSourceVersion: 1,
+    hatchFillSources: [{ sourceId: hatchSourceId, source: hatchSource }],
+  }));
+  const curveData = new Float32Array(curveCount * 8);
+  const curveFallback = new Float32Array(curveCount * 4);
+  for (let curveIndex = 0; curveIndex < curveCount; curveIndex++) {
+    const recordOffset = curveIndex * 8;
+    curveData.set([1000, 1000, 1, 0, 0, 1, 0, Math.PI / 2], recordOffset);
+    const vertexOffset = curveIndex * 4;
+    curveFallback.set([1001, 1000, 1000, 1001], vertexOffset);
+  }
+  const combinedChunk = buildSceneChunk([
+    { tag: SceneTag.META, scalarType: SceneScalarType.U8, componentCount: 1, elementCount: meta.length, data: meta },
+    { tag: SceneTag.ORIGIN, scalarType: SceneScalarType.F64, componentCount: 2, elementCount: 1, data: new Float64Array([0, 0]) },
+    { tag: SceneTag.XY, scalarType: SceneScalarType.F32, componentCount: 2,
+      elementCount: curveFallback.length / 2, data: curveFallback },
+    { tag: SceneTag.CURVE_DATA, scalarType: SceneScalarType.F32, componentCount: 8,
+      elementCount: curveCount, data: curveData },
+    { tag: SceneTag.TRIANGLES, scalarType: SceneScalarType.F32, componentCount: 2,
+      elementCount: 3, data: new Float32Array([10, 0, 0, 10, 7.0710678, 7.0710678]) },
+  ]);
+  if (combinedChunk.byteLength > MAX_CHUNK_BYTE_LENGTH) {
+    throw new Error(`L11 combined curve/HATCH source exceeds protocol limit (${combinedChunk.byteLength} bytes)`);
+  }
+  chunks.set(combinedChunkId, combinedChunk);
+  manifestChunks.push({ chunkId: combinedChunkId, layoutId, bbox, byteLength: combinedChunk.byteLength,
+    sha256: crypto.createHash("sha256").update(combinedChunk).digest("hex"), maxHatchFillEncodedGeometryErrorWorld: 0.5 });
+
+  const manifest = {
+    schemaVersion: 1,
+    sceneId,
+    sourceVersionKey: "l11-curve-hatch-preflight-budget-v1",
+    sourceSha256: "l11-curve-hatch-preflight-budget-v1",
+    renderAbi: "three172-cad2d-v2",
+    qualityStatus: "exact",
+    diagnosticsSummary: { unknownEntityCount: 0, unknownObjectCount: 0, missingFontCount: 0,
+      missingDependencyCount: 0, diagnosticCodes: [] },
+    layouts: [{ layoutId, sourceName: layoutId, kind: "model", bbox, units: 4 }],
+    chunks: manifestChunks,
+  };
+  return { sceneId, chunks, manifest, pressureChunkCount, combinedChunkId };
+}
+
+function makeBrowserHatchPatternScene(includePatternLines = false) {
+  const sceneId = includePatternLines ? "scene_l08_patterned_hatch_render" : "scene_l08_unsupported_hatch_pattern";
+  const layoutId = "Model";
+  const chunkId = includePatternLines ? "chunk_l08_patterned_hatch_render" : "chunk_l08_unsupported_hatch_pattern";
+  const boundarySegments: Array<[number, number, number, number]> = [
+    [0, 0, 20, 0], [20, 0, 20, 12], [20, 12, 0, 12], [0, 12, 0, 0],
+  ];
+  const patternSegments: Array<[number, number, number, number]> = includePatternLines
+    ? [[4, 0, 4, 12], [8, 0, 8, 12], [12, 0, 12, 12], [16, 0, 16, 12]]
+    : [];
+  const xyValues = [...boundarySegments, ...patternSegments].flatMap((segment) => segment);
+  const diagnosticCode = includePatternLines ? "HATCH_PATTERN_NATIVE_PARITY_UNVERIFIED" : "UNSUPPORTED_HATCH_PATTERN";
+  const meta = new TextEncoder().encode(JSON.stringify({
+    layoutId,
+    chunkIndex: 0,
+    drawCommands: [{ kind: "line", layer: "PATTERN", color: [0.8, 0.8, 0.8],
+      firstVertex: 0, vertexCount: xyValues.length / 2, globalOrderIndex: 0, lineweightMm: 0 }],
+  }));
+  const chunk = buildSceneChunk([
+    { tag: SceneTag.META, scalarType: SceneScalarType.U8, componentCount: 1, elementCount: meta.length, data: meta },
+    { tag: SceneTag.ORIGIN, scalarType: SceneScalarType.F64, componentCount: 2, elementCount: 1, data: new Float64Array([0, 0]) },
+    { tag: SceneTag.XY, scalarType: SceneScalarType.F32, componentCount: 2, elementCount: xyValues.length / 2,
+      data: new Float32Array(xyValues) },
+    { tag: SceneTag.TRIANGLES, scalarType: SceneScalarType.F32, componentCount: 2, elementCount: 0, data: new Float32Array(0) },
+  ]);
+  const chunks = new Map([[chunkId, chunk]]);
+  const manifest = {
+    schemaVersion: 1,
+    sceneId,
+    sourceVersionKey: includePatternLines ? "l08-patterned-hatch-render-v1" : "l08-unsupported-hatch-pattern-v1",
+    sourceSha256: includePatternLines ? "l08-patterned-hatch-render-v1" : "l08-unsupported-hatch-pattern-v1",
+    renderAbi: "three172-cad2d-v2",
+    qualityStatus: "degraded",
+    diagnosticsSummary: { unknownEntityCount: 0, unknownObjectCount: 0, missingFontCount: 0,
+      missingDependencyCount: 0, diagnosticCodes: [diagnosticCode] },
+    layouts: [{ layoutId, sourceName: layoutId, kind: "model", bbox: [0, 0, 20, 12], units: 4 }],
+    chunks: [{ chunkId, layoutId, bbox: [0, 0, 20, 12], byteLength: chunk.byteLength,
+      sha256: crypto.createHash("sha256").update(chunk).digest("hex") }],
   };
   return { sceneId, chunks, manifest };
 }
@@ -76,7 +453,8 @@ function makeBrowserCurveRefinementScene() {
     qualityStatus: "exact",
     diagnosticsSummary: { unknownEntityCount: 0, unknownObjectCount: 0, missingFontCount: 0, missingDependencyCount: 0, diagnosticCodes: [] },
     layouts: [{ layoutId, sourceName: layoutId, kind: "model", bbox, units: 4 }],
-    chunks: [{ chunkId: "chunk_f07_curve", byteLength: chunk.byteLength, sha256: crypto.createHash("sha256").update(chunk).digest("hex"), layoutId }],
+    chunks: [{ chunkId: "chunk_f07_curve", byteLength: chunk.byteLength, sha256: crypto.createHash("sha256").update(chunk).digest("hex"),
+      layoutId, maxHatchFillEncodedGeometryErrorWorld: 0 }],
   };
   return { sceneId, chunks, manifest };
 }
@@ -122,7 +500,8 @@ function makeBrowserEllipseRefinementScene() {
     qualityStatus: "exact",
     diagnosticsSummary: { unknownEntityCount: 0, unknownObjectCount: 0, missingFontCount: 0, missingDependencyCount: 0, diagnosticCodes: [] },
     layouts: [{ layoutId, sourceName: layoutId, kind: "model", bbox, units: 4 }],
-    chunks: [{ chunkId: "chunk_f07_ellipse", byteLength: chunk.byteLength, sha256: crypto.createHash("sha256").update(chunk).digest("hex"), layoutId }],
+    chunks: [{ chunkId: "chunk_f07_ellipse", byteLength: chunk.byteLength, sha256: crypto.createHash("sha256").update(chunk).digest("hex"),
+      layoutId, maxHatchFillEncodedGeometryErrorWorld: 0 }],
   };
   return { sceneId, chunks, manifest, semimajor, semiminor };
 }
@@ -181,6 +560,66 @@ async function configureF07EllipseRefinementPage(
     const chunk = scene.chunks.get(chunkId);
     if (!chunk) {
       await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "F07 ELLIPSE fixture chunk not found" }) });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) });
+  });
+}
+
+async function configureF07ArcDpr3RefinementPage(
+  page: Page,
+  scene: ReturnType<typeof makeBrowserCurveRefinementScene>,
+  sessionId: string,
+): Promise<void> {
+  await page.addInitScript(() => {
+    const state = { targetErrors: [] as number[], refinedReplies: 0, maxLineVertexCount: 0 };
+    (window as Window & { __cadV2F07ArcDpr3?: typeof state }).__cadV2F07ArcDpr3 = state;
+
+    const NativeWorker = window.Worker;
+    window.Worker = new Proxy(NativeWorker, {
+      construct(target, args, newTarget) {
+        const worker = Reflect.construct(target, args, newTarget) as Worker;
+        worker.addEventListener("message", (event) => {
+          if ((event.data as { kind?: string })?.kind === "refined-curves") state.refinedReplies++;
+        });
+        return worker;
+      },
+    });
+
+    const nativePostMessage = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function(message: unknown, transfer?: Transferable[]) {
+      if (message && typeof message === "object" && (message as { kind?: string }).kind === "refine-curves") {
+        const targetError = (message as { payload?: { targetErrorCssPixels?: number } }).payload?.targetErrorCssPixels;
+        if (typeof targetError === "number") state.targetErrors.push(targetError);
+      }
+      return nativePostMessage.call(this, message, transfer ?? []);
+    };
+
+    const nativeDrawArrays = WebGL2RenderingContext.prototype.drawArrays;
+    WebGL2RenderingContext.prototype.drawArrays = function(mode: number, first: number, count: number) {
+      if (mode === 0x0001) state.maxLineVertexCount = Math.max(state.maxLineVertexCount, count);
+      return nativeDrawArrays.call(this, mode, first, count);
+    };
+  });
+
+  await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ status: "ready", sceneId: scene.sceneId, viewSessionId: sessionId, sourceVersionKey: scene.manifest.sourceVersionKey }),
+    });
+  });
+  await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${sessionId}/heartbeat`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+  });
+  await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+  });
+  await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+    const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+    const chunk = scene.chunks.get(chunkId);
+    if (!chunk) {
+      await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "F07 DPR3 ARC fixture chunk not found" }) });
       return;
     }
     await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) });
@@ -444,7 +883,8 @@ function makeBrowserSplineRefinementScene() {
     qualityStatus: "exact",
     diagnosticsSummary: { unknownEntityCount: 0, unknownObjectCount: 0, missingFontCount: 0, missingDependencyCount: 0, diagnosticCodes: [] },
     layouts: [{ layoutId, sourceName: layoutId, kind: "model", bbox, units: 4 }],
-    chunks: [{ chunkId: "chunk_f07_spline", byteLength: chunk.byteLength, sha256: crypto.createHash("sha256").update(chunk).digest("hex"), layoutId }],
+    chunks: [{ chunkId: "chunk_f07_spline", byteLength: chunk.byteLength, sha256: crypto.createHash("sha256").update(chunk).digest("hex"),
+      layoutId, maxHatchFillEncodedGeometryErrorWorld: 0 }],
   };
   return { sceneId, chunks, manifest, controlPoints, weights };
 }
@@ -633,7 +1073,6 @@ function makeBrowserVisibleDashScenes() {
   return compiled.scenes.map((scene) => {
     const chunks = new Map(scene.chunks.map(({ chunkId, chunkBase64 }) => [chunkId, Buffer.from(chunkBase64, "base64")]));
     const modelChunks = scene.manifest.chunks
-      .filter((chunkRef: { layoutId: string }) => chunkRef.layoutId === "Model")
       .map((chunkRef: { chunkId: string }) => {
         const chunk = chunks.get(chunkRef.chunkId);
         if (!chunk) throw new Error(`Compiler output is missing chunk ${chunkRef.chunkId}`);
@@ -643,7 +1082,7 @@ function makeBrowserVisibleDashScenes() {
         const metadata = parsed.sections.get(SceneTag.META)?.data as Uint8Array | undefined;
         if (!metadata) throw new Error(`Compiler chunk ${chunkRef.chunkId} is missing META`);
         const meta = JSON.parse(new TextDecoder().decode(metadata)) as {
-          drawCommands?: Array<{ kind: string; vertexCount: number; dashStyle?: { dashSize: number; gapSize: number } }>;
+          drawCommands?: Array<{ kind: string; vertexCount: number; dashStyle?: { dashSize: number; gapSize: number; pattern?: number[] } }>;
         };
         return { pathDistanceValues: Array.from(encodedPathDistance), drawCommands: meta.drawCommands ?? [] };
       });
@@ -651,8 +1090,9 @@ function makeBrowserVisibleDashScenes() {
       sceneId: scene.sceneId,
       manifest: scene.manifest,
       chunks,
-      pathDistanceValues: modelChunks.flatMap((chunk) => chunk.pathDistanceValues),
-      dashDrawCommands: modelChunks.flatMap((chunk) => chunk.drawCommands.filter((command) => command.kind === "line")),
+      pathDistanceValues: modelChunks.flatMap((chunk: { pathDistanceValues: number[] }) => chunk.pathDistanceValues),
+      dashDrawCommands: modelChunks.flatMap((chunk: { drawCommands: Array<{ kind: string }> }) =>
+        chunk.drawCommands.filter((command) => command.kind === "line")),
     };
   });
 }
@@ -661,6 +1101,143 @@ test.describe("CAD V2 F06 — real browser layout picker", () => {
   test.afterEach(async ({ page }) => {
     if (process.env.CAD_V2_PRESERVE_TEST_FIXTURES === "1") return;
     await cleanupUploadedCadFixtures(page);
+  });
+
+  test("F08 kaynak bütçesi görünür aşımı bildirir, LRU tahliye ve yeniden yüklemeyi korur", async ({ page }) => {
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const scene = makeBrowserBudgetOverflowScene();
+    const sessionId = "vs_f08_browser_budget_overflow";
+    const requestedChunkIds: string[] = [];
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ status: "ready", sceneId: scene.sceneId, viewSessionId: sessionId,
+          sourceVersionKey: scene.manifest.sourceVersionKey }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${sessionId}/heartbeat`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      requestedChunkIds.push(chunkId);
+      const chunk = scene.chunks.get(chunkId);
+      if (!chunk) {
+        await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "F08 budget chunk not found" }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) });
+    });
+
+    await page.addInitScript(() => {
+      const events: Array<{ type: string; chunkId?: string; loadId?: number; status?: string; reason?: string }> = [];
+      Object.defineProperty(window, "__cadV2ResourceDiagnostics", {
+        value: (event: { type: string; chunkId?: string; loadId?: number; status?: string; reason?: string }) => events.push(event),
+        configurable: true,
+      });
+      Object.defineProperty(window, "__cadV2ResourceEvents", { value: events, configurable: true });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    const warning = page.getByTestId("cad-v2-quality-warning");
+    await expect(warning).toBeVisible({ timeout: 45_000 });
+    await expect(warning).toContainText("Bellek bütçesi nedeniyle görünür alanda");
+    expect(requestedChunkIds.length).toBe(4);
+    expect(new Set(requestedChunkIds).size).toBe(4);
+    const initialResourceDecisions = await page.evaluate(() =>
+      (window as unknown as { __cadV2ResourceEvents: Array<{ type: string; status?: string }> }).__cadV2ResourceEvents.slice());
+    const initialOutcomes = initialResourceDecisions.filter((event) => event.type === "chunk-load-outcome");
+    expect(initialResourceDecisions.filter((event) => event.type === "chunk-load-start")).toHaveLength(4);
+    const initialAcceptedCount = initialOutcomes.filter((event) => event.status === "accepted").length;
+    expect(initialAcceptedCount).toBeGreaterThan(0);
+    expect(initialAcceptedCount).toBeLessThan(4);
+    expect(initialOutcomes.filter((event) => event.status === "rejected").length).toBeGreaterThan(0);
+    await expect(page.getByText("Varlık:").locator("..")).toContainText(String(initialAcceptedCount * 100_000));
+
+    const picker = page.getByRole("combobox", { name: "Pafta seçimi" });
+    await picker.selectOption("SHEET_A");
+    await expect(picker).toHaveValue("SHEET_A");
+    await expect(warning).toBeHidden({ timeout: 20_000 });
+    await expect.poll(() => requestedChunkIds.filter((id) => id.endsWith("_4")).length).toBe(1);
+    await expect.poll(async () => page.evaluate(() =>
+      (window as unknown as { __cadV2ResourceEvents: Array<{ type: string; reason?: string }> }).__cadV2ResourceEvents
+        .filter((event) => event.type === "chunk-evicted" && event.reason === "visible-admission-budget-pressure").length),
+    { timeout: 10_000 }).toBeGreaterThan(0);
+
+    await picker.selectOption("Model");
+    await expect(picker).toHaveValue("Model");
+    await expect(warning).toContainText("Bellek bütçesi nedeniyle görünür alanda", { timeout: 20_000 });
+    await expect.poll(() => requestedChunkIds.length, { timeout: 20_000 }).toBeGreaterThan(5);
+    expect(requestedChunkIds.filter((id) => !id.endsWith("_4")).length).toBeGreaterThan(4);
+    expect(new Set(requestedChunkIds.filter((id) => !id.endsWith("_4"))).size).toBe(4);
+    await expect(page.getByText("Varlık:").locator("..")).toContainText("Varlık:");
+    const resourceEvents = await page.evaluate(() =>
+      (window as unknown as { __cadV2ResourceEvents: Array<{ type: string; chunkId?: string; status?: string; reason?: string }> }).__cadV2ResourceEvents.slice());
+    const evictedChunkIds = new Set<string>();
+    let refetchedAfterEviction = false;
+    for (const event of resourceEvents) {
+      if (event.type === "chunk-evicted" && event.chunkId) evictedChunkIds.add(event.chunkId);
+      if (event.type === "chunk-load-start" && event.chunkId && evictedChunkIds.has(event.chunkId)) refetchedAfterEviction = true;
+    }
+    expect(refetchedAfterEviction).toBe(true);
+  });
+
+  test("F08 bütçe reddi kalan görünür adayları durdurmaz ve sığan küçük parçayı kabul eder", async ({ page }) => {
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const scene = makeBrowserBudgetOverflowScene(true, 6);
+    const sessionId = "vs_f08_browser_budget_fairness";
+    const requestedChunkIds: string[] = [];
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ status: "ready", sceneId: scene.sceneId, viewSessionId: sessionId,
+          sourceVersionKey: scene.manifest.sourceVersionKey }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${sessionId}/heartbeat`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      requestedChunkIds.push(chunkId);
+      const chunk = scene.chunks.get(chunkId);
+      if (!chunk) {
+        await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "F08 fairness chunk not found" }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) });
+    });
+    await page.addInitScript(() => {
+      const events: Array<{ type: string; chunkId?: string; status?: string }> = [];
+      Object.defineProperty(window, "__cadV2ResourceDiagnostics", {
+        value: (event: { type: string; chunkId?: string; status?: string }) => events.push(event),
+        configurable: true,
+      });
+      Object.defineProperty(window, "__cadV2ResourceEvents", { value: events, configurable: true });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    const warning = page.getByTestId("cad-v2-quality-warning");
+    await expect(warning).toBeVisible({ timeout: 45_000 });
+    await expect(warning).toContainText("Bellek bütçesi nedeniyle görünür alanda");
+    await expect.poll(() => requestedChunkIds.length, { timeout: 20_000 }).toBe(7);
+    expect(new Set(requestedChunkIds).size).toBe(7);
+
+    const outcomes = await page.evaluate(() =>
+      (window as unknown as { __cadV2ResourceEvents: Array<{ type: string; chunkId?: string; status?: string }> })
+        .__cadV2ResourceEvents.filter((event) => event.type === "chunk-load-outcome"));
+    expect(outcomes).toHaveLength(7);
+    expect(outcomes.filter((event) => event.status === "rejected").length).toBeGreaterThan(0);
+    expect(outcomes.some((event) => event.chunkId === "chunk_f08_budget_6" && event.status === "accepted")).toBe(true);
+    const acceptedLargeChunks = outcomes.filter((event) =>
+      event.chunkId?.startsWith("chunk_f08_budget_") && event.chunkId !== "chunk_f08_budget_6" && event.status === "accepted").length;
+    await expect(page.getByText("Varlık:").locator("..")).toContainText(String(acceptedLargeChunks * 100_000 + 2));
   });
 
   test("pafta seçimi WebGL host içindeki aktif layout chunk'larını değiştirir", async ({ page }) => {
@@ -713,7 +1290,1989 @@ test.describe("CAD V2 F06 — real browser layout picker", () => {
     await expect(page.getByText("Varlık:")).toBeVisible();
   });
 
+  test("L10 pafta değişiminde her layout kendi yakınlaştırma ve merkezini geri yükler", async ({ page }) => {
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "l10-layout-camera-restore.dxf");
+    const scene = makeBrowserAcceptanceScene("scene_l10_layout_camera_restore");
+    scene.manifest.layouts[1]!.bbox = [-200, -100, 200, 100];
+    const sessionId = "vs_l10_layout_camera_restore";
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ status: "ready", sceneId: scene.sceneId, viewSessionId: sessionId,
+          sourceVersionKey: scene.manifest.sourceVersionKey }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${sessionId}/heartbeat`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      const chunk = scene.chunks.get(chunkId);
+      if (!chunk) {
+        await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: `L10 chunk not found: ${chunkId}` }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    const picker = page.getByRole("combobox", { name: "Pafta seçimi" });
+    await expect(picker).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText("Varlık:")).toBeVisible({ timeout: 30_000 });
+    const input = page.getByLabel("CAD V2 Çizim Etkileşim Alanı");
+    const readCamera = () => input.evaluate((element) => {
+      const zoom = (element as HTMLDivElement & { __zoom?: { x: number; y: number; k: number } }).__zoom;
+      if (!zoom) throw new Error("L10 D3 camera state was not initialized");
+      return { x: zoom.x, y: zoom.y, k: zoom.k };
+    });
+
+    await page.getByRole("button", { name: "Yakınlaştır (+)" }).click();
+    await page.getByRole("button", { name: "Yakınlaştır (+)" }).click();
+    await input.focus();
+    await page.keyboard.press("ArrowRight");
+    const modelCamera = await readCamera();
+
+    await picker.selectOption("SHEET_A");
+    await expect(picker).toHaveValue("SHEET_A");
+    await expect.poll(readCamera).not.toEqual(modelCamera);
+    await page.getByRole("button", { name: "Yakınlaştır (+)" }).click();
+    await page.getByRole("button", { name: "Yakınlaştır (+)" }).click();
+    await input.focus();
+    await page.keyboard.press("ArrowDown");
+    const sheetCamera = await readCamera();
+    expect(sheetCamera).not.toEqual(modelCamera);
+
+    await picker.selectOption("Model");
+    await expect(picker).toHaveValue("Model");
+    await expect.poll(readCamera).toEqual(modelCamera);
+    await picker.selectOption("SHEET_A");
+    await expect(picker).toHaveValue("SHEET_A");
+    await expect.poll(readCamera).toEqual(sheetCamera);
+  });
+
+  test("L10 hızlı pafta dönüşünde gecikmiş eski layout chunk'ı aktif çizime sızmaz", async ({ page }) => {
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "l10-stale-layout-chunk.dxf");
+    const scene = makeBrowserAcceptanceScene("scene_l10_stale_layout_chunk");
+    const sessionId = "vs_l10_stale_layout_chunk";
+    let paperChunkRequests = 0;
+    let paperReplyAttempted = false;
+    let releasePaperChunk: (() => void) | undefined;
+    const paperChunkGate = new Promise<void>((resolve) => { releasePaperChunk = resolve; });
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ status: "ready", sceneId: scene.sceneId, viewSessionId: sessionId,
+          sourceVersionKey: scene.manifest.sourceVersionKey }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${sessionId}/heartbeat`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      const chunk = scene.chunks.get(chunkId);
+      if (!chunk) {
+        await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: `L10 chunk not found: ${chunkId}` }) });
+        return;
+      }
+      if (chunkId === "chunk_200") {
+        paperChunkRequests++;
+        await paperChunkGate;
+        paperReplyAttempted = true;
+      }
+      try {
+        await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) });
+      } catch {
+        // Switching back may abort the held request; either way it must not paint over Model.
+      }
+    });
+    await page.addInitScript(() => {
+      const events: Array<{ type: string; chunkId?: string; status?: string }> = [];
+      Object.defineProperty(window, "__cadV2L10Events", { value: events, configurable: true });
+      Object.defineProperty(window, "__cadV2ResourceDiagnostics", {
+        value: (event: { type: string; chunkId?: string; status?: string }) => events.push(event), configurable: true,
+      });
+    });
+
+    try {
+      await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+      const picker = page.getByRole("combobox", { name: "Pafta seçimi" });
+      await expect(picker).toBeVisible({ timeout: 60_000 });
+      await expect(page.getByText("Varlık:")).toBeVisible({ timeout: 30_000 });
+      const canvas = page.locator("canvas").first();
+      const countColors = async (screenshot: Buffer) => page.evaluate(async (base64) => {
+        const image = new Image();
+        image.src = `data:image/png;base64,${base64}`;
+        await image.decode();
+        const sample = document.createElement("canvas");
+        sample.width = image.width;
+        sample.height = image.height;
+        const context = sample.getContext("2d");
+        if (!context) throw new Error("Could not create L10 screenshot sampler");
+        context.drawImage(image, 0, 0);
+        const pixels = context.getImageData(0, 0, sample.width, sample.height).data;
+        let red = 0;
+        let cyan = 0;
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (pixels[i]! > 100 && pixels[i]! > pixels[i + 1]! * 1.5 && pixels[i]! > pixels[i + 2]! * 1.5) red++;
+          if (pixels[i + 2]! > 100 && pixels[i + 1]! > pixels[i]! * 1.5 && pixels[i + 2]! > pixels[i]! * 1.5) cyan++;
+        }
+        return { red, cyan };
+      }, screenshot.toString("base64"));
+
+      const modelBefore = await countColors(await canvas.screenshot());
+      expect(modelBefore.red).toBeGreaterThan(20);
+      await picker.selectOption("SHEET_A");
+      await expect(picker).toHaveValue("SHEET_A");
+      await expect.poll(() => paperChunkRequests, { timeout: 15_000 }).toBe(1);
+      await picker.selectOption("Model");
+      await expect(picker).toHaveValue("Model");
+      const modelBeforeOldReply = await canvas.screenshot();
+      const modelBeforeOldReplyColors = await countColors(modelBeforeOldReply);
+      expect(modelBeforeOldReplyColors.red).toBeGreaterThan(20);
+      releasePaperChunk?.();
+      await expect.poll(() => paperReplyAttempted).toBe(true);
+      await expect.poll(() => page.evaluate(() =>
+        (window as unknown as { __cadV2L10Events: Array<{ type: string; chunkId?: string; status?: string }> }).__cadV2L10Events
+          .some((event) => event.type === "chunk-load-outcome" && event.chunkId === "chunk_200" && event.status === "stale-visibility")),
+      { timeout: 15_000 }).toBe(true);
+      await expect.poll(async () => countColors(await canvas.screenshot()), { timeout: 15_000 })
+        .toEqual(modelBeforeOldReplyColors);
+      expect(crypto.createHash("sha256").update(await canvas.screenshot()).digest("hex"))
+        .toBe(crypto.createHash("sha256").update(modelBeforeOldReply).digest("hex"));
+    } finally {
+      releasePaperChunk?.();
+    }
+  });
+
+  test("kaynak ve tek renk görünüşü yeniden hazırlamadan kayıpsız geri döner", async ({ page }) => {
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const scene = makeBrowserAcceptanceScene("scene_l09_monochrome_roundtrip");
+    const sessionId = "vs_l09_monochrome_roundtrip";
+    const requests = { prepare: 0, manifest: 0, chunks: 0 };
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      requests.prepare++;
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ status: "ready", sceneId: scene.sceneId, viewSessionId: sessionId,
+          sourceVersionKey: scene.manifest.sourceVersionKey }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${sessionId}/heartbeat`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      requests.manifest++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      requests.chunks++;
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      const chunk = scene.chunks.get(chunkId);
+      if (!chunk) {
+        await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "fixture chunk not found" }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    await expect(page.getByRole("combobox", { name: "Pafta seçimi" })).toHaveValue("Model", { timeout: 60_000 });
+    const canvas = page.locator("canvas").first();
+    await expect(canvas).toBeVisible();
+    const nextCanvasFrames = () => page.evaluate(() => new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    }));
+    const readStableCanvasFrame = async () => {
+      let previousHash = "";
+      let frame = Buffer.alloc(0);
+      for (let attempt = 0; attempt < 8; attempt++) {
+        await nextCanvasFrames();
+        frame = await canvas.screenshot();
+        const hash = crypto.createHash("sha256").update(frame).digest("hex");
+        if (hash === previousHash) return frame;
+        previousHash = hash;
+      }
+      throw new Error("Canvas screenshot did not stabilize across eight consecutive frames");
+    };
+    await page.getByRole("button", { name: "Görünüm Ayarları" }).click();
+    const lineweightToggle = page.getByRole("button", { name: "Çizgi Kalınlıkları" });
+    await expect(lineweightToggle).toHaveAttribute("aria-pressed", "true");
+    await lineweightToggle.click();
+    await expect(lineweightToggle).toHaveAttribute("aria-pressed", "false");
+    const lineweightOffFrame = await readStableCanvasFrame();
+    await lineweightToggle.click();
+    await expect(lineweightToggle).toHaveAttribute("aria-pressed", "true");
+    await nextCanvasFrames();
+    await page.getByRole("button", { name: "Görünüm Ayarları" }).click();
+    const sourceFrame = await readStableCanvasFrame();
+    const sourcePng = PNG.sync.read(sourceFrame);
+    const countColoredSourcePixels = (data: Buffer) => {
+      const png = PNG.sync.read(data);
+      let count = 0;
+      for (let offset = 0; offset < png.data.length; offset += 4) {
+        const red = png.data[offset]!;
+        const green = png.data[offset + 1]!;
+        const blue = png.data[offset + 2]!;
+        if (red > 80 && red > green * 1.5 && red > blue * 1.5) count++;
+      }
+      return count;
+    };
+    const coloredSourcePixels = countColoredSourcePixels(sourceFrame);
+    const lineweightOffColoredPixels = countColoredSourcePixels(lineweightOffFrame);
+    expect(coloredSourcePixels).toBeGreaterThan(20);
+    expect(coloredSourcePixels).toBeGreaterThan(lineweightOffColoredPixels);
+    console.log(`L11 lineweight raster: ${JSON.stringify({ lineweightOffColoredPixels, lineweightOnColoredPixels: coloredSourcePixels })}`);
+    expect(requests).toEqual({ prepare: 1, manifest: 1, chunks: 1 });
+
+    await page.getByRole("button", { name: "Görünüm Ayarları" }).click();
+    const monochromeToggle = page.getByText("Tek Renk Modu").locator("xpath=../..").getByRole("button");
+    await expect(monochromeToggle).toBeVisible();
+    await monochromeToggle.click();
+    await page.getByRole("button", { name: "Görünüm Ayarları" }).click();
+    const monochromeFrame = await readStableCanvasFrame();
+    const monochromePng = PNG.sync.read(monochromeFrame);
+    let changedPixels = 0;
+    for (let offset = 0; offset < sourcePng.data.length; offset += 4) {
+      const changed = Math.abs(sourcePng.data[offset]! - monochromePng.data[offset]!) > 8
+        || Math.abs(sourcePng.data[offset + 1]! - monochromePng.data[offset + 1]!) > 8
+        || Math.abs(sourcePng.data[offset + 2]! - monochromePng.data[offset + 2]!) > 8;
+      if (changed) changedPixels++;
+    }
+    expect(changedPixels).toBeGreaterThan(20);
+
+    await page.getByRole("button", { name: "Görünüm Ayarları" }).click();
+    const restoreToggle = page.getByText("Tek Renk Modu").locator("xpath=../..").getByRole("button");
+    await expect(restoreToggle).toBeVisible();
+    await restoreToggle.click();
+    await page.getByRole("button", { name: "Görünüm Ayarları" }).click();
+    const restoredFrame = await readStableCanvasFrame();
+    const restoredPng = PNG.sync.read(restoredFrame);
+    let restoredColoredPixels = 0;
+    for (let offset = 0; offset < sourcePng.data.length; offset += 4) {
+      const red = restoredPng.data[offset]!;
+      const green = restoredPng.data[offset + 1]!;
+      const blue = restoredPng.data[offset + 2]!;
+      if (red > 80 && red > green * 1.5 && red > blue * 1.5) restoredColoredPixels++;
+    }
+    expect(restoredColoredPixels).toBe(coloredSourcePixels);
+    expect(crypto.createHash("sha256").update(restoredFrame).digest("hex"))
+      .toBe(crypto.createHash("sha256").update(sourceFrame).digest("hex"));
+    expect(requests).toEqual({ prepare: 1, manifest: 1, chunks: 1 });
+  });
+
+  test("WebGL context restore 20 döngüde yeni frame ve kaynak sürekliliğini korur", async ({ page }) => {
+    test.setTimeout(180_000);
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const scene = makeBrowserAcceptanceScene();
+    Object.assign(scene.manifest, {
+      layers: {
+        GEOMETRY: {
+          id: "GEOMETRY", name: "GEOMETRY", visible: true, frozen: false, locked: false,
+          color: { method: "rgb", rgb: [255, 26, 26] }, lineweightMm: 0.5, linetypeName: "Continuous",
+        },
+      },
+    });
+    const sessionId = "vs_f08_context_recovery_gate";
+    const requestedChunkIds: string[] = [];
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ status: "ready", sceneId: scene.sceneId, viewSessionId: sessionId,
+          sourceVersionKey: scene.manifest.sourceVersionKey }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${sessionId}/heartbeat`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      requestedChunkIds.push(chunkId);
+      const chunk = scene.chunks.get(chunkId);
+      if (!chunk) {
+        await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "F08 fixture chunk not found" }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    const picker = page.getByRole("combobox", { name: "Pafta seçimi" });
+    await expect(picker).toBeVisible({ timeout: 60_000 });
+    const canvas = page.locator("canvas").first();
+    const input = page.getByLabel("CAD V2 Çizim Etkileşim Alanı");
+    const countRedPixels = async (screenshot: Buffer) => page.evaluate(async (base64) => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${base64}`;
+      await image.decode();
+      const sample = document.createElement("canvas");
+      sample.width = image.width;
+      sample.height = image.height;
+      const context = sample.getContext("2d");
+      if (!context) throw new Error("Could not create a screenshot pixel sampler");
+      context.drawImage(image, 0, 0);
+      const pixels = context.getImageData(0, 0, sample.width, sample.height).data;
+      let count = 0;
+      for (let i = 0; i < pixels.length; i += 4) {
+        if (pixels[i]! > 80 && pixels[i]! > pixels[i + 1]! * 1.5 && pixels[i]! > pixels[i + 2]! * 1.5) count++;
+      }
+      return count;
+    }, screenshot.toString("base64"));
+    const initialRedPixels = await countRedPixels(await canvas.screenshot());
+    expect(initialRedPixels).toBeGreaterThan(20);
+    expect(requestedChunkIds).toEqual(["chunk_100"]);
+
+    await page.getByRole("button", { name: "Yakınlaştır (+)" }).click();
+    const cameraBeforeLoss = await input.evaluate((element) => {
+      const zoom = (element as HTMLDivElement & { __zoom?: { x: number; y: number; k: number } }).__zoom;
+      if (!zoom) throw new Error("F08 camera state was not initialized");
+      return { x: zoom.x, y: zoom.y, k: zoom.k };
+    });
+    expect(cameraBeforeLoss.k).toBeGreaterThan(1);
+
+    await page.getByRole("button", { name: "Görünüm Ayarları" }).click();
+    const lineweightToggle = page.getByRole("button", { name: "Çizgi Kalınlıkları" });
+    await expect(lineweightToggle).toHaveAttribute("aria-pressed", "true");
+    await lineweightToggle.click();
+    await expect(lineweightToggle).toHaveAttribute("aria-pressed", "false");
+    await page.getByRole("button", { name: "Görünüm Ayarları" }).click();
+    const configuredVisibleRedPixels = await countRedPixels(await canvas.screenshot());
+    expect(configuredVisibleRedPixels).toBeGreaterThan(20);
+
+    await page.getByTitle("Katmanlar").click();
+    await expect(page.getByText("Görünür: 1 / 1")).toBeVisible();
+    await page.getByTitle("Katmanlar").click();
+
+    await page.evaluate(() => {
+      const state = { hold: false, pending: [] as FrameRequestCallback[], nextId: 1 };
+      const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
+      (window as any).__cadF08FrameState = state;
+      (window as any).__cadF08ReleaseFrames = () => {
+        state.hold = false;
+        for (const callback of state.pending.splice(0)) nativeRequestAnimationFrame(callback);
+      };
+      window.requestAnimationFrame = (callback: FrameRequestCallback) => {
+        if (!state.hold) return nativeRequestAnimationFrame(callback);
+        state.pending.push(callback);
+        return state.nextId++;
+      };
+      state.hold = true;
+    });
+    await canvas.evaluate(async (element) => {
+      const canvasElement = element as HTMLCanvasElement;
+      const gl = canvasElement.getContext("webgl2");
+      const extension = gl?.getExtension("WEBGL_lose_context");
+      if (!extension) throw new Error("WEBGL_lose_context extension is unavailable");
+      (window as any).__cadF08LoseContextExtension = extension;
+      await new Promise<void>((resolve, reject) => {
+        const timeout = window.setTimeout(() => reject(new Error("WebGL context lost event timed out")), 5_000);
+        element.addEventListener("webglcontextlost", () => { window.clearTimeout(timeout); resolve(); }, { once: true });
+        extension.loseContext();
+      });
+    });
+    await expect(page.getByText("Görüntü yeniden hazırlanıyor...")).toBeVisible();
+    await page.evaluate(() => (window as any).__cadF08LoseContextExtension.restoreContext());
+    await expect(page.getByTestId("cad-v2-streaming-progress")).toBeVisible();
+    expect(await page.evaluate(() => (window as any).__cadF08FrameState.pending.length)).toBeGreaterThan(0);
+    await page.evaluate(() => (window as any).__cadF08ReleaseFrames());
+    await expect(page.getByTestId("cad-v2-streaming-progress")).toBeHidden({ timeout: 15_000 });
+    await expect(page.getByText("Varlık:")).toBeVisible();
+    expect(requestedChunkIds).toEqual(["chunk_100"]);
+    const restoredRedPixels = await countRedPixels(await canvas.screenshot());
+    expect(restoredRedPixels).toBeGreaterThan(configuredVisibleRedPixels * 0.75);
+    expect(restoredRedPixels).toBeLessThan(configuredVisibleRedPixels * 1.25);
+    expect(await input.evaluate((element) => (element as HTMLDivElement & { __zoom?: { x: number; y: number; k: number } }).__zoom))
+      .toEqual(cameraBeforeLoss);
+    expect(await picker.inputValue()).toBe("Model");
+    await page.getByRole("button", { name: "Görünüm Ayarları" }).click();
+    await expect(page.getByRole("button", { name: "Çizgi Kalınlıkları" })).toHaveAttribute("aria-pressed", "false");
+    await page.getByRole("button", { name: "Görünüm Ayarları" }).click();
+
+    for (let recovery = 2; recovery <= 20; recovery++) {
+      await canvas.evaluate(async (element) => {
+        const extension = (window as any).__cadF08LoseContextExtension as WEBGL_lose_context;
+        await new Promise<void>((resolve, reject) => {
+          const timeout = window.setTimeout(() => reject(new Error("WebGL context lost event timed out")), 5_000);
+          element.addEventListener("webglcontextlost", () => { window.clearTimeout(timeout); resolve(); }, { once: true });
+          extension.loseContext();
+        });
+      });
+      await expect(page.getByText("Görüntü yeniden hazırlanıyor...")).toBeVisible();
+      await canvas.evaluate(async (element) => {
+        const extension = (window as any).__cadF08LoseContextExtension as WEBGL_lose_context;
+        await new Promise<void>((resolve, reject) => {
+          const timeout = window.setTimeout(() => reject(new Error("WebGL context restored event timed out")), 5_000);
+          element.addEventListener("webglcontextrestored", () => { window.clearTimeout(timeout); resolve(); }, { once: true });
+          extension.restoreContext();
+        });
+      });
+      await expect(page.getByText("DWG Motor V2 Hazırlanıyor")).toBeHidden({ timeout: 15_000 });
+      await expect(page.getByText("Varlık:")).toBeVisible();
+      expect(requestedChunkIds, `recovery ${recovery} fetched a chunk again`).toEqual(["chunk_100"]);
+      const redPixels = await countRedPixels(await canvas.screenshot());
+      expect(redPixels, `recovery ${recovery} lost the visible layer`).toBeGreaterThan(configuredVisibleRedPixels * 0.75);
+      expect(redPixels, `recovery ${recovery} duplicated the drawing`).toBeLessThan(configuredVisibleRedPixels * 1.25);
+      expect(await input.evaluate((element) => (element as HTMLDivElement & { __zoom?: { x: number; y: number; k: number } }).__zoom),
+        `recovery ${recovery} changed the camera`).toEqual(cameraBeforeLoss);
+      expect(await picker.inputValue(), `recovery ${recovery} changed the active layout`).toBe("Model");
+      await page.getByTitle("Katmanlar").click();
+      await expect(page.getByText("Görünür: 1 / 1")).toBeVisible();
+      await page.getByTitle("Katmanlar").click();
+      await page.getByRole("button", { name: "Görünüm Ayarları" }).click();
+      await expect(page.getByRole("button", { name: "Çizgi Kalınlıkları" }), `recovery ${recovery} changed lineweight settings`)
+        .toHaveAttribute("aria-pressed", "false");
+      await page.getByRole("button", { name: "Görünüm Ayarları" }).click();
+    }
+
+    await page.getByTitle("Katmanlar").click();
+    await expect(page.getByText("Görünür: 1 / 1")).toBeVisible();
+    await page.getByTitle("Katmanlar").click();
+    await expect.poll(async () => countRedPixels(await canvas.screenshot()), { timeout: 10_000 })
+      .toBeGreaterThan(configuredVisibleRedPixels * 0.75);
+    await expect.poll(async () => countRedPixels(await canvas.screenshot()), { timeout: 10_000 })
+      .toBeLessThan(configuredVisibleRedPixels * 1.25);
+  });
+
+  test("L11 kullanıcı iptali 200 ms içinde görünür olur ve açılmış view session silinir", async ({ page }) => {
+    test.setTimeout(60_000);
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "l11-cancel-latency.dxf");
+    const scene = makeBrowserAcceptanceScene("scene_l11_cancel_latency");
+    const viewSessionId = "vs_l11_cancel_latency";
+    let deleteCount = 0;
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        status: "preparing",
+        sceneId: null,
+        jobId: "job_l11_cancel_latency",
+        viewSessionId,
+        sourceVersionKey: scene.manifest.sourceVersionKey,
+      }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/jobs/job_l11_cancel_latency", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "running" }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${viewSessionId}`, async (route) => {
+      if (route.request().method() === "DELETE") deleteCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    await expect(page.getByText("DWG/DXF geometrisi derleniyor...")).toBeVisible({ timeout: 15_000 });
+    const deleteResponsePromise = page.waitForResponse((response) =>
+      response.request().method() === "DELETE" && response.url().includes(`/view-sessions/${viewSessionId}`),
+    );
+    const cancelLatencyMs = await page.evaluate(() => new Promise<number>((resolve, reject) => {
+      const overlay = document.querySelector('[data-testid="cad-v2-blocking-loading-overlay"]');
+      const button = Array.from(overlay?.querySelectorAll("button") ?? [])
+        .find((element) => element.textContent?.trim() === "İptal Et") as HTMLButtonElement | undefined;
+      if (!button) {
+        reject(new Error("Blocking preparation cancel button is missing."));
+        return;
+      }
+      const startedAt = performance.now();
+      const observer = new MutationObserver(() => {
+        if (document.body.textContent?.includes("İşlem İptal Edildi")) {
+          observer.disconnect();
+          window.clearTimeout(timeout);
+          resolve(performance.now() - startedAt);
+        }
+      });
+      const timeout = window.setTimeout(() => {
+        observer.disconnect();
+        reject(new Error("Cancel acknowledgement did not render within 2 seconds."));
+      }, 2_000);
+      observer.observe(document.body, { childList: true, characterData: true, subtree: true });
+      button.click();
+      if (document.body.textContent?.includes("İşlem İptal Edildi")) {
+        observer.disconnect();
+        window.clearTimeout(timeout);
+        resolve(performance.now() - startedAt);
+      }
+    }));
+
+    expect(cancelLatencyMs).toBeLessThanOrEqual(200);
+    await expect(page.getByText("İşlem İptal Edildi")).toBeVisible();
+    const deleteResponse = await deleteResponsePromise;
+    expect(deleteResponse.status()).toBe(200);
+    expect(deleteCount).toBe(1);
+    console.log(`L11 cancel UI/cleanup: ${JSON.stringify({ cancelLatencyMs, deleteStatus: deleteResponse.status(), deleteCount })}`);
+  });
+
+  test("20 V2 aç/kapat döngüsünde worker ve view session temizlenir", async ({ page }) => {
+    test.setTimeout(180_000);
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const scene = makeBrowserAcceptanceScene();
+    let prepareCount = 0;
+    const deletedSessions = new Set<string>();
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Performance.enable");
+    const memorySamples: Array<{
+      cycle: number;
+      phase: "v2" | "list";
+      jsHeapUsedBytes: number;
+      domNodes: number;
+      liveDomElements: number;
+      jsEventListeners: number;
+      trackedListeners: { window: number; document: number; canvas: number };
+      trackedListenerTargets: {
+        activeTargetCount: number;
+        activeListenerCount: number;
+        detachedTargetCount: number;
+        detachedListenerCount: number;
+        byKind: Record<string, { targets: number; listeners: number }>;
+        topTargets: Array<{ kind: string; connected: boolean; listenerCount: number; eventTypes: string[]; id: string | null; className: string | null; dataTestId: string | null; ariaLabel: string | null }>;
+      };
+    }> = [];
+    const sampleMemory = async (cycle: number, phase: "v2" | "list") => {
+      await cdp.send("HeapProfiler.collectGarbage");
+      const metrics = await cdp.send("Performance.getMetrics");
+      const dom = await cdp.send("Memory.getDOMCounters");
+      const jsHeapUsedBytes = metrics.metrics.find((entry: { name: string }) => entry.name === "JSHeapUsedSize")?.value;
+      expect(Number.isFinite(jsHeapUsedBytes)).toBe(true);
+      const liveDomElements = await page.evaluate(() => document.getElementsByTagName("*").length);
+      const trackedListeners = await page.evaluate(() => ({ ...(window as any).__cadF08ListenerStats }));
+      const trackedListenerTargets = await page.evaluate(() => (window as any).__cadF08SummarizeListenerTargets());
+      memorySamples.push({ cycle, phase, jsHeapUsedBytes, domNodes: dom.nodes, liveDomElements,
+        jsEventListeners: dom.jsEventListeners, trackedListeners, trackedListenerTargets });
+    };
+    await page.addInitScript(() => {
+      const counters = { active: 0, created: 0, terminated: 0 };
+      (window as any).__cadF08Workers = counters;
+      const listenerStats = { window: 0, document: 0, canvas: 0 };
+      (window as any).__cadF08ListenerStats = listenerStats;
+      const listenerRegistry = new WeakMap<EventTarget, Map<string, Set<EventListenerOrEventListenerObject>>>();
+      const listenerTargetRefs = new Set<WeakRef<EventTarget>>();
+      const listenerTargetRefByTarget = new WeakMap<EventTarget, WeakRef<EventTarget>>();
+      const listenerKind = (target: EventTarget): keyof typeof listenerStats | null =>
+        target === window ? "window" : target === document ? "document" :
+        target instanceof HTMLCanvasElement ? "canvas" : null;
+      const listenerKey = (type: string, options?: boolean | AddEventListenerOptions | EventListenerOptions) =>
+        `${type}:${typeof options === "boolean" ? options : !!options?.capture}`;
+      const nativeAdd = EventTarget.prototype.addEventListener;
+      const nativeRemove = EventTarget.prototype.removeEventListener;
+      (EventTarget.prototype as any).addEventListener = function(type: string, listener: EventListenerOrEventListenerObject | null,
+        options?: boolean | AddEventListenerOptions) {
+        const kind = listenerKind(this);
+        if (listener) {
+          if (!listenerTargetRefByTarget.has(this)) {
+            const targetRef = new WeakRef(this);
+            listenerTargetRefByTarget.set(this, targetRef);
+            listenerTargetRefs.add(targetRef);
+          }
+          let byKey = listenerRegistry.get(this);
+          if (!byKey) { byKey = new Map(); listenerRegistry.set(this, byKey); }
+          const key = listenerKey(type, options);
+          let listeners = byKey.get(key);
+          if (!listeners) { listeners = new Set(); byKey.set(key, listeners); }
+          if (!listeners.has(listener)) {
+            listeners.add(listener);
+            if (kind) listenerStats[kind]++;
+          }
+        }
+        return nativeAdd.call(this, type, listener, options);
+      };
+      (EventTarget.prototype as any).removeEventListener = function(type: string, listener: EventListenerOrEventListenerObject | null,
+        options?: boolean | EventListenerOptions) {
+        const kind = listenerKind(this);
+        if (listener && listenerRegistry.get(this)?.get(listenerKey(type, options))?.delete(listener) && kind) {
+          listenerStats[kind]--;
+        }
+        return nativeRemove.call(this, type, listener, options);
+      };
+      (window as any).__cadF08SummarizeListenerTargets = () => {
+        let activeTargetCount = 0;
+        let activeListenerCount = 0;
+        let detachedTargetCount = 0;
+        let detachedListenerCount = 0;
+        const byKind: Record<string, { targets: number; listeners: number }> = {};
+        const topTargets: Array<{ kind: string; connected: boolean; listenerCount: number; eventTypes: string[]; id: string | null; className: string | null; dataTestId: string | null; ariaLabel: string | null }> = [];
+        for (const targetRef of listenerTargetRefs) {
+          const target = targetRef.deref();
+          if (!target) {
+            listenerTargetRefs.delete(targetRef);
+            continue;
+          }
+          const byKey = listenerRegistry.get(target);
+          if (!byKey) continue;
+          const eventTypes = new Map<string, number>();
+          for (const [key, listeners] of byKey) {
+            if (listeners.size === 0) continue;
+            const separator = key.indexOf(":");
+            const eventType = separator < 0 ? key : key.slice(0, separator);
+            eventTypes.set(eventType, (eventTypes.get(eventType) ?? 0) + listeners.size);
+          }
+          const listenerCount = Array.from(eventTypes.values()).reduce((sum, count) => sum + count, 0);
+          if (listenerCount === 0) continue;
+          activeTargetCount++;
+          activeListenerCount += listenerCount;
+          const connected = !(target instanceof Node) || target.isConnected;
+          if (!connected) {
+            detachedTargetCount++;
+            detachedListenerCount += listenerCount;
+          }
+          let kind: string;
+          let id: string | null = null;
+          let className: string | null = null;
+          let dataTestId: string | null = null;
+          let ariaLabel: string | null = null;
+          if (target === window) kind = "window";
+          else if (target === document) kind = "document";
+          else if (target instanceof Element) {
+            kind = `element:${target.tagName.toLowerCase()}`;
+            id = target.id || null;
+            className = typeof target.className === "string" ? target.className.slice(0, 100) || null : null;
+            dataTestId = target.getAttribute("data-testid");
+            ariaLabel = target.getAttribute("aria-label");
+          } else kind = `event-target:${target.constructor?.name ?? "unknown"}`;
+          const bucket = byKind[kind] ??= { targets: 0, listeners: 0 };
+          bucket.targets++;
+          bucket.listeners += listenerCount;
+          topTargets.push({ kind, connected, listenerCount, eventTypes: Array.from(eventTypes.keys()).sort(),
+            id, className, dataTestId, ariaLabel });
+        }
+        topTargets.sort((left, right) => right.listenerCount - left.listenerCount);
+        return { activeTargetCount, activeListenerCount, detachedTargetCount, detachedListenerCount, byKind,
+          topTargets: topTargets.slice(0, 20) };
+      };
+      const NativeWorker = window.Worker;
+      window.Worker = new Proxy(NativeWorker, {
+        construct(target, args, newTarget) {
+          const worker = Reflect.construct(target, args, newTarget) as Worker;
+          if (String(args[0]).includes("/cad-v2/cad-v2-scene-worker.js")) {
+            counters.active++;
+            counters.created++;
+            const terminate = worker.terminate.bind(worker);
+            worker.terminate = () => {
+              counters.active--;
+              counters.terminated++;
+              terminate();
+            };
+          }
+          return worker;
+        },
+      });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      const sessionId = `vs_f08_open_close_${++prepareCount}`;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        status: "ready", sceneId: scene.sceneId, viewSessionId: sessionId,
+        sourceVersionKey: scene.manifest.sourceVersionKey,
+      }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*/heartbeat", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*", async (route) => {
+      if (route.request().method() === "DELETE") {
+        deletedSessions.add(new URL(route.request().url()).pathname.split("/").at(-1)!);
+      }
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      const chunk = scene.chunks.get(chunkId);
+      await route.fulfill(chunk
+        ? { status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) }
+        : { status: 404, body: "missing chunk" });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    for (let cycle = 1; cycle <= 20; cycle++) {
+      await expect(page.getByRole("combobox", { name: "Pafta seçimi" })).toBeVisible({ timeout: 30_000 });
+      await expect.poll(() => page.evaluate(() => (window as any).__cadF08Workers.active), { timeout: 30_000 }).toBe(1);
+      await sampleMemory(cycle, "v2");
+      await page.locator('button[title="Geri Dön"]').click({ timeout: 10_000 });
+      await expect(page).toHaveURL(/\/dokumantasyon(?:\?.*)?$/);
+      await expect.poll(() => page.evaluate(() => (window as any).__cadF08Workers.active)).toBe(0);
+      await expect.poll(() => deletedSessions.size, {
+        message: `cycle ${cycle}: prepares=${prepareCount}, deleted=${Array.from(deletedSessions).join(",")}`,
+      }).toBe(cycle);
+      await expect(page.locator('button[aria-label="Dosya İşlemleri"][data-file-name="known-geometry-measurements.dxf"]'))
+        .toBeVisible();
+      await page.waitForTimeout(150);
+      await sampleMemory(cycle, "list");
+      if (cycle < 20) {
+        await page.locator('button[aria-label="Dosya İşlemleri"][data-file-name="known-geometry-measurements.dxf"]').click();
+        await page.getByRole("menuitem", { name: "DXF Motor V2 ile aç" }).click();
+      }
+    }
+    const workers = await page.evaluate(() => (window as any).__cadF08Workers);
+    expect(workers).toEqual({ active: 0, created: 20, terminated: 20 });
+    expect(prepareCount).toBe(20);
+    expect(deletedSessions.size).toBe(20);
+    expect(memorySamples).toHaveLength(40);
+    await test.info().attach("f08-chromium-cdp-route-samples.json", {
+      body: Buffer.from(JSON.stringify(memorySamples, null, 2)), contentType: "application/json",
+    });
+    const listSamples = memorySamples.filter((sample) => sample.phase === "list");
+    for (const sample of listSamples) {
+      expect(sample.trackedListeners.canvas, `cycle ${sample.cycle} retained a canvas listener`).toBe(0);
+      expect(sample.trackedListeners.window, `cycle ${sample.cycle} changed window listener baseline`)
+        .toBe(listSamples[0]!.trackedListeners.window);
+      expect(sample.trackedListeners.document, `cycle ${sample.cycle} changed document listener baseline`)
+        .toBe(listSamples[0]!.trackedListeners.document);
+    }
+    console.log(`F08 CDP list cycles 1/10/20: ${JSON.stringify([listSamples[0], listSamples[9], listSamples[19]])}`);
+    await cdp.detach();
+  });
+
+  test("dosya geçişinde gecikmiş eski chunk yeni sahneye çizilmez", async ({ page }) => {
+      test.setTimeout(120_000);
+      await signInAdmin(page);
+      const { fileId: oldFileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "f08-switch-old.dxf");
+      const { fileId: newFileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "f08-switch-new.dxf");
+      const oldScene = makeBrowserAcceptanceScene("scene_f08_switch_old");
+      const newScene = makeBrowserAcceptanceScene("scene_f08_switch_new", [0.1, 1, 0.1]);
+      const scenesByFile = new Map([[oldFileId, oldScene], [newFileId, newScene]]);
+      let oldChunkRequests = 0;
+      let releaseOldChunk: (() => void) | undefined;
+      const oldChunkGate = new Promise<void>((resolve) => { releaseOldChunk = resolve; });
+      let oldReplyDelivered = false;
+      let newChunkRequests = 0;
+      await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+        const { fileId } = route.request().postDataJSON() as { fileId: string };
+        const scene = scenesByFile.get(fileId);
+        if (!scene) throw new Error(`Unknown F08 switch file: ${fileId}`);
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+          status: "ready", sceneId: scene.sceneId, viewSessionId: `vs_f08_${fileId}`,
+          sourceVersionKey: scene.manifest.sourceVersionKey,
+        }) });
+      });
+      await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*/heartbeat", async (route) => {
+        await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+      });
+      await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*", async (route) => {
+        await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+      });
+      for (const scene of [oldScene, newScene]) {
+        await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+          await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+        });
+        await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+          const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+          const chunk = scene.chunks.get(chunkId);
+          if (!chunk) throw new Error(`Unknown F08 chunk: ${chunkId}`);
+          if (scene === oldScene) {
+            oldChunkRequests++;
+            await oldChunkGate;
+          } else {
+            newChunkRequests++;
+          }
+        try {
+          await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) });
+          if (scene === oldScene) oldReplyDelivered = true;
+        } catch {
+          // The old request may already have been aborted by the host transition.
+        }
+      });
+    }
+
+    try {
+      await page.goto(`/dokumantasyon/dosya/${oldFileId}?cadEngine=v2`);
+      await expect.poll(() => oldChunkRequests, { timeout: 30_000 }).toBeGreaterThan(0);
+      await page.locator('button[title="Geri Dön"]').click();
+      await expect(page).toHaveURL(/\/dokumantasyon(?:\?.*)?$/);
+      await page.locator('button[aria-label="Dosya İşlemleri"][data-file-name="f08-switch-new.dxf"]').click();
+      await page.getByRole("menuitem", { name: "DXF Motor V2 ile aç" }).click();
+      await expect(page).toHaveURL(new RegExp(`/dokumantasyon/dosya/${newFileId}\\?cadEngine=v2$`));
+      await expect.poll(() => newChunkRequests, { timeout: 30_000 }).toBeGreaterThan(0);
+      await expect(page.getByText("Varlık:")).toBeVisible({ timeout: 30_000 });
+
+      const canvas = page.locator("canvas").last();
+      const countColors = async () => page.evaluate(async (base64) => {
+        const image = new Image();
+        image.src = `data:image/png;base64,${base64}`;
+        await image.decode();
+        const sample = document.createElement("canvas");
+        sample.width = image.width;
+        sample.height = image.height;
+        const context = sample.getContext("2d")!;
+        context.drawImage(image, 0, 0);
+        const pixels = context.getImageData(0, 0, sample.width, sample.height).data;
+        let red = 0;
+        let green = 0;
+        for (let i = 0; i < pixels.length; i += 4) {
+          // The orange status icon and CAD controls are composited over this canvas screenshot.
+          const x = i / 4 % image.width;
+          const y = Math.floor(i / 4 / image.width);
+          if (x < 70 || y >= image.height - 56) continue;
+          if (pixels[i]! > 150 && pixels[i]! > pixels[i + 1]! * 1.5 && pixels[i]! > pixels[i + 2]! * 1.5) red++;
+          if (pixels[i + 1]! > 150 && pixels[i + 1]! > pixels[i]! * 1.5 && pixels[i + 1]! > pixels[i + 2]! * 1.5) green++;
+        }
+        return { red, green };
+      }, (await canvas.screenshot()).toString("base64"));
+      const beforeOldReply = await countColors();
+      expect(beforeOldReply.green).toBeGreaterThan(20);
+      expect(beforeOldReply.red).toBeLessThan(10);
+      releaseOldChunk?.();
+      await expect.poll(() => oldReplyDelivered).toBe(true);
+      const afterOldReply = await countColors();
+      expect(afterOldReply.green).toBeGreaterThan(beforeOldReply.green * 0.75);
+      expect(afterOldReply.red).toBeLessThan(10);
+    } finally {
+      releaseOldChunk?.();
+    }
+  });
+
+  test("L05 kaynak revizyonu için tek otomatik repair, terminal sessizlik ve açık retry", async ({ page }) => {
+    test.setTimeout(120_000);
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "l05-revision-repair.dxf");
+    const scene = makeBrowserAcceptanceScene("scene_l05_revision_repair");
+    let prepareCount = 0;
+    let jobPollCount = 0;
+    let manifestCount = 0;
+    let chunkCount = 0;
+    const expectedVersionKeys: Array<string | undefined> = [];
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      prepareCount++;
+      const request = route.request().postDataJSON() as { expectedSourceVersionKey?: string };
+      expectedVersionKeys.push(request.expectedSourceVersionKey);
+      if (prepareCount <= 2) {
+        await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({
+          code: "SOURCE_REVISION_CHANGED",
+          message: `Injected revision conflict ${prepareCount}`,
+          actualSourceVersionKey: `l05-revision-${prepareCount}`,
+        }) });
+        return;
+      }
+      if (prepareCount === 3) {
+        await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({
+          message: "Injected transient prepare failure",
+        }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        status: "ready", sceneId: scene.sceneId, viewSessionId: "vs_l05_revision_repair",
+        sourceVersionKey: scene.manifest.sourceVersionKey,
+      }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/jobs/*", async (route) => {
+      jobPollCount++;
+      await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ message: "unexpected job poll" }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*/heartbeat", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      manifestCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      chunkCount++;
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      const chunk = scene.chunks.get(chunkId);
+      if (!chunk) throw new Error(`Unknown L05 revision-repair chunk: ${chunkId}`);
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) });
+    });
+
+    try {
+      await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+      await expect(page.getByText("Görüntüleme Başarısız")).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByText("Injected revision conflict 2")).toBeVisible();
+      expect(prepareCount, "one source-revision repair is allowed per automatic attempt chain").toBe(2);
+      expect(expectedVersionKeys[1]).toBe("l05-revision-1");
+      expect(jobPollCount).toBe(0);
+      expect(manifestCount).toBe(0);
+      expect(chunkCount).toBe(0);
+      await page.waitForTimeout(300);
+      expect(prepareCount, "terminal conflict does not create another prepare request").toBe(2);
+
+      await page.getByRole("button", { name: "Tekrar Dene" }).click();
+      await expect(page.getByText("Injected transient prepare failure")).toBeVisible({ timeout: 10_000 });
+      expect(prepareCount).toBe(3);
+      expect(expectedVersionKeys[2]).toBe("l05-revision-2");
+
+      await page.getByRole("button", { name: "Tekrar Dene" }).click();
+      await expect(page.getByText("Varlık:")).toBeVisible({ timeout: 30_000 });
+      expect(prepareCount).toBe(4);
+      expect(expectedVersionKeys[3]).toBe("l05-revision-2");
+      await expect.poll(() => chunkCount, { timeout: 15_000 }).toBeGreaterThan(0);
+      expect(jobPollCount).toBe(0);
+    } finally {
+      // Guarded globalTeardown deletes only this isolated run-data directory.
+    }
+  });
+
+  test("L05 hızlı tekrar dene yalnızca yeni generation başlatır", async ({ page }) => {
+    test.setTimeout(90_000);
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "l05-rapid-retry.dxf");
+    const scene = makeBrowserAcceptanceScene("scene_l05_rapid_retry");
+    const validChunk = scene.chunks.get("chunk_100")!;
+    let prepareCount = 0;
+    let chunkCount = 0;
+    let releaseRetryPrepare: (() => void) | undefined;
+    const retryPrepareGate = new Promise<void>((resolve) => { releaseRetryPrepare = resolve; });
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      prepareCount++;
+      if (prepareCount === 1) {
+        await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ message: "Injected first prepare failure" }) });
+        return;
+      }
+      await retryPrepareGate;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        status: "ready", sceneId: scene.sceneId, viewSessionId: "vs_l05_rapid_retry",
+        sourceVersionKey: scene.manifest.sourceVersionKey,
+      }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*/heartbeat", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      chunkCount++;
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(validChunk) });
+    });
+
+    try {
+      await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+      await expect(page.getByText("Injected first prepare failure")).toBeVisible({ timeout: 30_000 });
+      await page.getByRole("button", { name: "Tekrar Dene" }).click();
+      await expect.poll(() => prepareCount).toBe(2);
+      await expect(page.getByRole("button", { name: "Tekrar Dene" })).toHaveCount(0);
+      await page.waitForTimeout(300);
+      expect(prepareCount, "an in-flight explicit retry cannot be re-entered from the terminal button").toBe(2);
+    } finally {
+      releaseRetryPrepare?.();
+    }
+    await expect(page.getByText("Varlık:")).toBeVisible({ timeout: 30_000 });
+    expect(prepareCount).toBe(2);
+    expect(chunkCount).toBe(1);
+  });
+
+  test("L05 hazır sahnede chunk 404 için tek kontrollü repair sibling isteklerini durdurur", async ({ page }) => {
+    test.setTimeout(120_000);
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "l05-chunk-integrity.dxf");
+    const scene = makeBrowserAcceptanceScene("scene_l05_chunk_integrity");
+    const validChunk = scene.chunks.get("chunk_100")!;
+    const validDescriptor = scene.manifest.chunks.find((chunk) => chunk.chunkId === "chunk_100")!;
+    scene.manifest.chunks = [
+      { ...validDescriptor, chunkId: "chunk_missing", layoutId: "Model" },
+      { ...validDescriptor, chunkId: "chunk_sibling", layoutId: "Model" },
+    ];
+
+    let prepareCount = 0;
+    let manifestCount = 0;
+    let missingChunkRequestCount = 0;
+    let siblingRequestCount = 0;
+    let siblingRequestFailedCount = 0;
+    let heartbeatCount = 0;
+    let jobPollCount = 0;
+    let releaseSiblingRoutes: () => void = () => {};
+    const siblingRouteGate = new Promise<void>((resolve) => { releaseSiblingRoutes = resolve; });
+
+    await page.clock.install();
+    page.on("requestfailed", (request) => {
+      if (new URL(request.url()).pathname.endsWith("/chunks/chunk_sibling")) siblingRequestFailedCount++;
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      prepareCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        status: "ready", sceneId: scene.sceneId, viewSessionId: `vs_l05_chunk_integrity_${prepareCount}`,
+        sourceVersionKey: scene.manifest.sourceVersionKey,
+      }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/jobs/*", async (route) => {
+      jobPollCount++;
+      await route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ message: "unexpected job poll" }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*/heartbeat", async (route) => {
+      heartbeatCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      manifestCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      if (chunkId === "chunk_missing") {
+        missingChunkRequestCount++;
+        await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({
+          code: "READY_SCENE_MISSING_OBJECT", message: "Injected ready scene missing chunk",
+        }) });
+        return;
+      }
+      if (chunkId === "chunk_sibling") {
+        siblingRequestCount++;
+        await siblingRouteGate;
+        try {
+          await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(validChunk) });
+        } catch {
+          // A cancelled browser request is the expected outcome for this held sibling.
+        }
+        return;
+      }
+      throw new Error(`Unexpected L05 chunk request: ${chunkId}`);
+    });
+
+    try {
+      await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+      await expect(page.getByText("Görüntüleme Başarısız")).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByText(/Kritik parça bulunamadı/)).toBeVisible();
+      expect(missingChunkRequestCount, "HTTP 404 is never blindly retried").toBe(2);
+      await expect(page.getByText(/Sahne bütünlüğü doğrulanamadı/)).toBeVisible();
+      expect(prepareCount, "a ready-scene integrity failure gets at most one controlled repair").toBe(2);
+      expect(manifestCount).toBe(2);
+      expect(siblingRequestCount).toBeGreaterThan(0);
+      expect(siblingRequestFailedCount, "fatal chunk integrity failure aborts sibling fetches").toBeGreaterThan(0);
+      expect(jobPollCount).toBe(0);
+
+      await page.clock.fastForward(31_000);
+      expect(heartbeatCount, "terminal integrity error stops session heartbeat").toBe(0);
+      expect(prepareCount).toBe(2);
+      expect(manifestCount).toBe(2);
+      expect(missingChunkRequestCount).toBe(2);
+    } finally {
+      releaseSiblingRoutes();
+    }
+  });
+
+  test("L05 SHA-256 uyuşmazlığı bir kez sınıflanır, sahne onarılır ve terminal ağ sessiz kalır", async ({ page }) => {
+    test.setTimeout(90_000);
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "l05-hash-mismatch.dxf");
+    const scene = makeBrowserAcceptanceScene("scene_l05_hash_mismatch");
+    const validChunk = scene.chunks.get("chunk_100")!;
+    scene.manifest.chunks[0]!.sha256 = "0".repeat(64);
+    let prepareCount = 0;
+    let manifestCount = 0;
+    let chunkCount = 0;
+    let heartbeatCount = 0;
+
+    await page.clock.install();
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      prepareCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        status: "ready", sceneId: scene.sceneId, viewSessionId: `vs_l05_hash_${prepareCount}`,
+        sourceVersionKey: scene.manifest.sourceVersionKey,
+      }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*/heartbeat", async (route) => {
+      heartbeatCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      manifestCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      chunkCount++;
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(validChunk) });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    await expect(page.getByText("Görüntüleme Başarısız")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Sahne bütünlüğü doğrulanamadı: SHA-256 sağlama toplamı uyuşmazlığı/)).toBeVisible();
+    expect(prepareCount).toBe(2);
+    expect(manifestCount).toBe(2);
+    expect(chunkCount, "a hash mismatch is not retried as an ordinary chunk request").toBe(2);
+    await page.clock.fastForward(31_000);
+    expect(heartbeatCount).toBe(0);
+    expect(chunkCount).toBe(2);
+  });
+
+  test("L05 chunk HTTP retry tablosu kalıcı hataları durdurur ve Retry-After bütçesine uyar", async ({ page }) => {
+    test.setTimeout(120_000);
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "l05-http-retry-policy.dxf");
+    const scene = makeBrowserAcceptanceScene("scene_l05_http_retry_policy");
+    const validChunk = scene.chunks.get("chunk_100")!;
+    const responsePlan: Array<{ kind: "http"; status: number; retryAfter?: string } | { kind: "network" } | { kind: "success" }> = [
+      { kind: "http", status: 503, retryAfter: "2" },
+      { kind: "http", status: 503, retryAfter: "2" },
+      { kind: "http", status: 503, retryAfter: "2" },
+      { kind: "http", status: 401 },
+      { kind: "http", status: 403 },
+      { kind: "http", status: 410 },
+      { kind: "http", status: 501 },
+      { kind: "http", status: 429, retryAfter: "2" },
+      { kind: "network" },
+      { kind: "success" },
+    ];
+    let prepareCount = 0;
+    let chunkRequestCount = 0;
+
+    await page.clock.install();
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      prepareCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        status: "ready", sceneId: scene.sceneId, viewSessionId: `vs_l05_http_retry_${prepareCount}`,
+        sourceVersionKey: scene.manifest.sourceVersionKey,
+      }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*/heartbeat", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      chunkRequestCount++;
+      const outcome = responsePlan.shift() ?? { kind: "success" as const };
+      if (outcome.kind === "network") {
+        await route.abort("failed");
+        return;
+      }
+      if (outcome.kind === "http") {
+        const headers: Record<string, string> = {};
+        if (outcome.retryAfter) headers["Retry-After"] = outcome.retryAfter;
+        await route.fulfill({
+          status: outcome.status,
+          contentType: "application/json",
+          headers,
+          body: JSON.stringify({ code: "INJECTED_HTTP_FAILURE", message: `Injected HTTP ${outcome.status}` }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(validChunk) });
+    });
+
+    try {
+      await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+      await expect.poll(() => chunkRequestCount).toBe(1);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      await page.clock.runFor(1_999);
+      expect(chunkRequestCount, "503 retry waits for Retry-After instead of a shorter local delay").toBe(1);
+      await page.clock.runFor(1);
+      await expect.poll(() => chunkRequestCount).toBe(2);
+      await page.clock.runFor(2_000);
+      await expect.poll(() => chunkRequestCount).toBe(3);
+      await expect(page.getByText(/Parça indirilemedi \(503/)).toBeVisible();
+      expect(prepareCount).toBe(1);
+      expect(responsePlan).toHaveLength(7);
+
+      await page.getByRole("button", { name: "Tekrar Dene" }).click();
+      await expect(page.getByText(/Yetki hatası \(401\)/)).toBeVisible();
+      expect(chunkRequestCount).toBe(4);
+      expect(prepareCount).toBe(2);
+
+      await page.getByRole("button", { name: "Tekrar Dene" }).click();
+      await expect(page.getByText(/Yetki hatası \(403\)/)).toBeVisible();
+      expect(chunkRequestCount).toBe(5);
+      expect(prepareCount).toBe(3);
+
+      await page.getByRole("button", { name: "Tekrar Dene" }).click();
+      await expect(page.getByText(/Görüntüleme erişimi sona erdi \(410\)/)).toBeVisible();
+      expect(chunkRequestCount).toBe(6);
+      expect(prepareCount, "chunk 410 is terminal and does not renew the viewer session").toBe(4);
+
+      await page.getByRole("button", { name: "Tekrar Dene" }).click();
+      await expect(page.getByText(/Parça isteği reddedildi \(501\)/)).toBeVisible();
+      expect(chunkRequestCount).toBe(7);
+      expect(prepareCount).toBe(5);
+
+      await page.getByRole("button", { name: "Tekrar Dene" }).click();
+      await expect.poll(() => chunkRequestCount).toBe(8);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      await page.clock.runFor(1_999);
+      expect(chunkRequestCount, "429 retry waits for Retry-After").toBe(8);
+      await page.clock.runFor(1);
+      await expect.poll(() => chunkRequestCount).toBe(9);
+      await page.clock.runFor(400);
+      await expect(page.getByText("Varlık:")).toBeVisible({ timeout: 30_000 });
+      await expect.poll(async () => page.locator("[data-cad-v2-progress]").getAttribute("data-cad-v2-progress"))
+        .toMatch(/İndirilen 1\/2 · Doğrulanan 1\/2 · Görünür 1\/1 · Çizilen 1\/2/);
+      expect(chunkRequestCount).toBe(10);
+      expect(prepareCount).toBe(6);
+      expect(responsePlan).toHaveLength(0);
+    } finally {
+      // Guarded globalTeardown deletes only this isolated run-data directory.
+    }
+  });
+
+  test("L05 VIEW_SESSION_EXPIRED heartbeat yalnızca bir kez prepare yeniler", async ({ page }) => {
+    test.setTimeout(120_000);
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "l05-heartbeat-refresh.dxf");
+    const scene = makeBrowserAcceptanceScene("scene_l05_heartbeat_refresh");
+    const validChunk = scene.chunks.get("chunk_100")!;
+    let prepareCount = 0;
+    let manifestCount = 0;
+    let heartbeatCount = 0;
+
+    await page.clock.install();
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      prepareCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        status: "ready", sceneId: scene.sceneId, viewSessionId: `vs_l05_heartbeat_${prepareCount}`,
+        sourceVersionKey: scene.manifest.sourceVersionKey,
+      }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*/heartbeat", async (route) => {
+      heartbeatCount++;
+      await route.fulfill({ status: 410, contentType: "application/json", body: JSON.stringify({
+        code: "VIEW_SESSION_EXPIRED", message: "Oturum süresi doldu veya bulunamadı.",
+      }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      manifestCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      const chunk = scene.chunks.get(chunkId);
+      if (!chunk) {
+        await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ code: "CHUNK_NOT_FOUND" }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(validChunk) });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    await expect(page.getByText("Varlık:")).toBeVisible({ timeout: 30_000 });
+    await page.clock.runFor(30_000);
+    await expect.poll(() => prepareCount).toBe(2);
+    await expect.poll(() => manifestCount).toBe(2);
+    expect(heartbeatCount).toBe(1);
+    await expect(page.getByText("Varlık:")).toBeVisible({ timeout: 30_000 });
+
+    await page.clock.runFor(30_000);
+    await expect(page.getByText("Oturum süresi doldu; çizimi yeniden deneyin.")).toBeVisible();
+    expect(heartbeatCount).toBe(2);
+    expect(prepareCount, "an expired session cannot start an unbounded prepare loop").toBe(2);
+    expect(manifestCount).toBe(2);
+    await page.clock.runFor(60_000);
+    expect(heartbeatCount).toBe(2);
+    expect(prepareCount).toBe(2);
+  });
+
+  test("L05 A→B→A gezinmesi ve browser back/forward eski generation isteklerini taşımıyor", async ({ page }) => {
+    test.setTimeout(120_000);
+    await signInAdmin(page);
+    const { fileId: fileA } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "l05-history-a.dxf");
+    const { fileId: fileB } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "l05-history-b.dxf");
+    const sceneA = makeBrowserAcceptanceScene("scene_l05_history_a", [1, 0.1, 0.1]);
+    const sceneB = makeBrowserAcceptanceScene("scene_l05_history_b", [0.1, 1, 0.1]);
+    const sceneByFile = new Map([[fileA, sceneA], [fileB, sceneB]]);
+    const sceneRequests = new Map([[sceneA.sceneId, 0], [sceneB.sceneId, 0]]);
+    let prepareCount = 0;
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      prepareCount++;
+      const body = route.request().postDataJSON() as { fileId: string };
+      const scene = sceneByFile.get(body.fileId);
+      if (!scene) throw new Error(`Unknown L05 history file: ${body.fileId}`);
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        status: "ready", sceneId: scene.sceneId, viewSessionId: `vs_l05_history_${prepareCount}`,
+        sourceVersionKey: scene.manifest.sourceVersionKey,
+      }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*/heartbeat", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    for (const scene of [sceneA, sceneB]) {
+      await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+      });
+      await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+        sceneRequests.set(scene.sceneId, (sceneRequests.get(scene.sceneId) ?? 0) + 1);
+        const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+        const chunk = scene.chunks.get(chunkId);
+        if (!chunk) throw new Error(`Unknown L05 history chunk: ${chunkId}`);
+        await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) });
+      });
+    }
+
+    const assertScene = async (fileId: string) => {
+      await expect(page).toHaveURL(new RegExp(`/dokumantasyon/dosya/${fileId}\\?cadEngine=v2$`));
+      await expect(page.getByText("Varlık:")).toBeVisible({ timeout: 30_000 });
+    };
+    await page.goto(`/dokumantasyon/dosya/${fileA}?cadEngine=v2`);
+    await assertScene(fileA);
+    await page.goto(`/dokumantasyon/dosya/${fileB}?cadEngine=v2`);
+    await assertScene(fileB);
+    await page.goBack();
+    await assertScene(fileA);
+    await page.goForward();
+    await assertScene(fileB);
+
+    expect(prepareCount).toBe(4);
+    expect(sceneRequests.get(sceneA.sceneId)).toBeGreaterThanOrEqual(2);
+    expect(sceneRequests.get(sceneB.sceneId)).toBeGreaterThanOrEqual(2);
+    expect(await page.locator('[data-v2-phase="ready"]').count()).toBe(1);
+  });
+
+  test("L05 offline→online ve background→resume geçişleri sınırlı isteği sürdürür", async ({ page, context }) => {
+    test.setTimeout(90_000);
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "l05-network-visibility.dxf");
+    const scene = makeBrowserAcceptanceScene("scene_l05_network_visibility");
+    const validChunk = scene.chunks.get("chunk_100")!;
+    let chunkCount = 0;
+    let heartbeatCount = 0;
+    let visibilityState: "visible" | "hidden" = "visible";
+
+    await page.clock.install();
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        status: "ready", sceneId: scene.sceneId, viewSessionId: "vs_l05_network_visibility",
+        sourceVersionKey: scene.manifest.sourceVersionKey,
+      }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*/heartbeat", async (route) => {
+      heartbeatCount++;
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/view-sessions/*", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      chunkCount++;
+      if (chunkCount === 1) {
+        await context.setOffline(true);
+        await route.abort("failed");
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(validChunk) });
+    });
+
+    await page.addInitScript(() => {
+      let state: DocumentVisibilityState = "visible";
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => state });
+      Object.defineProperty(window, "__setCadTestVisibility", {
+        configurable: true,
+        value: (next: DocumentVisibilityState) => { state = next; document.dispatchEvent(new Event("visibilitychange")); },
+      });
+    });
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    await expect.poll(() => chunkCount).toBe(1);
+    expect(await page.evaluate(() => navigator.onLine)).toBe(false);
+    await context.setOffline(false);
+    expect(await page.evaluate(() => navigator.onLine)).toBe(true);
+    await page.clock.runFor(400);
+    await expect(page.getByText("Varlık:")).toBeVisible({ timeout: 30_000 });
+    expect(chunkCount).toBe(2);
+
+    const setVisibility = (next: "visible" | "hidden") => page.evaluate((value) => {
+      (window as Window & { __setCadTestVisibility?: (state: DocumentVisibilityState) => void })
+        .__setCadTestVisibility?.(value);
+    }, next);
+    const heartbeatBaseline = heartbeatCount;
+    await setVisibility("hidden");
+    expect(await page.evaluate(() => document.visibilityState)).toBe("hidden");
+    await page.clock.runFor(59_999);
+    expect(heartbeatCount).toBe(heartbeatBaseline);
+    await page.clock.runFor(2);
+    await expect.poll(() => heartbeatCount).toBe(heartbeatBaseline + 1);
+    await setVisibility("visible");
+    await page.clock.runFor(29_999);
+    expect(heartbeatCount).toBe(heartbeatBaseline + 1);
+    await page.clock.runFor(2);
+    await expect.poll(() => heartbeatCount).toBe(heartbeatBaseline + 2);
+  });
+
+  test("legacy ve dosya listesi geçişi için F08 DOM sayaç kontrolü", async ({ page }) => {
+    test.setTimeout(120_000);
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements", "f08-legacy-control.dxf");
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Performance.enable");
+    const samples: Array<{ cycle: number; jsHeapUsedBytes: number; domNodes: number; liveDomElements: number; jsEventListeners: number }> = [];
+    await page.goto(`/dokumantasyon/dosya/${fileId}`);
+    for (let cycle = 1; cycle <= 10; cycle++) {
+      await expect(page.getByTestId("document-studio-shell")).toBeVisible({ timeout: 30_000 });
+      await page.locator('[data-command-id="studio.back"]').click();
+      await expect(page).toHaveURL(/\/dokumantasyon(?:\?.*)?$/);
+      await expect(page.locator(`a[data-testid="dok-file-name"][href="/dokumantasyon/dosya/${fileId}"]`)).toBeVisible();
+      await cdp.send("HeapProfiler.collectGarbage");
+      const metrics = await cdp.send("Performance.getMetrics");
+      const dom = await cdp.send("Memory.getDOMCounters");
+      samples.push({
+        cycle,
+        jsHeapUsedBytes: metrics.metrics.find((entry: { name: string }) => entry.name === "JSHeapUsedSize")?.value,
+        domNodes: dom.nodes,
+        liveDomElements: await page.evaluate(() => document.getElementsByTagName("*").length),
+        jsEventListeners: dom.jsEventListeners,
+      });
+      if (cycle < 10) await page.locator(`a[data-testid="dok-file-name"][href="/dokumantasyon/dosya/${fileId}"]`).click();
+    }
+    expect(samples).toHaveLength(10);
+    await test.info().attach("f08-legacy-route-control.json", {
+      body: Buffer.from(JSON.stringify(samples, null, 2)), contentType: "application/json",
+    });
+    console.log(`F08 legacy control first/last: ${JSON.stringify([samples[0], samples.at(-1)])}`);
+    await cdp.detach();
+  });
+
+  test("host yalnız kamera viewport'undaki chunk'ları alır ve zoom sonrası görünür chunk'ı ister", async ({ page }) => {
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const scene = makeBrowserViewportFetchScene();
+    const sessionId = "vs_r03_viewport_chunk_fetch";
+    const requestedChunkIds: string[] = [];
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "ready", sceneId: scene.sceneId, viewSessionId: sessionId, sourceVersionKey: scene.manifest.sourceVersionKey }),
+      });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${sessionId}/heartbeat`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      requestedChunkIds.push(chunkId);
+      const chunk = scene.chunks.get(chunkId);
+      if (!chunk) {
+        await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "R03 fixture chunk not found" }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    const input = page.getByLabel("CAD V2 Çizim Etkileşim Alanı");
+    await expect(input).toBeVisible({ timeout: 60_000 });
+    await expect.poll(() => requestedChunkIds, { timeout: 15_000 }).toContain("chunk_r03_near");
+    await expect.poll(() => requestedChunkIds, { timeout: 1_000 }).not.toContain("chunk_r03_far");
+
+    await input.hover();
+    await page.mouse.wheel(0, 600);
+    await expect.poll(() => requestedChunkIds, { timeout: 15_000 }).toContain("chunk_r03_far");
+    expect(requestedChunkIds.filter((id) => id === "chunk_r03_near")).toHaveLength(1);
+    expect(requestedChunkIds.filter((id) => id === "chunk_r03_far")).toHaveLength(1);
+  });
+
+  test("L08 HATCH statik/legacy fail-closed ve kaynak tabanlı runtime remesh kaliteyi korur", async ({ page }) => {
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const scene = makeBrowserHatchRuntimeQualityScene();
+    const sessionId = "vs_l08_hatch_runtime_quality";
+    let activeScene = scene;
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ status: "ready", sceneId: activeScene.sceneId, viewSessionId: sessionId,
+          sourceVersionKey: activeScene.manifest.sourceVersionKey }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${sessionId}/heartbeat`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/scenes/*/manifest", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(activeScene.manifest) });
+    });
+    await page.route("**/api/dokumantasyon/cad-v2/scenes/*/chunks/*", async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      const bytes = activeScene.chunks.get(chunkId);
+      if (!bytes) {
+        await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "L08 HATCH fixture chunk not found" }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(bytes) });
+    });
+
+    await page.addInitScript(() => {
+      const events: Array<Record<string, unknown>> = [];
+      (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents = events;
+      (window as Window & { __cadV2ResourceDiagnostics?: (event: Record<string, unknown>) => void }).__cadV2ResourceDiagnostics = (event) => {
+        if (typeof event.type === "string" && event.type.startsWith("hatch-fill-runtime")) events.push(event);
+      };
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    const canvas = page.locator("canvas").first();
+    const host = page.locator("[data-v2-phase]");
+    const warning = page.getByTestId("cad-v2-quality-warning");
+    await expect(canvas).toBeVisible({ timeout: 60_000 });
+    await expect(host).toHaveAttribute("data-v2-phase", "ready", { timeout: 30_000 });
+    await expect(warning).toBeHidden();
+    await expect.poll(() => page.evaluate(() =>
+      (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents?.at(-1)?.status,
+    )).toBe("within-budget");
+
+    await page.getByRole("button", { name: "Yakınlaştır (+)" }).click();
+    await expect(page.getByText("125%")).toBeVisible();
+    await expect.poll(() => page.evaluate(() =>
+      (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents?.at(-1)?.status,
+    )).toBe("over-budget");
+    await expect(warning).toContainText("Kaynak mesh bulunmadığı için runtime fill remesh uygulanamıyor", { timeout: 20_000 });
+    await expect(host).toHaveAttribute("data-v2-phase", "degraded");
+
+    await page.getByRole("button", { name: "Uzaklaştır (-)" }).click();
+    await expect(page.getByText("100%")).toBeVisible();
+    await expect.poll(() => page.evaluate(() =>
+      (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents?.at(-1)?.status,
+    )).toBe("within-budget");
+    await expect(warning).toBeHidden({ timeout: 20_000 });
+    await expect(host).toHaveAttribute("data-v2-phase", "ready");
+
+    await page.getByRole("button", { name: "Yakınlaştır (+)" }).click();
+    await expect(page.getByText("125%")).toBeVisible();
+    await expect(warning).toContainText("Kaynak mesh bulunmadığı için runtime fill remesh uygulanamıyor", { timeout: 20_000 });
+    await expect(host).toHaveAttribute("data-v2-phase", "degraded");
+    const finalScreenshot = await canvas.screenshot();
+    const png = PNG.sync.read(finalScreenshot);
+    let cyanFillPixelCount = 0;
+    for (let offset = 0; offset < png.data.length; offset += 4) {
+      const [red, green, blue, alpha] = png.data.subarray(offset, offset + 4);
+      if (alpha > 0 && red! < 170 && green! > 160 && blue! > 200) cyanFillPixelCount++;
+    }
+    expect(cyanFillPixelCount, "degraded warning must keep the HATCH fill visible in the WebGL canvas").toBeGreaterThan(100);
+    await test.info().attach("l08-hatch-runtime-quality.json", {
+      body: Buffer.from(JSON.stringify(await page.evaluate(() =>
+        (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents ?? [],
+      ), null, 2)),
+      contentType: "application/json",
+    });
+    await test.info().attach("l08-hatch-zoomed-fill.png", { body: finalScreenshot, contentType: "image/png" });
+
+    activeScene = makeBrowserHatchRuntimeQualityScene({ includeErrorBound: false });
+    await page.reload();
+    await expect(canvas).toBeVisible({ timeout: 60_000 });
+    await expect(warning).toContainText("hata sınırı doğrulanamıyor", { timeout: 30_000 });
+    await expect(host).toHaveAttribute("data-v2-phase", "degraded");
+    await expect.poll(() => page.evaluate(() =>
+      (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents?.at(-1)?.status,
+    )).toBe("unverifiable");
+    const legacyCanvasPng = await canvas.screenshot();
+    const legacyCanvas = PNG.sync.read(legacyCanvasPng);
+    let legacyCyanPixelCount = 0;
+    for (let offset = 0; offset < legacyCanvas.data.length; offset += 4) {
+      const [red, green, blue, alpha] = legacyCanvas.data.subarray(offset, offset + 4);
+      if (alpha > 0 && red! < 170 && green! > 160 && blue! > 200) legacyCyanPixelCount++;
+    }
+    expect(legacyCyanPixelCount, "an unverifiable legacy manifest must keep its HATCH visible while degraded").toBeGreaterThan(100);
+
+    activeScene = makeBrowserHatchRuntimeSourceScene();
+    await page.reload();
+    await expect(canvas).toBeVisible({ timeout: 60_000 });
+    await expect.poll(() => page.evaluate(() =>
+      (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents
+        ?.some((event) => event.type === "hatch-fill-runtime-refinement" && event.status === "replaced"),
+    ), { timeout: 30_000 }).toBe(true);
+    await expect(host).toHaveAttribute("data-v2-phase", "ready", { timeout: 30_000 });
+    await expect(warning).toBeHidden();
+    const firstRefinement = await page.evaluate(() =>
+      (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents
+        ?.filter((event) => event.type === "hatch-fill-runtime-refinement" && event.status === "replaced")[0] ?? null,
+    ) as { unitsPerCssPixel: number; triangleCount: number; errorWorld: number; requestedErrorWorld: number } | null;
+    expect(firstRefinement, "host must atomically replace the source-backed HATCH mesh after worker remeshing").not.toBeNull();
+    expect(firstRefinement!.errorWorld).toBeLessThanOrEqual(firstRefinement!.requestedErrorWorld * (1 + 1e-12));
+
+    await page.getByRole("button", { name: "Yakınlaştır (+)" }).click();
+    await expect(page.getByText("125%")).toBeVisible();
+    await expect.poll(() => page.evaluate((previousUnits) => {
+      return (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents
+        ?.some((event) => event.type === "hatch-fill-runtime-refinement" && event.status === "replaced" &&
+          typeof event.unitsPerCssPixel === "number" && event.unitsPerCssPixel < previousUnits * 0.9);
+    }, firstRefinement!.unitsPerCssPixel), { timeout: 30_000 }).toBe(true);
+    const zoomedRefinement = await page.evaluate(() =>
+      (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents
+        ?.filter((event) => event.type === "hatch-fill-runtime-refinement" && event.status === "replaced").at(-1) ?? null,
+    ) as { triangleCount: number } | null;
+    expect(zoomedRefinement?.triangleCount).toBeGreaterThan(firstRefinement!.triangleCount);
+    await expect.poll(() => page.evaluate(() =>
+      (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents
+        ?.filter((event) => event.type === "hatch-fill-runtime-quality").at(-1)?.status,
+    )).toBe("within-budget");
+    await expect(host).toHaveAttribute("data-v2-phase", "ready");
+    const refinedCanvas = PNG.sync.read(await canvas.screenshot());
+    let refinedFillPixelCount = 0;
+    for (let offset = 0; offset < refinedCanvas.data.length; offset += 4) {
+      const [red, green, blue, alpha] = refinedCanvas.data.subarray(offset, offset + 4);
+      if (alpha! > 0 && red! < 120 && green! > 100 && blue! > 150) refinedFillPixelCount++;
+    }
+    expect(refinedFillPixelCount, "successful runtime replacement must keep the curved HATCH visibly filled").toBeGreaterThan(100);
+  });
+
+  test("L11 worker cache kapasitesi gerçek bellek sayılmaz; eğri ve kaynak HATCH remesh'i sürer", async ({ page }) => {
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const scene = makeBrowserCurveHatchPreflightBudgetScene();
+    const sessionId = "vs_l11_curve_hatch_preflight_budget";
+    const pressureChunkIds = new Set(Array.from({ length: scene.pressureChunkCount }, (_, index) =>
+      `chunk_l11_pressure_${String(index).padStart(2, "0")}`));
+    const acceptedPressureChunkIds = new Set<string>();
+    let resolvePressureAdmissions!: () => void;
+    const pressureAdmissionsReady = new Promise<void>((resolve) => { resolvePressureAdmissions = resolve; });
+
+    await page.exposeBinding("__l11ReportChunkAdmission", (_source, event: unknown) => {
+      const diagnostic = event as { type?: unknown; chunkId?: unknown; status?: unknown };
+      if (diagnostic.type === "chunk-load-outcome" && diagnostic.status === "accepted" &&
+          typeof diagnostic.chunkId === "string" && pressureChunkIds.has(diagnostic.chunkId)) {
+        acceptedPressureChunkIds.add(diagnostic.chunkId);
+        if (acceptedPressureChunkIds.size === pressureChunkIds.size) resolvePressureAdmissions();
+      }
+    });
+    await page.addInitScript(() => {
+      const events: Array<Record<string, unknown>> = [];
+      const resourceEvents: Array<Record<string, unknown>> = [];
+      const curveWarnings: string[] = [];
+      const curveRefinementRequests: number[] = [];
+      const phaseEvents: string[] = [];
+      const target = window as Window & {
+        __cadV2HatchQualityEvents?: Array<Record<string, unknown>>;
+        __cadV2ResourceDiagnostics?: (event: Record<string, unknown>) => void;
+        __l11ReportChunkAdmission?: (event: unknown) => Promise<void>;
+        __l11CurveRefinementRequests?: number[];
+        __l11ResourceEvents?: Array<Record<string, unknown>>;
+        __l11CurveWarnings?: string[];
+        __l11PhaseEvents?: string[];
+      };
+      target.__cadV2HatchQualityEvents = events;
+      target.__l11CurveRefinementRequests = curveRefinementRequests;
+      target.__l11ResourceEvents = resourceEvents;
+      target.__l11CurveWarnings = curveWarnings;
+      target.__l11PhaseEvents = phaseEvents;
+      target.__cadV2ResourceDiagnostics = (event) => {
+        resourceEvents.push(event);
+        if (typeof event.type === "string" && event.type.startsWith("hatch-fill-runtime")) events.push(event);
+        if (event.type === "chunk-load-outcome") void target.__l11ReportChunkAdmission?.(event);
+      };
+      const nativePostMessage = Worker.prototype.postMessage;
+      Worker.prototype.postMessage = function(message: unknown, transfer?: Transferable[]) {
+        if (message && typeof message === "object" && (message as { kind?: string }).kind === "refine-curves") {
+          curveRefinementRequests.push(performance.now());
+        }
+        return nativePostMessage.call(this, message, transfer ?? []);
+      };
+      const observeRuntimeState = () => {
+        const warning = document.querySelector('[data-testid="cad-v2-quality-warning"]')?.textContent ?? "";
+        if (warning.includes("Eğri iyileştirmesi")) {
+          curveWarnings.push(warning);
+        }
+        const phase = document.querySelector("[data-v2-phase]")?.getAttribute("data-v2-phase");
+        if (phase && phaseEvents.at(-1) !== phase) phaseEvents.push(phase);
+      };
+      const observer = new MutationObserver(observeRuntimeState);
+      observer.observe(document, { childList: true, subtree: true, characterData: true, attributes: true,
+        attributeFilter: ["data-v2-phase"] });
+      observeRuntimeState();
+    });
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ status: "ready", sceneId: scene.sceneId, viewSessionId: sessionId,
+          sourceVersionKey: scene.manifest.sourceVersionKey }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${sessionId}/heartbeat`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      const bytes = scene.chunks.get(chunkId);
+      if (!bytes) {
+        await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: `L11 chunk missing: ${chunkId}` }) });
+        return;
+      }
+      if (chunkId === scene.combinedChunkId) {
+        let timeout: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([pressureAdmissionsReady, new Promise<never>((_, reject) => {
+            timeout = setTimeout(() => reject(new Error("L11 pressure chunks were not admitted before the combined refinement chunk")), 30_000);
+          })]);
+        } finally {
+          if (timeout) clearTimeout(timeout);
+        }
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(bytes) });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    const canvas = page.locator("canvas").first();
+    const host = page.locator("[data-v2-phase]");
+    await expect(canvas).toBeVisible({ timeout: 60_000 });
+    await expect.poll(() => page.evaluate((chunkId) =>
+      (window as Window & { __l11ResourceEvents?: Array<Record<string, unknown>> }).__l11ResourceEvents
+        ?.some((event) => event.type === "chunk-load-outcome" && event.chunkId === chunkId && event.status === "accepted"),
+    scene.combinedChunkId), { timeout: 30_000 }).toBe(true);
+    const preflightProbe = await page.evaluate(() => ({
+      events: (window as Window & { __l11ResourceEvents?: Array<Record<string, unknown>> }).__l11ResourceEvents ?? [],
+      warnings: (window as Window & { __l11CurveWarnings?: string[] }).__l11CurveWarnings ?? [],
+      curveRefinementRequests: (window as Window & { __l11CurveRefinementRequests?: number[] }).__l11CurveRefinementRequests ?? [],
+      phases: (window as Window & { __l11PhaseEvents?: string[] }).__l11PhaseEvents ?? [],
+      hatchEvents: (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents ?? [],
+    }));
+    await test.info().attach("l11-curve-hatch-preflight-probe.json", {
+      body: Buffer.from(JSON.stringify(preflightProbe, null, 2)), contentType: "application/json",
+    });
+    await expect.poll(() => page.evaluate(() =>
+      (window as Window & { __l11CurveRefinementRequests?: number[] }).__l11CurveRefinementRequests?.length ?? 0,
+    ), { timeout: 30_000 }).toBeGreaterThan(0);
+    await expect.poll(() => page.evaluate((chunkId) =>
+      (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents
+        ?.some((event) => event.type === "hatch-fill-runtime-refinement" && event.status === "replaced" && event.chunkId === chunkId),
+    scene.combinedChunkId), { timeout: 30_000 }).toBe(true);
+    await expect(host).toHaveAttribute("data-v2-phase", "ready", { timeout: 20_000 });
+
+    const diagnostics = await page.evaluate(() => ({
+      events: (window as Window & { __l11ResourceEvents?: Array<Record<string, unknown>> }).__l11ResourceEvents ?? [],
+      warnings: (window as Window & { __l11CurveWarnings?: string[] }).__l11CurveWarnings ?? [],
+      curveRefinementRequests: (window as Window & { __l11CurveRefinementRequests?: number[] }).__l11CurveRefinementRequests ?? [],
+      phases: (window as Window & { __l11PhaseEvents?: string[] }).__l11PhaseEvents ?? [],
+      hatchEvents: (window as Window & { __cadV2HatchQualityEvents?: Array<Record<string, unknown>> }).__cadV2HatchQualityEvents ?? [],
+    }));
+    const targetAdmission = diagnostics.events.find((event) =>
+      event.type === "chunk-load-outcome" && event.chunkId === scene.combinedChunkId && event.status === "accepted",
+    ) as { cpuResidentBytes?: number; cpuBudgetBytes?: number; gpuBufferBytesEstimate?: number;
+      gpuBudgetBytes?: number; retainedRefinementSourceBytesIfAccepted?: number } | undefined;
+    expect(targetAdmission, "curve/HATCH fixture must be admitted before its refinement pass").toBeDefined();
+    expect(targetAdmission!.retainedRefinementSourceBytesIfAccepted).toBeGreaterThan(0);
+    expect(targetAdmission!.cpuResidentBytes).toBeLessThanOrEqual(targetAdmission!.cpuBudgetBytes!);
+    expect(targetAdmission!.gpuBufferBytesEstimate).toBeLessThanOrEqual(targetAdmission!.gpuBudgetBytes!);
+    expect(diagnostics.curveRefinementRequests.length,
+      "the unused capacity of the worker source cache must not reject this fitting curve pass").toBeGreaterThan(0);
+    expect(diagnostics.warnings, "the fitting curve pass must not be rejected by an unallocated cache budget").toEqual([]);
+    expect(diagnostics.phases).toContain("ready");
+    expect(diagnostics.hatchEvents.some((event) => event.type === "hatch-fill-runtime-refinement" &&
+      event.status === "replaced" && event.chunkId === scene.combinedChunkId),
+    "the same admitted chunk must complete HATCH worker remesh after curve refinement").toBe(true);
+    const hatchReplacement = diagnostics.hatchEvents.find((event) => event.type === "hatch-fill-runtime-refinement" &&
+      event.status === "replaced" && event.chunkId === scene.combinedChunkId) as {
+        errorWorld?: number; requestedErrorWorld?: number; peakCpuBytes?: number; peakGpuBufferBytesEstimate?: number;
+      } | undefined;
+    expect(hatchReplacement!.errorWorld).toBeLessThanOrEqual(hatchReplacement!.requestedErrorWorld! * (1 + 1e-12));
+    expect(hatchReplacement!.peakCpuBytes).toBeLessThanOrEqual(64 * 1024 * 1024);
+    expect(hatchReplacement!.peakGpuBufferBytesEstimate).toBeLessThanOrEqual(64 * 1024 * 1024);
+
+    const finalScreenshot = await canvas.screenshot();
+    const png = PNG.sync.read(finalScreenshot);
+    let filledPixelCount = 0;
+    for (let offset = 0; offset < png.data.length; offset += 4) {
+      const [red, green, blue, alpha] = png.data.subarray(offset, offset + 4);
+      if (alpha! > 0 && red! < 120 && green! > 100 && blue! > 150) filledPixelCount++;
+    }
+    expect(filledPixelCount, "same-chunk curve and HATCH refinement must keep filled pixels visible").toBeGreaterThan(100);
+    await test.info().attach("l11-curve-hatch-preflight.json", {
+      body: Buffer.from(JSON.stringify({
+        compilerRevision: CAD_V2_COMPILER_REVISION,
+        acceptedPressureChunkCount: acceptedPressureChunkIds.size,
+        targetAdmission,
+        curveRefinementRequests: diagnostics.curveRefinementRequests.length,
+        curveWarnings: diagnostics.warnings,
+        phaseEvents: diagnostics.phases,
+        hatchEvent: diagnostics.hatchEvents.find((event) => event.type === "hatch-fill-runtime-refinement" &&
+          event.status === "replaced" && event.chunkId === scene.combinedChunkId),
+        filledPixelCount,
+      }, null, 2)),
+      contentType: "application/json",
+    });
+    await test.info().attach("l11-curve-hatch-preflight.png", { body: finalScreenshot, contentType: "image/png" });
+  });
+
+  test("L08 unsupported patterned HATCH keeps its boundary and never paints a solid fill", async ({ page }) => {
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const scene = makeBrowserHatchPatternScene();
+    const sessionId = "vs_l08_unsupported_hatch_pattern";
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ status: "ready", sceneId: scene.sceneId, viewSessionId: sessionId,
+          sourceVersionKey: scene.manifest.sourceVersionKey }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${sessionId}/heartbeat`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      const bytes = scene.chunks.get(chunkId);
+      if (!bytes) {
+        await route.fulfill({ status: 404, contentType: "application/json",
+          body: JSON.stringify({ error: "L08 patterned HATCH fixture chunk not found" }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(bytes) });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    const canvas = page.locator("canvas").first();
+    const host = page.locator("[data-v2-phase]");
+    const warning = page.getByTestId("cad-v2-quality-warning");
+    await expect(canvas).toBeVisible({ timeout: 60_000 });
+    await expect(host).toHaveAttribute("data-v2-phase", "degraded", { timeout: 30_000 });
+    await expect(warning).toBeVisible();
+
+    const screenshot = PNG.sync.read(await canvas.screenshot());
+    let boundaryInkPixels = 0;
+    let centerInkPixels = 0;
+    const centerX = Math.floor(screenshot.width / 2);
+    const centerY = Math.floor(screenshot.height / 2);
+    for (let y = 0; y < screenshot.height; y++) {
+      for (let x = 0; x < screenshot.width; x++) {
+        const offset = (y * screenshot.width + x) * 4;
+        const red = screenshot.data[offset]!;
+        const green = screenshot.data[offset + 1]!;
+        const blue = screenshot.data[offset + 2]!;
+        const ink = Math.max(red, green, blue) > 115;
+        if (ink) boundaryInkPixels++;
+        if (ink && Math.abs(x - centerX) <= 8 && Math.abs(y - centerY) <= 8) centerInkPixels++;
+      }
+    }
+    expect(boundaryInkPixels, "the HATCH boundary must remain visible in the real WebGL canvas").toBeGreaterThan(50);
+    expect(centerInkPixels, "unsupported ANSI31 geometry must not be painted as solid fill").toBeLessThan(5);
+  });
+
+  test("L08 bounded patterned HATCH linework renders while retaining degraded parity quality", async ({ page }) => {
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const scene = makeBrowserHatchPatternScene(true);
+    const sessionId = "vs_l08_patterned_hatch_render";
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ status: "ready", sceneId: scene.sceneId, viewSessionId: sessionId,
+          sourceVersionKey: scene.manifest.sourceVersionKey }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${sessionId}/heartbeat`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      const bytes = scene.chunks.get(chunkId);
+      if (!bytes) {
+        await route.fulfill({ status: 404, contentType: "application/json",
+          body: JSON.stringify({ error: "L08 bounded pattern fixture chunk not found" }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(bytes) });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    const canvas = page.locator("canvas").first();
+    const host = page.locator("[data-v2-phase]");
+    const warning = page.getByTestId("cad-v2-quality-warning");
+    await expect(canvas).toBeVisible({ timeout: 60_000 });
+    await expect(host).toHaveAttribute("data-v2-phase", "degraded", { timeout: 30_000 });
+    await expect(warning).toBeVisible();
+
+    const screenshot = PNG.sync.read(await canvas.screenshot());
+    let interiorPatternInkPixels = 0;
+    for (let y = Math.floor(screenshot.height * 0.25); y < Math.floor(screenshot.height * 0.75); y++) {
+      for (let x = Math.floor(screenshot.width * 0.2); x < Math.floor(screenshot.width * 0.8); x++) {
+        const offset = (y * screenshot.width + x) * 4;
+        const red = screenshot.data[offset]!;
+        const green = screenshot.data[offset + 1]!;
+        const blue = screenshot.data[offset + 2]!;
+        if (Math.max(red, green, blue) > 115) interiorPatternInkPixels++;
+      }
+    }
+    expect(interiorPatternInkPixels, "bounded HATCH pattern strokes must paint the real WebGL canvas interior").toBeGreaterThan(0);
+  });
+
+  test("aktif pafta yalnız görünür fill ve glyph chunk'larını ister", async ({ page }) => {
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const scene = makeBrowserActivePaperFetchScene();
+    const sessionId = "vs_r05_active_paper_fetch";
+    const requestedChunkIds: string[] = [];
+
+    await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ status: "ready", sceneId: scene.sceneId,
+          viewSessionId: sessionId, sourceVersionKey: scene.manifest.sourceVersionKey }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/view-sessions/${sessionId}/heartbeat`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ expiresAt: Date.now() + 180_000 }) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/manifest`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(scene.manifest) });
+    });
+    await page.route(`**/api/dokumantasyon/cad-v2/scenes/${scene.sceneId}/chunks/*`, async (route) => {
+      const chunkId = new URL(route.request().url()).pathname.split("/").at(-1)!;
+      requestedChunkIds.push(chunkId);
+      const chunk = scene.chunks.get(chunkId);
+      if (!chunk) {
+        await route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "R05 fixture chunk not found" }) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/octet-stream", body: Buffer.from(chunk) });
+    });
+
+    await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+    const picker = page.getByRole("combobox", { name: "Pafta seçimi" });
+    await expect(picker).toBeVisible({ timeout: 60_000 });
+    await expect.poll(() => requestedChunkIds, { timeout: 15_000 }).toContain("chunk_r05_model");
+    await expect.poll(() => requestedChunkIds, { timeout: 1_000 }).not.toContain("chunk_r05_a_fill");
+    expect(requestedChunkIds).not.toContain("chunk_r05_b_glyph");
+
+    await picker.selectOption("SHEET_A");
+    await expect.poll(() => requestedChunkIds, { timeout: 15_000 }).toContain("chunk_r05_a_fill");
+    expect(requestedChunkIds).not.toContain("chunk_r05_a_glyph_far");
+    expect(requestedChunkIds).not.toContain("chunk_r05_b_glyph");
+
+    const input = page.getByLabel("CAD V2 Çizim Etkileşim Alanı");
+    await input.hover();
+    await page.mouse.wheel(0, 600);
+    await expect.poll(() => requestedChunkIds, { timeout: 15_000 }).toContain("chunk_r05_a_glyph_far");
+
+    await picker.selectOption("SHEET_B");
+    await expect.poll(() => requestedChunkIds, { timeout: 15_000 }).toContain("chunk_r05_b_glyph");
+    for (const chunkId of ["chunk_r05_model", "chunk_r05_a_fill", "chunk_r05_a_glyph_far", "chunk_r05_b_glyph"]) {
+      expect(requestedChunkIds.filter((id) => id === chunkId)).toHaveLength(1);
+    }
+  });
+
   test("canlı zoom, stale yanıt ve aynı bucket pan davranışını doğrular", async ({ page }) => {
+    test.setTimeout(180_000);
     await signInAdmin(page);
     const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
     const scene = makeBrowserCurveRefinementScene();
@@ -1315,6 +3874,73 @@ test.describe("CAD V2 F06 — real browser layout picker", () => {
     console.log("F07 80% panned DPR1 runtime-refined ARC pixel envelope PASS: " + JSON.stringify({
       lowZoomPanCssPixels, cameraAt80, cameraAfter80Pan, lowZoomIdleSnapshot, lowZoomPanQuietConfirmation, lowZoomArcError,
     }));
+
+    // The earlier 156% reply was deliberately stale. Revisit that zoom after the
+    // stale-response sequence, deliver its current replies, then measure the real frame.
+    const zoomInButton = page.getByRole("button", { name: "Yakınlaştır (+)" });
+    for (const expectedZoom of ["100%", "125%", "156%"] as const) {
+      await zoomInButton.click();
+      await expect(page.getByText(expectedZoom)).toBeVisible();
+    }
+    const settleHeldArcRefinement = async (description: string) => {
+      let quietState: { refinementRequests: number; targetErrors: number[]; heldRefinementResponses: number; maxLineVertexCount: number } | null = null;
+      for (let attempt = 0; attempt < 8 && !quietState; attempt++) {
+        await page.waitForTimeout(350);
+        await page.evaluate(() => {
+          const state = (window as Window & { __cadV2F07?: { heldRefinementResponses: number; releaseNextRefinementResponse: () => void } }).__cadV2F07!;
+          while (state.heldRefinementResponses > 0) state.releaseNextRefinementResponse();
+        });
+        await page.waitForTimeout(350);
+        const first = await page.evaluate(() => {
+          const state = (window as Window & { __cadV2F07?: { refinementRequests: number; targetErrors: number[]; heldRefinementResponses: number; maxLineVertexCount: number } }).__cadV2F07!;
+          return { refinementRequests: state.refinementRequests, targetErrors: [...state.targetErrors], heldRefinementResponses: state.heldRefinementResponses, maxLineVertexCount: state.maxLineVertexCount };
+        });
+        await page.waitForTimeout(350);
+        const second = await page.evaluate(() => {
+          const state = (window as Window & { __cadV2F07?: { refinementRequests: number; targetErrors: number[]; heldRefinementResponses: number; maxLineVertexCount: number } }).__cadV2F07!;
+          return { refinementRequests: state.refinementRequests, targetErrors: [...state.targetErrors], heldRefinementResponses: state.heldRefinementResponses, maxLineVertexCount: state.maxLineVertexCount };
+        });
+        if (JSON.stringify(first) === JSON.stringify(second) && second.heldRefinementResponses === 0 &&
+          second.targetErrors.at(-1) === 0.25 && second.maxLineVertexCount > 2) quietState = second;
+      }
+      expect(quietState, description + " must settle at 0.25 CSS px with no held reply").not.toBeNull();
+      return quietState!;
+    };
+    const settled156 = await settleHeldArcRefinement("revisited 156% DPR1 ARC");
+    const cameraAt156 = await page.evaluate(() => {
+      const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+        '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+      );
+      if (!input?.__zoom) throw new Error("F07 DPR1 ARC camera is missing at settled 156%");
+      return { ...input.__zoom };
+    });
+    const frameBefore156Pan = await readFrame();
+    const panAt156 = await dragDrawing();
+    await expect.poll(readFrame, { timeout: 5_000 }).not.toBe(frameBefore156Pan);
+    const settled156Pan = await settleHeldArcRefinement("panned 156% DPR1 ARC");
+    const cameraAfter156Pan = await page.evaluate(() => {
+      const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+        '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+      );
+      if (!input?.__zoom) throw new Error("F07 DPR1 ARC camera is missing after settled 156% pan");
+      return { ...input.__zoom, width: input.clientWidth, height: input.clientHeight };
+    });
+    expect(cameraAfter156Pan.k).toBeCloseTo(9.5, 6);
+    expect(cameraAfter156Pan.x - cameraAt156.x).toBeCloseTo(panAt156.x, 6);
+    expect(cameraAfter156Pan.y - cameraAt156.y).toBeCloseTo(panAt156.y, 6);
+    const settled156Error = await page.evaluate(measureF07ArcRasterError, {
+      screenshotBase64: (await canvas.screenshot()).toString("base64"),
+      zoomFactor: 1.5625,
+      panCssPixels: { x: cameraAfter156Pan.x - cameraAfter156Pan.width / 2, y: cameraAfter156Pan.y - cameraAfter156Pan.height / 2 },
+      clipArcToViewport: true,
+    });
+    expect(settled156Error.bluePixelCount).toBeGreaterThan(50);
+    expect(settled156Error.visibleArcAngles[1]).toBeGreaterThan(settled156Error.visibleArcAngles[0]);
+    expect(settled156Error.maximumArcDistanceCssPixels).toBeLessThanOrEqual(1.25);
+    expect(settled156Error.maximumSourceArcToPixelDistanceCssPixels).toBeLessThanOrEqual(1.25);
+    console.log("F07 settled 156% panned DPR1 ARC envelope PASS: " + JSON.stringify({
+      panAt156, settled156, settled156Pan, cameraAt156, cameraAfter156Pan, settled156Error,
+    }));
   });
 
   test("runtime-refined ARC raster error is bounded at device pixel ratio 2", async ({ browser, page }) => {
@@ -1632,6 +4258,52 @@ test.describe("CAD V2 F06 — real browser layout picker", () => {
         .toBeLessThanOrEqual(1.25);
       console.log("F07 195% panned DPR2 runtime-refined ARC pixel envelope PASS: " + JSON.stringify({
         highZoomPanCssPixels, cameraAfter195Zoom, cameraAfter195Pan, highZoomPanQuiet, highZoomRasterError,
+      }));
+
+      const beforeReturn156 = highZoomPanQuiet.targetErrors.length;
+      await dprPage.getByRole("button", { name: "Uzaklaştır (-)" }).click();
+      await expect(dprPage.getByText("156%")).toBeVisible();
+      const returned156 = await waitForDpr2ArcRefinementIdle(beforeReturn156 + 1, "returned 156% DPR2 ARC");
+      const cameraAt156 = await dprPage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR2 ARC camera is missing at returned 156%");
+        return { ...input.__zoom };
+      });
+      const frameBefore156Pan = await readHighZoomDeviceFrame();
+      const currentPanBounds = (await panInput.boundingBox()) || panBounds;
+      await dprPage.mouse.move(currentPanBounds!.x + currentPanBounds!.width / 2, currentPanBounds!.y + currentPanBounds!.height / 2);
+      await dprPage.mouse.down();
+      await dprPage.mouse.move(currentPanBounds!.x + currentPanBounds!.width / 2 + 48, currentPanBounds!.y + currentPanBounds!.height / 2 + 24, { steps: 4 });
+      await dprPage.mouse.up();
+      await expect.poll(readHighZoomDeviceFrame, { timeout: 5_000 }).not.toBe(frameBefore156Pan);
+      const panned156 = await waitForDpr2ArcRefinementIdle(returned156.targetErrors.length, "panned 156% DPR2 ARC");
+      const cameraAfter156Pan = await dprPage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR2 ARC camera is missing after returned 156% pan");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter156Pan.x - cameraAt156.x).toBeCloseTo(48, 6);
+      expect(cameraAfter156Pan.y - cameraAt156.y).toBeCloseTo(24, 6);
+      expect(cameraAfter156Pan.k).toBeCloseTo(cameraAt156.k, 12);
+      expect(cameraAfter156Pan.k / cameraBeforePan.k).toBeCloseTo(1.5625, 6);
+      const returned156Error = await dprPage.evaluate(measureF07ArcRasterError, {
+        screenshotBase64: (await canvas.screenshot({ scale: "device" })).toString("base64"),
+        zoomFactor: 1.5625,
+        panCssPixels: { x: cameraAfter156Pan.x - rasterContext.cssWidth / 2, y: cameraAfter156Pan.y - rasterContext.cssHeight / 2 },
+        clipArcToViewport: true,
+      });
+      expect(returned156Error.imageWidth).toBe(rasterContext.drawingBufferWidth);
+      expect(returned156Error.imageHeight).toBe(rasterContext.drawingBufferHeight);
+      expect(returned156Error.bluePixelCount).toBeGreaterThan(100);
+      expect(returned156Error.visibleArcAngles[1]).toBeGreaterThan(returned156Error.visibleArcAngles[0]);
+      expect(returned156Error.maximumArcDistanceCssPixels).toBeLessThanOrEqual(1.25);
+      expect(returned156Error.maximumSourceArcToPixelDistanceCssPixels).toBeLessThanOrEqual(1.25);
+      console.log("F07 returned 156% panned DPR2 ARC envelope PASS: " + JSON.stringify({
+        returned156, panned156, cameraAt156, cameraAfter156Pan, returned156Error,
       }));
     } finally {
       await context.close();
@@ -3435,9 +6107,14 @@ test.describe("CAD V2 F06 — real browser layout picker", () => {
     // The fixture is compiled in a bounded child process to keep compiler ESM loading
     // separate from Playwright's test discovery. PATH_DISTANCE is sent to LineDashedMaterial.
     const scenes = makeBrowserVisibleDashScenes();
-    expect(scenes).toHaveLength(2);
-    const [singleChunkScene, splitChunkScene] = scenes;
-    if (!singleChunkScene || !splitChunkScene) throw new Error("Expected both compiled DASHED scene variants");
+    expect(scenes).toHaveLength(12);
+    const [singleChunkScene, splitChunkScene, centerSingleScene, centerSplitScene,
+      curvedSingleScene, curvedSplitScene, wideSingleScene, wideSplitScene,
+      mirrorSingleScene, mirrorSplitScene, viewportSingleScene, viewportSplitScene] = scenes;
+    if (!singleChunkScene || !splitChunkScene || !centerSingleScene || !centerSplitScene ||
+        !curvedSingleScene || !curvedSplitScene || !wideSingleScene || !wideSplitScene ||
+        !mirrorSingleScene || !mirrorSplitScene || !viewportSingleScene || !viewportSplitScene)
+      throw new Error("Expected compiled DASHED, CENTER, curved, wide, mirror and viewport scene variants");
     const expectedPathDistance = [0, 31, 31, 62, 62, 93, 93, 124, 124, 155, 155, 184];
     expect(singleChunkScene.manifest.chunks.filter((chunk: { layoutId: string }) => chunk.layoutId === "Model")).toHaveLength(1);
     expect(splitChunkScene.manifest.chunks.filter((chunk: { layoutId: string }) => chunk.layoutId === "Model")).toHaveLength(6);
@@ -3448,11 +6125,36 @@ test.describe("CAD V2 F06 — real browser layout picker", () => {
     expect(splitChunkScene.dashDrawCommands).toHaveLength(6);
     expect(splitChunkScene.dashDrawCommands.every((command: { vertexCount: number; dashStyle?: { dashSize: number; gapSize: number } }) =>
       command.vertexCount === 2 && command.dashStyle?.dashSize === 24 && command.dashStyle.gapSize === 16)).toBe(true);
+    expect(centerSingleScene.pathDistanceValues).toEqual(expectedPathDistance);
+    expect(centerSplitScene.pathDistanceValues).toEqual(expectedPathDistance);
+    expect(centerSingleScene.dashDrawCommands[0]?.dashStyle?.pattern).toEqual([24, -8, 8, -8]);
+    expect(centerSplitScene.dashDrawCommands.every((command: { dashStyle?: { pattern?: number[] } }) =>
+      JSON.stringify(command.dashStyle?.pattern) === JSON.stringify([24, -8, 8, -8]))).toBe(true);
     const scenesById = new Map(scenes.map((scene) => [scene.sceneId, scene]));
     const scenesByFileId = new Map([
       [singleChunkFileId, singleChunkScene],
       [splitChunkFileId, splitChunkScene],
     ]);
+    const { fileId: centerSingleFileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const { fileId: centerSplitFileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    scenesByFileId.set(centerSingleFileId, centerSingleScene);
+    scenesByFileId.set(centerSplitFileId, centerSplitScene);
+    const { fileId: curvedSingleFileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const { fileId: curvedSplitFileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    scenesByFileId.set(curvedSingleFileId, curvedSingleScene);
+    scenesByFileId.set(curvedSplitFileId, curvedSplitScene);
+    const { fileId: wideSingleFileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const { fileId: wideSplitFileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    scenesByFileId.set(wideSingleFileId, wideSingleScene);
+    scenesByFileId.set(wideSplitFileId, wideSplitScene);
+    const { fileId: mirrorSingleFileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const { fileId: mirrorSplitFileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const { fileId: viewportSingleFileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const { fileId: viewportSplitFileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    scenesByFileId.set(mirrorSingleFileId, mirrorSingleScene);
+    scenesByFileId.set(mirrorSplitFileId, mirrorSplitScene);
+    scenesByFileId.set(viewportSingleFileId, viewportSingleScene);
+    scenesByFileId.set(viewportSplitFileId, viewportSplitScene);
 
     await page.route("**/api/dokumantasyon/cad-v2/prepare", async (route) => {
       const request = route.request().postDataJSON() as { fileId?: string };
@@ -3534,7 +6236,7 @@ test.describe("CAD V2 F06 — real browser layout picker", () => {
       return { ...stats, screenshotSha256: crypto.createHash("sha256").update(screenshot).digest("hex") };
     };
 
-    const readScenePixels = async (fileId: string) => {
+    const readScenePixels = async (fileId: string, expectedRuns = 5) => {
       await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
       const canvas = page.locator("canvas").first();
       await expect(canvas).toBeVisible({ timeout: 60_000 });
@@ -3543,10 +6245,10 @@ test.describe("CAD V2 F06 — real browser layout picker", () => {
       await expect.poll(async () => {
         pixelStats = await readDashPixels();
         return pixelStats.runs.length;
-      }, { timeout: 15_000 }).toBeGreaterThanOrEqual(4);
+      }, { timeout: 15_000 }).toBeGreaterThanOrEqual(expectedRuns);
       expect(pixelStats.redPixelColumns).toBeGreaterThan(100);
-      expect(pixelStats.runs).toHaveLength(5);
-      expect(pixelStats.gaps).toHaveLength(4);
+      expect(pixelStats.runs).toHaveLength(expectedRuns);
+      expect(pixelStats.gaps).toHaveLength(expectedRuns - 1);
       expect(Math.min(...pixelStats.gaps)).toBeGreaterThan(8);
       return pixelStats;
     };
@@ -3556,15 +6258,116 @@ test.describe("CAD V2 F06 — real browser layout picker", () => {
     expect(splitChunkPixels.screenshotSha256).toBe(singleChunkPixels.screenshotSha256);
     expect(splitChunkPixels.runs).toEqual(singleChunkPixels.runs);
     expect(splitChunkPixels.gaps).toEqual(singleChunkPixels.gaps);
+    const centerSinglePixels = await readScenePixels(centerSingleFileId, 8);
+    const centerSplitPixels = await readScenePixels(centerSplitFileId, 8);
+    expect(centerSplitPixels.screenshotSha256).toBe(centerSinglePixels.screenshotSha256);
+    expect(centerSplitPixels.runs).toEqual(centerSinglePixels.runs);
+    expect(centerSplitPixels.gaps).toEqual(centerSinglePixels.gaps);
     console.log("F07 PATH_DISTANCE LineDashedMaterial WebGL phase acceptance PASS: " + JSON.stringify({
       pathDistanceValues: singleChunkScene.pathDistanceValues,
       drawCommands: singleChunkScene.dashDrawCommands,
       singleChunk: { chunks: 1, runs: singleChunkPixels.runs, gaps: singleChunkPixels.gaps, screenshotSha256: singleChunkPixels.screenshotSha256 },
       splitChunks: { chunks: 6, runs: splitChunkPixels.runs, gaps: splitChunkPixels.gaps, screenshotSha256: splitChunkPixels.screenshotSha256 },
     }));
+    console.log("R07 CENTER multi-term PATH_DISTANCE shader phase PASS: " + JSON.stringify({
+      pathDistanceValues: centerSingleScene.pathDistanceValues,
+      singleChunk: { chunks: 1, runs: centerSinglePixels.runs, screenshotSha256: centerSinglePixels.screenshotSha256 },
+      splitChunks: { chunks: 6, runs: centerSplitPixels.runs, screenshotSha256: centerSplitPixels.screenshotSha256 },
+    }));
+    const readCurvedPixels = async (fileId: string, navigate = true, minimumRedPixels = 100) => {
+      if (navigate) await page.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+      const canvas = page.locator("canvas").first();
+      await expect(canvas).toBeVisible({ timeout: 60_000 });
+      await expect(page.getByText("Varlık:")).toBeVisible({ timeout: 60_000 });
+      let redPixels = 0;
+      let redMaskChecksum = 0;
+      let screenshot: Buffer = Buffer.alloc(0);
+      await expect.poll(async () => {
+        screenshot = await canvas.screenshot();
+        const sampled = await page.evaluate(async (pngBase64) => {
+          const image = new Image();
+          image.src = `data:image/png;base64,${pngBase64}`;
+          await image.decode();
+          const sample = document.createElement("canvas");
+          sample.width = image.naturalWidth;
+          sample.height = image.naturalHeight;
+          const context = sample.getContext("2d")!;
+          context.drawImage(image, 0, 0);
+          const pixels = context.getImageData(0, 0, sample.width, sample.height).data;
+          let count = 0;
+          let checksum = 2166136261;
+          for (let i = 0; i < pixels.length; i += 4) {
+            if (pixels[i]! > 80 && pixels[i]! > pixels[i + 1]! * 1.6 + 20 &&
+                pixels[i]! > pixels[i + 2]! * 1.6 + 20) {
+              count++;
+              checksum = Math.imul(checksum ^ (i / 4), 16777619);
+            }
+          }
+          return { count, checksum: checksum >>> 0 };
+        }, screenshot.toString("base64"));
+        redPixels = sampled.count;
+        redMaskChecksum = sampled.checksum;
+        return redPixels;
+      }, { timeout: 15_000 }).toBeGreaterThan(minimumRedPixels);
+      return { redPixels, redMaskChecksum, sha256: crypto.createHash("sha256").update(screenshot).digest("hex") };
+    };
+    const curvedSinglePixels = await readCurvedPixels(curvedSingleFileId);
+    const curvedSplitPixels = await readCurvedPixels(curvedSplitFileId);
+    expect(curvedSplitPixels).toEqual(curvedSinglePixels);
+    console.log("R07 analytic bulge/closed/dot WebGL chunk parity PASS: " + JSON.stringify({
+      singleChunks: curvedSingleScene.manifest.chunks.length,
+      splitChunks: curvedSplitScene.manifest.chunks.length,
+      ...curvedSinglePixels,
+    }));
+    expect(wideSingleScene.dashDrawCommands.every((command: { dashStyle?: unknown; lineweightMm?: number }) =>
+      command.dashStyle === undefined && command.lineweightMm === 4)).toBe(true);
+    expect(wideSplitScene.pathDistanceValues).toEqual(wideSingleScene.pathDistanceValues);
+    const wideSinglePixels = await readCurvedPixels(wideSingleFileId, true, 5000);
+    const wideSplitPixels = await readCurvedPixels(wideSplitFileId, true, 5000);
+    expect(wideSplitPixels).toEqual(wideSinglePixels);
+    await page.getByRole("button", { name: "Görünüm Ayarları" }).click();
+    const weightToggle = page.getByRole("button", { name: "Çizgi Kalınlıkları" });
+    await expect(weightToggle).toHaveAttribute("aria-pressed", "true");
+    await weightToggle.click();
+    await expect(weightToggle).toHaveAttribute("aria-pressed", "false");
+    let thinPixels = await readCurvedPixels(wideSplitFileId, false);
+    await expect.poll(async () => {
+      thinPixels = await readCurvedPixels(wideSplitFileId, false);
+      return thinPixels.redPixels;
+    }, { timeout: 8_000 }).toBeLessThan(wideSplitPixels.redPixels / 2);
+    await weightToggle.click();
+    await expect(weightToggle).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(async () => (await readCurvedPixels(wideSplitFileId, false, 5000)).redMaskChecksum,
+      { timeout: 8_000 }).toBe(wideSplitPixels.redMaskChecksum);
+    const restoredPixels = await readCurvedPixels(wideSplitFileId, false, 5000);
+    expect(restoredPixels.redPixels).toBe(wideSplitPixels.redPixels);
+    console.log("R07 wide DASHED WebGL chunk/lineweight toggle PASS: " + JSON.stringify({
+      singleChunks: wideSingleScene.manifest.chunks.length,
+      splitChunks: wideSplitScene.manifest.chunks.length,
+      thickPixels: wideSplitPixels.redPixels,
+      thinPixels: thinPixels.redPixels,
+      redMaskChecksum: wideSplitPixels.redMaskChecksum,
+      sha256: wideSplitPixels.sha256,
+    }));
+    expect(mirrorSingleScene.pathDistanceValues).toEqual([0, 10, 20, 30, 40, 50, 60, 70, 80, 90]);
+    expect(mirrorSplitScene.pathDistanceValues).toEqual(mirrorSingleScene.pathDistanceValues);
+    expect(viewportSingleScene.pathDistanceValues).toEqual([20, 30, 40, 50, 60, 70]);
+    expect(viewportSplitScene.pathDistanceValues).toEqual(viewportSingleScene.pathDistanceValues);
+    const mirrorSinglePixels = await readCurvedPixels(mirrorSingleFileId);
+    const mirrorSplitPixels = await readCurvedPixels(mirrorSplitFileId);
+    expect(mirrorSplitPixels).toEqual(mirrorSinglePixels);
+    const viewportSinglePixels = await readCurvedPixels(viewportSingleFileId);
+    const viewportSplitPixels = await readCurvedPixels(viewportSplitFileId);
+    expect(viewportSplitPixels).toEqual(viewportSinglePixels);
+    console.log("R07 mirrored INSERT and 2x paper viewport WebGL chunk parity PASS: " + JSON.stringify({
+      mirror: { chunks: [mirrorSingleScene.manifest.chunks.length, mirrorSplitScene.manifest.chunks.length],
+        ...mirrorSinglePixels },
+      viewport: { chunks: [viewportSingleScene.manifest.chunks.length, viewportSplitScene.manifest.chunks.length],
+        ...viewportSinglePixels },
+    }));
   });
 
-  test("runtime-refined ELLIPSE raster stays bounded when DPR3 is capped to a DPR2 drawing buffer", async ({ browser, page }) => {
+  test("runtime-refined ELLIPSE raster stays bounded through 195% zoom and pan when emulated DPR3 is capped to a DPR2 drawing buffer", async ({ browser, page }) => {
     await signInAdmin(page);
     const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
     const scene = makeBrowserEllipseRefinementScene();
@@ -3669,12 +6472,585 @@ test.describe("CAD V2 F06 — real browser layout picker", () => {
       console.log("F07 DPR3 runtime-refined ELLIPSE with DPR2 drawing-buffer cap PASS: " + JSON.stringify({
         rasterContext, cameraBeforePan, cameraAfterPan, refinementAfterPan, rasterError,
       }));
+
+      const waitForZoomRefinement = async (baselineTargetCount: number, expectedZoom: string) => {
+        await expect.poll(() => ellipsePage.evaluate((baseline) => {
+          const state = (window as Window & {
+            __cadV2F07Ellipse?: { targetErrors: number[]; refinedReplies: number; maxLineVertexCount: number };
+          }).__cadV2F07Ellipse;
+          return Boolean(state && state.targetErrors.length > baseline && state.targetErrors.at(-1) === 0.25 &&
+            state.refinedReplies >= state.targetErrors.length && state.maxLineVertexCount > 2);
+        }, baselineTargetCount), { timeout: 20_000, intervals: [100, 250, 500, 1000] }).toBe(true);
+
+        let snapshot = await ellipsePage.evaluate(() => {
+          const state = (window as Window & {
+            __cadV2F07Ellipse?: { targetErrors: number[]; refinedReplies: number; maxLineVertexCount: number };
+          }).__cadV2F07Ellipse!;
+          return { targetErrors: [...state.targetErrors], refinedReplies: state.refinedReplies, maxLineVertexCount: state.maxLineVertexCount };
+        });
+        let stableIntervals = 0;
+        for (let attempt = 0; attempt < 8 && stableIntervals < 2; attempt++) {
+          await ellipsePage.waitForTimeout(350);
+          const next = await ellipsePage.evaluate(() => {
+            const state = (window as Window & {
+              __cadV2F07Ellipse?: { targetErrors: number[]; refinedReplies: number; maxLineVertexCount: number };
+            }).__cadV2F07Ellipse!;
+            return { targetErrors: [...state.targetErrors], refinedReplies: state.refinedReplies, maxLineVertexCount: state.maxLineVertexCount };
+          });
+          stableIntervals = JSON.stringify(next) === JSON.stringify(snapshot) ? stableIntervals + 1 : 0;
+          snapshot = next;
+        }
+        expect(stableIntervals, expectedZoom + " DPR3 ELLIPSE refinement must settle").toBeGreaterThanOrEqual(2);
+        expect(snapshot.targetErrors.at(-1)).toBe(0.25);
+        expect(snapshot.refinedReplies).toBe(snapshot.targetErrors.length);
+        return snapshot;
+      };
+
+      let lastZoomState = refinementAfterPan;
+      const zoomButton = ellipsePage.getByRole("button", { name: "Yakınlaştır (+)" });
+      const baselineTargetCount125 = await ellipsePage.evaluate(() =>
+        (window as Window & { __cadV2F07Ellipse?: { targetErrors: number[] } }).__cadV2F07Ellipse!.targetErrors.length);
+      await zoomButton.click();
+      await expect(ellipsePage.getByText("125%")).toBeVisible();
+      lastZoomState = await waitForZoomRefinement(baselineTargetCount125, "125% DPR3 ELLIPSE");
+      const cameraAfter125Zoom = await ellipsePage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 ELLIPSE camera transform is missing at 125%");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter125Zoom.k / cameraBeforePan.k).toBeCloseTo(1.25, 6);
+      expect(cameraAfter125Zoom.x - rasterContext.cssWidth / 2).toBeCloseTo(panCssPixels.x * 1.25, 6);
+      expect(cameraAfter125Zoom.y - rasterContext.cssHeight / 2).toBeCloseTo(panCssPixels.y * 1.25, 6);
+
+      const pan125CssPixels = { x: 24, y: 12 };
+      const frameBefore125Pan = crypto.createHash("sha256")
+        .update(await canvas.screenshot({ scale: "device" })).digest("hex");
+      await ellipsePage.mouse.move(panBounds!.x + panBounds!.width / 2, panBounds!.y + panBounds!.height / 2);
+      await ellipsePage.mouse.down();
+      await ellipsePage.mouse.move(
+        panBounds!.x + panBounds!.width / 2 + pan125CssPixels.x,
+        panBounds!.y + panBounds!.height / 2 + pan125CssPixels.y,
+        { steps: 4 },
+      );
+      await ellipsePage.mouse.up();
+      await expect.poll(async () => crypto.createHash("sha256")
+        .update(await canvas.screenshot({ scale: "device" })).digest("hex"), { timeout: 5_000 })
+        .not.toBe(frameBefore125Pan);
+      const cameraAfter125Pan = await ellipsePage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 ELLIPSE camera transform is missing after 125% pan");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter125Pan.x - cameraAfter125Zoom.x).toBeCloseTo(pan125CssPixels.x, 6);
+      expect(cameraAfter125Pan.y - cameraAfter125Zoom.y).toBeCloseTo(pan125CssPixels.y, 6);
+      expect(cameraAfter125Pan.k).toBeCloseTo(cameraAfter125Zoom.k, 12);
+      const panOffsetAt125 = {
+        x: cameraAfter125Pan.x - rasterContext.cssWidth / 2,
+        y: cameraAfter125Pan.y - rasterContext.cssHeight / 2,
+      };
+      expect(panOffsetAt125.x).toBeCloseTo(panCssPixels.x * 1.25 + pan125CssPixels.x, 6);
+      expect(panOffsetAt125.y).toBeCloseTo(panCssPixels.y * 1.25 + pan125CssPixels.y, 6);
+      await ellipsePage.waitForTimeout(350);
+      const refinementAfter125Pan = await ellipsePage.evaluate(() => {
+        const state = (window as Window & { __cadV2F07Ellipse?: { targetErrors: number[]; refinedReplies: number; maxLineVertexCount: number } }).__cadV2F07Ellipse!;
+        return { targetErrors: [...state.targetErrors], refinedReplies: state.refinedReplies, maxLineVertexCount: state.maxLineVertexCount };
+      });
+      expect(refinementAfter125Pan).toEqual(lastZoomState);
+
+      const zoom125Screenshot = await canvas.screenshot({ scale: "device" });
+      const zoom125RasterError = await ellipsePage.evaluate(measureF07EllipseRasterError, {
+        screenshotBase64: zoom125Screenshot.toString("base64"),
+        semimajor: scene.semimajor,
+        semiminor: scene.semiminor,
+        zoomFactor: 1.25,
+        panCssPixels: panOffsetAt125,
+      });
+      expect(zoom125RasterError.imageWidth).toBe(rasterContext.cssWidth * 3);
+      expect(zoom125RasterError.imageHeight).toBe(rasterContext.cssHeight * 3);
+      expect(zoom125RasterError.bluePixelCount).toBeGreaterThan(50);
+      expect(zoom125RasterError.analyticSampleCount).toBe(4097);
+      expect(zoom125RasterError.visibleSourceAngles).toEqual([0, Math.PI / 2]);
+      const ellipseCenterAt125 = {
+        x: rasterContext.cssWidth / 2 + panOffsetAt125.x,
+        y: rasterContext.cssHeight / 2 + panOffsetAt125.y,
+      };
+      expect(ellipseCenterAt125.x + scene.semimajor / zoom125RasterError.unitsPerCssPixel)
+        .toBeLessThan(rasterContext.cssWidth);
+      expect(ellipseCenterAt125.y - scene.semiminor / zoom125RasterError.unitsPerCssPixel).toBeGreaterThan(0);
+      expect(zoom125RasterError.maximumRenderedToSourceDistanceCssPixels,
+        "125% panned emulated-DPR3 ELLIPSE pixels exceeded the independent parametric source envelope: " + JSON.stringify(zoom125RasterError))
+        .toBeLessThanOrEqual(1.25);
+      expect(zoom125RasterError.maximumSourceToRenderedDistanceCssPixels,
+        "125% panned emulated-DPR3 ELLIPSE source samples had a raster coverage gap: " + JSON.stringify(zoom125RasterError))
+        .toBeLessThanOrEqual(1.25);
+      console.log("F07 125% panned emulated-DPR3 runtime-refined ELLIPSE raster envelope PASS: " + JSON.stringify({
+        cameraAfter125Zoom, cameraAfter125Pan, panOffsetAt125, refinementAfter125Pan, zoom125RasterError,
+      }));
+
+      const frameBefore125PanReset = crypto.createHash("sha256")
+        .update(await canvas.screenshot({ scale: "device" })).digest("hex");
+      await ellipsePage.mouse.move(panBounds!.x + panBounds!.width / 2, panBounds!.y + panBounds!.height / 2);
+      await ellipsePage.mouse.down();
+      await ellipsePage.mouse.move(
+        panBounds!.x + panBounds!.width / 2 - pan125CssPixels.x,
+        panBounds!.y + panBounds!.height / 2 - pan125CssPixels.y,
+        { steps: 4 },
+      );
+      await ellipsePage.mouse.up();
+      await expect.poll(async () => crypto.createHash("sha256")
+        .update(await canvas.screenshot({ scale: "device" })).digest("hex"), { timeout: 5_000 })
+        .not.toBe(frameBefore125PanReset);
+      const cameraAfter125PanReset = await ellipsePage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 ELLIPSE camera is missing after resetting 125% pan");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter125PanReset.x).toBeCloseTo(cameraAfter125Zoom.x, 6);
+      expect(cameraAfter125PanReset.y).toBeCloseTo(cameraAfter125Zoom.y, 6);
+      expect(cameraAfter125PanReset.k).toBeCloseTo(cameraAfter125Zoom.k, 12);
+      await ellipsePage.waitForTimeout(350);
+      const refinementAfter125PanReset = await ellipsePage.evaluate(() => {
+        const state = (window as Window & { __cadV2F07Ellipse?: { targetErrors: number[]; refinedReplies: number; maxLineVertexCount: number } }).__cadV2F07Ellipse!;
+        return { targetErrors: [...state.targetErrors], refinedReplies: state.refinedReplies, maxLineVertexCount: state.maxLineVertexCount };
+      });
+      expect(refinementAfter125PanReset).toEqual(refinementAfter125Pan);
+      lastZoomState = refinementAfter125PanReset;
+
+      const baselineTargetCount156 = await ellipsePage.evaluate(() =>
+        (window as Window & { __cadV2F07Ellipse?: { targetErrors: number[] } }).__cadV2F07Ellipse!.targetErrors.length);
+      await zoomButton.click();
+      await expect(ellipsePage.getByText("156%")).toBeVisible();
+      lastZoomState = await waitForZoomRefinement(baselineTargetCount156, "156% DPR3 ELLIPSE");
+      const cameraAfter156Zoom = await ellipsePage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 ELLIPSE camera transform is missing at 156%");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter156Zoom.k / cameraBeforePan.k).toBeCloseTo(1.5625, 6);
+      const panOffsetAt156 = {
+        x: cameraAfter156Zoom.x - rasterContext.cssWidth / 2,
+        y: cameraAfter156Zoom.y - rasterContext.cssHeight / 2,
+      };
+      expect(panOffsetAt156.x).toBeCloseTo(panCssPixels.x * 1.5625, 6);
+      expect(panOffsetAt156.y).toBeCloseTo(panCssPixels.y * 1.5625, 6);
+
+      const zoom156Screenshot = await canvas.screenshot({ scale: "device" });
+      const zoom156RasterError = await ellipsePage.evaluate(measureF07EllipseRasterError, {
+        screenshotBase64: zoom156Screenshot.toString("base64"),
+        semimajor: scene.semimajor,
+        semiminor: scene.semiminor,
+        zoomFactor: 1.5625,
+        panCssPixels: panOffsetAt156,
+      });
+      expect(zoom156RasterError.imageWidth).toBe(rasterContext.cssWidth * 3);
+      expect(zoom156RasterError.imageHeight).toBe(rasterContext.cssHeight * 3);
+      expect(zoom156RasterError.bluePixelCount).toBeGreaterThan(50);
+      expect(zoom156RasterError.maximumRenderedToSourceDistanceCssPixels,
+        "156% panned emulated-DPR3 ELLIPSE pixels exceeded the independent parametric source envelope: " + JSON.stringify(zoom156RasterError))
+        .toBeLessThanOrEqual(1.25);
+      expect(zoom156RasterError.maximumSourceToRenderedDistanceCssPixels,
+        "156% panned emulated-DPR3 ELLIPSE source samples had a raster coverage gap: " + JSON.stringify(zoom156RasterError))
+        .toBeLessThanOrEqual(1.25);
+      console.log("F07 156% panned emulated-DPR3 runtime-refined ELLIPSE with DPR2 drawing-buffer cap PASS: " + JSON.stringify({
+        cameraAfter156Zoom, panOffsetAt156, lastZoomState, zoom156RasterError,
+      }));
+
+      const baselineTargetCount = await ellipsePage.evaluate(() =>
+        (window as Window & { __cadV2F07Ellipse?: { targetErrors: number[] } }).__cadV2F07Ellipse!.targetErrors.length);
+      const frameBefore195Zoom = crypto.createHash("sha256")
+        .update(await canvas.screenshot({ scale: "device" })).digest("hex");
+      await zoomButton.click();
+      await expect(ellipsePage.getByText("195%")).toBeVisible();
+      lastZoomState = await waitForZoomRefinement(baselineTargetCount, "195% DPR3 ELLIPSE");
+      await expect.poll(async () => crypto.createHash("sha256")
+        .update(await canvas.screenshot({ scale: "device" })).digest("hex"), { timeout: 5_000 })
+        .not.toBe(frameBefore195Zoom);
+
+      const cameraAfter195Zoom = await ellipsePage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 ELLIPSE camera transform is missing at 195%");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter195Zoom.k / cameraAfter156Zoom.k).toBeCloseTo(1.25, 6);
+      expect(cameraAfter195Zoom.x - rasterContext.cssWidth / 2).toBeCloseTo(panOffsetAt156.x * 1.25, 6);
+      expect(cameraAfter195Zoom.y - rasterContext.cssHeight / 2).toBeCloseTo(panOffsetAt156.y * 1.25, 6);
+
+      const pan195CssPixels = { x: 24, y: 12 };
+      const frameBefore195Pan = crypto.createHash("sha256").update(await canvas.screenshot({ scale: "device" })).digest("hex");
+      await ellipsePage.mouse.move(panBounds!.x + panBounds!.width / 2, panBounds!.y + panBounds!.height / 2);
+      await ellipsePage.mouse.down();
+      await ellipsePage.mouse.move(
+        panBounds!.x + panBounds!.width / 2 + pan195CssPixels.x,
+        panBounds!.y + panBounds!.height / 2 + pan195CssPixels.y,
+        { steps: 4 },
+      );
+      await ellipsePage.mouse.up();
+      await expect.poll(async () => crypto.createHash("sha256")
+        .update(await canvas.screenshot({ scale: "device" })).digest("hex"), { timeout: 5_000 })
+        .not.toBe(frameBefore195Pan);
+
+      const cameraAfter195Pan = await ellipsePage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 ELLIPSE camera transform is missing after 195% pan");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter195Pan.x - cameraAfter195Zoom.x).toBeCloseTo(pan195CssPixels.x, 6);
+      expect(cameraAfter195Pan.y - cameraAfter195Zoom.y).toBeCloseTo(pan195CssPixels.y, 6);
+      expect(cameraAfter195Pan.k).toBeCloseTo(cameraAfter195Zoom.k, 12);
+      await ellipsePage.waitForTimeout(350);
+      const refinementAfter195Pan = await ellipsePage.evaluate(() => {
+        const state = (window as Window & { __cadV2F07Ellipse?: { targetErrors: number[]; refinedReplies: number; maxLineVertexCount: number } }).__cadV2F07Ellipse!;
+        return { targetErrors: [...state.targetErrors], refinedReplies: state.refinedReplies, maxLineVertexCount: state.maxLineVertexCount };
+      });
+      expect(refinementAfter195Pan).toEqual(lastZoomState);
+
+      const panOffsetAt195 = {
+        x: cameraAfter195Pan.x - rasterContext.cssWidth / 2,
+        y: cameraAfter195Pan.y - rasterContext.cssHeight / 2,
+      };
+      const zoom195Screenshot = await canvas.screenshot({ scale: "device" });
+      const zoom195RasterError = await ellipsePage.evaluate(measureF07EllipseRasterError, {
+        screenshotBase64: zoom195Screenshot.toString("base64"),
+        semimajor: scene.semimajor,
+        semiminor: scene.semiminor,
+        zoomFactor: 1.953125,
+        panCssPixels: panOffsetAt195,
+      });
+      expect(zoom195RasterError.imageWidth).toBe(rasterContext.cssWidth * 3);
+      expect(zoom195RasterError.imageHeight).toBe(rasterContext.cssHeight * 3);
+      expect(zoom195RasterError.bluePixelCount).toBeGreaterThan(50);
+      expect(zoom195RasterError.visibleSourceAngles).toEqual([0, Math.PI / 2]);
+      expect(zoom195RasterError.maximumRenderedToSourceDistanceCssPixels,
+        "195% panned emulated-DPR3 ELLIPSE pixels exceeded the independent parametric source envelope: " + JSON.stringify(zoom195RasterError))
+        .toBeLessThanOrEqual(1.25);
+      expect(zoom195RasterError.maximumSourceToRenderedDistanceCssPixels,
+        "195% panned emulated-DPR3 ELLIPSE source samples had a raster coverage gap: " + JSON.stringify(zoom195RasterError))
+        .toBeLessThanOrEqual(1.25);
+      console.log("F07 195% panned emulated-DPR3 runtime-refined ELLIPSE raster envelope PASS: " + JSON.stringify({
+        cameraAfter195Zoom, pan195CssPixels, cameraAfter195Pan, panOffsetAt195, lastZoomState,
+        refinementAfter195Pan, zoom195RasterError,
+      }));
     } finally {
       await context.close();
     }
   });
 
-  test("runtime-refined rational SPLINE stays bounded at DPR3 buffer cap after 80% zoom and pan", async ({ browser, page }) => {
+  test("runtime-refined ARC raster stays bounded through 195% zoom and pan under emulated DPR3", async ({ browser, page }) => {
+    await signInAdmin(page);
+    const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
+    const scene = makeBrowserCurveRefinementScene();
+    const context = await browser.newContext({
+      baseURL: new URL(page.url()).origin,
+      deviceScaleFactor: 3,
+      viewport: { width: 1280, height: 720 },
+      storageState: await page.context().storageState(),
+    });
+
+    try {
+      const arcPage = await context.newPage();
+      await configureF07ArcDpr3RefinementPage(arcPage, scene, "vs_f07_arc_dpr3_zoom_pan");
+      await arcPage.goto(`/dokumantasyon/dosya/${fileId}?cadEngine=v2`);
+
+      const canvas = arcPage.locator("canvas").first();
+      await expect(canvas).toBeVisible({ timeout: 60_000 });
+      await expect(arcPage.getByText("Varlık:")).toBeVisible({ timeout: 60_000 });
+
+      const readArcState = () => arcPage.evaluate(() => {
+        const state = (window as Window & {
+          __cadV2F07ArcDpr3?: { targetErrors: number[]; refinedReplies: number; maxLineVertexCount: number };
+        }).__cadV2F07ArcDpr3;
+        if (!state) throw new Error("F07 DPR3 ARC worker instrumentation is missing");
+        return { targetErrors: [...state.targetErrors], refinedReplies: state.refinedReplies, maxLineVertexCount: state.maxLineVertexCount };
+      });
+      const waitForArcQuiet = async (minimumTargetCount: number, description: string) => {
+        await expect.poll(async () => {
+          const state = await readArcState();
+          return state.targetErrors.length >= minimumTargetCount && state.targetErrors.at(-1) === 0.25 &&
+            state.refinedReplies === state.targetErrors.length && state.maxLineVertexCount > 2;
+        }, { timeout: 30_000, intervals: [100, 250, 500, 1000] }).toBe(true);
+
+        let snapshot = await readArcState();
+        let stableIntervals = 0;
+        for (let attempt = 0; attempt < 8 && stableIntervals < 2; attempt++) {
+          await arcPage.waitForTimeout(350);
+          const next = await readArcState();
+          stableIntervals = JSON.stringify(next) === JSON.stringify(snapshot) ? stableIntervals + 1 : 0;
+          snapshot = next;
+        }
+        expect(stableIntervals, description + " must settle without pending refinement replies").toBeGreaterThanOrEqual(2);
+        expect(snapshot.refinedReplies).toBe(snapshot.targetErrors.length);
+        expect(snapshot.targetErrors.at(-1)).toBe(0.25);
+        return snapshot;
+      };
+
+      const fitState = await waitForArcQuiet(1, "fit DPR3 ARC refinement");
+      const rasterContext = await arcPage.evaluate(() => {
+        const canvasElement = document.querySelector("canvas");
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!canvasElement || !input?.__zoom) throw new Error("F07 DPR3 ARC canvas/camera is missing");
+        return {
+          devicePixelRatio: window.devicePixelRatio,
+          cssWidth: canvasElement.clientWidth,
+          cssHeight: canvasElement.clientHeight,
+          drawingBufferWidth: canvasElement.width,
+          drawingBufferHeight: canvasElement.height,
+          camera: { ...input.__zoom },
+        };
+      });
+      expect(rasterContext.devicePixelRatio).toBe(3);
+      expect(rasterContext.drawingBufferWidth).toBe(rasterContext.cssWidth * 2);
+      expect(rasterContext.drawingBufferHeight).toBe(rasterContext.cssHeight * 2);
+
+      const panInput = arcPage.getByLabel("CAD V2 Çizim Etkileşim Alanı");
+      const panBounds = await panInput.boundingBox();
+      expect(panBounds).not.toBeNull();
+      const fitPanCssPixels = { x: 48, y: 24 };
+      const cameraBeforePan = rasterContext.camera;
+      const frameBeforeFitPan = await canvas.screenshot({ scale: "device" });
+      await arcPage.mouse.move(panBounds!.x + panBounds!.width / 2, panBounds!.y + panBounds!.height / 2);
+      await arcPage.mouse.down();
+      await arcPage.mouse.move(
+        panBounds!.x + panBounds!.width / 2 + fitPanCssPixels.x,
+        panBounds!.y + panBounds!.height / 2 + fitPanCssPixels.y,
+        { steps: 4 },
+      );
+      await arcPage.mouse.up();
+      await expect.poll(async () => (await canvas.screenshot({ scale: "device" })).toString("base64"),
+        { timeout: 5_000 }).not.toBe(frameBeforeFitPan.toString("base64"));
+      const cameraAfterFitPan = await arcPage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 ARC camera is missing after fit pan");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfterFitPan.x - cameraBeforePan.x).toBeCloseTo(fitPanCssPixels.x, 6);
+      expect(cameraAfterFitPan.y - cameraBeforePan.y).toBeCloseTo(fitPanCssPixels.y, 6);
+      expect(cameraAfterFitPan.k).toBeCloseTo(cameraBeforePan.k, 12);
+      const fitPanState = await waitForArcQuiet(fitState.targetErrors.length, "fit-panned DPR3 ARC");
+      expect(fitPanState).toEqual(fitState);
+
+      const fitScreenshot = await canvas.screenshot({ scale: "device" });
+      const fitRasterError = await arcPage.evaluate(measureF07ArcRasterError, {
+        screenshotBase64: fitScreenshot.toString("base64"),
+        zoomFactor: 1,
+        panCssPixels: fitPanCssPixels,
+      });
+      expect(fitRasterError.imageWidth).toBe(rasterContext.cssWidth * 3);
+      expect(fitRasterError.imageHeight).toBe(rasterContext.cssHeight * 3);
+      expect(fitRasterError.bluePixelCount).toBeGreaterThan(100);
+      expect(fitRasterError.maximumArcDistanceCssPixels,
+        "fit-panned DPR3 ARC pixels exceeded the projected source envelope: " + JSON.stringify(fitRasterError))
+        .toBeLessThanOrEqual(1.25);
+      expect(fitRasterError.maximumSourceArcToPixelDistanceCssPixels,
+        "fit-panned DPR3 ARC source samples had a raster coverage gap: " + JSON.stringify(fitRasterError))
+        .toBeLessThanOrEqual(1.25);
+
+      const zoomButton = arcPage.getByRole("button", { name: "Yakınlaştır (+)" });
+      let lastZoomState = fitPanState;
+      const zoomBaseline125 = await readArcState();
+      await zoomButton.click();
+      await expect(arcPage.getByText("125%")).toBeVisible();
+      lastZoomState = await waitForArcQuiet(
+        zoomBaseline125.targetErrors.length + 1,
+        "125% DPR3 ARC zoom refinement",
+      );
+      const cameraAfter125Zoom = await arcPage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 ARC camera is missing at 125% zoom");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter125Zoom.k / cameraBeforePan.k).toBeCloseTo(1.25, 6);
+      expect(cameraAfter125Zoom.x).toBeCloseTo(
+        rasterContext.cssWidth / 2 + fitPanCssPixels.x * 1.25, 6,
+      );
+      expect(cameraAfter125Zoom.y).toBeCloseTo(
+        rasterContext.cssHeight / 2 + fitPanCssPixels.y * 1.25, 6,
+      );
+
+      const panAt125CssPixels = { x: 24, y: 12 };
+      const frameBefore125Pan = await canvas.screenshot({ scale: "device" });
+      await arcPage.mouse.move(panBounds!.x + panBounds!.width / 2, panBounds!.y + panBounds!.height / 2);
+      await arcPage.mouse.down();
+      await arcPage.mouse.move(
+        panBounds!.x + panBounds!.width / 2 + panAt125CssPixels.x,
+        panBounds!.y + panBounds!.height / 2 + panAt125CssPixels.y,
+        { steps: 4 },
+      );
+      await arcPage.mouse.up();
+      await expect.poll(async () => (await canvas.screenshot({ scale: "device" })).toString("base64"),
+        { timeout: 5_000 }).not.toBe(frameBefore125Pan.toString("base64"));
+      const cameraAfter125Pan = await arcPage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 ARC camera is missing after 125% pan");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter125Pan.x - cameraAfter125Zoom.x).toBeCloseTo(panAt125CssPixels.x, 6);
+      expect(cameraAfter125Pan.y - cameraAfter125Zoom.y).toBeCloseTo(panAt125CssPixels.y, 6);
+      expect(cameraAfter125Pan.k).toBeCloseTo(cameraAfter125Zoom.k, 12);
+      const totalPanAt125 = {
+        x: cameraAfter125Pan.x - rasterContext.cssWidth / 2,
+        y: cameraAfter125Pan.y - rasterContext.cssHeight / 2,
+      };
+      expect(totalPanAt125.x).toBeCloseTo(fitPanCssPixels.x * 1.25 + panAt125CssPixels.x, 6);
+      expect(totalPanAt125.y).toBeCloseTo(fitPanCssPixels.y * 1.25 + panAt125CssPixels.y, 6);
+      const pan125State = await waitForArcQuiet(lastZoomState.targetErrors.length, "panned 125% DPR3 ARC");
+      expect(pan125State).toEqual(lastZoomState);
+
+      const screenshot125 = await canvas.screenshot({ scale: "device" });
+      const rasterError125 = await arcPage.evaluate(measureF07ArcRasterError, {
+        screenshotBase64: screenshot125.toString("base64"),
+        zoomFactor: 1.25,
+        panCssPixels: totalPanAt125,
+      });
+      expect(rasterError125.imageWidth).toBe(rasterContext.cssWidth * 3);
+      expect(rasterError125.imageHeight).toBe(rasterContext.cssHeight * 3);
+      expect(rasterError125.bluePixelCount).toBeGreaterThan(100);
+      expect(rasterError125.visibleArcAngles).toEqual([0, Math.PI / 2]);
+      const arcCenterAt125 = {
+        x: rasterContext.cssWidth / 2 + totalPanAt125.x,
+        y: rasterContext.cssHeight / 2 + totalPanAt125.y,
+      };
+      const arcRadiusAt125 = 40 / rasterError125.unitsPerCssPixel;
+      expect(arcCenterAt125.x + arcRadiusAt125).toBeLessThan(rasterContext.cssWidth);
+      expect(arcCenterAt125.y - arcRadiusAt125).toBeGreaterThan(0);
+      expect(rasterError125.maximumArcDistanceCssPixels,
+        "125% panned emulated-DPR3 ARC pixels exceeded the source envelope: " + JSON.stringify(rasterError125))
+        .toBeLessThanOrEqual(1.25);
+      expect(rasterError125.maximumSourceArcToPixelDistanceCssPixels,
+        "125% panned emulated-DPR3 ARC source samples had a raster coverage gap: " + JSON.stringify(rasterError125))
+        .toBeLessThanOrEqual(1.25);
+
+      const frameBefore125PanReset = await canvas.screenshot({ scale: "device" });
+      await arcPage.mouse.move(panBounds!.x + panBounds!.width / 2, panBounds!.y + panBounds!.height / 2);
+      await arcPage.mouse.down();
+      await arcPage.mouse.move(
+        panBounds!.x + panBounds!.width / 2 - panAt125CssPixels.x,
+        panBounds!.y + panBounds!.height / 2 - panAt125CssPixels.y,
+        { steps: 4 },
+      );
+      await arcPage.mouse.up();
+      await expect.poll(async () => (await canvas.screenshot({ scale: "device" })).toString("base64"),
+        { timeout: 5_000 }).not.toBe(frameBefore125PanReset.toString("base64"));
+      const cameraAfter125PanReset = await arcPage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 ARC camera is missing after resetting 125% pan");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter125PanReset.x).toBeCloseTo(cameraAfter125Zoom.x, 6);
+      expect(cameraAfter125PanReset.y).toBeCloseTo(cameraAfter125Zoom.y, 6);
+      expect(cameraAfter125PanReset.k).toBeCloseTo(cameraAfter125Zoom.k, 12);
+      lastZoomState = await waitForArcQuiet(pan125State.targetErrors.length, "reset 125% DPR3 ARC pan");
+      expect(lastZoomState).toEqual(pan125State);
+
+      for (const expectedZoom of ["156%", "195%"] as const) {
+        const zoomBaseline = await readArcState();
+        await zoomButton.click();
+        await expect(arcPage.getByText(expectedZoom)).toBeVisible();
+        lastZoomState = await waitForArcQuiet(
+          zoomBaseline.targetErrors.length + 1,
+          expectedZoom + " DPR3 ARC zoom refinement",
+        );
+      }
+
+      const cameraAfter195Zoom = await arcPage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 ARC camera is missing at 195% zoom");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter195Zoom.k / cameraBeforePan.k).toBeCloseTo(1.953125, 6);
+      expect(cameraAfter195Zoom.x).toBeCloseTo(
+        rasterContext.cssWidth / 2 + fitPanCssPixels.x * 1.953125, 6,
+      );
+      expect(cameraAfter195Zoom.y).toBeCloseTo(
+        rasterContext.cssHeight / 2 + fitPanCssPixels.y * 1.953125, 6,
+      );
+
+      const highZoomPanCssPixels = { x: 48, y: 24 };
+      const frameBeforeHighZoomPan = await canvas.screenshot({ scale: "device" });
+      await arcPage.mouse.move(panBounds!.x + panBounds!.width / 2, panBounds!.y + panBounds!.height / 2);
+      await arcPage.mouse.down();
+      await arcPage.mouse.move(
+        panBounds!.x + panBounds!.width / 2 + highZoomPanCssPixels.x,
+        panBounds!.y + panBounds!.height / 2 + highZoomPanCssPixels.y,
+        { steps: 4 },
+      );
+      await arcPage.mouse.up();
+      await expect.poll(async () => (await canvas.screenshot({ scale: "device" })).toString("base64"),
+        { timeout: 5_000 }).not.toBe(frameBeforeHighZoomPan.toString("base64"));
+      const cameraAfter195Pan = await arcPage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 ARC camera is missing after 195% pan");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter195Pan.x - cameraAfter195Zoom.x).toBeCloseTo(highZoomPanCssPixels.x, 6);
+      expect(cameraAfter195Pan.y - cameraAfter195Zoom.y).toBeCloseTo(highZoomPanCssPixels.y, 6);
+      expect(cameraAfter195Pan.k).toBeCloseTo(cameraAfter195Zoom.k, 12);
+      const highZoomPanState = await waitForArcQuiet(lastZoomState.targetErrors.length, "panned 195% DPR3 ARC");
+      expect(highZoomPanState).toEqual(lastZoomState);
+      const totalPanAt195 = {
+        x: cameraAfter195Pan.x - rasterContext.cssWidth / 2,
+        y: cameraAfter195Pan.y - rasterContext.cssHeight / 2,
+      };
+      expect(totalPanAt195.x).toBeCloseTo(fitPanCssPixels.x * 1.953125 + highZoomPanCssPixels.x, 6);
+      expect(totalPanAt195.y).toBeCloseTo(fitPanCssPixels.y * 1.953125 + highZoomPanCssPixels.y, 6);
+
+      const highZoomScreenshot = await canvas.screenshot({ scale: "device" });
+      const highZoomRasterError = await arcPage.evaluate(measureF07ArcRasterError, {
+        screenshotBase64: highZoomScreenshot.toString("base64"),
+        zoomFactor: 1.953125,
+        panCssPixels: totalPanAt195,
+        clipArcToViewport: true,
+      });
+      expect(highZoomRasterError.imageWidth).toBe(rasterContext.cssWidth * 3);
+      expect(highZoomRasterError.imageHeight).toBe(rasterContext.cssHeight * 3);
+      expect(highZoomRasterError.bluePixelCount,
+        "195% panned emulated-DPR3 ARC raster had too few classified pixels: " + JSON.stringify({
+          rasterContext, cameraAfter195Zoom, cameraAfter195Pan, totalPanAt195, highZoomRasterError,
+        }))
+        .toBeGreaterThan(100);
+      expect(highZoomRasterError.visibleArcAngles[1]).toBeGreaterThan(highZoomRasterError.visibleArcAngles[0]);
+      expect(highZoomRasterError.maximumArcDistanceCssPixels,
+        "195% panned emulated-DPR3 ARC pixels exceeded the visible-source envelope: " + JSON.stringify(highZoomRasterError))
+        .toBeLessThanOrEqual(1.25);
+      expect(highZoomRasterError.maximumSourceArcToPixelDistanceCssPixels,
+        "195% panned emulated-DPR3 ARC source samples had a raster coverage gap: " + JSON.stringify(highZoomRasterError))
+        .toBeLessThanOrEqual(1.25);
+      console.log("F07 DPR3 ARC fit/125%/195% runtime-refined raster envelopes PASS: " + JSON.stringify({
+        rasterContext, cameraBeforePan, cameraAfterFitPan, fitPanState, fitRasterError,
+        cameraAfter125Zoom, cameraAfter125Pan, pan125State, totalPanAt125, rasterError125, cameraAfter125PanReset,
+        cameraAfter195Zoom, cameraAfter195Pan, highZoomPanState, totalPanAt195, highZoomRasterError,
+      }));
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("runtime-refined rational SPLINE stays bounded at DPR3 buffer cap after 80% and 195% zoom-pan", async ({ browser, page }) => {
     await signInAdmin(page);
     const { fileId } = await uploadCadPreviewV2Fixture(page, "known-geometry-measurements");
     const scene = makeBrowserSplineRefinementScene();
@@ -3812,6 +7188,265 @@ test.describe("CAD V2 F06 — real browser layout picker", () => {
         .toBeLessThanOrEqual(1.25);
       console.log("F07 80% panned DPR3 runtime-refined rational SPLINE raster envelope PASS: " + JSON.stringify({
         initialState, rasterContext, cameraAfterZoomOut, cameraAfterPan, zoomOutState, stateAfterPan, rasterError,
+      }));
+
+      let lastZoomState = zoomOutState;
+      const zoomButton = splinePage.getByRole("button", { name: "Yakınlaştır (+)" });
+      for (const expectedZoom of ["100%", "125%"] as const) {
+        const zoomBaseline = await readSplineState();
+        await zoomButton.click();
+        await expect(splinePage.getByText(expectedZoom)).toBeVisible();
+        lastZoomState = await waitForSplineQuiet(
+          zoomBaseline.targetErrors.length + 1,
+          expectedZoom + " DPR3 SPLINE zoom refinement",
+        );
+      }
+
+      const cameraAfter125Zoom = await splinePage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 SPLINE camera is missing at 125% zoom");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter125Zoom.k / rasterContext.camera.k).toBeCloseTo(1.25, 6);
+      const panOffsetAt80 = {
+        x: cameraAfterPan.x - rasterContext.cssWidth / 2,
+        y: cameraAfterPan.y - rasterContext.cssHeight / 2,
+      };
+      const panOffsetAt125Zoom = {
+        x: cameraAfter125Zoom.x - rasterContext.cssWidth / 2,
+        y: cameraAfter125Zoom.y - rasterContext.cssHeight / 2,
+      };
+      expect(panOffsetAt125Zoom.x).toBeCloseTo(panOffsetAt80.x * (1.25 / 0.8), 6);
+      expect(panOffsetAt125Zoom.y).toBeCloseTo(panOffsetAt80.y * (1.25 / 0.8), 6);
+
+      const pan125CssPixels = { x: 24, y: 12 };
+      const frameBefore125Pan = await readDeviceFrame();
+      await splinePage.mouse.move(panBounds!.x + panBounds!.width / 2, panBounds!.y + panBounds!.height / 2);
+      await splinePage.mouse.down();
+      await splinePage.mouse.move(
+        panBounds!.x + panBounds!.width / 2 + pan125CssPixels.x,
+        panBounds!.y + panBounds!.height / 2 + pan125CssPixels.y,
+        { steps: 4 },
+      );
+      await splinePage.mouse.up();
+      await expect.poll(readDeviceFrame, { timeout: 5_000 }).not.toBe(frameBefore125Pan);
+      const cameraAfter125Pan = await splinePage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 SPLINE camera is missing after 125% pan");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter125Pan.x - cameraAfter125Zoom.x).toBeCloseTo(pan125CssPixels.x, 6);
+      expect(cameraAfter125Pan.y - cameraAfter125Zoom.y).toBeCloseTo(pan125CssPixels.y, 6);
+      expect(cameraAfter125Pan.k).toBeCloseTo(cameraAfter125Zoom.k, 12);
+      const panOffsetAt125 = {
+        x: cameraAfter125Pan.x - rasterContext.cssWidth / 2,
+        y: cameraAfter125Pan.y - rasterContext.cssHeight / 2,
+      };
+      expect(panOffsetAt125.x).toBeCloseTo(panOffsetAt125Zoom.x + pan125CssPixels.x, 6);
+      expect(panOffsetAt125.y).toBeCloseTo(panOffsetAt125Zoom.y + pan125CssPixels.y, 6);
+      const stateAfter125Pan = await waitForSplineQuiet(lastZoomState.targetErrors.length, "panned 125% DPR3 SPLINE");
+      expect(stateAfter125Pan).toEqual(lastZoomState);
+
+      const screenshot125 = await canvas.screenshot({ scale: "device" });
+      const rasterError125 = await splinePage.evaluate(measureF07SplineRasterError, {
+        screenshotBase64: screenshot125.toString("base64"),
+        controlPoints: scene.controlPoints,
+        weights: scene.weights,
+        camera: cameraAfter125Pan,
+      });
+      expect(rasterError125.imageWidth).toBe(rasterContext.cssWidth * 3);
+      expect(rasterError125.imageHeight).toBe(rasterContext.cssHeight * 3);
+      expect(rasterError125.bluePixelCount).toBeGreaterThan(100);
+      expect(rasterError125.independentSourceSampleCount).toBe(4097);
+      expect(rasterError125.sourceBounds.minX).toBeGreaterThanOrEqual(0);
+      expect(rasterError125.sourceBounds.minY).toBeGreaterThanOrEqual(0);
+      expect(rasterError125.sourceBounds.maxX).toBeLessThan(rasterContext.cssWidth);
+      expect(rasterError125.sourceBounds.maxY).toBeLessThan(rasterContext.cssHeight);
+      expect(rasterError125.maximumRenderedToSourceDistanceCssPixels,
+        "125% panned DPR3 SPLINE pixels exceeded the independent rational Bernstein envelope: " + JSON.stringify(rasterError125))
+        .toBeLessThanOrEqual(1.25);
+      expect(rasterError125.maximumSourceToRenderedDistanceCssPixels,
+        "125% panned DPR3 SPLINE source samples had a raster coverage gap: " + JSON.stringify(rasterError125))
+        .toBeLessThanOrEqual(1.25);
+
+      const frameBefore125PanReset = await readDeviceFrame();
+      await splinePage.mouse.move(panBounds!.x + panBounds!.width / 2, panBounds!.y + panBounds!.height / 2);
+      await splinePage.mouse.down();
+      await splinePage.mouse.move(
+        panBounds!.x + panBounds!.width / 2 - pan125CssPixels.x,
+        panBounds!.y + panBounds!.height / 2 - pan125CssPixels.y,
+        { steps: 4 },
+      );
+      await splinePage.mouse.up();
+      await expect.poll(readDeviceFrame, { timeout: 5_000 }).not.toBe(frameBefore125PanReset);
+      const cameraAfter125PanReset = await splinePage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 SPLINE camera is missing after resetting 125% pan");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter125PanReset.x).toBeCloseTo(cameraAfter125Zoom.x, 6);
+      expect(cameraAfter125PanReset.y).toBeCloseTo(cameraAfter125Zoom.y, 6);
+      expect(cameraAfter125PanReset.k).toBeCloseTo(cameraAfter125Zoom.k, 12);
+      lastZoomState = await waitForSplineQuiet(stateAfter125Pan.targetErrors.length, "reset 125% DPR3 SPLINE pan");
+      expect(lastZoomState).toEqual(stateAfter125Pan);
+
+      const zoomBaseline156 = await readSplineState();
+      await zoomButton.click();
+      await expect(splinePage.getByText("156%")).toBeVisible();
+      lastZoomState = await waitForSplineQuiet(zoomBaseline156.targetErrors.length + 1, "156% DPR3 SPLINE zoom refinement");
+
+      const cameraAfter156Zoom = await splinePage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 SPLINE camera is missing at 156% zoom");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter156Zoom.k / rasterContext.camera.k).toBeCloseTo(1.5625, 6);
+      const panOffsetAt156 = {
+        x: cameraAfter156Zoom.x - rasterContext.cssWidth / 2,
+        y: cameraAfter156Zoom.y - rasterContext.cssHeight / 2,
+      };
+      expect(panOffsetAt156.x).toBeCloseTo(panOffsetAt80.x * (1.5625 / 0.8), 6);
+      expect(panOffsetAt156.y).toBeCloseTo(panOffsetAt80.y * (1.5625 / 0.8), 6);
+
+      const highZoomPanCssPixels = { x: 24, y: 12 };
+      const frameBeforeHighZoomPan = await readDeviceFrame();
+      await splinePage.mouse.move(panBounds!.x + panBounds!.width / 2, panBounds!.y + panBounds!.height / 2);
+      await splinePage.mouse.down();
+      await splinePage.mouse.move(
+        panBounds!.x + panBounds!.width / 2 + highZoomPanCssPixels.x,
+        panBounds!.y + panBounds!.height / 2 + highZoomPanCssPixels.y,
+        { steps: 4 },
+      );
+      await splinePage.mouse.up();
+      await expect.poll(readDeviceFrame, { timeout: 5_000 }).not.toBe(frameBeforeHighZoomPan);
+      const cameraAfter156Pan = await splinePage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 SPLINE camera is missing after 156% pan");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter156Pan.x - cameraAfter156Zoom.x).toBeCloseTo(highZoomPanCssPixels.x, 6);
+      expect(cameraAfter156Pan.y - cameraAfter156Zoom.y).toBeCloseTo(highZoomPanCssPixels.y, 6);
+      expect(cameraAfter156Pan.k).toBeCloseTo(cameraAfter156Zoom.k, 12);
+      await splinePage.waitForTimeout(350);
+      const stateAfter156Pan = await readSplineState();
+      expect(stateAfter156Pan).toEqual(lastZoomState);
+
+      const highZoomScreenshot = await canvas.screenshot({ scale: "device" });
+      const highZoomRasterError = await splinePage.evaluate(measureF07SplineRasterError, {
+        screenshotBase64: highZoomScreenshot.toString("base64"),
+        controlPoints: scene.controlPoints,
+        weights: scene.weights,
+        camera: cameraAfter156Pan,
+      });
+      expect(highZoomRasterError.imageWidth).toBe(rasterContext.cssWidth * 3);
+      expect(highZoomRasterError.imageHeight).toBe(rasterContext.cssHeight * 3);
+      expect(highZoomRasterError.bluePixelCount).toBeGreaterThan(100);
+      expect(highZoomRasterError.independentSourceSampleCount).toBe(4097);
+      expect(highZoomRasterError.sourceBounds.minX).toBeGreaterThanOrEqual(0);
+      expect(highZoomRasterError.sourceBounds.minY).toBeGreaterThanOrEqual(0);
+      expect(highZoomRasterError.sourceBounds.maxX).toBeLessThan(rasterContext.cssWidth);
+      expect(highZoomRasterError.sourceBounds.maxY).toBeLessThan(rasterContext.cssHeight);
+      expect(highZoomRasterError.maximumRenderedToSourceDistanceCssPixels,
+        "156% panned DPR3 SPLINE pixels exceeded the independent rational Bernstein envelope: " + JSON.stringify(highZoomRasterError))
+        .toBeLessThanOrEqual(1.25);
+      expect(highZoomRasterError.maximumSourceToRenderedDistanceCssPixels,
+        "156% panned DPR3 SPLINE source samples had a raster coverage gap: " + JSON.stringify(highZoomRasterError))
+        .toBeLessThanOrEqual(1.25);
+      console.log("F07 125% panned DPR3 runtime-refined rational SPLINE raster envelope PASS: " + JSON.stringify({
+        cameraAfter125Zoom, cameraAfter125Pan, panOffsetAt125, stateAfter125Pan, rasterError125,
+      }));
+      console.log("F07 156% panned DPR3 runtime-refined rational SPLINE raster envelope PASS: " + JSON.stringify({
+        cameraAfter156Zoom, panOffsetAt80, panOffsetAt156, highZoomPanCssPixels, cameraAfter156Pan,
+        lastZoomState, stateAfter156Pan, highZoomRasterError,
+      }));
+
+      const ultraZoomBaseline = await readSplineState();
+      const frameBefore195Zoom = await readDeviceFrame();
+      await zoomButton.click();
+      await expect(splinePage.getByText("195%")).toBeVisible();
+      const ultraZoomState = await waitForSplineQuiet(
+        ultraZoomBaseline.targetErrors.length + 1,
+        "195% DPR3 SPLINE zoom refinement",
+      );
+      await expect.poll(readDeviceFrame, { timeout: 5_000 }).not.toBe(frameBefore195Zoom);
+      const cameraAfter195Zoom = await splinePage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 SPLINE camera is missing at 195% zoom");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter195Zoom.k / cameraAfter156Pan.k).toBeCloseTo(1.25, 6);
+      expect(cameraAfter195Zoom.x - rasterContext.cssWidth / 2).toBeCloseTo(
+        (cameraAfter156Pan.x - rasterContext.cssWidth / 2) * 1.25, 6,
+      );
+      expect(cameraAfter195Zoom.y - rasterContext.cssHeight / 2).toBeCloseTo(
+        (cameraAfter156Pan.y - rasterContext.cssHeight / 2) * 1.25, 6,
+      );
+      expect(ultraZoomState.targetErrors.at(-1)).toBe(0.25);
+      expect(ultraZoomState.refinedReplies).toBe(ultraZoomState.targetErrors.length);
+
+      const ultraZoomPanCssPixels = { x: 24, y: 12 };
+      const frameBefore195Pan = await readDeviceFrame();
+      await splinePage.mouse.move(panBounds!.x + panBounds!.width / 2, panBounds!.y + panBounds!.height / 2);
+      await splinePage.mouse.down();
+      await splinePage.mouse.move(
+        panBounds!.x + panBounds!.width / 2 + ultraZoomPanCssPixels.x,
+        panBounds!.y + panBounds!.height / 2 + ultraZoomPanCssPixels.y,
+        { steps: 4 },
+      );
+      await splinePage.mouse.up();
+      await expect.poll(readDeviceFrame, { timeout: 5_000 }).not.toBe(frameBefore195Pan);
+      const cameraAfter195Pan = await splinePage.evaluate(() => {
+        const input = document.querySelector<HTMLElement & { __zoom?: { x: number; y: number; k: number } }>(
+          '[aria-label="CAD V2 Çizim Etkileşim Alanı"]',
+        );
+        if (!input?.__zoom) throw new Error("F07 DPR3 SPLINE camera is missing after 195% pan");
+        return { ...input.__zoom };
+      });
+      expect(cameraAfter195Pan.x - cameraAfter195Zoom.x).toBeCloseTo(ultraZoomPanCssPixels.x, 6);
+      expect(cameraAfter195Pan.y - cameraAfter195Zoom.y).toBeCloseTo(ultraZoomPanCssPixels.y, 6);
+      expect(cameraAfter195Pan.k).toBeCloseTo(cameraAfter195Zoom.k, 12);
+      const stateAfter195Pan = await waitForSplineQuiet(
+        ultraZoomState.targetErrors.length,
+        "panned 195% DPR3 SPLINE refinement",
+      );
+      expect(stateAfter195Pan).toEqual(ultraZoomState);
+
+      const ultraZoomScreenshot = await canvas.screenshot({ scale: "device" });
+      const ultraZoomRasterError = await splinePage.evaluate(measureF07SplineRasterError, {
+        screenshotBase64: ultraZoomScreenshot.toString("base64"),
+        controlPoints: scene.controlPoints,
+        weights: scene.weights,
+        camera: cameraAfter195Pan,
+      });
+      expect(ultraZoomRasterError.imageWidth).toBe(rasterContext.cssWidth * 3);
+      expect(ultraZoomRasterError.imageHeight).toBe(rasterContext.cssHeight * 3);
+      expect(ultraZoomRasterError.bluePixelCount).toBeGreaterThan(100);
+      expect(ultraZoomRasterError.independentSourceSampleCount).toBe(4097);
+      expect(ultraZoomRasterError.sourceBounds.minX).toBeGreaterThanOrEqual(0);
+      expect(ultraZoomRasterError.sourceBounds.minY).toBeGreaterThanOrEqual(0);
+      expect(ultraZoomRasterError.sourceBounds.maxX).toBeLessThan(rasterContext.cssWidth);
+      expect(ultraZoomRasterError.sourceBounds.maxY).toBeLessThan(rasterContext.cssHeight);
+      expect(ultraZoomRasterError.maximumRenderedToSourceDistanceCssPixels,
+        "195% panned DPR3 SPLINE pixels exceeded the independent rational Bernstein envelope: " + JSON.stringify(ultraZoomRasterError))
+        .toBeLessThanOrEqual(1.25);
+      expect(ultraZoomRasterError.maximumSourceToRenderedDistanceCssPixels,
+        "195% panned DPR3 SPLINE source samples had a raster coverage gap: " + JSON.stringify(ultraZoomRasterError))
+        .toBeLessThanOrEqual(1.25);
+      console.log("F07 195% panned DPR3 runtime-refined rational SPLINE raster envelope PASS: " + JSON.stringify({
+        ultraZoomBaseline, ultraZoomState, cameraAfter195Zoom, ultraZoomPanCssPixels, cameraAfter195Pan,
+        stateAfter195Pan, ultraZoomRasterError,
       }));
     } finally {
       await context.close();

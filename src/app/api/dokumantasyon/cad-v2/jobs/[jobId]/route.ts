@@ -29,7 +29,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
 
     const service = CadV2DurableService.getInstance();
-    const job = service.getJob(jobId);
+    const job = await service.getJobAsync(jobId);
 
     if (!job) {
       return NextResponse.json(

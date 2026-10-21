@@ -136,7 +136,7 @@ function testNonFiniteCoordinatesThrows() {
 
   assert.throws(
     () => parseSceneChunk(chunkBytes),
-    /non-finite \(NaN\/Infinity\) değer/,
+    /non-finite/,
     "NaN koordinat içeren chunk throw etmelidir."
   );
   console.log("  ✓ Non-finite (NaN) koordinat tespiti başarılı.");

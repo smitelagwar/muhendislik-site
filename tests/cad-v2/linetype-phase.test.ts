@@ -257,23 +257,17 @@ console.log("  Gate 5: Effective Scale Resolution doğrulanıyor...");
     linetypeScale: 2.5,
   };
 
-  // Model alanı: entScale (2.5) * globalScale (2.0) * curScale (1.0) * msScale (1.5) = 7.5
+  // Mevcut entity için etkin çarpan entity scale * LTSCALE'dir; CELTSCALE yeni entity varsayılanıdır.
   const resModel = resolveEntityLinetype(lineScaled, {}, undefined, {
     globalLtScale: 2.0,
-    currentLtScale: 1.0,
-    msLtScale: 1.5,
-    isPaperSpace: false,
   });
-  assert(Math.abs(resModel.effectiveScale - 7.5) < 1e-4, `Model alanı effectiveScale 7.5 olmalı, alınan: ${resModel.effectiveScale}`);
+  assert(Math.abs(resModel.effectiveScale - 5.0) < 1e-4, `Model alanı effectiveScale 5.0 olmalı, alınan: ${resModel.effectiveScale}`);
 
-  // Paper alanı: entScale (2.5) * globalScale (2.0) * curScale (1.0) * psLtScale (0.5) = 2.5
+  // PSLTSCALE/MSLTSCALE boolean görünüş modlarıdır; bunlar numeric çarpan değildir.
   const resPaper = resolveEntityLinetype(lineScaled, {}, undefined, {
     globalLtScale: 2.0,
-    currentLtScale: 1.0,
-    psLtScale: 0.5,
-    isPaperSpace: true,
   });
-  assert(Math.abs(resPaper.effectiveScale - 2.5) < 1e-4, `Paper alanı effectiveScale 2.5 olmalı, alınan: ${resPaper.effectiveScale}`);
+  assert(Math.abs(resPaper.effectiveScale - 5.0) < 1e-4, `Paper alanı temel effectiveScale 5.0 olmalı, alınan: ${resPaper.effectiveScale}`);
 }
 
 // ----------------------------------------------------------------------------

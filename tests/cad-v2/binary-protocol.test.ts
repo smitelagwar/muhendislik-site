@@ -9,6 +9,7 @@ import {
   SceneScalarType,
   DrawPrimitiveKind,
   SCENE_MAGIC,
+  MAX_DECODED_ALLOCATION_BYTES,
   UINT32_MAX,
 } from "../../src/lib/cad-v2/protocol/binary-protocol";
 
@@ -24,7 +25,7 @@ const metaBytes = new TextEncoder().encode(metaJson);
 
 const originData = new Float64Array([500000.0, 4200000.0]); // UTM / State Plane Float64 origin
 const xyData = new Float32Array([0.0, 0.0, 100.0, 0.0, 100.0, 50.0, 0.0, 50.0]); // 4 vertices (x, y)
-const trianglesData = new Uint32Array([0, 1, 2, 0, 2, 3]); // 2 triangles
+const trianglesData = new Float32Array([0, 0, 100, 0, 100, 50, 0, 0, 100, 50, 0, 50]); // 6 triangle vertices
 
 const drawRunsData = new Uint32Array([
   DrawPrimitiveKind.TRIANGLES,
@@ -61,9 +62,9 @@ const chunkBytes = buildSceneChunk([
   },
   {
     tag: SceneTag.TRIANGLES,
-    scalarType: SceneScalarType.U32,
-    componentCount: 3,
-    elementCount: 2,
+    scalarType: SceneScalarType.F32,
+    componentCount: 2,
+    elementCount: 6,
     data: trianglesData,
   },
   {
@@ -122,4 +123,53 @@ try {
   console.log("Negatif test (kesilmiş buffer) beklendiği gibi reddedildi:", (err as Error).message);
 }
 
+function assertRejects(label: string, bytes: Uint8Array, pattern: RegExp): void {
+  try {
+    parseSceneChunk(bytes);
+    throw new Error(`${label} reddedilmedi`);
+  } catch (error) {
+    if (error instanceof Error && error.message === `${label} reddedilmedi`) throw error;
+    if (!pattern.test(error instanceof Error ? error.message : String(error))) {
+      throw new Error(`${label} yanlış nedenle reddedildi: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+}
+
+const invalidSchema = new Uint8Array(chunkBytes);
+new DataView(invalidSchema.buffer).setUint32(8, 99, true);
+assertRejects("Unsupported schema", invalidSchema, /Desteklenmeyen şema sürümü/);
+
+const invalidHeaderOffset = new Uint8Array(chunkBytes);
+new DataView(invalidHeaderOffset.buffer).setUint32(20, 40, true);
+assertRejects("Invalid section table offset", invalidHeaderOffset, /header ofset/);
+
+const invalidReserved = new Uint8Array(chunkBytes);
+new DataView(invalidReserved.buffer).setUint32(28, 1, true);
+assertRejects("Invalid binary ABI reserved field", invalidReserved, /binary ABI/);
+
+const overflowingTable = new Uint8Array(chunkBytes);
+new DataView(overflowingTable.buffer).setUint32(16, 0xffff_ffff, true);
+assertRejects("Overflowing section table", overflowingTable, /Section tablosu chunk sınırını aşıyor/);
+
+const overlappingSections = new Uint8Array(chunkBytes);
+const overlapView = new DataView(overlappingSections.buffer);
+const firstSectionOffset = overlapView.getUint32(32 + 12, true);
+overlapView.setUint32(32 + 32 + 12, firstSectionOffset, true);
+assertRejects("Overlapping section payloads", overlappingSections, /Overlapping section/);
+
+const nonFiniteFloat = new Uint8Array(chunkBytes);
+const floatView = new DataView(nonFiniteFloat.buffer);
+let xyEntryOffset = 32;
+while (floatView.getUint32(xyEntryOffset, true) !== SceneTag.XY) xyEntryOffset += 32;
+const xyByteOffset = floatView.getUint32(xyEntryOffset + 12, true);
+floatView.setFloat32(xyByteOffset, Number.POSITIVE_INFINITY, true);
+assertRejects("Non-finite float payload", nonFiniteFloat, /non-finite/);
+
+const oversized = new Uint8Array(MAX_DECODED_ALLOCATION_BYTES + 1);
+oversized.set(new TextEncoder().encode(SCENE_MAGIC), 0);
+const oversizedView = new DataView(oversized.buffer);
+oversizedView.setUint32(8, 1, true);
+oversizedView.setUint32(12, oversized.byteLength, true);
+assertRejects("Oversized typed-array input", oversized, /savunma sınırını aşıyor/);
+console.log("L05 binary magic/schema/ABI/table/overlap/finite/allocation sınırları PASS.");
 console.log("\n>>> G03 BINARY PROTOCOL TÜM TESTLER GEÇTİ (PASS) <<<");

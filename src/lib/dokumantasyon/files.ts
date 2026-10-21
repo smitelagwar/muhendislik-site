@@ -387,7 +387,7 @@ export async function trashFile(id: string): Promise<void> {
       item.deleted_at = new Date().toISOString();
       item.updated_at = new Date().toISOString();
       // Bu dosyayı içeren linkleri revoke et
-      db.share_items
+      (db.share_items || [])
         .filter((si) => si.file_id === id)
         .forEach((si) => {
           const link = db.shares.find((s) => s.id === si.share_link_id);
@@ -507,7 +507,7 @@ export async function permanentDeleteFile(id: string): Promise<void> {
   if (!hasDatabaseUrl()) {
     const db = readLocalDb();
     db.files = db.files.filter((f) => f.id !== id);
-    db.share_items = db.share_items.filter((si) => si.file_id !== id);
+    db.share_items = (db.share_items || []).filter((si) => si.file_id !== id);
     writeLocalDb(db);
     return;
   }

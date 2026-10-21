@@ -35,6 +35,11 @@ async function main(): Promise<void> {
       linetypes: {}, textStyles: {}, blocks: {}, layouts: {}, viewports: {}, paperSpaceEntities: {}, diagnostics: [],
       modelSpaceEntities: [
         { handle: "C1", type: "CIRCLE", layer: "L", order: BigInt(1), center: [40, -30], radius: 15 },
+        { handle: "HATCH1", type: "HATCH", layer: "L", order: BigInt(3), patternName: "SOLID", isSolid: true,
+          solidFill: true, hatchStyle: 0, loops: [{ isPolyline: false, isClosed: true, edges: [
+            { type: "ARC", center: [0, 0], radius: 10, startAngleRad: 0, endAngleRad: Math.PI / 2, ccw: true },
+            { type: "LINE", start: [0, 10], end: [10, 0] },
+          ] }] },
         {
           handle: "PERIODIC1", type: "SPLINE", layer: "L", order: BigInt(2), degree: 3,
           controlPoints: [[15, 0], [0, 15], [-15, 0], [0, -15], [15, 0], [0, 15], [-15, 0]],
@@ -57,6 +62,8 @@ async function main(): Promise<void> {
         let stage = "ready";
         let initialResult = null;
         let loadedChunk = null;
+        let hatchResult = null;
+        let workerCacheRetainedSource = false;
         const timer = setTimeout(() => fail(new Error("V2 worker refinement browser timeout")), 5000);
         const fail = (error) => {
           clearTimeout(timer);
@@ -75,12 +82,16 @@ async function main(): Promise<void> {
             return;
           }
           if (stage === "chunk" && message.kind === "chunk") {
+            workerCacheRetainedSource = message.payload.workerRefinementSourceCache?.retained === true;
             const periodicSourceRefs = message.payload.meta?.curveSourceRefs?.filter((ref) =>
               ref.sourceType === "SPLINE" && ref.sourceHandle === "PERIODIC1" && ref.splineSource);
             if (!(message.payload.curveDataArray instanceof Float32Array) || !periodicSourceRefs?.length) {
               return fail(new Error("Worker did not return analytic source data"));
             }
             loadedChunk = message.payload;
+            if (!Array.isArray(loadedChunk.meta?.hatchFillSources) || loadedChunk.meta.hatchFillSources.length !== 1) {
+              return fail(new Error("Worker chunk omitted bounded source-backed solid HATCH metadata"));
+            }
             stage = "refined";
             worker.postMessage({ protocolVersion: 1, viewSessionId: "browser-f07", generation: 1,
               sourceVersionKey: "f07-worker-browser-source", kind: "refine-curves",
@@ -99,6 +110,19 @@ async function main(): Promise<void> {
               coordinatesAreFloat32: interval?.coordinates instanceof Float32Array,
               outputBytes: message.payload.result.totalOutputBytes,
             };
+            stage = "hatch-refined";
+            const hatchSource = loadedChunk.meta.hatchFillSources[0];
+            worker.postMessage({ protocolVersion: 1, viewSessionId: "browser-f07", generation: 1,
+              sourceVersionKey: "f07-worker-browser-source", kind: "refine-hatches",
+              payload: { chunkId, requestId: "browser-hatch-refine-1", hatchSourceJson: JSON.stringify(hatchSource.source),
+                targetErrorCssPixels: 0.25, unitsPerCssPixel: 0.01, maxTransformSingularValue: 1 } });
+            return;
+          }
+          if (stage === "hatch-refined" && message.kind === "refined-hatches") {
+            const result = message.payload.result;
+            hatchResult = { status: result.status, errorBoundMet: result.errorBoundMet,
+              verticesAreFloat64: result.verticesWorld instanceof Float64Array,
+              triangleCount: result.triangleCount, measuredErrorWorld: result.measuredBoundaryErrorWorld };
             stage = "cancelled";
             worker.postMessage({ protocolVersion: 1, viewSessionId: "browser-f07", generation: 2,
               sourceVersionKey: "f07-worker-browser-source", kind: "cancel" });
@@ -126,10 +150,23 @@ async function main(): Promise<void> {
             return fail(new Error("Worker emitted an old-generation refinement result"));
           }
           if (stage === "refined-current-generation" && message.kind === "refined-curves" && message.payload.requestId === "current-refine") {
+            stage = "inline-json-fallback";
+            const curveDataBuffer = new Float32Array(loadedChunk.curveDataArray).buffer;
+            worker.postMessage({ protocolVersion: 1, viewSessionId: "browser-f07", generation: 2,
+              sourceVersionKey: "f07-worker-browser-source", kind: "refine-curves",
+              payload: { chunkId: "evicted-chunk-json", requestId: "json-fallback", targetErrorCssPixels: 0.25,
+                unitsPerCssPixel: 0.01, maxTransformSingularValue: 1, curveDataBuffer,
+                curveSourceRefsJson: JSON.stringify(loadedChunk.meta.curveSourceRefs),
+                fallbackVertexCount: loadedChunk.vertexCount } }, [curveDataBuffer]);
+            return;
+          }
+          if (stage === "inline-json-fallback" && message.kind === "refined-curves" && message.payload.requestId === "json-fallback") {
             clearTimeout(timer);
-            const answer = { ...initialResult, stage: message.kind, staleGenerationDropped: true,
+            const answer = { ...initialResult, hatchResult, stage: message.kind, staleGenerationDropped: true,
+              workerCacheRetainedSource,
               currentGenerationInlineSourceFallback: message.payload.result.intervals.length > 0,
-              currentGenerationErrorBoundMet: message.payload.result.errorBoundMet };
+              currentGenerationErrorBoundMet: message.payload.result.errorBoundMet,
+              inlineJsonSourceFallback: message.payload.result.errorBoundMet && message.payload.result.intervals.length > 0 };
             worker.terminate();
             resolve(answer);
           }
@@ -146,9 +183,12 @@ async function main(): Promise<void> {
       sourceSegmentCount: number;
       coordinatesAreFloat32: boolean;
       outputBytes: number;
+      hatchResult: { status: string; errorBoundMet: boolean; verticesAreFloat64: boolean; triangleCount: number; measuredErrorWorld: number };
       staleGenerationDropped: boolean;
+      workerCacheRetainedSource: boolean;
       currentGenerationInlineSourceFallback: boolean;
       currentGenerationErrorBoundMet: boolean;
+      inlineJsonSourceFallback: boolean;
     };
 
     assert.equal(result.stage, "refined-curves", "real browser worker handled source load and curve refinement");
@@ -156,10 +196,16 @@ async function main(): Promise<void> {
     assert.equal(result.coordinatesAreFloat32, true, "worker transferred refinement vertices as Float32Array");
     assert.ok(result.segmentCount > result.sourceSegmentCount, "fine-view worker result refined beyond initial tessellation");
     assert.ok(result.outputBytes > 0, "worker returned bounded output allocations");
+    assert.equal(result.hatchResult.status, "refined", "real browser worker remeshed the retained source HATCH");
+    assert.equal(result.hatchResult.errorBoundMet, true, "worker HATCH boundary stays within its world-space target");
+    assert.equal(result.hatchResult.verticesAreFloat64, true, "worker transfers world-space HATCH mesh as Float64Array");
+    assert.ok(result.hatchResult.triangleCount > 0 && result.hatchResult.measuredErrorWorld <= 0.0025);
     assert.equal(result.staleGenerationDropped, true, "worker ignores a request from a generation superseded by cancel");
+    assert.equal(result.workerCacheRetainedSource, true, "worker reports retained analytic source for cache-hit refinement");
     assert.equal(result.currentGenerationInlineSourceFallback, true, "a bounded inline sidecar fallback survives LRU eviction");
-    assert.equal(result.currentGenerationErrorBoundMet, true, "current generation still refines from cached source data");
-    console.log("F07 real-browser periodic SPLINE load → cached refine → LRU-evicted inline refine PASS:", JSON.stringify(result));
+    assert.equal(result.currentGenerationErrorBoundMet, true, "current generation inline fallback still meets the bounded error target");
+    assert.equal(result.inlineJsonSourceFallback, true, "bounded JSON-string sidecar survives worker transfer");
+    console.log("F07 real-browser periodic SPLINE load → cached refine → array/JSON inline fallbacks PASS:", JSON.stringify(result));
   } catch (error) {
     console.error("F07 real-browser worker refinement FAILED:", error);
     exitCode = 1;

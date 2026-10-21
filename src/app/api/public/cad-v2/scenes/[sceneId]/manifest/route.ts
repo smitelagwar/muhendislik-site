@@ -39,8 +39,8 @@ export async function GET(request: Request, { params }: RouteParams) {
       );
     }
 
-    const fileId = service.getFileIdForScene(sceneId);
-    if (fileId && auth.fileIds && !auth.fileIds.includes(fileId)) {
+    const fileId = await service.getFileIdForSceneAsync(sceneId);
+    if (!fileId || !auth.fileIds?.includes(fileId)) {
       return NextResponse.json(
         { error: "Bu sahneye ait dosya paylaşıma dahil değil.", code: "ACCESS_DENIED" },
         { status: 403, headers: { "Cache-Control": "private, no-store" } }

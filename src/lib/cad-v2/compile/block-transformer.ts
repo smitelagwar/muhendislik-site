@@ -13,9 +13,7 @@ import type {
   CadInsertEntity,
   CadEntity,
   CadLayer,
-  CadLinetype,
   CadPoint2D,
-  CadTextStyle,
 } from "../canonical/types";
 import {
   Matrix4x4,
@@ -27,16 +25,20 @@ import {
   EntityVisitor,
   VisitorContext,
   VisitorResult,
+  VisitorDrawItemSink,
   TransformedSegment,
 } from "./entity-visitor";
+import type { FontDegradedDiagnostic } from "../text/font-layout-engine";
 
 export type { TransformedSegment };
 
 export interface BlockExpansionOptions {
   blocks: Record<string, CadBlockDefinition>;
   layers: Record<string, CadLayer>;
-  linetypes?: Record<string, CadLinetype>;
-  textStyles?: Record<string, CadTextStyle>;
+  linetypes?: Record<string, any>;
+  textStyles?: Record<string, any>;
+  fontDiagnostics?: FontDegradedDiagnostic[];
+  globalLtScale?: number;
   maxDepth?: number;
   maxTotalEntities?: number;
   maxCurveErrorWorld?: number;
@@ -82,6 +84,24 @@ export class BlockTransformer {
     parentMatrix?: Matrix4x4
   ): TransformedSegment[] {
     const result = this.visitor.createEmptyResult();
+    this.visitInsert(insert, ancestors, depth, parentMatrix, result);
+    return result.segments;
+  }
+
+  /** Expand an INSERT while sending draw items directly to the scene compiler. */
+  public expandInsertWithSink(insert: CadInsertEntity, sink: VisitorDrawItemSink): VisitorResult {
+    const result = this.visitor.createEmptyResult({ retainDrawItems: false, drawItemSink: sink });
+    this.visitInsert(insert, new Set(), 0, undefined, result);
+    return result;
+  }
+
+  private visitInsert(
+    insert: CadInsertEntity,
+    ancestors: Set<string>,
+    depth: number,
+    parentMatrix: Matrix4x4 | undefined,
+    result: VisitorResult,
+  ): void {
     const ctx: VisitorContext = {
       transform: parentMatrix || createIdentityMatrix(),
       effectiveLayer: insert.layer,
@@ -93,7 +113,6 @@ export class BlockTransformer {
     };
     this.visitor.visitEntity(insert, ctx, result);
     this.lastResult = result;
-    return result.segments;
   }
 
   public getLastResult(): VisitorResult | null {

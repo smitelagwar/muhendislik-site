@@ -18,13 +18,14 @@ import type {
   CadLayer,
   CadTextStyle,
   CadPoint2D,
-  CadLinetype,
+  CadDimensionUnitFormat,
 } from "../canonical/types";
 import {
   type VisitorContext,
   type VisitorResult,
   type EntityVisitor,
 } from "./entity-visitor";
+import { pushVisitorSegment } from "./entity-visitor";
 import { FontLayoutEngine } from "../text/font-layout-engine";
 import { transformPoint2D } from "./coordinate-transform";
 import { CadDiagnosticCode } from "../canonical/diagnostics";
@@ -33,7 +34,7 @@ import { resolveCadStyle, resolveEntityColor } from "./cad-color-resolver";
 export interface DimensionCompileOptions {
   blocks?: Record<string, CadBlockDefinition>;
   layers?: Record<string, CadLayer>;
-  linetypes?: Record<string, CadLinetype>;
+  linetypes?: Record<string, any>;
   textStyles?: Record<string, CadTextStyle>;
   visitor?: EntityVisitor;
 }
@@ -50,19 +51,44 @@ export function formatDimensionText(
   measurement: number,
   options?: {
     decimals?: number;
+    unitFormat?: CadDimensionUnitFormat;
+    unitScale?: number;
+    symmetricTolerance?: { value: number; decimals: number };
     prefix?: string;
     suffix?: string;
   }
 ): string {
   const dec = options?.decimals ?? 2;
-  const formattedVal = Math.abs(measurement).toFixed(dec);
+  const scaledMeasurement = Math.abs(measurement * (options?.unitScale ?? 1));
+  const formattedVal = options?.unitFormat === "scientific"
+    ? (() => {
+      const [mantissa = "0", exponent = "0"] = scaledMeasurement.toExponential(dec).split("e");
+      const exponentValue = Number(exponent);
+      const exponentSign = exponentValue >= 0 ? "+" : "-";
+      return `${mantissa}E${exponentSign}${String(Math.abs(exponentValue)).padStart(2, "0")}`;
+    })()
+    : scaledMeasurement.toFixed(dec);
+  const tolerance = options?.symmetricTolerance;
+  const formattedTolerance = tolerance
+    && Number.isFinite(tolerance.value)
+    && tolerance.value >= 0
+    && Number.isInteger(tolerance.decimals)
+    && tolerance.decimals >= 0
+    && tolerance.decimals <= 8
+    ? `%%p${tolerance.value.toFixed(tolerance.decimals)}`
+    : "";
+  const suffixIsInTemplate = Boolean(rawText && options?.suffix && (
+    rawText.includes(`<>${options.suffix}`)
+    || (options.suffix === "°" && rawText.includes("<>%%d"))
+  ));
+  const formattedMeasurement = `${options?.prefix ?? ""}${formattedVal}${formattedTolerance}${suffixIsInTemplate ? "" : options?.suffix ?? ""}`;
 
   if (!rawText || rawText.trim() === "" || rawText === "<>") {
-    return formattedVal;
+    return formattedMeasurement;
   }
 
   if (rawText.includes("<>")) {
-    return rawText.replace(/<>/g, formattedVal);
+    return rawText.replace(/<>/g, formattedMeasurement);
   }
 
   // Kullanıcı tarafından açıkça verilen override metin
@@ -86,14 +112,20 @@ export class DimensionCompiler {
 
     // Path A: Kaydedilmiş geçerli anonim blok (*D...) var mı?
     if (anonymousBlock && Array.isArray(anonymousBlock.entities) && anonymousBlock.entities.length > 0) {
+      const beforePrimitives = result.segments.length + result.fills.length + result.drawItems.length;
       this.expandAnonymousBlock(dim, anonymousBlock, ctx, options, result);
-      return;
+      const afterPrimitives = result.segments.length + result.fills.length + result.drawItems.length;
+      const hasEligibleChild = anonymousBlock.entities.some((child) => {
+        const layerName = child.layer === "0" ? ctx.effectiveLayer : child.layer;
+        return child.visible !== false && !options.layers?.[layerName]?.frozen;
+      });
+      if (afterPrimitives > beforePrimitives || result.isBudgetExceeded || !hasEligibleChild) return;
     }
 
-    // Path B: Blok yok veya boş -> Definition point'lerden tam geometri sentezle
+    // Path B: Blok yok, boş veya çizilebilir çıktı üretmedi -> Definition point'lerden sentezle.
     result.diagnostics.push({
       code: CadDiagnosticCode.DIMENSION_SYNTHESIZED_FROM_DEFINITION,
-      message: `Boyut varlığı (${dim.handle}) için anonim grafik bloğu (${dim.anonymousBlockName || "yok"}) bulunamadı; tanımdan sentezlendi.`,
+      message: `Boyut varlığı (${dim.handle}) için anonim grafik bloğu (${dim.anonymousBlockName || "yok"}) eksik, boş veya çizilebilir çıktı üretmedi; tanımdan sentezlendi.`,
       handle: dim.handle,
     });
 
@@ -169,6 +201,7 @@ export class DimensionCompiler {
 
     const dimScale = dim.dimScale && dim.dimScale > 0 ? dim.dimScale : 1.0;
     const arrowSize = (dim.arrowSize && dim.arrowSize > 0 ? dim.arrowSize : 2.5) * dimScale;
+    const tickSize = dim.tickSize && dim.tickSize > 0 ? dim.tickSize * dimScale : 0;
     const extOffset = 1.0 * dimScale; // Ölçü bağlama çizgisi başlangıç ofseti
     const extOvershoot = 1.25 * dimScale; // Ölçü çizgisini aşma mesafesi
     const textHeight = 2.5 * dimScale;
@@ -184,6 +217,7 @@ export class DimensionCompiler {
           isAci7,
           alpha,
           arrowSize,
+          tickSize,
           extOffset,
           extOvershoot,
           textHeight,
@@ -217,6 +251,7 @@ export class DimensionCompiler {
           isAci7,
           alpha,
           arrowSize,
+          tickSize,
           textHeight,
           options,
           result
@@ -232,6 +267,7 @@ export class DimensionCompiler {
           isAci7,
           alpha,
           arrowSize,
+          tickSize,
           textHeight,
           options,
           result
@@ -263,6 +299,7 @@ export class DimensionCompiler {
           isAci7,
           alpha,
           arrowSize,
+          tickSize,
           extOffset,
           extOvershoot,
           textHeight,
@@ -285,6 +322,7 @@ export class DimensionCompiler {
     isAci7: boolean | undefined,
     alpha: number | undefined,
     arrowSize: number,
+    tickSize: number,
     extOffset: number,
     extOvershoot: number,
     textHeight: number,
@@ -329,7 +367,9 @@ export class DimensionCompiler {
     const ext1StartY = p1[1] + extDir1 * extOffset * vy;
     const ext1EndX = d1x + extDir1 * extOvershoot * vx;
     const ext1EndY = d1y + extDir1 * extOvershoot * vy;
-    this.addWorldSegment([ext1StartX, ext1StartY], [ext1EndX, ext1EndY], ctx, color, isAci7, alpha, result);
+    if (!dim.suppressFirstExtensionLine) {
+      this.addWorldSegment([ext1StartX, ext1StartY], [ext1EndX, ext1EndY], ctx, color, isAci7, alpha, result);
+    }
 
     // 2. Ölçü bağlama çizgisi 2 (p2 -> d2 + overshoot)
     const p2Norm = p2[0] * vx + p2[1] * vy;
@@ -338,25 +378,36 @@ export class DimensionCompiler {
     const ext2StartY = p2[1] + extDir2 * extOffset * vy;
     const ext2EndX = d2x + extDir2 * extOvershoot * vx;
     const ext2EndY = d2y + extDir2 * extOvershoot * vy;
-    this.addWorldSegment([ext2StartX, ext2StartY], [ext2EndX, ext2EndY], ctx, color, isAci7, alpha, result);
+    if (!dim.suppressSecondExtensionLine) {
+      this.addWorldSegment([ext2StartX, ext2StartY], [ext2EndX, ext2EndY], ctx, color, isAci7, alpha, result);
+    }
 
     // 3. Ölçü çizgisi (d1 -> d2)
     this.addWorldSegment([d1x, d1y], [d2x, d2y], ctx, color, isAci7, alpha, result);
 
-    // 4. Ok uçları
-    // d1'deki ok (d2 yönüne bakar)
+    // 4. Ok uçları veya DIMTSZ oblique tick'leri
     const dir12x = (d2x - d1x);
     const dir12y = (d2y - d1y);
     const len12 = Math.hypot(dir12x, dir12y);
     if (len12 > 1e-4) {
       const udirX = dir12x / len12;
       const udirY = dir12y / len12;
-      this.addArrowhead([d1x, d1y], [-udirX, -udirY], arrowSize, ctx, color, isAci7, alpha, result);
-      this.addArrowhead([d2x, d2y], [udirX, udirY], arrowSize, ctx, color, isAci7, alpha, result);
+      if (tickSize > 0) {
+        this.addDimensionTick([d1x, d1y], [udirX, udirY], tickSize, ctx, color, isAci7, alpha, result);
+        this.addDimensionTick([d2x, d2y], [udirX, udirY], tickSize, ctx, color, isAci7, alpha, result);
+      } else {
+        this.addArrowhead([d1x, d1y], [-udirX, -udirY], arrowSize, ctx, color, isAci7, alpha, result);
+        this.addArrowhead([d2x, d2y], [udirX, udirY], arrowSize, ctx, color, isAci7, alpha, result);
+      }
     }
 
     // 5. Ölçü Metni
-    const labelText = formatDimensionText(dim.text, measuredDist);
+    const labelText = formatDimensionText(dim.text, measuredDist, {
+      decimals: dim.primaryUnitDecimals ?? 2,
+      unitFormat: dim.primaryUnitFormat,
+      unitScale: dim.primaryUnitScale,
+      symmetricTolerance: dim.symmetricTolerance,
+    });
     const textMid = dim.textMidpoint || [(d1x + d2x) / 2 + 1.5 * vx, (d1y + d2y) / 2 + 1.5 * vy];
 
     this.renderDimensionLabel(
@@ -421,7 +472,8 @@ export class DimensionCompiler {
 
     // Açı metni (derece)
     const angleDeg = (sweep * 180) / Math.PI;
-    const labelText = formatDimensionText(dim.text, angleDeg, { decimals: 1 }) + "°";
+    // Derece imi yalnız hesaplanan değerin parçasıdır; kaynak override metnine eklenmez.
+    const labelText = formatDimensionText(dim.text, angleDeg, { decimals: 1, suffix: "°" });
     const midAngle = a1 + sweep / 2;
     const textMid = dim.textMidpoint || [center[0] + (r + 5) * Math.cos(midAngle), center[1] + (r + 5) * Math.sin(midAngle)];
 
@@ -449,6 +501,7 @@ export class DimensionCompiler {
     isAci7: boolean | undefined,
     alpha: number | undefined,
     arrowSize: number,
+    tickSize: number,
     textHeight: number,
     options: DimensionCompileOptions,
     result: VisitorResult
@@ -467,11 +520,21 @@ export class DimensionCompiler {
     this.addWorldSegment([p1x, p1y], [p2x, p2y], ctx, color, isAci7, alpha, result);
 
     // Ok uçları
-    this.addArrowhead([p1x, p1y], [Math.cos(angle), Math.sin(angle)], arrowSize, ctx, color, isAci7, alpha, result);
-    this.addArrowhead([p2x, p2y], [-Math.cos(angle), -Math.sin(angle)], arrowSize, ctx, color, isAci7, alpha, result);
+    if (tickSize > 0) {
+      this.addDimensionTick([p1x, p1y], [Math.cos(angle), Math.sin(angle)], tickSize, ctx, color, isAci7, alpha, result);
+      this.addDimensionTick([p2x, p2y], [Math.cos(angle), Math.sin(angle)], tickSize, ctx, color, isAci7, alpha, result);
+    } else {
+      this.addArrowhead([p1x, p1y], [Math.cos(angle), Math.sin(angle)], arrowSize, ctx, color, isAci7, alpha, result);
+      this.addArrowhead([p2x, p2y], [-Math.cos(angle), -Math.sin(angle)], arrowSize, ctx, color, isAci7, alpha, result);
+    }
 
     const diameterVal = dim.measurement ?? (r * 2);
-    const labelText = formatDimensionText(dim.text || "Ø<>", diameterVal);
+    const labelText = formatDimensionText(dim.text || "Ø<>", diameterVal, {
+      decimals: dim.primaryUnitDecimals ?? 2,
+      unitFormat: dim.primaryUnitFormat,
+      unitScale: dim.primaryUnitScale,
+      symmetricTolerance: dim.symmetricTolerance,
+    });
     const textMid = dim.textMidpoint || [(p1x + p2x) / 2, (p1y + p2y) / 2 + 2];
 
     this.renderDimensionLabel(
@@ -498,6 +561,7 @@ export class DimensionCompiler {
     isAci7: boolean | undefined,
     alpha: number | undefined,
     arrowSize: number,
+    tickSize: number,
     textHeight: number,
     options: DimensionCompileOptions,
     result: VisitorResult
@@ -511,10 +575,19 @@ export class DimensionCompiler {
     this.addWorldSegment(center, p, ctx, color, isAci7, alpha, result);
 
     // Çevre noktasında merkeze doğru bakan ok
-    this.addArrowhead(p, [Math.cos(angle), Math.sin(angle)], arrowSize, ctx, color, isAci7, alpha, result);
+    if (tickSize > 0) {
+      this.addDimensionTick(p, [Math.cos(angle), Math.sin(angle)], tickSize, ctx, color, isAci7, alpha, result);
+    } else {
+      this.addArrowhead(p, [Math.cos(angle), Math.sin(angle)], arrowSize, ctx, color, isAci7, alpha, result);
+    }
 
     const radiusVal = dim.measurement ?? r;
-    const labelText = formatDimensionText(dim.text || "R<>", radiusVal);
+    const labelText = formatDimensionText(dim.text || "R<>", radiusVal, {
+      decimals: dim.primaryUnitDecimals ?? 2,
+      unitFormat: dim.primaryUnitFormat,
+      unitScale: dim.primaryUnitScale,
+      symmetricTolerance: dim.symmetricTolerance,
+    });
     const textMid = dim.textMidpoint || [(center[0] + p[0]) / 2, (center[1] + p[1]) / 2 + 2];
 
     this.renderDimensionLabel(
@@ -551,7 +624,12 @@ export class DimensionCompiler {
     this.addWorldSegment(featurePt, leaderPt, ctx, color, isAci7, alpha, result);
 
     const val = dim.measurement ?? featurePt[0];
-    const labelText = formatDimensionText(dim.text, val);
+    const labelText = formatDimensionText(dim.text, val, {
+      decimals: dim.primaryUnitDecimals ?? 2,
+      unitFormat: dim.primaryUnitFormat,
+      unitScale: dim.primaryUnitScale,
+      symmetricTolerance: dim.symmetricTolerance,
+    });
 
     this.renderDimensionLabel(
       labelText,
@@ -633,6 +711,30 @@ export class DimensionCompiler {
    * @param dir Okun işaret ettiği yönün tersi birim vektör (ok tabanına doğru)
    * @param length Ok uzunluğu
    */
+  private static addDimensionTick(
+    point: CadPoint2D,
+    dimensionDirection: [number, number],
+    length: number,
+    ctx: VisitorContext,
+    color: [number, number, number],
+    isAci7: boolean | undefined,
+    alpha: number | undefined,
+    result: VisitorResult
+  ): void {
+    const invSqrt2 = Math.SQRT1_2;
+    const tickX = (dimensionDirection[0] - dimensionDirection[1]) * invSqrt2 * length * 0.5;
+    const tickY = (dimensionDirection[1] + dimensionDirection[0]) * invSqrt2 * length * 0.5;
+    this.addWorldSegment(
+      [point[0] - tickX, point[1] - tickY],
+      [point[0] + tickX, point[1] + tickY],
+      ctx,
+      color,
+      isAci7,
+      alpha,
+      result
+    );
+  }
+
   private static addArrowhead(
     tip: CadPoint2D,
     dir: [number, number],
@@ -697,7 +799,7 @@ export class DimensionCompiler {
     for (const seg of segs) {
       const p0 = transformPoint2D(ctx.transform, [seg.x0, seg.y0]);
       const p1 = transformPoint2D(ctx.transform, [seg.x1, seg.y1]);
-      result.segments.push({
+      pushVisitorSegment(result, {
         x0: p0[0],
         y0: p0[1],
         x1: p1[0],
@@ -730,7 +832,7 @@ export class DimensionCompiler {
   ): void {
     const tp0 = transformPoint2D(ctx.transform, p0);
     const tp1 = transformPoint2D(ctx.transform, p1);
-    result.segments.push({
+    pushVisitorSegment(result, {
       x0: tp0[0],
       y0: tp0[1],
       x1: tp1[0],

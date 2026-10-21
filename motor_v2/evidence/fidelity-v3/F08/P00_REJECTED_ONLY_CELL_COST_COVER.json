@@ -1,0 +1,349 @@
+{
+  "evidenceId": "F08-P00-REJECTED-ONLY-CELL-COST-COVER-V1",
+  "measuredAt": "2026-09-29",
+  "classification": "DERIVED_ANALYSIS / NOT_ACCEPTANCE",
+  "sourceEvidence": {
+    "path": "P00_BUDGET_REJECTION_SPATIAL_MAP.json",
+    "sha256": "d715f3cc0597eee3578c9791213ca0026491befa44c20a7e055e5cfe1b0bbe35"
+  },
+  "objective": "Exact weighted set cover: choose rejected chunk candidates covering every first-open rejected-only projected cell while minimizing the sum of their observed candidateCpuBytes.",
+  "inputs": {
+    "projectedGrid": "20x20",
+    "rejectedOnlyCellCount": 21,
+    "rejectedChunksCoveringAtLeastOneGap": 32,
+    "distinctGapCoverageMasks": 16,
+    "cellsWithOneRejectedChunkCandidate": 12,
+    "cellsWithTwoOrMoreRejectedChunkCandidates": 9,
+    "cpuBudgetBytes": 67108864,
+    "peakCpuAdmissionCandidateEstimateBytes": 74920882,
+    "gpuBudgetBytes": 67108864,
+    "peakGpuBufferEstimateBytes": 51048852
+  },
+  "result": {
+    "status": "OPTIMAL",
+    "selectedChunkCount": 10,
+    "minimumSumCandidateCpuBytes": 35968388,
+    "minimumSumCandidateCpuMiB": 34.3021,
+    "correspondingSumCandidateGpuBufferBytes": 20348712,
+    "correspondingSumCandidateGpuBufferMiB": 19.406,
+    "coveredCellCount": 21,
+    "candidateCpuBytesMeaning": "Per rejected chunk, geometryCpuBytesAdded + incomingUnpackedCpuBytes; incremental admission candidate estimate, excluding separately reported retained refinement source bytes and process/runtime overhead."
+  },
+  "selectedChunks": [
+    {
+      "chunkId": "chunk_model_256",
+      "projectedCells": [
+        {
+          "index": 162,
+          "row": 8,
+          "column": 2
+        },
+        {
+          "index": 182,
+          "row": 9,
+          "column": 2
+        }
+      ],
+      "candidateCpuBytes": 4476048,
+      "candidateGpuBufferBytes": 3056304
+    },
+    {
+      "chunkId": "chunk_model_268",
+      "projectedCells": [
+        {
+          "index": 160,
+          "row": 8,
+          "column": 0
+        },
+        {
+          "index": 180,
+          "row": 9,
+          "column": 0
+        }
+      ],
+      "candidateCpuBytes": 2834492,
+      "candidateGpuBufferBytes": 1368192
+    },
+    {
+      "chunkId": "chunk_model_280",
+      "projectedCells": [
+        {
+          "index": 161,
+          "row": 8,
+          "column": 1
+        },
+        {
+          "index": 177,
+          "row": 8,
+          "column": 17
+        },
+        {
+          "index": 181,
+          "row": 9,
+          "column": 1
+        }
+      ],
+      "candidateCpuBytes": 2850196,
+      "candidateGpuBufferBytes": 1381008
+    },
+    {
+      "chunkId": "chunk_model_128",
+      "projectedCells": [
+        {
+          "index": 164,
+          "row": 8,
+          "column": 4
+        },
+        {
+          "index": 184,
+          "row": 9,
+          "column": 4
+        }
+      ],
+      "candidateCpuBytes": 2885944,
+      "candidateGpuBufferBytes": 1420104
+    },
+    {
+      "chunkId": "chunk_model_140",
+      "projectedCells": [
+        {
+          "index": 165,
+          "row": 8,
+          "column": 5
+        },
+        {
+          "index": 185,
+          "row": 9,
+          "column": 5
+        }
+      ],
+      "candidateCpuBytes": 2850376,
+      "candidateGpuBufferBytes": 1381008
+    },
+    {
+      "chunkId": "chunk_model_251",
+      "projectedCells": [
+        {
+          "index": 202,
+          "row": 10,
+          "column": 2
+        }
+      ],
+      "candidateCpuBytes": 2733836,
+      "candidateGpuBufferBytes": 1319952
+    },
+    {
+      "chunkId": "chunk_model_273",
+      "projectedCells": [
+        {
+          "index": 200,
+          "row": 10,
+          "column": 0
+        },
+        {
+          "index": 201,
+          "row": 10,
+          "column": 1
+        },
+        {
+          "index": 220,
+          "row": 11,
+          "column": 0
+        },
+        {
+          "index": 221,
+          "row": 11,
+          "column": 1
+        }
+      ],
+      "candidateCpuBytes": 4127140,
+      "candidateGpuBufferBytes": 2749512
+    },
+    {
+      "chunkId": "chunk_model_250",
+      "projectedCells": [
+        {
+          "index": 222,
+          "row": 11,
+          "column": 2
+        }
+      ],
+      "candidateCpuBytes": 4692164,
+      "candidateGpuBufferBytes": 3300960
+    },
+    {
+      "chunkId": "chunk_model_133",
+      "projectedCells": [
+        {
+          "index": 205,
+          "row": 10,
+          "column": 5
+        },
+        {
+          "index": 225,
+          "row": 11,
+          "column": 5
+        }
+      ],
+      "candidateCpuBytes": 4428008,
+      "candidateGpuBufferBytes": 3050616
+    },
+    {
+      "chunkId": "chunk_model_142",
+      "projectedCells": [
+        {
+          "index": 177,
+          "row": 8,
+          "column": 17
+        },
+        {
+          "index": 253,
+          "row": 12,
+          "column": 13
+        },
+        {
+          "index": 254,
+          "row": 12,
+          "column": 14
+        }
+      ],
+      "candidateCpuBytes": 4090184,
+      "candidateGpuBufferBytes": 1321056
+    }
+  ],
+  "rejectedOnlyCells": [
+    {
+      "index": 160,
+      "row": 8,
+      "column": 0,
+      "rejectedCandidateCount": 2
+    },
+    {
+      "index": 161,
+      "row": 8,
+      "column": 1,
+      "rejectedCandidateCount": 2
+    },
+    {
+      "index": 162,
+      "row": 8,
+      "column": 2,
+      "rejectedCandidateCount": 1
+    },
+    {
+      "index": 164,
+      "row": 8,
+      "column": 4,
+      "rejectedCandidateCount": 2
+    },
+    {
+      "index": 165,
+      "row": 8,
+      "column": 5,
+      "rejectedCandidateCount": 2
+    },
+    {
+      "index": 177,
+      "row": 8,
+      "column": 17,
+      "rejectedCandidateCount": 20
+    },
+    {
+      "index": 180,
+      "row": 9,
+      "column": 0,
+      "rejectedCandidateCount": 1
+    },
+    {
+      "index": 181,
+      "row": 9,
+      "column": 1,
+      "rejectedCandidateCount": 1
+    },
+    {
+      "index": 182,
+      "row": 9,
+      "column": 2,
+      "rejectedCandidateCount": 1
+    },
+    {
+      "index": 184,
+      "row": 9,
+      "column": 4,
+      "rejectedCandidateCount": 1
+    },
+    {
+      "index": 185,
+      "row": 9,
+      "column": 5,
+      "rejectedCandidateCount": 1
+    },
+    {
+      "index": 200,
+      "row": 10,
+      "column": 0,
+      "rejectedCandidateCount": 2
+    },
+    {
+      "index": 201,
+      "row": 10,
+      "column": 1,
+      "rejectedCandidateCount": 2
+    },
+    {
+      "index": 202,
+      "row": 10,
+      "column": 2,
+      "rejectedCandidateCount": 1
+    },
+    {
+      "index": 205,
+      "row": 10,
+      "column": 5,
+      "rejectedCandidateCount": 2
+    },
+    {
+      "index": 220,
+      "row": 11,
+      "column": 0,
+      "rejectedCandidateCount": 2
+    },
+    {
+      "index": 221,
+      "row": 11,
+      "column": 1,
+      "rejectedCandidateCount": 1
+    },
+    {
+      "index": 222,
+      "row": 11,
+      "column": 2,
+      "rejectedCandidateCount": 1
+    },
+    {
+      "index": 225,
+      "row": 11,
+      "column": 5,
+      "rejectedCandidateCount": 1
+    },
+    {
+      "index": 253,
+      "row": 12,
+      "column": 13,
+      "rejectedCandidateCount": 1
+    },
+    {
+      "index": 254,
+      "row": 12,
+      "column": 14,
+      "rejectedCandidateCount": 1
+    }
+  ],
+  "limitations": [
+    "Projected cells are a test-only compiled-geometry proxy; they do not encode semantic importance, readable output, or AutoCAD parity.",
+    "Candidate byte costs were measured under the observed admission order. Their sum is not a simulated runtime reorder, a total scene-residency estimate, or a required budget setting.",
+    "The corresponding GPU sum is an attribute-buffer estimate, not driver/device residency. Both totals exclude runtime/Three.js overhead; accepted refinement-source retention is reported separately by runtime diagnostics.",
+    "The profile lacks world bounding boxes for ROI-05 through ROI-10, so this result does not resolve their content coverage."
+  ],
+  "decision": "Do not change the 64 MiB CPU/GPU limits or production admission order from this proxy. Validate a candidate policy against same-source AutoCAD semantic hash and at least 10 ROIs, plus real-device memory/GPU measurements."
+}

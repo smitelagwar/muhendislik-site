@@ -36,6 +36,10 @@ export const CadV2Canvas: React.FC<CadV2CanvasProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputOverlayRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<CadV2Renderer | null>(null);
+  const onContextLostRef = useRef(onContextLost);
+  const onContextRestoredRef = useRef(onContextRestored);
+  onContextLostRef.current = onContextLost;
+  onContextRestoredRef.current = onContextRestored;
 
   useEffect(() => {
     if (!canvasRef.current || !inputOverlayRef.current || !containerRef.current) return;
@@ -57,11 +61,12 @@ export const CadV2Canvas: React.FC<CadV2CanvasProps> = ({
 
     const handleContextLost = (e: Event) => {
       e.preventDefault();
-      if (onContextLost) onContextLost();
+      onContextLostRef.current?.();
     };
     const handleContextRestored = () => {
+      renderer.reapplyBackgroundColorAfterContextRestore();
       renderer.invalidate();
-      if (onContextRestored) onContextRestored();
+      onContextRestoredRef.current?.();
     };
 
     canvas.addEventListener("webglcontextlost", handleContextLost, false);

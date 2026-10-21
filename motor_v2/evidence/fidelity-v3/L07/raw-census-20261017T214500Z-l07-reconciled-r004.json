@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "same-decoder raw-to-canonical source census; not an independent AutoCAD oracle",
+  "status": "LOCAL_CENSUS_DEGRADED",
+  "source": {
+    "id": "R004",
+    "path": "eklediklerim/ornek_dosyalar/SÜHEYLA KARA STATİK (HAFİF).dxf",
+    "format": "DXF",
+    "magic": "  0\nSE",
+    "bytes": 55259742,
+    "sha256": "36f87f826fe4dd9a8f03f8c83bafeeddfc84f1e0efada5c0fded8014a2ef7cf1"
+  },
+  "candidate": {
+    "branch": "codex/srdr-dwg-motor-v2-fidelity",
+    "head": "4b51ebe6b1470c6a247e03158dfe4b5359621c97",
+    "dirtyStateSha256": "679ab2f85831f9109a680befe051d54ca081e4339b857c942b7af77c7e5e7a71",
+    "dirtyState": {
+      "sha256": "679ab2f85831f9109a680befe051d54ca081e4339b857c942b7af77c7e5e7a71",
+      "trackedDiffBytes": 2080232,
+      "untrackedFilesHashed": 106
+    },
+    "compiler": "cad-v2-compiler-2026.09-v71",
+    "pipeline": "fidelity-v3-p08",
+    "renderAbi": "three172-cad2d-v2"
+  },
+  "decoder": {
+    "rawParser": "@mlightcad/data-model block-table iterators + candidate DXF adapter",
+    "rawSummary": {
+      "rawFlattenedEntityCount": null,
+      "blockRecordCount": 303,
+      "layoutObjects": [
+        {
+          "handle": "1E",
+          "name": "Layout1",
+          "blockRecordRef": "1B"
+        },
+        {
+          "handle": "26",
+          "name": "Layout2",
+          "blockRecordRef": "23"
+        },
+        {
+          "handle": "22",
+          "name": "Model",
+          "blockRecordRef": "1F"
+        }
+      ],
+      "header": {
+        "version": null,
+        "codepage": null,
+        "insunits": null
+      },
+      "rawEntityOwners": "Each block-table-record iterator was inventoried; entity ownerId is compared with that record's objectId/handle."
+    }
+  },
+  "canonical": {
+    "modelCount": 132668,
+    "paperCountsByLayout": {
+      "Layout1": 0,
+      "Layout2": 0
+    },
+    "blockCount": 300,
+    "layoutNames": [
+      {
+        "id": "Model",
+        "name": "Model",
+        "model": true,
+        "blockRecordName": "*Model_Space"
+      },
+      {
+        "id": "Layout1",
+        "name": "Layout1",
+        "model": false,
+        "blockRecordName": "*Paper_Space"
+      },
+      {
+        "id": "Layout2",
+        "name": "Layout2",
+        "model": false,
+        "blockRecordName": "*Paper_Space0"
+      }
+    ],
+    "diagnosticCounts": {
+      "warning:UNRESOLVED_DIMENSION_SOURCE_GEOMETRY": 9,
+      "warning:UNSUPPORTED_DIMENSION_ENTITY_OVERRIDE": 5,
+      "warning:UNSUPPORTED_ENTITY_TYPE": 1
+    },
+    "rawStats": {
+      "rawHeaderInsunits": 5,
+      "rawEntitiesCount": 132668,
+      "rawTableCounts": {
+        "blocks": 300,
+        "layers": 69,
+        "linetypes": 17,
+        "textStyles": 27
+      }
+    }
+  },
+  "reconciliation": {
+    "rowCount": 230889,
+    "countsByRole": {
+      "block": 98220,
+      "model": 132669
+    },
+    "countsByType": {
+      "ARC": 14441,
+      "CIRCLE": 23700,
+      "DIMENSION": 285,
+      "ELLIPSE": 23,
+      "HATCH": 1216,
+      "INSERT": 1565,
+      "LINE": 6058,
+      "LWPOLYLINE": 128750,
+      "MTEXT": 493,
+      "OLE2FRAME": 1,
+      "POINT": 906,
+      "SOLID": 4,
+      "TEXT": 53447
+    },
+    "countsByClassification": {
+      "converted": 132659,
+      "UNACCOUNTED": 9,
+      "unreferenced_block_content": 98220,
+      "unsupported_diagnostic": 1
+    },
+    "canonicalLocationCounts": {
+      "model": 132659
+    },
+    "rowsWithDiagnostic": 10,
+    "unsupportedRows": 1,
+    "invalidRows": 0,
+    "unaccountedRows": 9,
+    "unaccountedExamples": [
+      {
+        "handle": "1B9A35",
+        "type": "DIMENSION",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": "1B9A36",
+        "type": "DIMENSION",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": "1B9A37",
+        "type": "DIMENSION",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": "1B9A38",
+        "type": "DIMENSION",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": "1B9A39",
+        "type": "DIMENSION",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": "1B9A3A",
+        "type": "DIMENSION",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": "1B9A3B",
+        "type": "DIMENSION",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": "1B9A3C",
+        "type": "DIMENSION",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": "1B9A3D",
+        "type": "DIMENSION",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      }
+    ],
+    "ownerMismatchCount": 0,
+    "ownerMismatchExamples": [],
+    "duplicateRawHandleCount": 0,
+    "duplicateRawHandleExamples": [],
+    "canonicalOnlyHandleCount": 97319,
+    "canonicalOnlyHandleExamples": [
+      "block:*D100:H_140386",
+      "block:*D100:H_140387",
+      "block:*D100:H_140388",
+      "block:*D100:H_140389",
+      "block:*D100:H_140390",
+      "block:*D100:H_140391",
+      "block:*D101:H_140395",
+      "block:*D101:H_140396",
+      "block:*D101:H_140397",
+      "block:*D101:H_140398",
+      "block:*D101:H_140399",
+      "block:*D101:H_140400",
+      "block:*D102:H_140404",
+      "block:*D102:H_140405",
+      "block:*D102:H_140406",
+      "block:*D102:H_140407",
+      "block:*D102:H_140408",
+      "block:*D102:H_140409",
+      "block:*D103:H_140413",
+      "block:*D103:H_140414",
+      "block:*D103:H_140415",
+      "block:*D103:H_140416",
+      "block:*D103:H_140417",
+      "block:*D103:H_140418",
+      "block:*D104:H_140422",
+      "block:*D104:H_140423",
+      "block:*D104:H_140424",
+      "block:*D104:H_140425",
+      "block:*D104:H_140426",
+      "block:*D104:H_140427",
+      "block:*D105:H_140431",
+      "block:*D105:H_140432",
+      "block:*D105:H_140433",
+      "block:*D105:H_140434",
+      "block:*D105:H_140435",
+      "block:*D105:H_140436",
+      "block:*D106:H_140440",
+      "block:*D106:H_140441",
+      "block:*D106:H_140442",
+      "block:*D106:H_140443",
+      "block:*D106:H_140444",
+      "block:*D106:H_140445",
+      "block:*D107:H_140449",
+      "block:*D107:H_140450",
+      "block:*D107:H_140451",
+      "block:*D107:H_140452",
+      "block:*D107:H_140453",
+      "block:*D107:H_140454",
+      "block:*D108:H_140458",
+      "block:*D108:H_140459",
+      "block:*D108:H_140460",
+      "block:*D108:H_140461",
+      "block:*D108:H_140462",
+      "block:*D108:H_140463",
+      "block:*D109:H_140467",
+      "block:*D109:H_140468",
+      "block:*D109:H_140469",
+      "block:*D109:H_140470",
+      "block:*D109:H_140471",
+      "block:*D109:H_140472",
+      "block:*D10:H_139555",
+      "block:*D10:H_139556",
+      "block:*D10:H_139557",
+      "block:*D10:H_139558",
+      "block:*D10:H_139559",
+      "block:*D10:H_139560",
+      "block:*D110:H_140476",
+      "block:*D110:H_140477",
+      "block:*D110:H_140478",
+      "block:*D110:H_140479",
+      "block:*D110:H_140480",
+      "block:*D110:H_140481",
+      "block:*D111:H_140485",
+      "block:*D111:H_140486",
+      "block:*D111:H_140487",
+      "block:*D111:H_140488",
+      "block:*D111:H_140489",
+      "block:*D111:H_140490",
+      "block:*D112:H_140494",
+      "block:*D112:H_140495",
+      "block:*D112:H_140496",
+      "block:*D112:H_140497",
+      "block:*D112:H_140498",
+      "block:*D112:H_140499",
+      "block:*D113:H_140503",
+      "block:*D113:H_140504",
+      "block:*D113:H_140505",
+      "block:*D113:H_140506",
+      "block:*D113:H_140507",
+      "block:*D113:H_140508",
+      "block:*D114:H_140512",
+      "block:*D114:H_140513",
+      "block:*D114:H_140514",
+      "block:*D114:H_140515",
+      "block:*D114:H_140516",
+      "block:*D114:H_140517",
+      "block:*D115:H_140521",
+      "block:*D115:H_140522",
+      "block:*D115:H_140523",
+      "block:*D115:H_140524"
+    ],
+    "expansionAccounting": {
+      "kind": "candidate canonical graph reachability; not geometric draw/clip proof",
+      "visits": 248237,
+      "truncated": false,
+      "uniqueSourceHandlesWithOccurrences": 228306,
+      "totalSourceEntityOccurrences": 248237,
+      "entityOccurrencesUnderClippedInsert": 0
+    }
+  },
+  "inventory": {
+    "path": ".test-data/cad-v2-l07-raw-census/20261017T214500Z-l07-reconciled/r004-raw-canonical.jsonl.gz",
+    "bytesGzip": 3304399,
+    "sha256Gzip": "be5036efe2a285887b2b05aa4ae1952339b3c17dff6d423aad42872ab7c6a9af",
+    "recordCount": 230889,
+    "recordFormat": "one JSON object per gzip line; raw handle, owner record/reference, layout, source visibility, canonical location, diagnostics, potential block occurrences and clip scope"
+  },
+  "limits": [
+    "Raw and canonical views use the same decoder family; this is adapter accounting, not independent file truth.",
+    "Potential block occurrences are graph reachability counts; they do not prove rendered geometry, draw completeness, or clip intersection.",
+    "Missing AutoCAD LT 2027 native oracle keeps numeric/layout parity NOT_RUN.",
+    "FAIL-404 source bytes and SHA remain unavailable; the provided screenshots are only prepare-200 then chunk-404 evidence."
+  ],
+  "elapsedMs": 14386,
+  "nativeOracle": "NOT_RUN"
+}

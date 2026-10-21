@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "candidate browser/compiler census; not an AutoCAD oracle",
+  "source": {
+    "id": "R001",
+    "path": "eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg",
+    "format": "DWG",
+    "magic": "AC1032",
+    "bytes": 3444087,
+    "sha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086"
+  },
+  "candidate": {
+    "compilerVersion": "cad-v2-compiler-2026.09-v71",
+    "pipelineVersion": "fidelity-v3-p08",
+    "renderAbi": "three172-cad2d-v2"
+  },
+  "runtime": {
+    "parseMs": 1648.2,
+    "compileMs": 8579.6
+  },
+  "canonical": {
+    "acadVersion": "AC1032",
+    "codepage": "ANSI_1254",
+    "units": 4,
+    "measurement": 1,
+    "modelEntityCount": 8787,
+    "entityCountsByLayout": {
+      "Model": {
+        "CIRCLE": 230,
+        "DIMENSION": 1814,
+        "HATCH": 104,
+        "INSERT": 1922,
+        "LINE": 1804,
+        "LWPOLYLINE": 1214,
+        "MTEXT": 378,
+        "TEXT": 1321
+      },
+      "Layout1": {},
+      "Layout2": {}
+    },
+    "layerCount": 40,
+    "blockDefinitionCount": 3233,
+    "textStyles": [
+      {
+        "name": "Standard",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "Annotative",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "Times roman",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "arial_1_18",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "MEKANISIMLERI",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "times new roman tur_1_18",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "ROMANT",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "SIMPLEX",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "swis",
+        "fontFileName": "swissc.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "STYLE3",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "OLUŞTURULMUŞ_STİL_1",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "dim",
+        "fontFileName": "swisscl.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      }
+    ],
+    "layouts": [
+      {
+        "id": "Model",
+        "name": "Model",
+        "isModelSpace": true,
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "viewportIds": []
+      },
+      {
+        "id": "Layout1",
+        "name": "Layout1",
+        "isModelSpace": false,
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "viewportIds": []
+      },
+      {
+        "id": "Layout2",
+        "name": "Layout2",
+        "isModelSpace": false,
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "viewportIds": []
+      }
+    ],
+    "viewports": [],
+    "diagnosticCountsBySeverityAndCode": {},
+    "resourceWarnings": {}
+  },
+  "compiled": {
+    "schemaVersion": 1,
+    "renderAbi": "three172-cad2d-v2",
+    "qualityStatus": "degraded",
+    "diagnosticsSummary": {
+      "unknownEntityCount": 0,
+      "unknownObjectCount": 0,
+      "missingFontCount": 1017,
+      "missingDependencyCount": 0,
+      "diagnosticCodes": [
+        "DROPPED_TEXT_IN_BLOCK",
+        "INVISIBLE_BLOCK_CHILDREN",
+        "FONT_SUBSTITUTE_APPLIED"
+      ]
+    },
+    "layouts": [
+      {
+        "layoutId": "Model",
+        "sourceName": "Model",
+        "kind": "model",
+        "bbox": [
+          -12678.173593008141,
+          1832.3571955831321,
+          13671.169671425363,
+          5174.717129812125
+        ],
+        "units": 4
+      },
+      {
+        "layoutId": "Layout1",
+        "sourceName": "Layout1",
+        "kind": "paper",
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "units": 4
+      },
+      {
+        "layoutId": "Layout2",
+        "sourceName": "Layout2",
+        "kind": "paper",
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "units": 4
+      }
+    ],
+    "chunkCount": 286,
+    "maximumChunkBytes": 1944024,
+    "totalChunkBytes": 98042688
+  },
+  "nativeOracle": {
+    "status": "NOT_RUN",
+    "reason": "AutoCAD LT GUI oracle is gated by acadlt.exe Authenticode HashMismatch; exact FAIL-404 source is also absent."
+  }
+}

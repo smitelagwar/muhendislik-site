@@ -1,0 +1,272 @@
+{
+  "name": "DWG/DXF Motor V2 — Entity Destek Atlası",
+  "generatedAt": "2026-10-05T20:00:00.000Z",
+  "compilerRevision": "cad-v2-compiler-2026.09-v71",
+  "pipelineRevision": "fidelity-v3-p08",
+  "renderAbi": "three172-cad2d-v2",
+  "qualityProfile": "cad-v2-2d-v1",
+  "schemaVersion": 1,
+  "statuses": ["VERIFIED", "DEGRADED", "UNSUPPORTED", "NOT_RUN"],
+  "entities": [
+    {
+      "type": "LINE",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "Renkli, lineweight ve linetype fazlama doğrulanmış"
+    },
+    {
+      "type": "CIRCLE",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "Sagitta hata sınırı ve uniform/non-uniform OCS desteği"
+    },
+    {
+      "type": "ARC",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "DPR3 sagitta bütçesi, açılı aralıklar ve linetype dashing"
+    },
+    {
+      "type": "ELLIPSE",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "Rasyonel arc, major/minor axis ve raster oracle testli"
+    },
+    {
+      "type": "LWPOLYLINE",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "Bulge arc, constant/tapered width quad tessellation"
+    },
+    {
+      "type": "2D POLYLINE",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "Curve-fit / spline-fit vertexler ve plinegen fazı"
+    },
+    {
+      "type": "INSERT",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "Derin hiyerarşik blok açımı, mirrored INSERT ve ByBlock"
+    },
+    {
+      "type": "MINSERT",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "NOT_RUN",
+      "notes": "Matris ızgara açımı; bağımsız native oracle açık"
+    },
+    {
+      "type": "TEXT",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "9 hizalama noktası, Türkçe karakter desteği, TTF/SHX"
+    },
+    {
+      "type": "MTEXT",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "Run-based formatlama, paragraf ve satır sarma"
+    },
+    {
+      "type": "ATTRIB",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "NOT_RUN",
+      "notes": "DXF handle binding Gate 5A LOCAL PASS; R001 DWG oracle NOT_RUN"
+    },
+    {
+      "type": "ATTDEF",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "Sabit ve değişken öznitelik kalıpları"
+    },
+    {
+      "type": "DIMENSION",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "NOT_RUN",
+      "notes": "Saved *D blok öncelikli, 6 tür sentetik sentez; annotative DWG oracle NOT_RUN"
+    },
+    {
+      "type": "HATCH",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "Ear-clipping ve earcut fill mesh, delikli döngüler, solid/pattern"
+    },
+    {
+      "type": "SOLID / TRACE",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "Dörtgen köşe sırası düzeltmesi (quad flip)"
+    },
+    {
+      "type": "WIPEOUT",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "Arka plan renginde poligon maskeleme ve painter-order"
+    },
+    {
+      "type": "SPLINE",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "B-Spline / NURBS De Boor adaptif örnekleme, periodic spline desteği"
+    },
+    {
+      "type": "POINT",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "PDMODE ve PDSIZE sabit boyutlu piksel glifi"
+    },
+    {
+      "type": "LEADER",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "Ok ucu ve ekli metin yerleşimi doğrulanmış"
+    },
+    {
+      "type": "MLEADER",
+      "decode": "DEGRADED",
+      "canonical": "DEGRADED",
+      "modelRender": "DEGRADED",
+      "nestedRender": "DEGRADED",
+      "paperRender": "DEGRADED",
+      "oracle": "NOT_RUN",
+      "notes": "DXF açık entity warning tanısıyla işaretlenir (Gate 6A PASS)"
+    },
+    {
+      "type": "RAY / XLINE",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "NOT_RUN",
+      "notes": "Sonsuz geometri bbox'ı bozmaz; viewport sınırlayıcıyla kırpılır"
+    },
+    {
+      "type": "IMAGE",
+      "decode": "DEGRADED",
+      "canonical": "DEGRADED",
+      "modelRender": "DEGRADED",
+      "nestedRender": "DEGRADED",
+      "paperRender": "DEGRADED",
+      "oracle": "NOT_RUN",
+      "notes": "Raster referansı bulunamazsa degraded sınır kutusu gösterilir"
+    },
+    {
+      "type": "VIEWPORT / XCLIP",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "Kağıt alanı görünüm pencereleri, poligon XCLIP sınırları"
+    },
+    {
+      "type": "ANONYMOUS BLOCK (*D, *U)",
+      "decode": "VERIFIED",
+      "canonical": "VERIFIED",
+      "modelRender": "VERIFIED",
+      "nestedRender": "VERIFIED",
+      "paperRender": "VERIFIED",
+      "oracle": "VERIFIED",
+      "notes": "WCS konumunda doğrudan açılım, double-transform korumalı"
+    },
+    {
+      "type": "XREF",
+      "decode": "DEGRADED",
+      "canonical": "DEGRADED",
+      "modelRender": "DEGRADED",
+      "nestedRender": "DEGRADED",
+      "paperRender": "DEGRADED",
+      "oracle": "NOT_RUN",
+      "notes": "Dış referans dosyası yoksa açık degraded uyarısı üretir"
+    },
+    {
+      "type": "3DFACE / 3D POLYLINE",
+      "decode": "UNSUPPORTED",
+      "canonical": "UNSUPPORTED",
+      "modelRender": "UNSUPPORTED",
+      "nestedRender": "UNSUPPORTED",
+      "paperRender": "UNSUPPORTED",
+      "oracle": "NOT_RUN",
+      "notes": "2D motor kapsamı dışındadır; gizlenmez, tanı loglanır"
+    }
+  ]
+}

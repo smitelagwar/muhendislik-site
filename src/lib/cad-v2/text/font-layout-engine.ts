@@ -51,6 +51,9 @@ export interface FontDegradedDiagnostic {
   char?: string;
 }
 
+const EXTERNAL_FONT_FILE_LIMIT = 64;
+const EXTERNAL_FONT_BYTES_LIMIT = 16 * 1024 * 1024;
+
 export interface ResolvedFontInfo {
   requestedStyle: string;
   requestedFont: string;
@@ -136,8 +139,14 @@ export class FontLayoutEngine {
       this.shxFonts.clear();
 
       // 1. Standart TTF dosyalarını yükle
-      const loadTtf = (fileName: string, isDefault = false, isBold = false, isSerif = false) => {
-        const fullPath = path.resolve(this.fontDir, fileName);
+      const loadTtf = (
+        fileName: string,
+        isDefault = false,
+        isBold = false,
+        isSerif = false,
+        directory = this.fontDir,
+      ) => {
+        const fullPath = path.resolve(directory, fileName);
         if (!fs.existsSync(fullPath)) return null;
 
         const buf = fs.readFileSync(fullPath);
@@ -187,31 +196,111 @@ export class FontLayoutEngine {
       // 2. SHX dizinlerini tara
       const cadDir = path.resolve(this.fontDir, "cad");
       const searchDirs = [this.fontDir, cadDir];
+      const loadShx = (directory: string, fileName: string) => {
+        const fullPath = path.resolve(directory, fileName);
+        const lowerFileName = fileName.toLowerCase();
+        const baseFileName = path.parse(fileName).name.toLowerCase();
+        if (this.shxFonts.has(lowerFileName) || this.shxFonts.has(baseFileName)) return;
+
+        try {
+          const shxBuf = fs.readFileSync(fullPath);
+          const hash = crypto.createHash("sha256").update(shxBuf).digest("hex");
+          const fontData = shxBuf.buffer.slice(shxBuf.byteOffset, shxBuf.byteOffset + shxBuf.byteLength);
+          const shx = new ShxFont(fontData);
+          const entry: InternalFontEntry<ShxFont> = {
+            name: fileName,
+            font: shx,
+            hash,
+          };
+          this.shxFonts.set(lowerFileName, entry);
+          this.shxFonts.set(baseFileName, entry);
+        } catch (error) {
+          console.warn(`[FontLayoutEngine] SHX font yüklenemedi: ${fileName}`, error);
+        }
+      };
+
       for (const d of searchDirs) {
         if (fs.existsSync(d) && fs.statSync(d).isDirectory()) {
           const files = fs.readdirSync(d);
           for (const f of files) {
             if (f.toLowerCase().endsWith(".shx")) {
-              try {
-                const shxBuf = fs.readFileSync(path.resolve(d, f));
-                const hash = crypto.createHash("sha256").update(shxBuf).digest("hex");
-                const fontData = shxBuf.buffer.slice(shxBuf.byteOffset, shxBuf.byteOffset + shxBuf.byteLength);
-                const shx = new ShxFont(fontData);
-                const entry: InternalFontEntry<ShxFont> = {
-                  name: f,
-                  font: shx,
-                  hash,
-                };
-                const lowerF = f.toLowerCase();
-                const baseF = path.parse(f).name.toLowerCase();
-                this.shxFonts.set(lowerF, entry);
-                this.shxFonts.set(baseF, entry);
-              } catch (e) {
-                console.warn(`[FontLayoutEngine] SHX font yüklenemedi: ${f}`, e);
-              }
+              loadShx(d, f);
             }
           }
         }
+      }
+
+      // Optional host-provided fonts are an explicit, bounded catalog. Do not
+      // scan an entire operating-system font tree: only allowlisted filenames
+      // are loaded, and their content hashes enter the scene/cache digest now,
+      // before any service identity or cache key can be calculated.
+      const configuredFontDirectories = (process.env.CAD_V2_FONT_DIRECTORIES ?? "")
+        .split(path.delimiter)
+        .map((directory) => directory.trim())
+        .filter(Boolean);
+      const configuredFontFiles = [...new Set((process.env.CAD_V2_FONT_FILES ?? "")
+        .split(",")
+        .map((fileName) => fileName.trim())
+        .filter(Boolean))];
+      if (configuredFontFiles.length > EXTERNAL_FONT_FILE_LIMIT) {
+        throw new Error(`CAD_V2_FONT_FILES exceeds the ${EXTERNAL_FONT_FILE_LIMIT}-file limit.`);
+      }
+      if (configuredFontFiles.length > 0 && configuredFontDirectories.length === 0) {
+        console.warn("[FontLayoutEngine] CAD_V2_FONT_FILES is set without CAD_V2_FONT_DIRECTORIES; external fonts remain unavailable.");
+      }
+      let externalFontBytes = 0;
+      for (const configuredFileName of configuredFontFiles) {
+        const normalizedFileName = configuredFileName.replaceAll("\\", "/");
+        if (normalizedFileName.includes("/") || normalizedFileName === "." || normalizedFileName === "..") {
+          throw new Error(`CAD_V2_FONT_FILES accepts filenames only: ${configuredFileName}`);
+        }
+        const extension = path.extname(configuredFileName).toLowerCase();
+        if (!new Set([".ttf", ".otf", ".shx"]).has(extension)) {
+          throw new Error(`CAD_V2_FONT_FILES contains an unsupported font extension: ${configuredFileName}`);
+        }
+
+        const lowerFileName = configuredFileName.toLowerCase();
+        const baseFileName = path.parse(configuredFileName).name.toLowerCase();
+        const isShx = extension === ".shx";
+        const alreadyLoaded = isShx
+          ? this.shxFonts.has(lowerFileName) || this.shxFonts.has(baseFileName)
+          : this.ttfFonts.has(lowerFileName) || this.ttfFonts.has(baseFileName);
+        if (alreadyLoaded) continue;
+
+        let resolvedPath: string | null = null;
+        for (const configuredDirectory of configuredFontDirectories) {
+          if (!path.isAbsolute(configuredDirectory) || !fs.existsSync(configuredDirectory) ||
+              !fs.statSync(configuredDirectory).isDirectory()) continue;
+          for (const directory of [configuredDirectory, path.resolve(configuredDirectory, "cad")]) {
+            if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) continue;
+            const candidate = path.resolve(directory, configuredFileName);
+            if (path.dirname(candidate) === path.resolve(directory) && fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+              resolvedPath = candidate;
+              break;
+            }
+            const caseInsensitiveMatch = fs.readdirSync(directory).find((entry) => entry.toLowerCase() === lowerFileName);
+            if (caseInsensitiveMatch) {
+              const caseInsensitiveCandidate = path.resolve(directory, caseInsensitiveMatch);
+              if (fs.statSync(caseInsensitiveCandidate).isFile()) resolvedPath = caseInsensitiveCandidate;
+            }
+            if (resolvedPath) break;
+          }
+          if (resolvedPath) break;
+        }
+
+        if (!resolvedPath) {
+          console.warn(`[FontLayoutEngine] Configured external font was not found: ${configuredFileName}`);
+          continue;
+        }
+        const stat = fs.statSync(resolvedPath);
+        externalFontBytes += stat.size;
+        if (externalFontBytes > EXTERNAL_FONT_BYTES_LIMIT) {
+          throw new Error(`Configured external CAD fonts exceed the ${EXTERNAL_FONT_BYTES_LIMIT}-byte limit.`);
+        }
+        const directory = path.dirname(resolvedPath);
+        const fileName = path.basename(resolvedPath);
+        if (isShx) loadShx(directory, fileName);
+        else loadTtf(fileName, false, false, false, directory);
       }
 
       this.recomputeCatalogDigest();

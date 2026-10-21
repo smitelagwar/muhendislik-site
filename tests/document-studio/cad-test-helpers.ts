@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { CAD_PREVIEW_V2_MANIFEST, type CadPreviewV2FixtureManifest } from "../fixtures/cad-preview-v2/manifest";
@@ -47,7 +48,7 @@ export async function cleanupUploadedCadFixtures(page?: Page): Promise<void> {
 export async function signInAdmin(page: Page) {
   await page.goto("/dokumantasyon");
   const username = page.locator("input#username");
-  const workspaceTitle = page.locator("h1:has-text('Dokümantasyon Modülü')");
+  const workspaceTitle = page.locator("h1:has-text('Dokümantasyon Modülü'):visible").first();
 
   await expect.poll(async () => {
     if (await username.isVisible()) return "login";
@@ -65,7 +66,7 @@ export async function signInAdmin(page: Page) {
   await expect(workspaceTitle).toBeVisible({ timeout: 12_000 });
 }
 
-export async function uploadCadPreviewV2Fixture(page: Page, fixtureId: string): Promise<{ fileId: string; manifest: CadPreviewV2FixtureManifest }> {
+export async function uploadCadPreviewV2Fixture(page: Page, fixtureId: string, fileName?: string): Promise<{ fileId: string; manifest: CadPreviewV2FixtureManifest }> {
   const manifest = CAD_PREVIEW_V2_MANIFEST[fixtureId];
   if (!manifest) throw new Error(`Fixture not found in manifest: ${fixtureId}`);
 
@@ -80,10 +81,36 @@ export async function uploadCadPreviewV2Fixture(page: Page, fixtureId: string): 
     const payload = await response.json();
     if (!response.ok || !payload.file?.id) throw new Error(payload.error || "Fixture yüklenemedi");
     return payload.file.id as string;
-  }, { content, name: manifest.fileName });
+  }, { content, name: fileName ?? manifest.fileName });
 
   trackedFixtureFileIds.add(fileId);
   return { fileId, manifest };
+}
+
+export async function uploadRealCadBinaryFixture(
+  page: Page,
+  filePath: string,
+  fileName: string,
+  mimeType = "application/acad",
+): Promise<string> {
+  const base64 = Buffer.from(readFileSync(filePath)).toString("base64");
+  const extension = fileName.match(/\.[A-Za-z0-9]+$/)?.[0]?.toLowerCase() ?? ".dwg";
+  const pathname = `cad-preview-v2-${randomUUID()}${extension}`;
+  const fileId = await page.evaluate(async ({ base64, name, type, pathname }) => {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const formData = new FormData();
+    formData.append("file", new File([bytes], name, { type }));
+    formData.append("pathname", pathname);
+    const response = await fetch("/api/dokumantasyon/upload/local", { method: "POST", body: formData });
+    const payload = await response.json();
+    if (!response.ok || !payload.file?.id) throw new Error(payload.error || "Gerçek CAD binary fixture yüklenemedi");
+    return payload.file.id as string;
+  }, { base64, name: fileName, type: mimeType, pathname });
+
+  trackedFixtureFileIds.add(fileId);
+  return fileId;
 }
 
 export async function uploadCustomDwgFixture(page: Page, fileName = "test-drawing.dwg"): Promise<string> {

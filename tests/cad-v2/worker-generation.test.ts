@@ -70,6 +70,8 @@ async function testDirectUnpackSyncFallback() {
   assert.equal(unpacked.vertexCount, 2);
   assert.equal(unpacked.origin[0], 0);
   assert.equal(unpacked.origin[1], 0);
+  assert.ok(unpacked.xyArray instanceof Uint16Array && unpacked.positionCodec,
+    "the production worker-client fallback uses the same compact renderer-position format as the browser worker");
 
   client.dispose();
   console.log("  ✓ Node / senkron çalışma modunda parça açma başarılı.");

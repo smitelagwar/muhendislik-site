@@ -1,0 +1,46 @@
+[
+  {
+    "id": "R001",
+    "source": "eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg",
+    "sourceBytes": 3444087,
+    "sourceSha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086",
+    "copy": "R001-1 ve 2.kat dwg.dwg",
+    "copyBytes": 3444087,
+    "copySha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086",
+    "copyReadOnly": true,
+    "matches": true
+  },
+  {
+    "id": "R002",
+    "source": "eklediklerim/ornek_dosyalar/kiris_acilimlari_tum_katlar.dwg",
+    "sourceBytes": 2139550,
+    "sourceSha256": "9a59ff9e5496e2a3c62b378f062e5f0f3cfa707b9bd4b5a0bf6749cd8bf52459",
+    "copy": "R002-kiris_acilimlari_tum_katlar.dwg",
+    "copyBytes": 2139550,
+    "copySha256": "9a59ff9e5496e2a3c62b378f062e5f0f3cfa707b9bd4b5a0bf6749cd8bf52459",
+    "copyReadOnly": true,
+    "matches": true
+  },
+  {
+    "id": "R003",
+    "source": "eklediklerim/ornek_dosyalar/MUSTAFA SELVİ 1.KISIM STATİK.dwg",
+    "sourceBytes": 16084252,
+    "sourceSha256": "8ff5680fa4f9d570fed738def92bc6ca8149fde1b5aed9e0a495dd2baaf521e6",
+    "copy": "R003-MUSTAFA SELVİ 1.KISIM STATİK.dwg",
+    "copyBytes": 16084252,
+    "copySha256": "8ff5680fa4f9d570fed738def92bc6ca8149fde1b5aed9e0a495dd2baaf521e6",
+    "copyReadOnly": true,
+    "matches": true
+  },
+  {
+    "id": "R004",
+    "source": "eklediklerim/ornek_dosyalar/SÜHEYLA KARA STATİK (HAFİF).dxf",
+    "sourceBytes": 55259742,
+    "sourceSha256": "36f87f826fe4dd9a8f03f8c83bafeeddfc84f1e0efada5c0fded8014a2ef7cf1",
+    "copy": "R004-SÜHEYLA KARA STATİK (HAFİF).dxf",
+    "copyBytes": 55259742,
+    "copySha256": "36f87f826fe4dd9a8f03f8c83bafeeddfc84f1e0efada5c0fded8014a2ef7cf1",
+    "copyReadOnly": true,
+    "matches": true
+  }
+]

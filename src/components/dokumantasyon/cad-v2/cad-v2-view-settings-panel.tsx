@@ -105,6 +105,8 @@ export const CadV2ViewSettingsPanel: React.FC<CadV2ViewSettingsPanelProps> = ({
           </div>
           <button
             onClick={() => onUpdateSettings({ showLineweights: !settings.showLineweights })}
+            aria-label="Çizgi Kalınlıkları"
+            aria-pressed={settings.showLineweights}
             className={`w-9 h-5 flex items-center rounded-full p-1 transition-colors ${
               settings.showLineweights ? "bg-amber-500" : "bg-neutral-800"
             }`}

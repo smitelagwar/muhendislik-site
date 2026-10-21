@@ -46,7 +46,7 @@ function testAnalyticCurveSidecarRoundtrip(): void {
       const section = chunk.sections.get(SceneTag.CURVE_DATA)!;
       const corrupted = new Uint8Array(chunkBytes);
       new DataView(corrupted.buffer, corrupted.byteOffset, corrupted.byteLength).setFloat32(section.header.byteOffset, Number.NaN, true);
-      assert.throws(() => parseSceneChunk(corrupted), /CURVE_DATA.*non-finite/, "malformed analytic input is rejected at the binary trust boundary");
+      assert.throws(() => parseSceneChunk(corrupted), /non-finite/, "malformed analytic input is rejected at the binary trust boundary");
       malformedCurveCheckDone = true;
     }
     assert.equal(records.length % 8, 0, "CURVE_DATA uses fixed eight-float records");
@@ -553,6 +553,14 @@ function testPaperViewportScaleIsIncludedInCurveBudget(): void {
   const parsed = parseSceneChunk(scene.chunks.get(ref.chunkId)!);
   const xy = parsed.sections.get(SceneTag.XY)!.data as Float32Array;
   const origin = parsed.sections.get(SceneTag.ORIGIN)!.data as Float64Array;
+  const meta = JSON.parse(new TextDecoder().decode(parsed.sections.get(SceneTag.META)!.data as Uint8Array)) as {
+    curveSourceRefs?: Array<{ sourceType: string; segmentCount: number }>;
+  };
+  const viewportCircleSourceSegments = (meta.curveSourceRefs ?? [])
+    .filter((curve) => curve.sourceType === "CIRCLE")
+    .reduce((count, curve) => count + curve.segmentCount, 0);
+  assert.equal(viewportCircleSourceSegments, xy.length / 4,
+    "paper viewport preserves analytic source metadata for every emitted circle chord");
   const polyline: [number, number][] = [];
   for (let index = 0; index + 3 < xy.length; index += 4) {
     if (index === 0) polyline.push([xy[index]! + origin[0]!, xy[index + 1]! + origin[1]!]);

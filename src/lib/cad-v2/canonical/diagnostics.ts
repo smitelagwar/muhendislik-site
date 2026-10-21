@@ -5,19 +5,30 @@
 // durumunu, en erken kayıp noktalarını ve diagnostik muhasebesini yönetir.
 // Sabit "exact" ve 0 diagnostik bildirimini engeller.
 
-import type { CadCanonicalDocument, CadDiagnostic, CadEntity } from "./types";
+import type { CadBlockDefinition, CadCanonicalDocument, CadDiagnostic, CadEntity } from "./types";
 
 export const CadDiagnosticCode = {
   // Kaynak / Dekoder Uyarıları
   DECODER_WARNING_68: "DECODER_WARNING_68",
   DECODER_UNKNOWN_SCOPE: "DECODER_UNKNOWN_SCOPE",
   UNIT_MAPPING_MISMATCH: "UNIT_MAPPING_MISMATCH",
+  UNSUPPORTED_COMPLEX_LINETYPE_ELEMENT: "UNSUPPORTED_COMPLEX_LINETYPE_ELEMENT",
+  MODEL_ANNOTATION_SCALE_UNRESOLVED: "MODEL_ANNOTATION_SCALE_UNRESOLVED",
 
   // Model & Semantik Dönüşüm Kusurları
   EMPTY_HATCH_LOOPS: "EMPTY_HATCH_LOOPS",
   DIMENSION_CONVERTED_TO_INSERT: "DIMENSION_CONVERTED_TO_INSERT",
   DIMENSION_SYNTHESIZED_FROM_DEFINITION: "DIMENSION_SYNTHESIZED_FROM_DEFINITION",
+  UNSUPPORTED_DIMENSION_UNIT_FORMAT: "UNSUPPORTED_DIMENSION_UNIT_FORMAT",
+  UNSUPPORTED_DIMENSION_UNIT_SCALE: "UNSUPPORTED_DIMENSION_UNIT_SCALE",
+  UNSUPPORTED_DIMENSION_ANNOTATIVE_SCALE: "UNSUPPORTED_DIMENSION_ANNOTATIVE_SCALE",
+  UNSUPPORTED_DIMENSION_TOLERANCE: "UNSUPPORTED_DIMENSION_TOLERANCE",
+  UNRESOLVED_DIMENSION_ENTITY_OVERRIDE: "UNRESOLVED_DIMENSION_ENTITY_OVERRIDE",
+  UNRESOLVED_DIMENSION_SOURCE_GEOMETRY: "UNRESOLVED_DIMENSION_SOURCE_GEOMETRY",
+  UNSUPPORTED_DIMENSION_ENTITY_OVERRIDE: "UNSUPPORTED_DIMENSION_ENTITY_OVERRIDE",
   LEADER_FEATURE_DEGRADED: "LEADER_FEATURE_DEGRADED",
+  UNSUPPORTED_ATTRIBUTE_INSTANCE_GEOMETRY: "UNSUPPORTED_ATTRIBUTE_INSTANCE_GEOMETRY",
+  UNRESOLVED_DWG_INSERT_ATTRIBUTES: "UNRESOLVED_DWG_INSERT_ATTRIBUTES",
   DROPPED_TEXT_IN_BLOCK: "DROPPED_TEXT_IN_BLOCK",
   INVISIBLE_BLOCK_CHILDREN: "INVISIBLE_BLOCK_CHILDREN",
   NON_DEFAULT_EXTRUSION_OCS: "NON_DEFAULT_EXTRUSION_OCS",
@@ -26,19 +37,33 @@ export const CadDiagnosticCode = {
   MISSING_BLOCK_DEFINITION: "MISSING_BLOCK_DEFINITION",
   UNRESOLVED_XREF: "UNRESOLVED_XREF",
   UNSUPPORTED_ENTITY_TYPE: "UNSUPPORTED_ENTITY_TYPE",
+  UNSUPPORTED_HATCH_PATTERN: "UNSUPPORTED_HATCH_PATTERN",
+  HATCH_PATTERN_NATIVE_PARITY_UNVERIFIED: "HATCH_PATTERN_NATIVE_PARITY_UNVERIFIED",
+  HATCH_PATTERN_LIMIT_REACHED: "HATCH_PATTERN_LIMIT_REACHED",
+  UNSUPPORTED_MINSERT_ARRAY: "UNSUPPORTED_MINSERT_ARRAY",
+  UNSUPPORTED_DXF_CODEPAGE: "UNSUPPORTED_DXF_CODEPAGE",
   EXPANSION_BUDGET_EXCEEDED: "EXPANSION_BUDGET_EXCEEDED",
   CURVE_REFINEMENT_LIMIT_REACHED: "CURVE_REFINEMENT_LIMIT_REACHED",
   CURVE_GEOMETRY_INVALID: "CURVE_GEOMETRY_INVALID",
   CHUNK_QUANTIZATION_LIMIT_REACHED: "CHUNK_QUANTIZATION_LIMIT_REACHED",
+  CHUNK_COMPOSITE_PRECISION_LIMIT_REACHED: "CHUNK_COMPOSITE_PRECISION_LIMIT_REACHED",
+  FILL_GLYPH_COMPOSITE_ANALYSIS_LIMIT_REACHED: "FILL_GLYPH_COMPOSITE_ANALYSIS_LIMIT_REACHED",
   CURVE_ENCODED_PRECISION_LIMIT_REACHED: "CURVE_ENCODED_PRECISION_LIMIT_REACHED",
   CURVE_SIDECAR_PRECISION_LIMIT_REACHED: "CURVE_SIDECAR_PRECISION_LIMIT_REACHED",
   PATH_DISTANCE_PRECISION_LIMIT_REACHED: "PATH_DISTANCE_PRECISION_LIMIT_REACHED",
   HATCH_FILL_BOUNDARY_TESSELLATION_LIMIT_REACHED: "HATCH_FILL_BOUNDARY_TESSELLATION_LIMIT_REACHED",
   HATCH_FILL_ENCODED_PRECISION_LIMIT_REACHED: "HATCH_FILL_ENCODED_PRECISION_LIMIT_REACHED",
+  HATCH_BOUNDARY_INVALID: "HATCH_BOUNDARY_INVALID",
+  HATCH_BOUNDARY_VALIDATION_LIMIT_REACHED: "HATCH_BOUNDARY_VALIDATION_LIMIT_REACHED",
   CIRCULAR_CURVE_TESSELLATION_LIMIT_REACHED: "CIRCULAR_CURVE_TESSELLATION_LIMIT_REACHED",
   ELLIPSE_CURVE_TESSELLATION_LIMIT_REACHED: "ELLIPSE_CURVE_TESSELLATION_LIMIT_REACHED",
   SPLINE_CURVE_TESSELLATION_LIMIT_REACHED: "SPLINE_CURVE_TESSELLATION_LIMIT_REACHED",
   BULGE_CURVE_TESSELLATION_LIMIT_REACHED: "BULGE_CURVE_TESSELLATION_LIMIT_REACHED",
+  DIRECT_LINE_SPATIAL_PARTITION_LIMIT_REACHED: "DIRECT_LINE_SPATIAL_PARTITION_LIMIT_REACHED",
+  NON_LINE_STROKE_SPATIAL_PARTITION_LIMIT_REACHED: "NON_LINE_STROKE_SPATIAL_PARTITION_LIMIT_REACHED",
+  GLYPH_STROKE_SPATIAL_PARTITION_LIMIT_REACHED: "GLYPH_STROKE_SPATIAL_PARTITION_LIMIT_REACHED",
+  FILL_SPATIAL_PARTITION_LIMIT_REACHED: "FILL_SPATIAL_PARTITION_LIMIT_REACHED",
+  UNSUPPORTED_FILL_CLIP: "UNSUPPORTED_FILL_CLIP",
 
   // Yazı Tipi & Font Kusurları
   FONT_SUBSTITUTE_APPLIED: "FONT_SUBSTITUTE_APPLIED",
@@ -47,6 +72,121 @@ export const CadDiagnosticCode = {
 } as const;
 
 export type CadDiagnosticCodeType = (typeof CadDiagnosticCode)[keyof typeof CadDiagnosticCode];
+
+export function createUnsupportedEntityDiagnostic(
+  sourceFormat: "DWG" | "DXF",
+  entityType: string,
+  entityHandle?: string,
+  sourceOrder?: string | number | bigint,
+): CadDiagnostic {
+  const normalizedHandle = entityHandle?.trim() || undefined;
+  const identity = normalizedHandle || String(sourceOrder ?? "unknown");
+  const normalizedType = entityType.trim().toUpperCase() || "UNKNOWN";
+  return {
+    id: `diag_${sourceFormat.toLowerCase()}_unsupported_entity_${identity}`,
+    code: CadDiagnosticCode.UNSUPPORTED_ENTITY_TYPE,
+    severity: "warning",
+    message: `${sourceFormat} ${normalizedType} entity is unsupported by the current 2D scene adapter and was omitted; the scene is degraded.`,
+    entityHandle: normalizedHandle,
+  };
+}
+
+export interface UnsupportedBlockEntityCandidate {
+  blockName: string;
+  entityType: string;
+  entityHandle?: string;
+  sourceOrder?: string | number | bigint;
+  isPaperSpace?: boolean;
+  visible?: boolean;
+}
+
+/**
+ * Return unsupported block-child diagnostics only when the source child can
+ * affect a model or paper-space scene. Unreferenced block definitions are
+ * common in DWG files and must not degrade the rendered document.
+ */
+export function createReachableUnsupportedBlockDiagnostics(
+  rootEntityGroups: CadEntity[][],
+  blocks: Record<string, CadBlockDefinition>,
+  candidates: UnsupportedBlockEntityCandidate[],
+  sourceFormat: "DWG" | "DXF" = "DWG",
+): CadDiagnostic[] {
+  const pending = rootEntityGroups.flatMap((entities) =>
+    entities.filter((entity) => entity.type === "INSERT" && entity.visible !== false)
+      .map((entity) => entity.type === "INSERT" ? entity.blockName : ""),
+  );
+  const reachable = new Set<string>();
+  while (pending.length > 0) {
+    const blockName = pending.pop()!;
+    if (reachable.has(blockName)) continue;
+    reachable.add(blockName);
+    const block = blocks[blockName];
+    if (!block) continue;
+    for (const child of block.entities) {
+      if (child.type === "INSERT" && child.visible !== false) pending.push(child.blockName);
+    }
+  }
+
+  return candidates
+    .filter((candidate) => candidate.visible !== false && (candidate.isPaperSpace || reachable.has(candidate.blockName)))
+    .map((candidate) => createUnsupportedEntityDiagnostic(
+      sourceFormat,
+      candidate.entityType,
+      candidate.entityHandle,
+      candidate.sourceOrder,
+    ));
+}
+
+/**
+ * MINSERT row/column metadata is retained in canonical INSERTs, but the scene
+ * compiler currently emits one block instance. Diagnose arrays that can reach
+ * a visible model/paper scene without penalizing unused block definitions.
+ */
+export function createReachableMInsertArrayDiagnostics(
+  rootEntityGroups: CadEntity[][],
+  blocks: Record<string, CadBlockDefinition>,
+  sourceFormat: "DWG" | "DXF",
+): CadDiagnostic[] {
+  const diagnostics: CadDiagnostic[] = [];
+  const pending = rootEntityGroups.flatMap((entities) =>
+    entities.filter((entity) => entity.type === "INSERT" && entity.visible !== false)
+      .map((entity) => entity.type === "INSERT" ? entity.blockName : ""),
+  );
+  const visited = new Set<string>();
+  const diagnosed = new Set<string>();
+  const addIfArray = (entity: CadEntity) => {
+    if (entity.type !== "INSERT" || entity.visible === false) return;
+    const rowCount = Number.isFinite(entity.rowCount) ? Math.max(1, Math.trunc(entity.rowCount!)) : 1;
+    const columnCount = Number.isFinite(entity.columnCount) ? Math.max(1, Math.trunc(entity.columnCount!)) : 1;
+    if (rowCount <= 1 && columnCount <= 1) return;
+    const handle = entity.sourceHandle || entity.handle;
+    const key = handle || String(entity.order);
+    if (diagnosed.has(key)) return;
+    diagnosed.add(key);
+    diagnostics.push({
+      id: `diag_${sourceFormat.toLowerCase()}_unsupported_minsert_${key}`,
+      code: CadDiagnosticCode.UNSUPPORTED_MINSERT_ARRAY,
+      severity: "warning",
+      message: `${sourceFormat} MINSERT ${handle || key} retains ${rowCount} rows × ${columnCount} columns and source spacing, but array-cell expansion is unsupported; a single INSERT may be rendered and the scene is degraded.`,
+      entityHandle: handle,
+    });
+  };
+
+  for (const entities of rootEntityGroups) for (const entity of entities) addIfArray(entity);
+  while (pending.length > 0) {
+    const blockName = pending.pop()!;
+    if (visited.has(blockName)) continue;
+    visited.add(blockName);
+    const block = blocks[blockName];
+    if (!block) continue;
+    for (const child of block.entities) {
+      if (child.type !== "INSERT" || child.visible === false) continue;
+      addIfArray(child);
+      pending.push(child.blockName);
+    }
+  }
+  return diagnostics;
+}
 
 export interface CadProvenanceSummary {
   rawSupportedCount: number;
@@ -85,14 +225,22 @@ export function evaluateDocumentQuality(
 ): QualityEvaluationResult {
   const diagnosticCodes = new Set<string>();
 
+  // Block TEXT/MTEXT now use the same EntityVisitor as top-level entities.
+  // Keep this count tied to an explicit decoder/compiler omission instead of
+  // inferring loss from the presence of text inside any block definition.
+  const droppedBlockTextCount = (doc.diagnostics || []).filter(
+    (diagnostic) => diagnostic.code === CadDiagnosticCode.DROPPED_TEXT_IN_BLOCK,
+  ).length;
+
   let emptyHatchCount = 0;
   let convertedDimensionCount = 0;
-  let droppedBlockTextCount = 0;
   let invisibleBlockChildrenCount = 0;
-  const nonDefaultExtrusionsCount = 0;
+  let nonDefaultExtrusionsCount = 0;
   let missingBlockCount = 0;
   let unresolvedXrefCount = 0;
-  const unsupportedTypeCount = 0;
+  const unsupportedTypeCount = (doc.diagnostics || []).filter(
+    (diagnostic) => diagnostic.code === CadDiagnosticCode.UNSUPPORTED_ENTITY_TYPE,
+  ).length;
 
   // 1. Üst seviye model alanı varlıklarını denetle
   const topEntities = doc.modelSpaceEntities || [];
@@ -118,10 +266,6 @@ export function evaluateDocumentQuality(
     for (const child of bDef.entities) {
       if (child.visible === false) {
         invisibleBlockChildrenCount++;
-      }
-      if (child.type === "TEXT" || child.type === "MTEXT") {
-        // Blok içindeki metinler mevcut derleyicide atlanmaktadır (P06'ya kadar)
-        droppedBlockTextCount++;
       }
       if (child.type === "HATCH") {
         if (!child.loops || child.loops.length === 0) {
@@ -189,8 +333,8 @@ export function evaluateDocumentQuality(
   }
 
   // 4. Kalite Durumu Tayini:
-  // Boş HATCH, eksik blok, blok içi metin kaybı veya görünmez çocuk gibi
-  // bilinen somut kayıplar varsa kalite 'exact' OLAMAZ; 'degraded' olmalıdır.
+  // Blok metni yalnız decoder/compiler açık bir kayıp tanısı ürettiyse
+  // degraded sayılır; desteklenen TEXT/MTEXT'in blokta bulunması tek başına kayıp değildir.
   const isDegraded =
     emptyHatchCount > 0 ||
     missingBlockCount > 0 ||

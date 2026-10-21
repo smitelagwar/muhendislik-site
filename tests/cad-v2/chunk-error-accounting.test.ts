@@ -186,11 +186,11 @@ function testExceededScreenBudgetDegradesScene(): void {
   const scene = compileCanonicalToScene(document, {
     sceneId: "scene_f07_chunk_quantization_budget",
     targetCurveErrorCssPixels: 0.25,
-    unitsPerCssPixel: 0.001,
+    unitsPerCssPixel: 0.0001,
     maxTransformSingularValue: 1,
   });
   assert.ok(scene.manifest.chunks[0]!.maxQuantizationErrorCssPixels! > 0.25,
-    "wide local extent produces an independently measured screen-space quantization overrun");
+    "tight zoom exposes a measured screen-space quantization overrun within a bounded spatial chunk");
   assert.equal(scene.manifest.qualityStatus, "degraded",
     "the compiler must not label a chunk exact when quantization exceeds the supplied error budget");
   assert.ok(scene.manifest.diagnosticsSummary.diagnosticCodes.includes("CHUNK_QUANTIZATION_LIMIT_REACHED"),
@@ -225,22 +225,28 @@ function testPathDistanceFloat32QuantizationIsMeasuredAndBudgeted(): void {
     start: [ORIGIN, ORIGIN], end: [end, end],
   }], "f07-path-distance-quantization");
   const scene = compileCanonicalToScene(document, { sceneId: "scene_f07_path_distance_quantization" });
-  const chunkRef = scene.manifest.chunks[0]!;
-  const parsed = parseSceneChunk(scene.chunks.get(chunkRef.chunkId)!);
-  const pathDistance = parsed.sections.get(SceneTag.PATH_DISTANCE)!.data as Float32Array;
-  const measuredError = Math.max(
-    Math.abs(pathDistance[0]! - 0),
-    Math.abs(pathDistance[1]! - sourceDistance),
-  );
+  assert.ok(scene.manifest.chunks.length > 1, "long source LINE is spatially partitioned before path-distance accounting");
+  const measuredErrors = scene.manifest.chunks.map((chunkRef, index) => {
+    const parsed = parseSceneChunk(scene.chunks.get(chunkRef.chunkId)!);
+    const pathDistance = parsed.sections.get(SceneTag.PATH_DISTANCE)!.data as Float32Array;
+    const expectedStart = sourceDistance * (index / scene.manifest.chunks.length);
+    const expectedEnd = sourceDistance * ((index + 1) / scene.manifest.chunks.length);
+    assert.equal(pathDistance[0], Math.fround(expectedStart), "chunk PATH_DISTANCE start retains global source phase");
+    assert.equal(pathDistance[1], Math.fround(expectedEnd), "chunk PATH_DISTANCE end retains global source phase");
+    const measured = Math.max(Math.abs(pathDistance[0]! - expectedStart), Math.abs(pathDistance[1]! - expectedEnd));
+    assert.equal(chunkRef.maxPathDistanceQuantizationErrorWorld, measured,
+      "each flat manifest chunk reports its measured scalar round-trip error");
+    return measured;
+  });
+  const measuredError = Math.max(...measuredErrors);
   assert.ok(measuredError > 0, "large cumulative distance exposes Float32 scalar quantization");
-  assert.equal(pathDistance[1], Math.fround(sourceDistance), "PATH_DISTANCE binary lane contains the expected Float32-rounded source value");
-  assert.equal(chunkRef.maxPathDistanceQuantizationErrorWorld, measuredError,
-    "flat manifest reports the measured maximum scalar round-trip error");
   const indexed = JSON.parse(scene.indexFiles!.get(scene.manifest.indexPages[0]!.indexId)!);
-  assert.equal(indexed.chunks[0].maxPathDistanceQuantizationErrorWorld, measuredError,
-    "hash-index metadata carries the same path-distance error metric");
-  assert.equal(validateSceneManifest(scene.manifest).chunks[0]?.maxPathDistanceQuantizationErrorWorld, measuredError,
-    "manifest validation preserves the scalar precision metric");
+  assert.ok(indexed.chunks.every((chunk: { maxPathDistanceQuantizationErrorWorld: number }, index: number) =>
+    chunk.maxPathDistanceQuantizationErrorWorld === measuredErrors[index]),
+    "hash-index metadata carries each path-distance error metric");
+  assert.ok(validateSceneManifest(scene.manifest).chunks.every((chunk, index) =>
+    chunk.maxPathDistanceQuantizationErrorWorld === measuredErrors[index]),
+    "manifest validation preserves every scalar precision metric");
 
   const budgeted = compileCanonicalToScene(document, {
     sceneId: "scene_f07_path_distance_quantization_budget",
@@ -248,8 +254,7 @@ function testPathDistanceFloat32QuantizationIsMeasuredAndBudgeted(): void {
     unitsPerCssPixel: 0.001,
     maxTransformSingularValue: 1,
   });
-  const budgetChunk = budgeted.manifest.chunks[0]!;
-  assert.ok(budgetChunk.maxPathDistanceQuantizationErrorCssPixels! > 0.25,
+  assert.ok(budgeted.manifest.chunks.some((chunk) => chunk.maxPathDistanceQuantizationErrorCssPixels! > 0.25),
     "active view converts scalar world error to CSS-pixel error");
   assert.ok(budgeted.manifest.diagnosticsSummary.diagnosticCodes.includes("PATH_DISTANCE_PRECISION_LIMIT_REACHED"),
     "screen-budget overrun is reported with a path-distance-specific diagnostic");
@@ -401,7 +406,12 @@ function testHatchBoundaryChordAndEndpointEncodingUseOneCompositeBudget(): void 
     unitsPerCssPixel,
     maxTransformSingularValue: 1,
   });
-  const chunk = scene.manifest.chunks[0]!;
+  const boundaryChunkIndex = scene.manifest.chunks.findIndex((entry) => {
+    const parsedChunk = parseSceneChunk(scene.chunks.get(entry.chunkId)!);
+    return ((parsedChunk.sections.get(SceneTag.XY)?.data as Float32Array | undefined)?.length ?? 0) > 0;
+  });
+  assert.ok(boundaryChunkIndex >= 0, "spatial HATCH fill retains a boundary stroke chunk");
+  const chunk = scene.manifest.chunks[boundaryChunkIndex]!;
   const parsed = parseSceneChunk(scene.chunks.get(chunk.chunkId)!);
   const xy = parsed.sections.get(SceneTag.XY)!.data as Float32Array;
   const origin = parsed.sections.get(SceneTag.ORIGIN)!.data as Float64Array;
@@ -441,9 +451,9 @@ function testHatchBoundaryChordAndEndpointEncodingUseOneCompositeBudget(): void 
   assert.ok(scene.manifest.diagnosticsSummary.diagnosticCodes.includes("CURVE_ENCODED_PRECISION_LIMIT_REACHED"),
     "the HATCH boundary composite overrun receives the curved-line precision diagnostic");
   const indexed = JSON.parse(scene.indexFiles!.get(scene.manifest.indexPages[0]!.indexId)!);
-  assert.equal(indexed.chunks[0].maxCurveEncodedGeometryErrorWorld, chunk.maxCurveEncodedGeometryErrorWorld,
+  assert.equal(indexed.chunks[boundaryChunkIndex].maxCurveEncodedGeometryErrorWorld, chunk.maxCurveEncodedGeometryErrorWorld,
     "hash-index metadata carries the HATCH curved-boundary composite error");
-  assert.equal(validateSceneManifest(scene.manifest).chunks[0]?.maxCurveEncodedGeometryErrorWorld,
+  assert.equal(validateSceneManifest(scene.manifest).chunks[boundaryChunkIndex]?.maxCurveEncodedGeometryErrorWorld,
     chunk.maxCurveEncodedGeometryErrorWorld,
     "manifest validation preserves the HATCH boundary composite bound");
 }
@@ -494,7 +504,12 @@ function testNestedHatchBoundarySagittaUsesTheCombinedInsertScale(): void {
     unitsPerCssPixel,
     maxTransformSingularValue: 1,
   });
-  const chunk = scene.manifest.chunks[0]!;
+  const boundaryChunkIndex = scene.manifest.chunks.findIndex((entry) => {
+    const chunkData = parseSceneChunk(scene.chunks.get(entry.chunkId)!);
+    return ((chunkData.sections.get(SceneTag.XY)?.data as Float32Array | undefined)?.length ?? 0) > 0;
+  });
+  assert.ok(boundaryChunkIndex >= 0, "nested spatial HATCH fill retains a boundary stroke chunk");
+  const chunk = scene.manifest.chunks[boundaryChunkIndex]!;
   const parsed = parseSceneChunk(scene.chunks.get(chunk.chunkId)!);
   const xy = parsed.sections.get(SceneTag.XY)!.data as Float32Array;
   const origin = parsed.sections.get(SceneTag.ORIGIN)!.data as Float64Array;
@@ -546,7 +561,12 @@ function testNestedHatchBoundarySagittaUsesTheCombinedInsertScale(): void {
     unitsPerCssPixel,
     maxTransformSingularValue: 1,
   });
-  const clippedChunk = clipped.manifest.chunks[0]!;
+  const clippedBoundaryChunkIndex = clipped.manifest.chunks.findIndex((entry) => {
+    const chunkData = parseSceneChunk(clipped.chunks.get(entry.chunkId)!);
+    return ((chunkData.sections.get(SceneTag.XY)?.data as Float32Array | undefined)?.length ?? 0) > 0;
+  });
+  assert.ok(clippedBoundaryChunkIndex >= 0, "nested XCLIP retains a visible HATCH boundary stroke chunk");
+  const clippedChunk = clipped.manifest.chunks[clippedBoundaryChunkIndex]!;
   const clippedXY = parseSceneChunk(clipped.chunks.get(clippedChunk.chunkId)!).sections.get(SceneTag.XY)!.data as Float32Array;
   assert.ok(clippedXY.length > 0, "the XCLIP fixture still emits the visible HATCH boundary chord geometry");
   assert.equal(clippedChunk.maxCurveEncodedGeometryErrorWorld, 0,
@@ -1409,11 +1429,17 @@ function testLineToNestedBulgeSourceSeamIsBoundedAcrossChunks(): void {
   const hasOverBudgetComposite = scene.manifest.chunks.some(
     (chunk) => (chunk.maxCurveEncodedGeometryErrorCssPixels ?? 0) > targetCssError * (1 + 1e-12),
   );
-  assert.equal(scene.manifest.qualityStatus, hasOverBudgetComposite ? "degraded" : "exact",
-    "scene quality status follows the maximum connected-source chunk composite budget");
+  const hasOverBudgetSeam = scene.manifest.chunks.some(
+    (chunk) => (chunk.maxAdjacentChunkCompositeErrorCssPixels ?? 0) > targetCssError * (1 + 1e-12),
+  );
+  assert.equal(scene.manifest.qualityStatus, hasOverBudgetComposite || hasOverBudgetSeam ? "degraded" : "exact",
+    "scene quality status follows the connected-source chord and adjacent-chunk composite budgets");
   assert.equal(scene.manifest.diagnosticsSummary.diagnosticCodes.includes("CURVE_ENCODED_PRECISION_LIMIT_REACHED"),
     hasOverBudgetComposite,
     "the scene curve precision diagnostic follows the independently checked per-chord CSS composite bounds");
+  assert.equal(scene.manifest.diagnosticsSummary.diagnosticCodes.includes("CHUNK_COMPOSITE_PRECISION_LIMIT_REACHED"),
+    hasOverBudgetSeam,
+    "adjacent-chunk precision diagnostic follows the two-chunk bound");
   assert.equal(validated.chunks.length, expectedChordCount + 1,
     "manifest validation preserves the separate LINE and transformed BULGE chunk sequence");
 }

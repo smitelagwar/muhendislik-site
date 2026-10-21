@@ -5,14 +5,14 @@
 // Magic: ASCII DV2SCN01 (8 bytes)
 // Little-endian, 8-byte hizalı section offsetleri, katı sınır kontrolleri.
 
-import type { CadLayer } from "../canonical/types";
+import { CAD_V2_RENDER_ABI } from "../version";
 
 export const SCENE_MAGIC = "DV2SCN01";
 export const SCENE_SCHEMA_VERSION = 1;
 export const HEADER_BYTE_LENGTH = 32;
 export const SECTION_ENTRY_BYTE_LENGTH = 32;
-export const MAX_CHUNK_BYTE_LENGTH = 4 * 1024 * 1024; // 4 MiB HTTP tavanı
-export const MAX_DECODED_ALLOCATION_BYTES = 16 * 1024 * 1024; // 16 MiB savunma sınırı
+export const MAX_CHUNK_BYTE_LENGTH = 2 * 1024 * 1024; // 2 MiB HTTP tavanı
+export const MAX_DECODED_ALLOCATION_BYTES = 8 * 1024 * 1024; // 8 MiB savunma sınırı
 
 export enum SceneScalarType {
   U8 = 1,
@@ -157,9 +157,13 @@ export function parseSceneChunk(buffer: ArrayBuffer | Uint8Array): RawSceneChunk
   const sectionCount = dataView.getUint32(16, true);
   const sectionTableOffset = dataView.getUint32(20, true);
   const headerBytes = dataView.getUint32(24, true);
+  const headerReserved = dataView.getUint32(28, true);
 
   if (sectionTableOffset !== HEADER_BYTE_LENGTH || headerBytes !== HEADER_BYTE_LENGTH) {
     throw new Error(`[SceneProtocol] Geçersiz header ofset veya boyutu`);
+  }
+  if (headerReserved !== 0) {
+    throw new Error(`[SceneProtocol] Desteklenmeyen binary ABI/header reserved değeri: ${headerReserved}`);
   }
 
   const tableEnd = sectionTableOffset + sectionCount * SECTION_ENTRY_BYTE_LENGTH;
@@ -169,6 +173,7 @@ export function parseSceneChunk(buffer: ArrayBuffer | Uint8Array): RawSceneChunk
 
   const sections = new Map<SceneTag, { header: SceneSectionHeader; data: ArrayBufferView }>();
   const seenTags = new Set<SceneTag>();
+  const sectionRanges: Array<{ start: number; end: number; tag: SceneTag }> = [];
 
   // 3. Section tablosu okuma ve doğrulama
   for (let i = 0; i < sectionCount; i++) {
@@ -187,6 +192,19 @@ export function parseSceneChunk(buffer: ArrayBuffer | Uint8Array): RawSceneChunk
       throw new Error(`[SceneProtocol] Yinelenen section tag: ${tag}`);
     }
     seenTags.add(tag);
+
+    const specification = SCENE_TAG_SPECIFICATIONS[tag];
+    if (!specification) {
+      throw new Error(`[SceneProtocol] Desteklenmeyen binary ABI section tag: ${tag}`);
+    }
+    if (scalarType !== specification.scalarType || componentCount !== specification.componentCount) {
+      throw new Error(
+        `[SceneProtocol] Binary ABI uyuşmazlığı tag ${tag}: beklenen ${specification.scalarType}/${specification.componentCount}, alınan ${scalarType}/${componentCount}`
+      );
+    }
+    if (flags !== 0 || reserved !== 0) {
+      throw new Error(`[SceneProtocol] Desteklenmeyen section flag/reserved alanı: tag ${tag}`);
+    }
 
     const scalarSize = SCALAR_SIZE_MAP[scalarType];
     if (!scalarSize) {
@@ -216,6 +234,7 @@ export function parseSceneChunk(buffer: ArrayBuffer | Uint8Array): RawSceneChunk
         `[SceneProtocol] Section aralığı chunk sınırını aşıyor: tag ${tag}, [${byteOffset}..${byteOffset + byteLength}]`
       );
     }
+    sectionRanges.push({ start: byteOffset, end: byteOffset + byteLength, tag });
 
     // Typed view oluşturma
     let view: ArrayBufferView;
@@ -238,6 +257,14 @@ export function parseSceneChunk(buffer: ArrayBuffer | Uint8Array): RawSceneChunk
         break;
     }
 
+    if (view instanceof Float32Array || view instanceof Float64Array) {
+      for (let valueIndex = 0; valueIndex < view.length; valueIndex++) {
+        if (!Number.isFinite(view[valueIndex])) {
+          throw new Error(`[SceneProtocol] Float section içinde non-finite değer: tag ${tag}, index ${valueIndex}`);
+        }
+      }
+    }
+
     sections.set(tag, {
       header: {
         tag,
@@ -252,6 +279,15 @@ export function parseSceneChunk(buffer: ArrayBuffer | Uint8Array): RawSceneChunk
       },
       data: view,
     });
+  }
+
+  sectionRanges.sort((a, b) => a.start - b.start || a.end - b.end);
+  for (let i = 1; i < sectionRanges.length; i++) {
+    const previous = sectionRanges[i - 1]!;
+    const current = sectionRanges[i]!;
+    if (previous.end > current.start) {
+      throw new Error(`[SceneProtocol] Overlapping section aralığı: tag ${previous.tag} ve ${current.tag}`);
+    }
   }
 
   // 4. Semantik ve Finite Doğrulamaları
@@ -434,6 +470,8 @@ export function buildSceneChunk(
 export interface ValidatedManifestChunk {
   chunkId: string;
   byteLength: number;
+  /** Exact emitted line and triangle vertex count; absent in legacy scene indexes. */
+  renderableVertexCount?: number;
   sha256: string;
   layoutId: string;
   /** Older manifests may omit bounds; new compiler output includes conservative world-space bounds. */
@@ -482,10 +520,19 @@ export interface ValidatedManifestChunk {
   maxCurveEncodedGeometryErrorWorld?: number;
   /** Present only when the compiler received a complete active-view error profile. */
   maxCurveEncodedGeometryErrorCssPixels?: number;
+  /** Sum of adjacent, spatially overlapping chunks' strongest static geometry and encoding bounds. */
+  maxAdjacentChunkCompositeErrorWorld?: number;
+  /** Present only when the compiler received a complete active-view error profile. */
+  maxAdjacentChunkCompositeErrorCssPixels?: number;
+  /** Conservative fill boundary/encoding plus glyph stroke encoding bound for overlapping content in one or more chunks. */
+  maxFillGlyphCompositeErrorWorld?: number;
+  /** Present only when the compiler received a complete active-view error profile. */
+  maxFillGlyphCompositeErrorCssPixels?: number;
 }
 
 export interface ValidatedSceneManifest {
   schemaVersion: number;
+  renderAbi: string;
   sceneId: string;
   sourceVersionKey: string;
   sourceSha256: string;
@@ -504,99 +551,29 @@ export interface ValidatedSceneManifest {
     bbox: [number, number, number, number];
     units: number;
   }>;
-  layers?: Record<string, CadLayer>;
+  layers?: Record<string, any>;
   chunks: ValidatedManifestChunk[];
   totalExpectedBytes: number;
 }
 
 const SHA256_REGEX = /^[a-f0-9]{64}$/i;
-type ManifestRecord = Record<string, unknown>;
-type BBox = [number, number, number, number];
-type ChunkMetric =
-  | "maxQuantizationErrorWorld"
-  | "maxQuantizationErrorCssPixels"
-  | "maxPathDistanceQuantizationErrorWorld"
-  | "maxPathDistanceQuantizationErrorCssPixels"
-  | "maxHatchFillBoundaryTessellationErrorWorld"
-  | "maxHatchFillBoundaryTessellationErrorCssPixels"
-  | "maxHatchFillTriangleQuantizationErrorWorld"
-  | "maxHatchFillTriangleQuantizationErrorCssPixels"
-  | "maxHatchFillEncodedGeometryErrorWorld"
-  | "maxHatchFillEncodedGeometryErrorCssPixels"
-  | "maxCurveSourceQuantizationErrorWorld"
-  | "maxCurveSourceQuantizationErrorCssPixels"
-  | "maxCircularCurveTessellationErrorWorld"
-  | "maxCircularCurveTessellationErrorCssPixels"
-  | "maxEllipseCurveTessellationErrorWorld"
-  | "maxEllipseCurveTessellationErrorCssPixels"
-  | "maxSplineCurveTessellationErrorWorld"
-  | "maxSplineCurveTessellationErrorCssPixels"
-  | "maxBulgeCurveTessellationErrorWorld"
-  | "maxBulgeCurveTessellationErrorCssPixels"
-  | "maxCurveEncodedGeometryErrorWorld"
-  | "maxCurveEncodedGeometryErrorCssPixels";
-const CHUNK_METRICS: readonly ChunkMetric[] = [
-  "maxQuantizationErrorWorld",
-  "maxQuantizationErrorCssPixels",
-  "maxPathDistanceQuantizationErrorWorld",
-  "maxPathDistanceQuantizationErrorCssPixels",
-  "maxHatchFillBoundaryTessellationErrorWorld",
-  "maxHatchFillBoundaryTessellationErrorCssPixels",
-  "maxHatchFillTriangleQuantizationErrorWorld",
-  "maxHatchFillTriangleQuantizationErrorCssPixels",
-  "maxHatchFillEncodedGeometryErrorWorld",
-  "maxHatchFillEncodedGeometryErrorCssPixels",
-  "maxCurveSourceQuantizationErrorWorld",
-  "maxCurveSourceQuantizationErrorCssPixels",
-  "maxCircularCurveTessellationErrorWorld",
-  "maxCircularCurveTessellationErrorCssPixels",
-  "maxEllipseCurveTessellationErrorWorld",
-  "maxEllipseCurveTessellationErrorCssPixels",
-  "maxSplineCurveTessellationErrorWorld",
-  "maxSplineCurveTessellationErrorCssPixels",
-  "maxBulgeCurveTessellationErrorWorld",
-  "maxBulgeCurveTessellationErrorCssPixels",
-  "maxCurveEncodedGeometryErrorWorld",
-  "maxCurveEncodedGeometryErrorCssPixels",
-];
-
-function isRecord(value: unknown): value is ManifestRecord {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isBBox(value: unknown): value is BBox {
-  return Array.isArray(value) && value.length === 4 &&
-    value.every((coordinate: unknown) => typeof coordinate === "number" && Number.isFinite(coordinate));
-}
-
-function isCadLayer(value: unknown): value is CadLayer {
-  if (!isRecord(value) || !isRecord(value.color)) return false;
-  const color = value.color;
-  const hasValidRgb = color.rgb === undefined || (
-    Array.isArray(color.rgb) && color.rgb.length === 3 &&
-    color.rgb.every((channel: unknown) => typeof channel === "number" && Number.isFinite(channel))
-  );
-  return typeof value.id === "string" && typeof value.name === "string" &&
-    typeof value.visible === "boolean" && typeof value.frozen === "boolean" &&
-    typeof value.locked === "boolean" && typeof value.lineweightMm === "number" &&
-    Number.isFinite(value.lineweightMm) && typeof value.linetypeName === "string" &&
-    (color.method === "byLayer" || color.method === "byBlock" || color.method === "aci" || color.method === "rgb") &&
-    hasValidRgb && (color.aci === undefined || typeof color.aci === "number") &&
-    (color.alpha === undefined || (typeof color.alpha === "number" && color.alpha >= 0 && color.alpha <= 1));
-}
 
 /**
  * Manifest JSON verisini doğrular, şema/ABI, finite bbox ve tüm index sayfalarındaki
  * chunk listesini set tabanlı olarak normalize eder. Çelişki veya format hatalarında throw eder.
  */
 export function validateSceneManifest(raw: unknown): ValidatedSceneManifest {
-  if (!isRecord(raw)) {
+  if (!raw || typeof raw !== "object") {
     throw new Error("[ManifestValidation] Geçersiz manifest verisi: bir nesne bekleniyor.");
   }
-  const m = raw;
+  const m = raw as Record<string, any>;
 
   if (m.schemaVersion !== 1) {
     throw new Error(`[ManifestValidation] Desteklenmeyen şema sürümü: ${m.schemaVersion}`);
+  }
+
+  if (m.renderAbi !== CAD_V2_RENDER_ABI) {
+    throw new Error(`[ManifestValidation] Desteklenmeyen render ABI: ${String(m.renderAbi)}`);
   }
 
   if (typeof m.sceneId !== "string" || m.sceneId.trim().length === 0) {
@@ -608,73 +585,158 @@ export function validateSceneManifest(raw: unknown): ValidatedSceneManifest {
   }
 
   // Layouts ve finite BBox kontrolü
-  const rawLayouts = m.layouts;
-  if (!Array.isArray(rawLayouts) || rawLayouts.length === 0) {
+  if (!Array.isArray(m.layouts) || m.layouts.length === 0) {
     throw new Error("[ManifestValidation] Manifest içinde geçerli layout listesi bulunamadı.");
   }
 
-  const validatedLayouts = (rawLayouts as unknown[]).map((layoutValue: unknown, idx: number) => {
-    if (!isRecord(layoutValue)) {
+  const validatedLayouts = m.layouts.map((l: any, idx: number) => {
+    if (!l || typeof l !== "object") {
       throw new Error(`[ManifestValidation] Layout #${idx} geçersiz.`);
     }
-    const layout = layoutValue;
-    const bboxValue = layout.bbox;
-    if (!isBBox(bboxValue)) {
-      throw new Error(`[ManifestValidation] Layout '${layout.layoutId || idx}' için finite olmayan bbox tespit edildi.`);
+    const bbox = l.bbox;
+    if (
+      !Array.isArray(bbox) ||
+      bbox.length !== 4 ||
+      !bbox.every((n: any) => typeof n === "number" && Number.isFinite(n))
+    ) {
+      throw new Error(`[ManifestValidation] Layout '${l.layoutId || idx}' için finite olmayan bbox tespit edildi.`);
     }
-    const bbox = bboxValue;
     if (bbox[0] > bbox[2] || bbox[1] > bbox[3]) {
-      throw new Error(`[ManifestValidation] Layout '${layout.layoutId || idx}' min > max bbox sırası geçersiz.`);
+      throw new Error(`[ManifestValidation] Layout '${l.layoutId || idx}' min > max bbox sırası geçersiz.`);
     }
     return {
-      layoutId: String(layout.layoutId || "Model"),
-      sourceName: String(layout.sourceName || layout.name || "Model"),
-      kind: layout.kind === "paper" ? ("paper" as const) : ("model" as const),
-      bbox,
-      units: typeof layout.units === "number" ? layout.units : 5,
+      layoutId: String(l.layoutId || "Model"),
+      sourceName: String(l.sourceName || l.name || "Model"),
+      kind: l.kind === "paper" ? ("paper" as const) : ("model" as const),
+      bbox: [bbox[0], bbox[1], bbox[2], bbox[3]] as [number, number, number, number],
+      units: typeof l.units === "number" ? l.units : 5,
     };
   });
 
-  const normalizeChunk = (rawChunkValue: unknown): ValidatedManifestChunk => {
-    if (!isRecord(rawChunkValue)) {
+  const normalizeChunk = (rawChunk: any): ValidatedManifestChunk => {
+    if (!rawChunk || typeof rawChunk !== "object") {
       throw new Error("[ManifestValidation] Chunk metadata nesnesi geçersiz.");
     }
-    const rawChunk = rawChunkValue;
-    let bbox: BBox | undefined;
+    let bbox: [number, number, number, number] | undefined;
     if (rawChunk.bbox !== undefined) {
       const value = rawChunk.bbox;
-      if (!isBBox(value)) {
+      if (
+        !Array.isArray(value) || value.length !== 4 ||
+        !value.every((coordinate: unknown) => typeof coordinate === "number" && Number.isFinite(coordinate))
+      ) {
         throw new Error(`[ManifestValidation] Chunk '${rawChunk.chunkId || "?"}' için finite olmayan bbox.`);
       }
       if (value[0] > value[2] || value[1] > value[3]) {
         throw new Error(`[ManifestValidation] Chunk '${rawChunk.chunkId || "?"}' için min > max bbox sırası geçersiz.`);
       }
-      bbox = value;
+      bbox = [value[0], value[1], value[2], value[3]];
     }
-    const metrics: Partial<Record<ChunkMetric, number>> = {};
-    for (const field of CHUNK_METRICS) {
-      const value = rawChunk[field];
+    const renderableVertexCount = rawChunk.renderableVertexCount;
+    if (renderableVertexCount !== undefined &&
+        (!Number.isSafeInteger(renderableVertexCount) || renderableVertexCount < 0)) {
+      throw new Error(`[ManifestValidation] Chunk '${rawChunk.chunkId || "?"}' için geçersiz renderableVertexCount.`);
+    }
+    const maxQuantizationErrorWorld = rawChunk.maxQuantizationErrorWorld;
+    const maxQuantizationErrorCssPixels = rawChunk.maxQuantizationErrorCssPixels;
+    const maxPathDistanceQuantizationErrorWorld = rawChunk.maxPathDistanceQuantizationErrorWorld;
+    const maxPathDistanceQuantizationErrorCssPixels = rawChunk.maxPathDistanceQuantizationErrorCssPixels;
+    const maxHatchFillBoundaryTessellationErrorWorld = rawChunk.maxHatchFillBoundaryTessellationErrorWorld;
+    const maxHatchFillBoundaryTessellationErrorCssPixels = rawChunk.maxHatchFillBoundaryTessellationErrorCssPixels;
+    const maxHatchFillTriangleQuantizationErrorWorld = rawChunk.maxHatchFillTriangleQuantizationErrorWorld;
+    const maxHatchFillTriangleQuantizationErrorCssPixels = rawChunk.maxHatchFillTriangleQuantizationErrorCssPixels;
+    const maxHatchFillEncodedGeometryErrorWorld = rawChunk.maxHatchFillEncodedGeometryErrorWorld;
+    const maxHatchFillEncodedGeometryErrorCssPixels = rawChunk.maxHatchFillEncodedGeometryErrorCssPixels;
+    const maxCurveSourceQuantizationErrorWorld = rawChunk.maxCurveSourceQuantizationErrorWorld;
+    const maxCurveSourceQuantizationErrorCssPixels = rawChunk.maxCurveSourceQuantizationErrorCssPixels;
+    const maxCircularCurveTessellationErrorWorld = rawChunk.maxCircularCurveTessellationErrorWorld;
+    const maxCircularCurveTessellationErrorCssPixels = rawChunk.maxCircularCurveTessellationErrorCssPixels;
+    const maxEllipseCurveTessellationErrorWorld = rawChunk.maxEllipseCurveTessellationErrorWorld;
+    const maxEllipseCurveTessellationErrorCssPixels = rawChunk.maxEllipseCurveTessellationErrorCssPixels;
+    const maxSplineCurveTessellationErrorWorld = rawChunk.maxSplineCurveTessellationErrorWorld;
+    const maxSplineCurveTessellationErrorCssPixels = rawChunk.maxSplineCurveTessellationErrorCssPixels;
+    const maxBulgeCurveTessellationErrorWorld = rawChunk.maxBulgeCurveTessellationErrorWorld;
+    const maxBulgeCurveTessellationErrorCssPixels = rawChunk.maxBulgeCurveTessellationErrorCssPixels;
+    const maxCurveEncodedGeometryErrorWorld = rawChunk.maxCurveEncodedGeometryErrorWorld;
+    const maxCurveEncodedGeometryErrorCssPixels = rawChunk.maxCurveEncodedGeometryErrorCssPixels;
+    const maxAdjacentChunkCompositeErrorWorld = rawChunk.maxAdjacentChunkCompositeErrorWorld;
+    const maxAdjacentChunkCompositeErrorCssPixels = rawChunk.maxAdjacentChunkCompositeErrorCssPixels;
+    const maxFillGlyphCompositeErrorWorld = rawChunk.maxFillGlyphCompositeErrorWorld;
+    const maxFillGlyphCompositeErrorCssPixels = rawChunk.maxFillGlyphCompositeErrorCssPixels;
+    for (const [field, value] of [
+      ["maxQuantizationErrorWorld", maxQuantizationErrorWorld],
+      ["maxQuantizationErrorCssPixels", maxQuantizationErrorCssPixels],
+      ["maxPathDistanceQuantizationErrorWorld", maxPathDistanceQuantizationErrorWorld],
+      ["maxPathDistanceQuantizationErrorCssPixels", maxPathDistanceQuantizationErrorCssPixels],
+      ["maxHatchFillBoundaryTessellationErrorWorld", maxHatchFillBoundaryTessellationErrorWorld],
+      ["maxHatchFillBoundaryTessellationErrorCssPixels", maxHatchFillBoundaryTessellationErrorCssPixels],
+      ["maxHatchFillTriangleQuantizationErrorWorld", maxHatchFillTriangleQuantizationErrorWorld],
+      ["maxHatchFillTriangleQuantizationErrorCssPixels", maxHatchFillTriangleQuantizationErrorCssPixels],
+      ["maxHatchFillEncodedGeometryErrorWorld", maxHatchFillEncodedGeometryErrorWorld],
+      ["maxHatchFillEncodedGeometryErrorCssPixels", maxHatchFillEncodedGeometryErrorCssPixels],
+      ["maxCurveSourceQuantizationErrorWorld", maxCurveSourceQuantizationErrorWorld],
+      ["maxCurveSourceQuantizationErrorCssPixels", maxCurveSourceQuantizationErrorCssPixels],
+      ["maxCircularCurveTessellationErrorWorld", maxCircularCurveTessellationErrorWorld],
+      ["maxCircularCurveTessellationErrorCssPixels", maxCircularCurveTessellationErrorCssPixels],
+      ["maxEllipseCurveTessellationErrorWorld", maxEllipseCurveTessellationErrorWorld],
+      ["maxEllipseCurveTessellationErrorCssPixels", maxEllipseCurveTessellationErrorCssPixels],
+      ["maxSplineCurveTessellationErrorWorld", maxSplineCurveTessellationErrorWorld],
+      ["maxSplineCurveTessellationErrorCssPixels", maxSplineCurveTessellationErrorCssPixels],
+      ["maxBulgeCurveTessellationErrorWorld", maxBulgeCurveTessellationErrorWorld],
+      ["maxBulgeCurveTessellationErrorCssPixels", maxBulgeCurveTessellationErrorCssPixels],
+      ["maxCurveEncodedGeometryErrorWorld", maxCurveEncodedGeometryErrorWorld],
+      ["maxCurveEncodedGeometryErrorCssPixels", maxCurveEncodedGeometryErrorCssPixels],
+      ["maxAdjacentChunkCompositeErrorWorld", maxAdjacentChunkCompositeErrorWorld],
+      ["maxAdjacentChunkCompositeErrorCssPixels", maxAdjacentChunkCompositeErrorCssPixels],
+      ["maxFillGlyphCompositeErrorWorld", maxFillGlyphCompositeErrorWorld],
+      ["maxFillGlyphCompositeErrorCssPixels", maxFillGlyphCompositeErrorCssPixels],
+    ] as const) {
       if (value !== undefined && (typeof value !== "number" || !Number.isFinite(value) || value < 0)) {
         throw new Error(`[ManifestValidation] Chunk '${rawChunk.chunkId || "?"}' için geçersiz ${field}.`);
       }
-      if (typeof value === "number") metrics[field] = value;
     }
     return {
       chunkId: String(rawChunk.chunkId),
       byteLength: Number(rawChunk.byteLength),
+      ...(renderableVertexCount === undefined ? {} : { renderableVertexCount }),
       sha256: String(rawChunk.sha256),
       layoutId: String(rawChunk.layoutId || "Model"),
       ...(bbox ? { bbox } : {}),
-      ...metrics,
+      ...(maxQuantizationErrorWorld === undefined ? {} : { maxQuantizationErrorWorld }),
+      ...(maxQuantizationErrorCssPixels === undefined ? {} : { maxQuantizationErrorCssPixels }),
+      ...(maxPathDistanceQuantizationErrorWorld === undefined ? {} : { maxPathDistanceQuantizationErrorWorld }),
+      ...(maxPathDistanceQuantizationErrorCssPixels === undefined ? {} : { maxPathDistanceQuantizationErrorCssPixels }),
+      ...(maxHatchFillBoundaryTessellationErrorWorld === undefined ? {} : { maxHatchFillBoundaryTessellationErrorWorld }),
+      ...(maxHatchFillBoundaryTessellationErrorCssPixels === undefined ? {} : { maxHatchFillBoundaryTessellationErrorCssPixels }),
+      ...(maxHatchFillTriangleQuantizationErrorWorld === undefined ? {} : { maxHatchFillTriangleQuantizationErrorWorld }),
+      ...(maxHatchFillTriangleQuantizationErrorCssPixels === undefined ? {} : { maxHatchFillTriangleQuantizationErrorCssPixels }),
+      ...(maxHatchFillEncodedGeometryErrorWorld === undefined ? {} : { maxHatchFillEncodedGeometryErrorWorld }),
+      ...(maxHatchFillEncodedGeometryErrorCssPixels === undefined ? {} : { maxHatchFillEncodedGeometryErrorCssPixels }),
+      ...(maxCurveSourceQuantizationErrorWorld === undefined ? {} : { maxCurveSourceQuantizationErrorWorld }),
+      ...(maxCurveSourceQuantizationErrorCssPixels === undefined ? {} : { maxCurveSourceQuantizationErrorCssPixels }),
+      ...(maxCircularCurveTessellationErrorWorld === undefined ? {} : { maxCircularCurveTessellationErrorWorld }),
+      ...(maxCircularCurveTessellationErrorCssPixels === undefined ? {} : { maxCircularCurveTessellationErrorCssPixels }),
+      ...(maxEllipseCurveTessellationErrorWorld === undefined ? {} : { maxEllipseCurveTessellationErrorWorld }),
+      ...(maxEllipseCurveTessellationErrorCssPixels === undefined ? {} : { maxEllipseCurveTessellationErrorCssPixels }),
+      ...(maxSplineCurveTessellationErrorWorld === undefined ? {} : { maxSplineCurveTessellationErrorWorld }),
+      ...(maxSplineCurveTessellationErrorCssPixels === undefined ? {} : { maxSplineCurveTessellationErrorCssPixels }),
+      ...(maxBulgeCurveTessellationErrorWorld === undefined ? {} : { maxBulgeCurveTessellationErrorWorld }),
+      ...(maxBulgeCurveTessellationErrorCssPixels === undefined ? {} : { maxBulgeCurveTessellationErrorCssPixels }),
+      ...(maxCurveEncodedGeometryErrorWorld === undefined ? {} : { maxCurveEncodedGeometryErrorWorld }),
+      ...(maxCurveEncodedGeometryErrorCssPixels === undefined ? {} : { maxCurveEncodedGeometryErrorCssPixels }),
+      ...(maxAdjacentChunkCompositeErrorWorld === undefined ? {} : { maxAdjacentChunkCompositeErrorWorld }),
+      ...(maxAdjacentChunkCompositeErrorCssPixels === undefined ? {} : { maxAdjacentChunkCompositeErrorCssPixels }),
+      ...(maxFillGlyphCompositeErrorWorld === undefined ? {} : { maxFillGlyphCompositeErrorWorld }),
+      ...(maxFillGlyphCompositeErrorCssPixels === undefined ? {} : { maxFillGlyphCompositeErrorCssPixels }),
     };
   };
 
   // Chunk toplama: Tüm indexPages sayfaları taranır
   const indexChunks: ValidatedManifestChunk[] = [];
   if (Array.isArray(m.indexPages)) {
-    for (const pageValue of m.indexPages as unknown[]) {
-      if (isRecord(pageValue) && Array.isArray(pageValue.chunks)) {
-        for (const ch of pageValue.chunks as unknown[]) {
+    for (let p = 0; p < m.indexPages.length; p++) {
+      const page = m.indexPages[p];
+      if (page && Array.isArray(page.chunks)) {
+        for (const ch of page.chunks) {
           indexChunks.push(normalizeChunk(ch));
         }
       }
@@ -682,7 +744,7 @@ export function validateSceneManifest(raw: unknown): ValidatedSceneManifest {
   }
 
   const flatChunks: ValidatedManifestChunk[] = Array.isArray(m.chunks)
-    ? (m.chunks as unknown[]).map(normalizeChunk)
+    ? m.chunks.map(normalizeChunk)
     : [];
 
   // Flat chunks ile index listesi çelişki kontrolü
@@ -700,6 +762,11 @@ export function validateSceneManifest(raw: unknown): ValidatedSceneManifest {
       if (indexedChunk.bbox && flatChunk.bbox && indexedChunk.bbox.some((value, index) => value !== flatChunk.bbox![index])) {
         throw new Error(`[ManifestValidation] Çelişki: chunk '${indexedChunk.chunkId}' bbox değeri indexPages ile manifest.chunks arasında uyuşmuyor.`);
       }
+      if (indexedChunk.renderableVertexCount !== undefined && flatChunk.renderableVertexCount !== undefined &&
+          indexedChunk.renderableVertexCount !== flatChunk.renderableVertexCount) {
+        throw new Error(`[ManifestValidation] Çelişki: chunk '${indexedChunk.chunkId}' renderableVertexCount değeri indexPages ile manifest.chunks arasında uyuşmuyor.`);
+      }
+      indexedChunk.renderableVertexCount ??= flatChunk.renderableVertexCount;
       indexedChunk.bbox ??= flatChunk.bbox;
       for (const field of [
         "maxQuantizationErrorWorld",
@@ -724,6 +791,10 @@ export function validateSceneManifest(raw: unknown): ValidatedSceneManifest {
         "maxBulgeCurveTessellationErrorCssPixels",
         "maxCurveEncodedGeometryErrorWorld",
         "maxCurveEncodedGeometryErrorCssPixels",
+        "maxAdjacentChunkCompositeErrorWorld",
+        "maxAdjacentChunkCompositeErrorCssPixels",
+        "maxFillGlyphCompositeErrorWorld",
+        "maxFillGlyphCompositeErrorCssPixels",
       ] as const) {
         const indexedError = indexedChunk[field];
         const flatError = flatChunk[field];
@@ -761,37 +832,24 @@ export function validateSceneManifest(raw: unknown): ValidatedSceneManifest {
     totalBytes += ch.byteLength;
   }
 
-  const diagnosticsSummary = isRecord(m.diagnosticsSummary) ? m.diagnosticsSummary : {};
-  let layers: Record<string, CadLayer> | undefined;
-  if (m.layers !== undefined) {
-    if (!isRecord(m.layers)) {
-      throw new Error("[ManifestValidation] Katman listesi geçersiz.");
-    }
-    layers = {};
-    for (const [layerId, layer] of Object.entries(m.layers)) {
-      if (!isCadLayer(layer)) {
-        throw new Error(`[ManifestValidation] '${layerId}' katmanının tanımı geçersiz.`);
-      }
-      layers[layerId] = layer;
-    }
-  }
   return {
     schemaVersion: 1,
+    renderAbi: CAD_V2_RENDER_ABI,
     sceneId: m.sceneId,
     sourceVersionKey: m.sourceVersionKey,
     sourceSha256: m.sourceSha256,
     qualityStatus: m.qualityStatus === "degraded" ? "degraded" : "exact",
     diagnosticsSummary: {
-      unknownEntityCount: typeof diagnosticsSummary.unknownEntityCount === "number" ? diagnosticsSummary.unknownEntityCount : 0,
-      unknownObjectCount: typeof diagnosticsSummary.unknownObjectCount === "number" ? diagnosticsSummary.unknownObjectCount : 0,
-      missingFontCount: typeof diagnosticsSummary.missingFontCount === "number" ? diagnosticsSummary.missingFontCount : 0,
-      missingDependencyCount: typeof diagnosticsSummary.missingDependencyCount === "number" ? diagnosticsSummary.missingDependencyCount : 0,
-      diagnosticCodes: Array.isArray(diagnosticsSummary.diagnosticCodes)
-        ? diagnosticsSummary.diagnosticCodes.filter((code): code is string => typeof code === "string")
+      unknownEntityCount: m.diagnosticsSummary?.unknownEntityCount ?? 0,
+      unknownObjectCount: m.diagnosticsSummary?.unknownObjectCount ?? 0,
+      missingFontCount: m.diagnosticsSummary?.missingFontCount ?? 0,
+      missingDependencyCount: m.diagnosticsSummary?.missingDependencyCount ?? 0,
+      diagnosticCodes: Array.isArray(m.diagnosticsSummary?.diagnosticCodes)
+        ? m.diagnosticsSummary.diagnosticCodes
         : [],
     },
     layouts: validatedLayouts,
-    layers,
+    layers: m.layers,
     chunks: Array.from(chunkMap.values()),
     totalExpectedBytes: totalBytes,
   };

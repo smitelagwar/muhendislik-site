@@ -286,3 +286,9 @@ Aşağıdakiler mevcut baseline mimarinin parçası **değildir** ve otomatik ek
 - parsed geometry formatını sıfırdan tasarlayan worker protokolü.
 
 Böyle bir motor ancak kullanıcı açıkça yeni engine geliştirilmesini isterse, mevcut engine korunarak ayrı canary olarak yapılabilir.
+
+## 13. Ayrı CAD V2 scene yolunda Model başlangıç görünüşü
+
+`src/lib/cad-v2` altındaki 2D scene compiler, kaynak DWG/DXF model extents değerlerini (`$EXTMIN` / `$EXTMAX`) geçerliyse Model görünüşünün ilk `Fit` sınırı olarak kullanır. Extents geçersizse veya derlenmiş geometriyle kesişmiyorsa derlenmiş geometri bbox'ına düşer.
+
+Bu sınır yalnız kamera/fit içindir. Scene chunk bbox'ları ve geometri bütünlüğü kaynak koordinatlarını korur; native başlangıç görünüşünün dışında kalan chunk'lar silinmez veya kesilmez ve kullanıcı pan/zoom ile onlara ulaşabilir. Bu kural `cad-v2` canary yoluna aittir; V1 fallback'i veya varsayılan engine seçimini değiştirmez.

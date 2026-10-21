@@ -1,0 +1,199 @@
+{
+  "status": "PARTIAL",
+  "plan": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\PLAN\\DWG_DXF_MOTOR_V2_GPT_6_LUNA_EXTRA_HIGH_PLANI.md",
+  "observedAt": "2026-10-18",
+  "candidate": {
+    "branch": "codex/srdr-dwg-motor-v2-fidelity",
+    "head": "4b51ebe6b1470c6a247e03158dfe4b5359621c97",
+    "compilerRevision": "cad-v2-compiler-2026.09-v71",
+    "productionBuild": ".test-data/l11-hardware/next-prod-p00-l11-20261018-v13",
+    "source": {
+      "id": "R001",
+      "format": "DWG",
+      "sizeBytes": 3444087,
+      "sha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086",
+      "decoderEvidence": "LibreDWG error 68; not a clean-decode or native-oracle pass"
+    },
+    "hardware": {
+      "gpu": "NVIDIA GeForce RTX 4060",
+      "backend": "Chrome ANGLE D3D11",
+      "driverVersion": "32.0.16.1742"
+    }
+  },
+  "rendererChange": {
+    "summary": "Opaque, non-dashed, source-range-complete line and triangle commands use painter-depth BatchedMesh rendering. Hairline visibility and unsupported/fallback command paths remain explicit; V1/default engine is unchanged.",
+    "runtimeRegressionCoverage": "Interleaved line/fill painter depth, one batch per GL type, increasing instance order, depth flags, weighted/hairline visibility, style texture order and layer visibility pass in cad-renderer-resource-ownership.test.ts.",
+    "p00BatchDiagnostics": {
+      "evaluatedChunkCountAcrossColdAndWarm": 582,
+      "lineInstancesAcrossColdAndWarm": 28409,
+      "triangleInstancesAcrossColdAndWarm": 9048,
+      "fallbackReasons": {},
+      "drawCallsPerFrameP95": 368,
+      "directDrawCallsPerFrameP95": 251,
+      "multiDrawCallsPerFrameP95": 117
+    }
+  },
+  "p00Runs": [
+    {
+      "id": "v20b",
+      "exitCode": 1,
+      "frameCount": 50,
+      "panZoomDrawFrameP95Ms": 18.1,
+      "firstAcceptedDrawReadbackForegroundPixels": 0,
+      "failure": "The early default-framebuffer readback was empty before later visible geometry was captured in the Playwright failure screenshot. This was an instrumentation gate, not evidence that the settled canvas was empty."
+    },
+    {
+      "id": "v20c",
+      "exitCode": 1,
+      "frameCount": 44,
+      "panZoomDrawFrameP95Ms": 24.2,
+      "targetMs": 20,
+      "failure": "The measured desktop frame-interval p95 exceeded the unchanged 20 ms target."
+    },
+    {
+      "id": "v20d",
+      "exitCode": 0,
+      "frameCount": 59,
+      "panZoomDrawFrameP50Ms": 12.0,
+      "panZoomDrawFrameP95Ms": 12.3,
+      "panZoomDrawFrameMaxMs": 18.2,
+      "drawCallbackP95Ms": 4.1,
+      "inputToNextWebGlDrawP95Ms": 5.7,
+      "interactionLongTasks": 0,
+      "settledCanvasForegroundPixels": 4701,
+      "occupiedRasterCells20x20": 43,
+      "firstOpenSettleMs": 2514.2,
+      "warmOpenSettleMs": 2281.8,
+      "settledCanvasSha256": "c03fa4fc0ddb6f88995251b74d582efb426779e6c830eac156cf706a36819f4c"
+    },
+    {
+      "id": "v20e",
+      "exitCode": 0,
+      "frameCount": 59,
+      "panZoomDrawFrameP50Ms": 12.0,
+      "panZoomDrawFrameP95Ms": 12.2,
+      "panZoomDrawFrameMaxMs": 18.5,
+      "drawCallbackP95Ms": 3.4,
+      "inputToNextWebGlDrawP95Ms": 4.7,
+      "interactionLongTasks": 0,
+      "settledCanvasForegroundPixels": 4701,
+      "occupiedRasterCells20x20": 43,
+      "firstOpenSettleMs": 2521.3,
+      "warmOpenSettleMs": 2312.7,
+      "settledCanvasSha256": "c03fa4fc0ddb6f88995251b74d582efb426779e6c830eac156cf706a36819f4c"
+    },
+    {
+      "id": "v20f",
+      "exitCode": 0,
+      "frameCount": 59,
+      "panZoomDrawFrameP50Ms": 6.2,
+      "panZoomDrawFrameP95Ms": 12.2,
+      "panZoomDrawFrameMaxMs": 18.1,
+      "drawCallbackP95Ms": 2.7,
+      "inputToNextWebGlDrawP95Ms": 5.7,
+      "interactionLongTasks": 1,
+      "interactionLongTaskMaxMs": 51,
+      "settledCanvasForegroundPixels": 4701,
+      "occupiedRasterCells20x20": 43,
+      "firstOpenSettleMs": 2517.4,
+      "warmOpenSettleMs": 2397.5,
+      "settledCanvasSha256": "c03fa4fc0ddb6f88995251b74d582efb426779e6c830eac156cf706a36819f4c"
+    }
+  ],
+  "repeatability": {
+    "fullP00ExitZeroRuns": 3,
+    "p95TargetPassesAcrossFiveMeasuredRuns": 4,
+    "p95TargetFailuresAcrossFiveMeasuredRuns": 1,
+    "observedP95RangeMs": [12.2, 24.2],
+    "coldWarmCanvasHashesEqual": true,
+    "historicalCanvasHash": "f678aa8078b1367b0423e845cc2b4e3176c23858b2d1d7276ef032cc8f86fad0",
+    "historicalHashMatchesCurrent": false,
+    "interpretation": "Three full test runs passed, but one measured p95 exceeded target and the five-run sample is not the required 30-run release benchmark. Cold/warm equality is repeatability only, not AutoCAD visual parity."
+  },
+  "admissionOrderCounterfactual": {
+    "kind": "same-host, test-only manifest order replay; production scheduler unchanged",
+    "sameCamera": true,
+    "sameAcceptedChunkCount": 251,
+    "sameGpuBudgetRejectedChunkCount": 33,
+    "results": {
+      "baselineManifestOrder": {
+        "acceptedVertices": 4169840,
+        "settledMs": 2517.367,
+        "settledCanvasForegroundPixels": 4701,
+        "occupiedRasterCells20x20": 43,
+        "canvasSha256": "c03fa4fc0ddb6f88995251b74d582efb426779e6c830eac156cf706a36819f4c"
+      },
+      "projectedGridOrder": {
+        "acceptedVertices": 4065016,
+        "settledMs": 2628.668,
+        "settledCanvasForegroundPixels": 5967,
+        "occupiedRasterCells20x20": 43,
+        "canvasSha256": "b87ee19b0c704051e113a30a00ec1df0d4cc041e66c964618160034e54c5bda7"
+      },
+      "viewportGridOrder": {
+        "acceptedVertices": 4065032,
+        "settledMs": 2499.356,
+        "settledCanvasForegroundPixels": 6008,
+        "occupiedRasterCells20x20": 43,
+        "canvasSha256": "67b9af101fca7fd6bc0d4dc8546bde9100916f664d48cbbbfdcd765cef15d3ad"
+      }
+    },
+    "interpretation": "Grid orders changed the partial raster composition and increased foreground pixel count while accepting fewer vertices; pixel count alone does not measure fidelity, readability or semantic ROI. No production ordering change is justified without semantic/native review."
+  },
+  "resourceBudget": {
+    "visibleModelChunkCount": 284,
+    "initialChunkRequests": 284,
+    "initialChunkBytes": 97780112,
+    "acceptedChunks": 251,
+    "gpuRejectedChunks": 33,
+    "acceptedVertexCount": 4169840,
+    "rejectedVertexCount": 3195120,
+    "peakAcceptedCpuEstimateBytes": 63279984,
+    "peakRejectedCandidateCpuEstimateBytes": 65864628,
+    "cpuBudgetBytes": 67108864,
+    "peakAcceptedGpuEstimateBytes": 67071232,
+    "peakRejectedCandidateGpuEstimateBytes": 68507264,
+    "gpuBudgetBytes": 67108864,
+    "acceptedGpuHeadroomBytes": 37632,
+    "quality": "PARTIAL; visible omission is reported to the user, and the 33 rejected chunk IDs span projected viewport cells. No 64 MiB budget was increased."
+  },
+  "raster": {
+    "settledCanvasOnlyCapture": true,
+    "settledForegroundPixels": 4701,
+    "occupiedCells20x20": 43,
+    "coldWarmMaskEqual": true,
+    "coldWarmCanvasSha256": "c03fa4fc0ddb6f88995251b74d582efb426779e6c830eac156cf706a36819f4c",
+    "nativeSameSourceOracle": "NOT_RUN"
+  },
+  "coldReleaseBenchmark": {
+    "report": "cold-release-l11-cold-2026-10-18T03-19-12-831Z-8924.json",
+    "compilerRevision": "cad-v2-compiler-2026.09-v71",
+    "samplesPerFile": 30,
+    "results": {
+      "R001": { "p50Ms": 10422.824, "p95Ms": 10496.605 },
+      "R002": { "p50Ms": 12370.076, "p95Ms": 12456.31 },
+      "R003": { "p50Ms": 107184.571, "p95Ms": 109752.407 },
+      "R004": { "p50Ms": 84805.019, "p95Ms": 86741.707 }
+    },
+    "scope": "Isolated cold prepare/compile timings, not browser time-to-first-meaningful-frame."
+  },
+  "otherLifecycleEvidence": "LIFECYCLE_HARDWARE_20261018.json: 20/20 open-close worker/session cleanup, 10 WebGL context recovery cycles, cancel and file-switch stale-response tests; global listener/heap plateau and physical GPU/process peak remain limited or NOT_RUN.",
+  "validation": {
+    "p00ProductionPlaywright": "Three full production GPU runs exit 0; two prior runs exit 1 for the documented readback-gate and p95 issues.",
+    "rendererResourceOwnershipUnit": "PASS",
+    "cadV2UnitSuite": "PASS exit 0 after renderer eligibility/hairline fixes",
+    "runtimeTypeScript": "PASS npx tsc --noEmit --incremental false -p tsconfig.next.json",
+    "productionBuild": "PASS; Next.js 16 webpack build in isolated test dist",
+    "sourceAndBuildShaManifest": "No immutable deployment/source artifact digest; candidate was dirty and uncommitted."
+  },
+  "openAcceptance": [
+    "Desktop frame p95 is not stable across five attempts; one run measured 24.2 ms over the 20 ms target.",
+    "The browser P00 release benchmark has not been repeated 30 times per release condition.",
+    "The first accepted draw at 31.4 ms is not a verified first meaningful visible frame; the early readback can be empty, while the later settled screenshot is non-empty.",
+    "The 64 MiB GPU estimate admits 251/284 initially visible chunks; 33 remain missing and reported partial, so complete viewport acceptance is not achieved.",
+    "No physical heavy-phone 33 ms frame p95, continuous browser/worker OS peak, or physical VRAM measurement.",
+    "No clean R001 decode or same-source AutoCAD ROI/raster oracle; LibreDWG error 68 remains."
+  ],
+  "command": "NEXT_DIST_DIR=.test-data/l11-hardware/next-prod-p00-l11-20261018-v13; npx playwright test --config=.test-data/l11-hardware/playwright.prod-gpu.config.ts --project=chromium-hardware-gpu-production",
+  "sideEffects": "No production data, commit, push, deployment, V1 fallback or default-engine change."
+}

@@ -441,10 +441,6 @@ export interface LinetypeResolutionContext {
   parentInserts?: CadInsertEntity[];
   layerOverrides?: Record<string, Partial<CadLayer>>;
   globalLtScale?: number; // LTSCALE (default 1.0)
-  currentLtScale?: number; // CELTSCALE (default 1.0)
-  isPaperSpace?: boolean;
-  psLtScale?: number; // PSLTSCALE (default 1.0)
-  msLtScale?: number; // MSLTSCALE (default 1.0)
 }
 
 export interface ResolvedLinetype {
@@ -531,10 +527,7 @@ export function resolveEntityLinetype(
 
   const entScale = typeof ent.linetypeScale === "number" && ent.linetypeScale > 0 ? ent.linetypeScale : 1.0;
   const globalScale = typeof ctx?.globalLtScale === "number" && ctx.globalLtScale > 0 ? ctx.globalLtScale : 1.0;
-  const curScale = typeof ctx?.currentLtScale === "number" && ctx.currentLtScale > 0 ? ctx.currentLtScale : 1.0;
-  const psScale = ctx?.isPaperSpace ? (typeof ctx?.psLtScale === "number" && ctx.psLtScale > 0 ? ctx.psLtScale : 1.0) : 1.0;
-  const msScale = !ctx?.isPaperSpace ? (typeof ctx?.msLtScale === "number" && ctx.msLtScale > 0 ? ctx.msLtScale : 1.0) : 1.0;
-  const effectiveScale = entScale * globalScale * curScale * psScale * msScale;
+  const effectiveScale = entScale * globalScale;
 
   return {
     name: targetName,
@@ -878,7 +871,13 @@ export function tessellateDashedArc(
       const th = startAngleRad + sweepSign * (curDist / radius);
       const px = center[0] + radius * Math.cos(th);
       const py = center[1] + radius * Math.sin(th);
-      segments.push({ x0: px, y0: py, x1: px, y1: py, d0: curDist, d1: curDist, isDot: true });
+      const dotLen = Math.min(0.001 * safeScale, arcLength - curDist);
+      segments.push({
+        x0: px, y0: py,
+        x1: px - sweepSign * Math.sin(th) * dotLen,
+        y1: py + sweepSign * Math.cos(th) * dotLen,
+        d0: curDist, d1: curDist + dotLen, isDot: true,
+      });
     }
 
     curDist += step;

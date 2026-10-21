@@ -38,6 +38,7 @@ interface RawManifestInput extends Record<string, unknown> {
 function createValidManifestTemplate(): RawManifestInput {
   return {
     schemaVersion: 1,
+    renderAbi: "three172-cad2d-v2",
     sceneId: "scene_test_1234567890abcdef",
     sourceVersionKey: "v1.0.0",
     sourceSha256: "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086",
@@ -89,6 +90,18 @@ function testInvalidSchemaThrows() {
   console.log("  ✓ Geçersiz şema sürümü başarıyla yakalandı.");
 }
 
+function testInvalidRenderAbiThrows() {
+  const raw = createValidManifestTemplate();
+  raw.renderAbi = "unrecognized-render-abi";
+  assert.throws(() => validateSceneManifest(raw), /Desteklenmeyen render ABI/,
+    "Host, tanımadığı render ABI ile chunk decoder başlatmamalıdır.");
+  const missing = createValidManifestTemplate();
+  delete missing.renderAbi;
+  assert.throws(() => validateSceneManifest(missing), /Desteklenmeyen render ABI/,
+    "Manifest ABI eksikliği fail-closed olmalıdır.");
+  console.log("  ✓ Eksik veya tanınmayan render ABI decode öncesi reddedildi.");
+}
+
 function testNonFiniteBBoxThrows() {
   const raw = createValidManifestTemplate();
   raw.layouts[0].bbox = [NaN, 0, 100, 100];
@@ -132,9 +145,27 @@ function testOptionalChunkBboxValidationAndCompatibility() {
   assert.throws(() => validateSceneManifest(conflicting), /bbox değeri indexPages ile manifest\.chunks arasında uyuşmuyor/,
     "Flat ve index bbox çelişkisi reddedilmelidir.");
 
+  const withVertexHint = createValidManifestTemplate();
+  withVertexHint.chunks[0].renderableVertexCount = 42;
+  assert.equal(validateSceneManifest(withVertexHint).chunks[0]?.renderableVertexCount, 42,
+    "Manifest validator exact drawable vertex hint'ini scheduler'a taşır.");
+  const invalidVertexHint = createValidManifestTemplate();
+  invalidVertexHint.chunks[0].renderableVertexCount = 1.5;
+  assert.throws(() => validateSceneManifest(invalidVertexHint), /geçersiz renderableVertexCount/,
+    "Kesirli drawable vertex hint'i reddedilir.");
+  const conflictingVertexHint = createValidManifestTemplate();
+  conflictingVertexHint.indexPages = [{ indexId: "idx_vertex_hint", chunks: [{
+    ...conflictingVertexHint.chunks[0], renderableVertexCount: 41,
+  }] }];
+  conflictingVertexHint.chunks[0].renderableVertexCount = 42;
+  assert.throws(() => validateSceneManifest(conflictingVertexHint), /renderableVertexCount değeri indexPages ile manifest\.chunks arasında uyuşmuyor/,
+    "Flat manifest ile immutable index arasındaki vertex hint çelişkisi fail-closed olur.");
+
   const legacy = createValidManifestTemplate();
   assert.equal(validateSceneManifest(legacy).chunks[0]?.bbox, undefined,
     "Eski manifestler bbox alanı olmadan geriye uyumlu kalmalıdır.");
+  assert.equal(validateSceneManifest(legacy).chunks[0]?.renderableVertexCount, undefined,
+    "Eski manifestler drawable vertex hint'i olmadan geriye uyumlu kalmalıdır.");
   console.log("  ✓ Chunk bbox finite/order/conflict doğrulaması ve eski manifest geriye uyumluluğu PASS.");
 }
 
@@ -243,6 +274,7 @@ function main() {
   console.log("▶ P02 Manifest Validation Testleri Başlatılıyor...");
   testValidManifestPasses();
   testInvalidSchemaThrows();
+  testInvalidRenderAbiThrows();
   testNonFiniteBBoxThrows();
   testOptionalChunkBboxValidationAndCompatibility();
   testDuplicateChunkIdThrows();

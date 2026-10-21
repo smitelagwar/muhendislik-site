@@ -1,0 +1,1662 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "same-decoder raw-to-canonical source census; not an independent AutoCAD oracle",
+  "status": "LOCAL_CENSUS_DEGRADED",
+  "source": {
+    "id": "R004",
+    "path": "eklediklerim/ornek_dosyalar/SÜHEYLA KARA STATİK (HAFİF).dxf",
+    "format": "DXF",
+    "magic": "  0\nSE",
+    "bytes": 55259742,
+    "sha256": "36f87f826fe4dd9a8f03f8c83bafeeddfc84f1e0efada5c0fded8014a2ef7cf1"
+  },
+  "candidate": {
+    "branch": "codex/srdr-dwg-motor-v2-fidelity",
+    "head": "4b51ebe6b1470c6a247e03158dfe4b5359621c97",
+    "dirtyStateSha256": "555e8ef84f3251a317b0998567ee108c4039d0abb5837956dc8c10bd1dfe80b5",
+    "dirtyState": {
+      "sha256": "555e8ef84f3251a317b0998567ee108c4039d0abb5837956dc8c10bd1dfe80b5",
+      "trackedDiffBytes": 2080232,
+      "untrackedFilesHashed": 102
+    },
+    "compiler": "cad-v2-compiler-2026.09-v71",
+    "pipeline": "fidelity-v3-p08",
+    "renderAbi": "three172-cad2d-v2"
+  },
+  "decoder": {
+    "rawParser": "@mlightcad/data-model block-table iterators + candidate DXF adapter",
+    "rawSummary": {
+      "rawFlattenedEntityCount": null,
+      "blockRecordCount": 303,
+      "layoutObjects": [
+        {
+          "handle": "1E",
+          "name": "Layout1",
+          "blockRecordRef": "1B"
+        },
+        {
+          "handle": "26",
+          "name": "Layout2",
+          "blockRecordRef": "23"
+        },
+        {
+          "handle": "22",
+          "name": "Model",
+          "blockRecordRef": "1F"
+        }
+      ],
+      "header": {
+        "version": null,
+        "codepage": null,
+        "insunits": null
+      },
+      "rawEntityOwners": "Each block-table-record iterator was inventoried; entity ownerId is compared with that record's objectId/handle."
+    }
+  },
+  "canonical": {
+    "modelCount": 132668,
+    "paperCountsByLayout": {
+      "Layout1": 0,
+      "Layout2": 0
+    },
+    "blockCount": 300,
+    "layoutNames": [
+      {
+        "id": "Model",
+        "name": "Model",
+        "model": true,
+        "blockRecordName": "*Model_Space"
+      },
+      {
+        "id": "Layout1",
+        "name": "Layout1",
+        "model": false,
+        "blockRecordName": "*Paper_Space"
+      },
+      {
+        "id": "Layout2",
+        "name": "Layout2",
+        "model": false,
+        "blockRecordName": "*Paper_Space0"
+      }
+    ],
+    "diagnosticCounts": {
+      "warning:UNRESOLVED_DIMENSION_SOURCE_GEOMETRY": 9,
+      "warning:UNSUPPORTED_DIMENSION_ENTITY_OVERRIDE": 5,
+      "warning:UNSUPPORTED_ENTITY_TYPE": 1
+    },
+    "rawStats": {
+      "rawHeaderInsunits": 5,
+      "rawEntitiesCount": 132668,
+      "rawTableCounts": {
+        "blocks": 300,
+        "layers": 69,
+        "linetypes": 17,
+        "textStyles": 27
+      }
+    }
+  },
+  "reconciliation": {
+    "rowCount": 230889,
+    "countsByRole": {
+      "block": 98220,
+      "model": 132669
+    },
+    "countsByType": {
+      "ARC": 14441,
+      "CIRCLE": 23700,
+      "DIMENSION": 285,
+      "ELLIPSE": 23,
+      "HATCH": 1216,
+      "INSERT": 1565,
+      "LINE": 6058,
+      "LWPOLYLINE": 128750,
+      "MTEXT": 493,
+      "OLE2FRAME": 1,
+      "POINT": 906,
+      "SOLID": 4,
+      "TEXT": 53447
+    },
+    "countsByClassification": {
+      "UNACCOUNTED": 132669,
+      "unreferenced_block_content": 98220
+    },
+    "canonicalLocationCounts": {},
+    "rowsWithDiagnostic": 0,
+    "unsupportedRows": 0,
+    "invalidRows": 0,
+    "unaccountedRows": 132669,
+    "unaccountedExamples": [
+      {
+        "handle": null,
+        "type": "INSERT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "INSERT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "ARC",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "ARC",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "ARC",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "ARC",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "ARC",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "MTEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "MTEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "MTEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "MTEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "MTEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "MTEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "MTEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "MTEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "MTEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "HATCH",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "CIRCLE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "HATCH",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "CIRCLE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "HATCH",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "CIRCLE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "MTEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "MTEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "OLE2FRAME",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "TEXT",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      },
+      {
+        "handle": null,
+        "type": "LWPOLYLINE",
+        "role": "model",
+        "ownerRecordName": "*Model_Space",
+        "ownerRef": "1F"
+      }
+    ],
+    "ownerMismatchCount": 0,
+    "ownerMismatchExamples": [],
+    "duplicateRawHandleCount": 0,
+    "duplicateRawHandleExamples": [],
+    "canonicalOnlyHandleCount": 229978,
+    "canonicalOnlyHandleExamples": [
+      "1B9A35",
+      "1B9A36",
+      "1B9A37",
+      "1B9A38",
+      "1B9A39",
+      "1B9A3A",
+      "1B9A3B",
+      "1B9A3C",
+      "1B9A3D",
+      "9C3F7",
+      "9C3F8",
+      "9C3F9",
+      "9C3FA",
+      "9C3FB",
+      "9C3FC",
+      "9C3FD",
+      "9C3FE",
+      "9C3FF",
+      "9C400",
+      "9C401",
+      "9C402",
+      "9C403",
+      "9C404",
+      "9C405",
+      "9C406",
+      "9C407",
+      "9C408",
+      "9C409",
+      "9C40A",
+      "9C40B",
+      "9C40C",
+      "9C40D",
+      "9C40E",
+      "9C40F",
+      "9C410",
+      "9C411",
+      "9C412",
+      "9C413",
+      "9C414",
+      "9C415",
+      "9C416",
+      "9C417",
+      "9C418",
+      "9C419",
+      "9C41A",
+      "9C41B",
+      "9C41C",
+      "9C41D",
+      "9C41E",
+      "9C41F",
+      "9C420",
+      "9C421",
+      "9C422",
+      "9C423",
+      "9C424",
+      "9C425",
+      "9C426",
+      "9C427",
+      "9C428",
+      "9C429",
+      "9C42A",
+      "9C42B",
+      "9C42C",
+      "9C42D",
+      "9C42E",
+      "9C42F",
+      "9C430",
+      "9C431",
+      "9C432",
+      "9C433",
+      "9C434",
+      "9C435",
+      "9C436",
+      "9C437",
+      "9C438",
+      "9C439",
+      "9C43A",
+      "9C43B",
+      "9C43C",
+      "9C43D",
+      "9C43E",
+      "9C43F",
+      "9C440",
+      "9C441",
+      "9C442",
+      "9C443",
+      "9C444",
+      "9C463",
+      "9C464",
+      "9C465",
+      "9C466",
+      "9C467",
+      "9C468",
+      "9C469",
+      "9C46A",
+      "9C46B",
+      "9C46C",
+      "9C46D",
+      "9C46E",
+      "9C46F"
+    ],
+    "expansionAccounting": {
+      "kind": "candidate canonical graph reachability; not geometric draw/clip proof",
+      "visits": 248237,
+      "truncated": false,
+      "uniqueSourceHandlesWithOccurrences": 228306,
+      "totalSourceEntityOccurrences": 248237,
+      "entityOccurrencesUnderClippedInsert": 0
+    }
+  },
+  "inventory": {
+    "path": ".test-data/cad-v2-l07-raw-census/20261017T214100Z-l07/r004-raw-canonical.jsonl.gz",
+    "bytesGzip": 870431,
+    "sha256Gzip": "962ee0bb5978e56f5b77df1f50f0c510202327d699891d75d89daa4ea0ee595f",
+    "recordCount": 230889,
+    "recordFormat": "one JSON object per gzip line; raw handle, owner record/reference, layout, source visibility, canonical location, diagnostics, potential block occurrences and clip scope"
+  },
+  "limits": [
+    "Raw and canonical views use the same decoder family; this is adapter accounting, not independent file truth.",
+    "Potential block occurrences are graph reachability counts; they do not prove rendered geometry, draw completeness, or clip intersection.",
+    "Missing AutoCAD LT 2027 native oracle keeps numeric/layout parity NOT_RUN.",
+    "FAIL-404 source bytes and SHA remain unavailable; the provided screenshots are only prepare-200 then chunk-404 evidence."
+  ],
+  "elapsedMs": 15679,
+  "nativeOracle": "NOT_RUN"
+}

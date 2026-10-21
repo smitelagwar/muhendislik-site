@@ -1,0 +1,245 @@
+{
+  "evidenceId": "F08-R001-MEMORY-LIFECYCLE-V93",
+  "measuredAt": "2026-09-30 (Europe/Istanbul; hardware observer UTC window 2026-09-29T20:55:34Z–2026-09-29T21:01:01Z)",
+  "classification": "NODE REAL-SCENE PASS; SWIFTSHADER P00 PASS; RTX 4060/D3D11 EXACT-TIER P00 EXPLORATION PASS; EXTERNAL ACCEPTANCE OPEN",
+  "source": {
+    "id": "R001",
+    "sizeBytes": 3444087,
+    "sha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086",
+    "decodeStatus": "LibreDWG error 68; clean/native decode NOT_RUN"
+  },
+  "nodeRealSceneRender": {
+    "command": "npx tsx tests/cad-v2/real-scene-render.test.ts",
+    "exitCode": 0,
+    "result": "PASS: decode, scene compile, worker unpack/reload/refinement, 20 worker-client open/close cycles and R002 render compile assertions",
+    "phasesMs": {
+      "decode": 1669.4309,
+      "sceneCompile": 8514.0816,
+      "parallelChunkCopies": 1.3479,
+      "firstChunkUnpack": 4.7076,
+      "curveRefinement": 1.1561,
+      "sameSourceChunkReload": 0.5584,
+      "firstWorkerLoad": 0.7736,
+      "twentyWorkerClientOpenClose": 17.9028
+    },
+    "processMemorySamples": {
+      "testStart": {
+        "rssBytes": 75534336,
+        "heapUsedBytes": 14980120,
+        "processMaxRssBytes": 76292096
+      },
+      "afterDecode": {
+        "rssBytes": 417738752,
+        "heapUsedBytes": 147660856,
+        "processMaxRssBytes": 428036096
+      },
+      "afterCompile": {
+        "rssBytes": 1883897856,
+        "heapUsedBytes": 528274928,
+        "processMaxRssBytes": 2001043456
+      },
+      "afterParallelChunkCopies": {
+        "rssBytes": 1886810112,
+        "heapUsedBytes": 528352488,
+        "processMaxRssBytes": 2001043456
+      },
+      "afterFirstChunkUnpack": {
+        "rssBytes": 1888133120,
+        "heapUsedBytes": 530710832,
+        "processMaxRssBytes": 2001043456
+      },
+      "afterWorkerChunkAccounting": {
+        "rssBytes": 1888149504,
+        "heapUsedBytes": 530757160,
+        "processMaxRssBytes": 2001043456
+      },
+      "afterCurveRefinement": {
+        "rssBytes": 1888165888,
+        "heapUsedBytes": 531279480,
+        "processMaxRssBytes": 2001043456
+      },
+      "afterChunkReload": {
+        "rssBytes": 1888165888,
+        "heapUsedBytes": 531338944,
+        "processMaxRssBytes": 2001043456
+      },
+      "afterFirstWorkerLoad": {
+        "rssBytes": 1891815424,
+        "heapUsedBytes": 531420576,
+        "processMaxRssBytes": 2001043456
+      },
+      "beforeTwentyWorkerCycles": {
+        "rssBytes": 1893036032,
+        "heapUsedBytes": 531436504,
+        "processMaxRssBytes": 2001043456
+      },
+      "afterTwentyWorkerCycles": {
+        "rssBytes": 1917587456,
+        "heapUsedBytes": 532778720,
+        "processMaxRssBytes": 2001043456
+      }
+    },
+    "resourceEstimates": {
+      "parallelChunkSourceCopyBytes": 1692880,
+      "firstWorkerUnpackedChunkBytes": 1272108,
+      "firstChunkRendererCpuBytes": 1212120,
+      "firstChunkGpuBufferEstimateBytes": 1212120,
+      "firstChunkConstructionScratchCpuBytes": 50112
+    },
+    "scope": "OS-maintained Node process maxRSS sampled at explicit phase boundaries; not browser process RSS or GPU residency. Test assertions passed, but the source still reported LibreDWG error 68, so this is not clean/native decode evidence."
+  },
+  "chromiumP00Observer": {
+    "command": "CI=true PLAYWRIGHT_PORT=3152 npm run check:cad-v2:f08:p00 -- --reporter=line",
+    "testExitCode": 0,
+    "testResult": "PASS: 1/1 Playwright test (5.5m). The event-driven post-target response barrier preserved exact accepted-tier readbacks; all exact 6/12/18 targets and accepted chunk ID assertions passed.",
+    "testOnlyPacing": "Post-target chunk route responses wait on a Promise barrier. A console.debug marker emitted immediately after readPixels releases the barrier; finally also releases it. Exact accepted-count and ID checks remain enabled. No production scheduling/admission/budget behavior changed.",
+    "exactAcceptedTierTargetsCompleted": [
+      6,
+      12,
+      18
+    ],
+    "cumulativeSuccessfulMatchingCaptures": {
+      "6": 9,
+      "12": 6,
+      "18": 3
+    },
+    "firstOpenObservation": {
+      "visibleModelChunks": 284,
+      "acceptedChunks": 194,
+      "uniqueCpuRejectedChunks": 90,
+      "gpuRejectedChunks": 0
+    },
+    "processObserver": {
+      "rawNdjsonPath": "C:/Users/hsyn/AppData/Local/Temp/cad-v2-p00-hwm-010b499c7b1c44d882dc8adce81688b5.ndjson",
+      "observationWindowUtc": {
+        "first": "2026-09-29T20:05:07.8825631Z",
+        "last": "2026-09-29T20:10:31.3739594Z"
+      },
+      "totalPollRecords": 413,
+      "pollRecordsWithChromium": 310,
+      "medianChromiumSampleIntervalMs": 979.8,
+      "maxConcurrentChromeHeadlessProcesses": 7,
+      "maxSampledAggregateChromiumWorkingSetBytes": 2836733952,
+      "maxObservedSingleChromeHeadlessOsPeakWorkingSetBytes": 1805160448,
+      "filter": "chrome-headless-shell only; ffmpeg helper excluded from Chromium aggregates (9 total ms-playwright processes including helper observed at peak)"
+    },
+    "limitations": [
+      "The exact 6/12/18 accepted-tier and accepted-ID assertions passed in this P00 run; cumulative matching capture totals are 9/6/3. This record does not restate pixel-mask values, which were not independently re-extracted for this update.",
+      "Aggregate working-set value is the maximum sampled sum, not an OS-maintained multi-process high-water mark; median Chromium sampling interval was about 980 ms and can miss short aggregate spikes.",
+      "PeakWorkingSet64 is OS-maintained per process. Per-PID peaks are not summed because processes peak at different times.",
+      "Windows working-set measurements can include shared pages. No physical GPU residency was measured; browser process working set is not GPU memory.",
+      "P00 is an automated Chromium/SwiftShader test fixture and does not satisfy clean/native decode, same-source AutoCAD semantic hash plus at least 10 ROIs, Poco X6 Pro, or production acceptance."
+    ],
+    "priorAttempts": [
+      {
+        "command": "CI=true PLAYWRIGHT_PORT=3150 npm run check:cad-v2:f08:p00 -- --reporter=line",
+        "testExitCode": 1,
+        "classification": "FAILED FIXTURE ATTEMPT; capture excluded from equal-tier evidence",
+        "reason": "Exact 12-accepted framebuffer capture observed 14 accepted chunks.",
+        "exploratoryObserver": {
+          "rawNdjsonPath": "C:/Users/hsyn/AppData/Local/Temp/cad-v2-p00-hwm-dc05cb801829450baab4af207667bd43.ndjson",
+          "pollRecordsWithChromium": 203,
+          "medianChromiumSampleIntervalMs": 1180.05,
+          "maxConcurrentChromeHeadlessProcesses": 3,
+          "maxSampledAggregateChromiumWorkingSetBytes": 2003714048,
+          "maxObservedSingleChromeHeadlessOsPeakWorkingSetBytes": 1570779136
+        }
+      },
+      {
+        "command": "CI=true PLAYWRIGHT_PORT=3151 npm run check:cad-v2:f08:p00 -- --reporter=line (fixed 5-second route delay experiment)",
+        "testExitCode": 1,
+        "classification": "FAILED FIXTURE ATTEMPT; observer values exploratory only",
+        "reason": "Overblocking left the host at \"Görünür parçalar aktarılıyor (72/284)…\" until the 60-second footer timeout; this fixed-delay approach was superseded by the event-driven barrier.",
+        "exploratoryObserver": {
+          "rawNdjsonPath": "C:/Users/hsyn/AppData/Local/Temp/cad-v2-p00-hwm-bdc3fa137b9d4209889638ded4eeb5df.ndjson",
+          "pollRecordsWithChromium": 148,
+          "medianChromiumSampleIntervalMs": 1135.8,
+          "maxSampledAggregateChromiumWorkingSetBytes": 1868668928,
+          "maxObservedSingleChromeHeadlessOsPeakWorkingSetBytes": 1254092800
+        }
+      }
+    ]
+  },
+  "decision": "Keep F08 PARTIAL / ACCEPTANCE NOT_RUN. The R001 Node test, SwiftShader exact-tier P00, and one opt-in RTX 4060/D3D11 exact-tier P00 exploration passed. The hardware observer provides sampled per-PID NVIDIA dedicated usage plus OS per-process working-set HWM, but this is not Poco X6 Pro evidence or AutoCAD/native semantic acceptance. Do not change the CPU/GPU 64 MiB caps or production admission order.",
+  "previousEvidence": "R001_MEMORY_LIFECYCLE_V92.json: R001 Node real-scene phase memory and successful SwiftShader exact-tier P00 baseline.",
+  "hardwareGpuP00": {
+    "command": "CI=true PLAYWRIGHT_PORT=3158 CAD_V2_P00_HARDWARE_GPU_EXPLORATION=1 npx playwright test --config=playwright.f08-gpu.temp.config.ts tests/document-studio/cad-v2-p00-baseline.spec.ts --project=chromium --reporter=line --output=test-results/cad-v2-p00-gpu-exploration-run5",
+    "exitCode": 0,
+    "result": "PASS: 1/1 Playwright test (4.5m). Exact accepted-tier target/ID assertions for 6, 12, and 18 passed on the RTX 4060 Direct3D11 renderer.",
+    "fixtureMode": "Opt-in hardware exploration mode logs the unpaced request/outcome prefixes instead of making those two prefix comparisons hard assertions. In this run both logged prefixes matched the expected order for projected-grid and viewport-grid. Exact-tier accepted-count and accepted-ID assertions remain enforced.",
+    "exactAcceptedTierTargetsCompleted": [
+      6,
+      12,
+      18
+    ],
+    "successfulExactTierCapturesThisHardwareRun": {
+      "6": 1,
+      "12": 1,
+      "18": 1
+    },
+    "firstOpenObservation": {
+      "visibleModelChunks": 284,
+      "acceptedChunks": 194,
+      "uniqueCpuRejectedChunks": 90,
+      "gpuRejectedChunks": 0
+    },
+    "gpuBackend": {
+      "browser": "Installed Chrome, headless Playwright channel chrome",
+      "displayType": "ANGLE_D3D11",
+      "glRenderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 (0x00002882) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1664)",
+      "glVendor": "Google Inc. (NVIDIA)",
+      "driverVersion": "32.0.16.1664",
+      "inProcessGpu": false,
+      "gpuCompositing": "enabled",
+      "webgl": "enabled",
+      "webgl2": "enabled",
+      "gpuDevicesReported": [
+        "NVIDIA GeForce RTX 4060",
+        "AMD Radeon(TM) Graphics",
+        "Microsoft Basic Render Driver"
+      ]
+    },
+    "windowsObserver": {
+      "rawNdjsonPath": "C:/Users/hsyn/AppData/Local/Temp/cad-v2-p00-gpu-1790715333402-g.ndjson",
+      "observationWindowUtc": {
+        "first": "2026-09-29T20:55:34.0794522Z",
+        "last": "2026-09-29T21:01:01.6221636Z",
+        "lastChromiumSample": "2026-09-29T21:00:14.0464083Z"
+      },
+      "pollRecords": 180,
+      "medianPollIntervalMs": 1827.284,
+      "maxConcurrentNewChromeProcesses": 9,
+      "maxSampledAggregateChromeWorkingSetBytes": 2737381376,
+      "maxObservedSingleChromeProcessPeakWorkingSet64Bytes": 2034663424,
+      "windowsGpuProcessMemoryCounter": "\\GPU Process Memory(*)\\Dedicated Usage; filtered to P00-created Chrome PIDs and NVIDIA adapter LUID 0x00000000_0x00010831",
+      "maxSampledAggregateP00NvidiaDedicatedUsageBytes": 230690816,
+      "maxSampledSingleP00PidNvidiaDedicatedUsageBytes": 230690816,
+      "maxSampledNvidiaAdapterDedicatedUsageAllProcessesBytes": 1185914880
+    },
+    "priorHardwareAttempts": [
+      {
+        "port": 3153,
+        "exitCode": 1,
+        "reason": "Unpaced viewport-grid host outcome prefix differed under hardware timing; excluded."
+      },
+      {
+        "ports": [
+          3154,
+          3155,
+          3156,
+          3157
+        ],
+        "exitCode": 1,
+        "reason": "Intermediate test-only response-gate experiments exposed an unranked chunk, a request-prefix mismatch, or a 60-second route wait timeout. Those temporary response gates were removed before the passing run; these attempts are excluded."
+      }
+    ],
+    "limitations": [
+      "The Windows observer sampled at a median interval of about 1.83 seconds; sampled aggregate working set and GPU dedicated usage can miss short peaks.",
+      "PeakWorkingSet64 is an OS-maintained high-water mark for one PID. Per-PID peaks are not summed; the aggregate working-set value is a sampled simultaneous sum and is not an OS-maintained multi-process HWM.",
+      "The GPU Process Memory Dedicated Usage counter is sampled residency, not an OS-maintained allocation high-water mark. Adapter-wide usage includes unrelated desktop apps.",
+      "The successful P00 run used the opt-in hardware exploration mode: the two unpaced replay-prefix comparisons were logged, not hard assertions, although both logged request and outcome prefixes matched in this run. Exact 6/12/18 accepted-tier IDs remained hard assertions.",
+      "Pixel-mask numbers were not re-extracted from a saved machine-readable report for this update; do not merge this run into the older SwiftShader mask totals.",
+      "RTX 4060 is the workstation GPU, not the requested Poco X6 Pro. ADB reported no connected device; AutoCAD and accoreconsole were not installed. Clean/native DWG decode and same-source AutoCAD semantic hash plus at least 10 ROIs remain unmeasured."
+    ]
+  }
+}

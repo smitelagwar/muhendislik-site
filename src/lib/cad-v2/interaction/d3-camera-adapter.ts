@@ -182,6 +182,25 @@ export class D3CameraAdapter {
     };
   }
 
+  public restoreView(state: Pick<CadCameraState, "center" | "unitsPerCssPixel">): void {
+    const [centerX, centerY] = state.center;
+    const unitsPerCssPixel = state.unitsPerCssPixel;
+    if (
+      this.isDisposed ||
+      !Number.isFinite(centerX) ||
+      !Number.isFinite(centerY) ||
+      !Number.isFinite(unitsPerCssPixel) ||
+      unitsPerCssPixel <= 0
+    ) {
+      return;
+    }
+
+    this.state.center = [centerX, centerY];
+    this.state.unitsPerCssPixel = Math.max(this.uMin, Math.min(this.uMax, unitsPerCssPixel));
+    this.syncD3Transform();
+    this.applyCameraState();
+  }
+
   /**
    * Ekran pikselinden dünya koordinatına dönüşüm
    */
@@ -269,6 +288,11 @@ export class D3CameraAdapter {
     const m = Math.min(32, 0.1 * Math.min(W, H));
 
     const uFit = Math.max(bW / Math.max(1, W - 2 * m), bH / Math.max(1, H - 2 * m));
+    const expandedZoomOutLimit = Number.isFinite(uFit * 64) ? uFit * 64 : uFit;
+    if (Number.isFinite(uFit) && expandedZoomOutLimit > this.uMax) {
+      this.uMax = expandedZoomOutLimit;
+      this.zoomBehavior.scaleExtent([1 / this.uMax, 1 / this.uMin]);
+    }
     const Cx = (minX + maxX) / 2;
     const Cy = (minY + maxY) / 2;
 

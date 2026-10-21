@@ -1,0 +1,134 @@
+{
+  "status": "PARTIAL",
+  "verificationTestStatus": "PASS",
+  "observedAtUTC": "2026-10-18T05:13:03.062Z",
+  "candidate": {
+    "compilerRevision": "cad-v2-compiler-2026.09-v71",
+    "browserBackend": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 (0x00002882) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1742)",
+    "driverVersion": "32.0.16.1742"
+  },
+  "run": {
+    "command": "npx playwright test --config=.test-data/l11-hardware/lifecycle.config.ts --project=chromium-hardware-gpu --grep 'L11 kullanıcı iptali|F08 kaynak bütçesi|WebGL context restore 10 döngü|20 V2 aç/kapat|dosya geçişinde gecikmiş eski chunk|L05 offline→online'",
+    "exitCode": 0,
+    "result": "6 passed (55.8s)",
+    "rawOutput": ".test-data/l11-hardware/lifecycle-v2-output.log"
+  },
+  "tests": [
+    "ok 1 [chromium-hardware-gpu] › tests\\document-studio\\cad-v2-layout-viewport.spec.ts:993:7 › CAD V2 F06 — real browser layout picker › F08 kaynak bütçesi görünür aşımı bildirir, LRU tahliye ve yeniden yüklemeyi korur (13.4s)",
+    "ok 2 [chromium-hardware-gpu] › tests\\document-studio\\cad-v2-layout-viewport.spec.ts:1393:7 › CAD V2 F06 — real browser layout picker › WebGL context restore 10 döngüde yeni frame ve kaynak sürekliliğini korur (4.9s)",
+    "ok 3 [chromium-hardware-gpu] › tests\\document-studio\\cad-v2-layout-viewport.spec.ts:1568:7 › CAD V2 F06 — real browser layout picker › L11 kullanıcı iptali 200 ms içinde görünür olur ve açılmış view session silinir (2.0s)",
+    "ok 4 [chromium-hardware-gpu] › tests\\document-studio\\cad-v2-layout-viewport.spec.ts:1634:7 › CAD V2 F06 — real browser layout picker › 20 V2 aç/kapat döngüsünde worker ve view session temizlenir (19.9s)",
+    "ok 5 [chromium-hardware-gpu] › tests\\document-studio\\cad-v2-layout-viewport.spec.ts:1776:7 › CAD V2 F06 — real browser layout picker › dosya geçişinde gecikmiş eski chunk yeni sahneye çizilmez (3.2s)",
+    "ok 6 [chromium-hardware-gpu] › tests\\document-studio\\cad-v2-layout-viewport.spec.ts:2376:7 › CAD V2 F06 — real browser layout picker › L05 offline→online ve background→resume geçişleri sınırlı isteği sürdürür (2.6s)"
+  ],
+  "cancellation": {
+    "command": "npx playwright test --config=.test-data/l11-hardware/lifecycle.config.ts --project=chromium-hardware-gpu --grep 'L11 kullanıcı iptali'",
+    "exitCode": 0,
+    "result": "1 passed",
+    "cancelUiLatencyMs": 5,
+    "targetMs": 200,
+    "viewSessionDeleteHttpStatus": 200,
+    "deleteCount": 1,
+    "rawOutput": ".test-data/l11-hardware/cancel-v2-output.log"
+  },
+  "openClose20Cycles": {
+    "workers": {
+      "active": 0,
+      "created": 20,
+      "terminated": 20
+    },
+    "preparedSessions": 20,
+    "deletedSessions": 20,
+    "memorySamples": [
+      {
+        "cycle": 1,
+        "jsHeapUsedBytes": 39339664,
+        "domNodes": 754,
+        "liveDomElements": 481,
+        "jsEventListeners": 703,
+        "trackedListeners": {
+          "window": 24,
+          "document": 149,
+          "canvas": 0
+        }
+      },
+      {
+        "cycle": 10,
+        "jsHeapUsedBytes": 58352044,
+        "domNodes": 780,
+        "liveDomElements": 481,
+        "jsEventListeners": 1012,
+        "trackedListeners": {
+          "window": 24,
+          "document": 149,
+          "canvas": 0
+        }
+      },
+      {
+        "cycle": 20,
+        "jsHeapUsedBytes": 59836608,
+        "domNodes": 812,
+        "liveDomElements": 481,
+        "jsEventListeners": 1206,
+        "trackedListeners": {
+          "window": 24,
+          "document": 149,
+          "canvas": 0
+        }
+      }
+    ],
+    "trackedAppListeners": {
+      "window": 24,
+      "document": 149,
+      "canvas": 0
+    },
+    "chromiumGlobalMetrics": {
+      "cycle1": {
+        "cycle": 1,
+        "phase": "list",
+        "jsHeapUsedBytes": 39339664,
+        "domNodes": 754,
+        "liveDomElements": 481,
+        "jsEventListeners": 703,
+        "trackedListeners": {
+          "window": 24,
+          "document": 149,
+          "canvas": 0
+        }
+      },
+      "cycle10": {
+        "cycle": 10,
+        "phase": "list",
+        "jsHeapUsedBytes": 58352044,
+        "domNodes": 780,
+        "liveDomElements": 481,
+        "jsEventListeners": 1012,
+        "trackedListeners": {
+          "window": 24,
+          "document": 149,
+          "canvas": 0
+        }
+      },
+      "cycle20": {
+        "cycle": 20,
+        "phase": "list",
+        "jsHeapUsedBytes": 59836608,
+        "domNodes": 812,
+        "liveDomElements": 481,
+        "jsEventListeners": 1206,
+        "trackedListeners": {
+          "window": 24,
+          "document": 149,
+          "canvas": 0
+        }
+      }
+    },
+    "caveat": "At list returns, tracked app window/document/canvas listener counts return to the same baseline and JS heap grows 1.48 MiB from cycle 10 to 20. CDP global JSEventListeners rose 703→1012→1206 (194 between cycle 10 and 20); this is not counted as zero global listener leak."
+  },
+  "partialRender": "R001 P00 still skipped 165/284 initially visible chunks under the 64 MiB CPU resident budget. The host correctly reports degraded/partial quality. Resource-budget measurement PASS does not close viewport completeness.",
+  "limitations": [
+    "No physical Poco X6 Pro run; phone frame p95 remains NOT_RUN.",
+    "The global CDP listener metric grows; exact owner/source is not isolated by this test.",
+    "No live Neon/Private Blob or production deployment test was run."
+  ]
+}

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import { Toaster } from "sonner";
 import { Footer } from "@/components/footer";
 import { GlobalOverlays } from "@/components/global-overlays";
@@ -18,17 +18,24 @@ import {
 import "./globals.css";
 import "./home.css";
 
-const plexSans = IBM_Plex_Sans({
+const plexSans = localFont({
+  src: [
+    { path: "./fonts/IBM-Plex-Sans-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/IBM-Plex-Sans-Medium.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/IBM-Plex-Sans-SemiBold.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/IBM-Plex-Sans-Bold.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-sans",
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
-const plexMono = IBM_Plex_Mono({
+const plexMono = localFont({
+  src: [
+    { path: "./fonts/IBM-Plex-Mono-Regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/IBM-Plex-Mono-Medium.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/IBM-Plex-Mono-Bold.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-mono",
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "700"],
   display: "swap",
 });
 

@@ -29,7 +29,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     }
 
     const service = CadV2DurableService.getInstance();
-    service.deleteViewSession(viewSessionId);
+    await service.deleteViewSessionAsync(viewSessionId);
 
     return new NextResponse(null, {
       status: 204,

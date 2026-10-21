@@ -27,6 +27,18 @@ async function testR001HatchAndUnitsContract() {
     sourceVersionKey: "R001-P04-contract",
   });
 
+  const decodedLinetypes = Object.values(doc.linetypes);
+  assert.ok(decodedLinetypes.length > 0, "DWG LTYPE table entries should reach the canonical document.");
+  assert.equal(doc.rawStats?.rawTableCounts?.linetypes, decodedLinetypes.length, "raw table statistics should include canonical LTYPE count.");
+  assert.ok(decodedLinetypes.every((linetype) => Array.isArray(linetype.pattern)), "each DWG LTYPE should retain its dash/gap pattern array.");
+  console.log(`  ✓ DWG LTYPE tablosu canonical'a taşındı (${decodedLinetypes.length} kayıt).`);
+
+  const decodedStyles = Object.values(doc.textStyles);
+  assert.ok(decodedStyles.length > 0, "DWG STYLE table entries should reach the canonical document.");
+  assert.equal(doc.rawStats?.rawTableCounts?.textStyles, decodedStyles.length, "raw table statistics should include canonical STYLE count.");
+  assert.equal(doc.textStyles.Standard?.fontFileName, "arial.ttf", "DWG STYLE font filename should survive canonical mapping.");
+  console.log(`  ✓ DWG STYLE tablosu canonical'a taşındı (${decodedStyles.length} kayıt; error 68 nedeniyle bu tam DWG kabul kanıtı değildir).`);
+
   // 1. UNITS & MEASUREMENT SÖZLEŞMESİ
   assert.equal(
     doc.units,
@@ -143,6 +155,8 @@ async function testR001HatchAndUnitsContract() {
   assert.ok(topInserts.length > 0, "R001 model alanında INSERT bulunmalıdır.");
   const sampleInsert = topInserts.find((i) => i.blockName.length > 0);
   assert.ok(sampleInsert != null, "Geçerli blockName'e sahip INSERT bulunmalıdır.");
+  assert.equal(sampleInsert.sourceHandle?.toUpperCase(), sampleInsert.handle.toUpperCase(),
+    "DWG INSERT sourceHandle must retain the original decoder handle separately from canonical placement identity");
   assert.ok(Array.isArray(sampleInsert.scale) && sampleInsert.scale.length === 3, "INSERT scale 3-öğe tuple olmalıdır.");
   assert.ok(Array.isArray(sampleInsert.insertionPoint) && sampleInsert.insertionPoint.length === 2, "INSERT insertionPoint 2-öğe tuple olmalıdır.");
   console.log(`  ✓ INSERT sözleşmesi doğrulandı (toplam ${topInserts.length} INSERT, sample blockName='${sampleInsert.blockName}').`);

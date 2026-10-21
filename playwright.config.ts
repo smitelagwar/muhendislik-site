@@ -1,6 +1,33 @@
 import { defineConfig, devices } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
 
 const port = Number(process.env.PLAYWRIGHT_PORT || 3000);
+const testDataRoot = path.resolve(process.cwd(), ".test-data");
+fs.mkdirSync(testDataRoot, { recursive: true });
+const p00HardwareGpuExploration = (
+  process.env.CAD_V2_P00_HARDWARE_GPU_EXPLORATION === "1" ||
+  process.env.CAD_V2_L11_BROWSER_RELEASE_BENCHMARK === "1"
+) && process.platform === "win32";
+
+const configuredDataDir = process.env.DOK_LOCAL_DATA_DIR?.trim();
+const runDataDir = configuredDataDir
+  ? path.resolve(configuredDataDir)
+  : path.join(testDataRoot, `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+const relativeRunDir = path.relative(testDataRoot, runDataDir);
+if (!relativeRunDir || relativeRunDir === ".." || relativeRunDir.startsWith(`..${path.sep}`) || path.isAbsolute(relativeRunDir)) {
+  throw new Error(`Playwright CAD storage must be an isolated child of .test-data; got: ${runDataDir}`);
+}
+const activeRunPointer = path.join(testDataRoot, "active-test-dir.txt");
+const isRegisteredActiveRun = fs.existsSync(activeRunPointer) &&
+  path.resolve(fs.readFileSync(activeRunPointer, "utf8").trim()) === runDataDir;
+if (fs.existsSync(runDataDir) && fs.readdirSync(runDataDir).length > 0 && !isRegisteredActiveRun) {
+  throw new Error(`Playwright CAD storage must be empty for a fresh isolated run: ${runDataDir}`);
+}
+fs.mkdirSync(runDataDir, { recursive: true });
+fs.writeFileSync(activeRunPointer, runDataDir, "utf8");
+process.env.DOK_LOCAL_DATA_DIR = runDataDir;
+
 // Default to a live source build. Existing `.next` output may belong to another
 // checkout/revision; production acceptance must opt in explicitly after `next build`.
 const productionServer = process.env.PLAYWRIGHT_PRODUCTION_SERVER === "1";
@@ -22,16 +49,26 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     launchOptions: {
-      args: [
-        "--ignore-gpu-blocklist",
-        "--enable-webgl",
-        "--enable-webgl2",
-        "--use-gl=angle",
-        "--use-angle=swiftshader",
-        "--in-process-gpu",
-        "--disable-gpu-sandbox",
-        "--disable-dev-shm-usage",
-      ],
+      args: p00HardwareGpuExploration
+        ? [
+            "--ignore-gpu-blocklist",
+            "--enable-webgl",
+            "--enable-webgl2",
+            "--use-gl=angle",
+            "--use-angle=d3d11",
+            "--disable-gpu-sandbox",
+            "--disable-dev-shm-usage",
+          ]
+        : [
+            "--ignore-gpu-blocklist",
+            "--enable-webgl",
+            "--enable-webgl2",
+            "--use-gl=angle",
+            "--use-angle=swiftshader",
+            "--in-process-gpu",
+            "--disable-gpu-sandbox",
+            "--disable-dev-shm-usage",
+          ],
     },
   },
   projects: [
@@ -96,7 +133,7 @@ export default defineConfig({
       SESSION_SECRET: "playwright_session_secret_at_least_32_bytes",
       ADMIN_SESSION_VERSION: "1",
       RATE_LIMIT_SALT: "playwright_rate_limit_salt_at_least_32_bytes",
-      DOK_LOCAL_DATA_DIR: process.env.DOK_LOCAL_DATA_DIR || "",
+      DOK_LOCAL_DATA_DIR: runDataDir,
     },
   },
 });

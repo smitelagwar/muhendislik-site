@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "same-decoder raw-to-canonical source census; not an independent AutoCAD oracle",
+  "status": "LOCAL_CENSUS_PASS",
+  "source": {
+    "id": "R001",
+    "path": "eklediklerim/ornek_dosyalar/1 ve 2.kat dwg.dwg",
+    "format": "DWG",
+    "magic": "AC1032",
+    "bytes": 3444087,
+    "sha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086"
+  },
+  "candidate": {
+    "branch": "codex/srdr-dwg-motor-v2-fidelity",
+    "head": "4b51ebe6b1470c6a247e03158dfe4b5359621c97",
+    "dirtyStateSha256": "fd2193b3c185c3c58e3736a4a4d0096ebbffa39663a67fa08c956c942fc141bd",
+    "dirtyState": {
+      "sha256": "fd2193b3c185c3c58e3736a4a4d0096ebbffa39663a67fa08c956c942fc141bd",
+      "trackedDiffBytes": 2088688,
+      "untrackedFilesHashed": 102
+    },
+    "compiler": "cad-v2-compiler-2026.09-v71",
+    "pipeline": "fidelity-v3-p08",
+    "renderAbi": "three172-cad2d-v2"
+  },
+  "decoder": {
+    "rawParser": "@mlightcad/libredwg-web direct DWG conversion + candidate DWG adapter",
+    "rawSummary": {
+      "rawFlattenedEntityCount": 8787,
+      "blockRecordCount": 3236,
+      "layoutObjects": [
+        {
+          "handle": "22",
+          "name": "Model",
+          "blockRecordRef": "1F"
+        },
+        {
+          "handle": "D3",
+          "name": "Layout1",
+          "blockRecordRef": "D2"
+        },
+        {
+          "handle": "D7",
+          "name": "Layout2",
+          "blockRecordRef": "D6"
+        }
+      ],
+      "header": {
+        "version": null,
+        "codepage": null,
+        "insunits": 4
+      }
+    }
+  },
+  "canonical": {
+    "modelCount": 8787,
+    "paperCountsByLayout": {
+      "Layout1": 0,
+      "Layout2": 0
+    },
+    "blockCount": 3233,
+    "layoutNames": [
+      {
+        "id": "Model",
+        "name": "Model",
+        "model": true,
+        "blockRecordName": "*Model_Space"
+      },
+      {
+        "id": "Layout1",
+        "name": "Layout1",
+        "model": false,
+        "blockRecordName": "*Paper_Space"
+      },
+      {
+        "id": "Layout2",
+        "name": "Layout2",
+        "model": false,
+        "blockRecordName": "*Paper_Space0"
+      }
+    ],
+    "diagnosticCounts": {},
+    "rawStats": {
+      "rawHeaderInsunits": 4,
+      "rawEntitiesCount": 8787,
+      "rawTableCounts": {
+        "blocks": 3233,
+        "layers": 40,
+        "linetypes": 8,
+        "textStyles": 12
+      }
+    }
+  },
+  "reconciliation": {
+    "rowCount": 39273,
+    "countsByRole": {
+      "block": 30486,
+      "model": 8787
+    },
+    "countsByType": {
+      "3DFACE": 410,
+      "ARC": 591,
+      "CIRCLE": 797,
+      "DIMENSION": 2904,
+      "ELLIPSE": 108,
+      "HATCH": 467,
+      "INSERT": 8342,
+      "LINE": 7090,
+      "LWPOLYLINE": 4441,
+      "MTEXT": 3288,
+      "POINT": 8712,
+      "POLYLINE3D": 34,
+      "SPLINE": 3,
+      "TEXT": 2084,
+      "XLINE": 2
+    },
+    "countsByClassification": {
+      "converted": 26588,
+      "converted_source_invisible": 3527,
+      "source_invisible_no_canonical": 446,
+      "unreferenced_block_content": 8712
+    },
+    "canonicalLocationCounts": {
+      "block": 21328,
+      "model": 8787
+    },
+    "rowsWithDiagnostic": 0,
+    "unsupportedRows": 0,
+    "invalidRows": 0,
+    "unaccountedRows": 0,
+    "unaccountedExamples": [],
+    "ownerMismatchCount": 0,
+    "ownerMismatchExamples": [],
+    "duplicateRawHandleCount": 0,
+    "duplicateRawHandleExamples": [],
+    "canonicalOnlyHandleCount": 0,
+    "canonicalOnlyHandleExamples": [],
+    "expansionAccounting": {
+      "kind": "candidate canonical graph reachability; not geometric draw/clip proof",
+      "visits": 67017,
+      "truncated": false,
+      "uniqueSourceHandlesWithOccurrences": 12418,
+      "totalSourceEntityOccurrences": 67017,
+      "entityOccurrencesUnderClippedInsert": 0
+    }
+  },
+  "inventory": {
+    "path": ".test-data/cad-v2-l07-raw-census/20261017T215417Z-l07-postfix/r001-raw-canonical.jsonl.gz",
+    "bytesGzip": 649356,
+    "sha256Gzip": "fc48f4245fba6110502d9cfe859aff470a3f0783c64fd6c537c441340aec1f46",
+    "recordCount": 39273,
+    "recordFormat": "one JSON object per gzip line; raw handle, owner record/reference, layout, source visibility, canonical location, diagnostics, potential block occurrences and clip scope"
+  },
+  "limits": [
+    "Raw and canonical views use the same decoder family; this is adapter accounting, not independent file truth.",
+    "Potential block occurrences are graph reachability counts; they do not prove rendered geometry, draw completeness, or clip intersection.",
+    "Missing AutoCAD LT 2027 native oracle keeps numeric/layout parity NOT_RUN.",
+    "FAIL-404 source bytes and SHA remain unavailable; the provided screenshots are only prepare-200 then chunk-404 evidence."
+  ],
+  "elapsedMs": 4485,
+  "nativeOracle": "NOT_RUN"
+}

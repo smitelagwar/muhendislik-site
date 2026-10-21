@@ -1,0 +1,3550 @@
+{
+  "evidenceId": "F08-P00-BUDGET-REJECTION-SPATIAL-MAP-v1",
+  "measuredAt": "2026-09-28",
+  "classification": "test-only exploratory admission/projection mapping",
+  "run": {
+    "port": 3149,
+    "project": "chromium",
+    "command": "CI=true npm run check:cad-v2:f08:p00 -- --grep \"R001 cold/warm host\" --reporter=line --workers=1 --timeout=360000",
+    "result": "1/1 PASS",
+    "duration": "5.2m",
+    "log": "%TEMP%/cad-v2-p00-rejected-map-v2.log"
+  },
+  "source": {
+    "id": "R001",
+    "sizeBytes": 3444087,
+    "sha256": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086"
+  },
+  "profile": {
+    "status": "PROVISIONAL_SPECIFICATION",
+    "autoCadOracle": "NOT_RUN"
+  },
+  "compiledScene": {
+    "sceneId": "scene_fc007e37326a865c96fa19eb",
+    "chunkCount": 286,
+    "totalChunkBytes": 98042688,
+    "manifestSha256": "50fec10c63839b6f486f5a8fa24abc04a90e162db818c072273059ca50fdc69e",
+    "compiledSceneSha256": "c6bba3f08f1189deefe38ee9879e3dd2dc471bef442316d0d01d87ee28ef15e4",
+    "roiCoverage": [
+      {
+        "id": "ROI-01-PLAN-KAT1",
+        "candidateChunkCount": 18,
+        "candidateChunkSetSha256": "4619ae5efce2797d86a15b2bfca62d60eb08307a51f1d782229c58d2932ae19d",
+        "sourceHandleCountChecked": 0,
+        "initiallyFetchedChunkCount": 18,
+        "sourceHandlesPresentCount": 0,
+        "initiallyFetchedChunkSetSha256": "f97a2def7be7dc1a9364142eb8f2d5571c82ce4e37a7d75ee372b9f33ecbe142"
+      },
+      {
+        "id": "ROI-02-PLAN-KAT2",
+        "candidateChunkCount": 284,
+        "candidateChunkSetSha256": "3c4412d4eda60180143b30df1a36f7b6196893e11401a498896940b5d5698bd9",
+        "sourceHandleCountChecked": 0,
+        "initiallyFetchedChunkCount": 283,
+        "sourceHandlesPresentCount": 0,
+        "initiallyFetchedChunkSetSha256": "532a95631ffba7c642eb08fb5a51ca6de6463aa78499ecead4be584a97ef819a"
+      },
+      {
+        "id": "ROI-03-U317-OUTLIER",
+        "candidateChunkCount": 1,
+        "candidateChunkSetSha256": "66eecc0de0d8250cbce2b45a4c7bd4ff26bce9ca93d3cc39d15645bebde77201",
+        "sourceHandleCountChecked": 2,
+        "initiallyFetchedChunkCount": 1,
+        "sourceHandlesPresentCount": 2,
+        "initiallyFetchedChunkSetSha256": "d6b2e279bc41b3a832001fdbec71294ecbd4de59bc646d5c90c0d78aa14f5317"
+      },
+      {
+        "id": "ROI-04-NEG-Z-INSERTS",
+        "candidateChunkCount": 6,
+        "candidateChunkSetSha256": "01374f5c1fdc760a88814807020ef19e52a6f642c6124e5ceb7543477f04e452",
+        "sourceHandleCountChecked": 6,
+        "initiallyFetchedChunkCount": 6,
+        "sourceHandlesPresentCount": 6,
+        "initiallyFetchedChunkSetSha256": "2f63462b19b8432df9ed047ed8a813c5a8f1723faba2fb9877d9b6afa18ee304"
+      },
+      {
+        "id": "ROI-05-HATCH-COLUMNS",
+        "candidateChunkCount": 0,
+        "candidateChunkSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sourceHandleCountChecked": 0,
+        "initiallyFetchedChunkCount": 0,
+        "sourceHandlesPresentCount": 0,
+        "initiallyFetchedChunkSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "id": "ROI-06-DIM-ANNOTATIONS",
+        "candidateChunkCount": 0,
+        "candidateChunkSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sourceHandleCountChecked": 0,
+        "initiallyFetchedChunkCount": 0,
+        "sourceHandlesPresentCount": 0,
+        "initiallyFetchedChunkSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "id": "ROI-07-TURKISH-TEXT",
+        "candidateChunkCount": 0,
+        "candidateChunkSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sourceHandleCountChecked": 0,
+        "initiallyFetchedChunkCount": 0,
+        "sourceHandlesPresentCount": 0,
+        "initiallyFetchedChunkSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "id": "ROI-08-LINEWEIGHT-PROFILES",
+        "candidateChunkCount": 0,
+        "candidateChunkSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sourceHandleCountChecked": 0,
+        "initiallyFetchedChunkCount": 0,
+        "sourceHandlesPresentCount": 0,
+        "initiallyFetchedChunkSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "id": "ROI-09-DASHED-LINES",
+        "candidateChunkCount": 0,
+        "candidateChunkSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sourceHandleCountChecked": 0,
+        "initiallyFetchedChunkCount": 0,
+        "sourceHandlesPresentCount": 0,
+        "initiallyFetchedChunkSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "id": "ROI-10-TITLE-BLOCK",
+        "candidateChunkCount": 0,
+        "candidateChunkSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "sourceHandleCountChecked": 0,
+        "initiallyFetchedChunkCount": 0,
+        "sourceHandlesPresentCount": 0,
+        "initiallyFetchedChunkSetSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "initialViewport": {
+    "layoutId": "Model",
+    "cameraState": {
+      "center": [
+        496.49803920861,
+        3503.5371626976275
+      ],
+      "width": 1440,
+      "height": 852,
+      "unitsPerCssPixel": 19.14923202357086
+    },
+    "viewportBBox": [
+      -13310.098249785979,
+      -4673.18491136713,
+      14303.0943282032,
+      11680.259236762384
+    ],
+    "visibleChunkCount": 284
+  },
+  "baseline": {
+    "acceptedOutcomeCount": 194,
+    "rejectedOutcomeCount": 90,
+    "uniqueRejectedChunkCount": 90,
+    "acceptedUniqueChunkCount": 194,
+    "visibleModelChunkCount": 284,
+    "budgetSkippedChunkCount": null,
+    "rejectionCauseCounts": {
+      "cpu": 90,
+      "gpu": 0,
+      "both": 0
+    },
+    "projectedPrimitiveGridCoverage": {
+      "columns": 20,
+      "rows": 20,
+      "candidateCellCount": 64,
+      "selectedCellCount": 43,
+      "selectedPercent": 67.2
+    },
+    "bboxRoiChunkCoverage": [
+      {
+        "roiId": "ROI-01-PLAN-KAT1",
+        "candidateChunkCount": 18,
+        "selectedChunkCount": 4,
+        "selectedPercent": 22.2
+      },
+      {
+        "roiId": "ROI-02-PLAN-KAT2",
+        "candidateChunkCount": 284,
+        "selectedChunkCount": 194,
+        "selectedPercent": 68.3
+      },
+      {
+        "roiId": "ROI-03-U317-OUTLIER",
+        "candidateChunkCount": 1,
+        "selectedChunkCount": 0,
+        "selectedPercent": 0
+      },
+      {
+        "roiId": "ROI-04-NEG-Z-INSERTS",
+        "candidateChunkCount": 6,
+        "selectedChunkCount": 0,
+        "selectedPercent": 0
+      },
+      {
+        "roiId": "ROI-05-HATCH-COLUMNS",
+        "candidateChunkCount": 0,
+        "selectedChunkCount": 0,
+        "selectedPercent": null
+      },
+      {
+        "roiId": "ROI-06-DIM-ANNOTATIONS",
+        "candidateChunkCount": 0,
+        "selectedChunkCount": 0,
+        "selectedPercent": null
+      },
+      {
+        "roiId": "ROI-07-TURKISH-TEXT",
+        "candidateChunkCount": 0,
+        "selectedChunkCount": 0,
+        "selectedPercent": null
+      },
+      {
+        "roiId": "ROI-08-LINEWEIGHT-PROFILES",
+        "candidateChunkCount": 0,
+        "selectedChunkCount": 0,
+        "selectedPercent": null
+      },
+      {
+        "roiId": "ROI-09-DASHED-LINES",
+        "candidateChunkCount": 0,
+        "selectedChunkCount": 0,
+        "selectedPercent": null
+      },
+      {
+        "roiId": "ROI-10-TITLE-BLOCK",
+        "candidateChunkCount": 0,
+        "selectedChunkCount": 0,
+        "selectedPercent": null
+      }
+    ],
+    "peakCpuEstimateBytes": 74920882,
+    "cpuBudgetBytes": 67108864,
+    "peakGpuBufferEstimateBytes": 51048852,
+    "gpuBudgetBytes": 67108864,
+    "settledMs": 12079.8386,
+    "settledRaster": {
+      "occupiedCellCount": 46,
+      "foregroundPixelCount": 38061
+    }
+  },
+  "rejectedCoverage": {
+    "rejectedOutcomeCount": 90,
+    "uniqueRejectedChunkCount": 90,
+    "acceptedUniqueChunkCount": 194,
+    "visibleModelChunkCount": 284,
+    "uniqueRejectedChunkIds": [
+      "chunk_model_119",
+      "chunk_model_120",
+      "chunk_model_121",
+      "chunk_model_123",
+      "chunk_model_124",
+      "chunk_model_125",
+      "chunk_model_126",
+      "chunk_model_127",
+      "chunk_model_128",
+      "chunk_model_129",
+      "chunk_model_130",
+      "chunk_model_131",
+      "chunk_model_132",
+      "chunk_model_133",
+      "chunk_model_134",
+      "chunk_model_135",
+      "chunk_model_136",
+      "chunk_model_137",
+      "chunk_model_138",
+      "chunk_model_139",
+      "chunk_model_140",
+      "chunk_model_141",
+      "chunk_model_142",
+      "chunk_model_214",
+      "chunk_model_217",
+      "chunk_model_218",
+      "chunk_model_220",
+      "chunk_model_221",
+      "chunk_model_223",
+      "chunk_model_224",
+      "chunk_model_225",
+      "chunk_model_226",
+      "chunk_model_227",
+      "chunk_model_228",
+      "chunk_model_229",
+      "chunk_model_230",
+      "chunk_model_231",
+      "chunk_model_232",
+      "chunk_model_233",
+      "chunk_model_234",
+      "chunk_model_235",
+      "chunk_model_236",
+      "chunk_model_237",
+      "chunk_model_238",
+      "chunk_model_239",
+      "chunk_model_240",
+      "chunk_model_241",
+      "chunk_model_242",
+      "chunk_model_243",
+      "chunk_model_244",
+      "chunk_model_245",
+      "chunk_model_246",
+      "chunk_model_247",
+      "chunk_model_248",
+      "chunk_model_249",
+      "chunk_model_250",
+      "chunk_model_251",
+      "chunk_model_252",
+      "chunk_model_253",
+      "chunk_model_254",
+      "chunk_model_255",
+      "chunk_model_256",
+      "chunk_model_257",
+      "chunk_model_258",
+      "chunk_model_259",
+      "chunk_model_260",
+      "chunk_model_261",
+      "chunk_model_262",
+      "chunk_model_263",
+      "chunk_model_264",
+      "chunk_model_265",
+      "chunk_model_266",
+      "chunk_model_267",
+      "chunk_model_268",
+      "chunk_model_269",
+      "chunk_model_270",
+      "chunk_model_271",
+      "chunk_model_272",
+      "chunk_model_273",
+      "chunk_model_274",
+      "chunk_model_275",
+      "chunk_model_276",
+      "chunk_model_277",
+      "chunk_model_278",
+      "chunk_model_279",
+      "chunk_model_280",
+      "chunk_model_281",
+      "chunk_model_282",
+      "chunk_model_283",
+      "chunk_model_284"
+    ],
+    "projectedGrid": {
+      "candidateOccupiedCellCount": 64,
+      "cellsWithRejectedChunks": 60,
+      "cellsWithOnlyRejectedCandidates": 21,
+      "rejectedChunksWithProjectedOccupancy": 90,
+      "rejectedChunksWithoutProjectedOccupancy": 0,
+      "byCell": [
+        {
+          "cellIndex": 151,
+          "row": 7,
+          "column": 11,
+          "candidateChunkCount": 2,
+          "acceptedChunkCount": 1,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 155,
+          "row": 7,
+          "column": 15,
+          "candidateChunkCount": 2,
+          "acceptedChunkCount": 1,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 160,
+          "row": 8,
+          "column": 0,
+          "candidateChunkCount": 2,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 2,
+          "rejectedChunkIds": [
+            "chunk_model_268",
+            "chunk_model_278"
+          ]
+        },
+        {
+          "cellIndex": 161,
+          "row": 8,
+          "column": 1,
+          "candidateChunkCount": 2,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 2,
+          "rejectedChunkIds": [
+            "chunk_model_278",
+            "chunk_model_280"
+          ]
+        },
+        {
+          "cellIndex": 162,
+          "row": 8,
+          "column": 2,
+          "candidateChunkCount": 1,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_256"
+          ]
+        },
+        {
+          "cellIndex": 164,
+          "row": 8,
+          "column": 4,
+          "candidateChunkCount": 2,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 2,
+          "rejectedChunkIds": [
+            "chunk_model_128",
+            "chunk_model_138"
+          ]
+        },
+        {
+          "cellIndex": 165,
+          "row": 8,
+          "column": 5,
+          "candidateChunkCount": 2,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 2,
+          "rejectedChunkIds": [
+            "chunk_model_138",
+            "chunk_model_140"
+          ]
+        },
+        {
+          "cellIndex": 171,
+          "row": 8,
+          "column": 11,
+          "candidateChunkCount": 28,
+          "acceptedChunkCount": 25,
+          "rejectedChunkCount": 3,
+          "rejectedChunkIds": [
+            "chunk_model_119",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 172,
+          "row": 8,
+          "column": 12,
+          "candidateChunkCount": 25,
+          "acceptedChunkCount": 19,
+          "rejectedChunkCount": 6,
+          "rejectedChunkIds": [
+            "chunk_model_119",
+            "chunk_model_137",
+            "chunk_model_140",
+            "chunk_model_141",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 173,
+          "row": 8,
+          "column": 13,
+          "candidateChunkCount": 19,
+          "acceptedChunkCount": 11,
+          "rejectedChunkCount": 8,
+          "rejectedChunkIds": [
+            "chunk_model_136",
+            "chunk_model_137",
+            "chunk_model_138",
+            "chunk_model_139",
+            "chunk_model_140",
+            "chunk_model_141",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 174,
+          "row": 8,
+          "column": 14,
+          "candidateChunkCount": 32,
+          "acceptedChunkCount": 21,
+          "rejectedChunkCount": 11,
+          "rejectedChunkIds": [
+            "chunk_model_125",
+            "chunk_model_126",
+            "chunk_model_127",
+            "chunk_model_128",
+            "chunk_model_130",
+            "chunk_model_137",
+            "chunk_model_138",
+            "chunk_model_139",
+            "chunk_model_141",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 175,
+          "row": 8,
+          "column": 15,
+          "candidateChunkCount": 44,
+          "acceptedChunkCount": 12,
+          "rejectedChunkCount": 32,
+          "rejectedChunkIds": [
+            "chunk_model_125",
+            "chunk_model_127",
+            "chunk_model_128",
+            "chunk_model_130",
+            "chunk_model_142",
+            "chunk_model_218",
+            "chunk_model_220",
+            "chunk_model_221",
+            "chunk_model_223",
+            "chunk_model_224",
+            "chunk_model_226",
+            "chunk_model_227",
+            "chunk_model_229",
+            "chunk_model_230",
+            "chunk_model_232",
+            "chunk_model_233",
+            "chunk_model_235",
+            "chunk_model_236",
+            "chunk_model_238",
+            "chunk_model_239",
+            "chunk_model_241",
+            "chunk_model_242",
+            "chunk_model_244",
+            "chunk_model_247",
+            "chunk_model_253",
+            "chunk_model_256",
+            "chunk_model_257",
+            "chunk_model_258",
+            "chunk_model_259",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 176,
+          "row": 8,
+          "column": 16,
+          "candidateChunkCount": 25,
+          "acceptedChunkCount": 2,
+          "rejectedChunkCount": 23,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_218",
+            "chunk_model_221",
+            "chunk_model_224",
+            "chunk_model_227",
+            "chunk_model_230",
+            "chunk_model_233",
+            "chunk_model_236",
+            "chunk_model_239",
+            "chunk_model_242",
+            "chunk_model_247",
+            "chunk_model_253",
+            "chunk_model_254",
+            "chunk_model_255",
+            "chunk_model_256",
+            "chunk_model_257",
+            "chunk_model_258",
+            "chunk_model_259",
+            "chunk_model_277",
+            "chunk_model_280",
+            "chunk_model_281",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 177,
+          "row": 8,
+          "column": 17,
+          "candidateChunkCount": 20,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 20,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_218",
+            "chunk_model_221",
+            "chunk_model_224",
+            "chunk_model_227",
+            "chunk_model_230",
+            "chunk_model_233",
+            "chunk_model_236",
+            "chunk_model_239",
+            "chunk_model_242",
+            "chunk_model_247",
+            "chunk_model_276",
+            "chunk_model_277",
+            "chunk_model_278",
+            "chunk_model_279",
+            "chunk_model_280",
+            "chunk_model_281",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 178,
+          "row": 8,
+          "column": 18,
+          "candidateChunkCount": 33,
+          "acceptedChunkCount": 3,
+          "rejectedChunkCount": 30,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_218",
+            "chunk_model_221",
+            "chunk_model_224",
+            "chunk_model_225",
+            "chunk_model_227",
+            "chunk_model_228",
+            "chunk_model_230",
+            "chunk_model_231",
+            "chunk_model_233",
+            "chunk_model_234",
+            "chunk_model_236",
+            "chunk_model_237",
+            "chunk_model_239",
+            "chunk_model_240",
+            "chunk_model_242",
+            "chunk_model_243",
+            "chunk_model_247",
+            "chunk_model_265",
+            "chunk_model_266",
+            "chunk_model_267",
+            "chunk_model_268",
+            "chunk_model_270",
+            "chunk_model_277",
+            "chunk_model_278",
+            "chunk_model_279",
+            "chunk_model_281",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 179,
+          "row": 8,
+          "column": 19,
+          "candidateChunkCount": 17,
+          "acceptedChunkCount": 2,
+          "rejectedChunkCount": 15,
+          "rejectedChunkIds": [
+            "chunk_model_225",
+            "chunk_model_228",
+            "chunk_model_231",
+            "chunk_model_234",
+            "chunk_model_237",
+            "chunk_model_240",
+            "chunk_model_243",
+            "chunk_model_247",
+            "chunk_model_265",
+            "chunk_model_267",
+            "chunk_model_268",
+            "chunk_model_270",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 180,
+          "row": 9,
+          "column": 0,
+          "candidateChunkCount": 1,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_268"
+          ]
+        },
+        {
+          "cellIndex": 181,
+          "row": 9,
+          "column": 1,
+          "candidateChunkCount": 1,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_280"
+          ]
+        },
+        {
+          "cellIndex": 182,
+          "row": 9,
+          "column": 2,
+          "candidateChunkCount": 1,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_256"
+          ]
+        },
+        {
+          "cellIndex": 184,
+          "row": 9,
+          "column": 4,
+          "candidateChunkCount": 1,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_128"
+          ]
+        },
+        {
+          "cellIndex": 185,
+          "row": 9,
+          "column": 5,
+          "candidateChunkCount": 1,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_140"
+          ]
+        },
+        {
+          "cellIndex": 191,
+          "row": 9,
+          "column": 11,
+          "candidateChunkCount": 35,
+          "acceptedChunkCount": 32,
+          "rejectedChunkCount": 3,
+          "rejectedChunkIds": [
+            "chunk_model_119",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 192,
+          "row": 9,
+          "column": 12,
+          "candidateChunkCount": 35,
+          "acceptedChunkCount": 26,
+          "rejectedChunkCount": 9,
+          "rejectedChunkIds": [
+            "chunk_model_119",
+            "chunk_model_130",
+            "chunk_model_136",
+            "chunk_model_137",
+            "chunk_model_138",
+            "chunk_model_140",
+            "chunk_model_141",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 193,
+          "row": 9,
+          "column": 13,
+          "candidateChunkCount": 24,
+          "acceptedChunkCount": 15,
+          "rejectedChunkCount": 9,
+          "rejectedChunkIds": [
+            "chunk_model_130",
+            "chunk_model_131",
+            "chunk_model_136",
+            "chunk_model_137",
+            "chunk_model_138",
+            "chunk_model_140",
+            "chunk_model_141",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 194,
+          "row": 9,
+          "column": 14,
+          "candidateChunkCount": 46,
+          "acceptedChunkCount": 26,
+          "rejectedChunkCount": 20,
+          "rejectedChunkIds": [
+            "chunk_model_119",
+            "chunk_model_120",
+            "chunk_model_121",
+            "chunk_model_123",
+            "chunk_model_124",
+            "chunk_model_125",
+            "chunk_model_126",
+            "chunk_model_127",
+            "chunk_model_128",
+            "chunk_model_129",
+            "chunk_model_130",
+            "chunk_model_132",
+            "chunk_model_136",
+            "chunk_model_137",
+            "chunk_model_138",
+            "chunk_model_139",
+            "chunk_model_140",
+            "chunk_model_141",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 195,
+          "row": 9,
+          "column": 15,
+          "candidateChunkCount": 62,
+          "acceptedChunkCount": 34,
+          "rejectedChunkCount": 28,
+          "rejectedChunkIds": [
+            "chunk_model_119",
+            "chunk_model_121",
+            "chunk_model_123",
+            "chunk_model_124",
+            "chunk_model_125",
+            "chunk_model_126",
+            "chunk_model_127",
+            "chunk_model_128",
+            "chunk_model_129",
+            "chunk_model_130",
+            "chunk_model_142",
+            "chunk_model_214",
+            "chunk_model_217",
+            "chunk_model_245",
+            "chunk_model_247",
+            "chunk_model_249",
+            "chunk_model_250",
+            "chunk_model_251",
+            "chunk_model_252",
+            "chunk_model_253",
+            "chunk_model_255",
+            "chunk_model_256",
+            "chunk_model_257",
+            "chunk_model_258",
+            "chunk_model_259",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 196,
+          "row": 9,
+          "column": 16,
+          "candidateChunkCount": 37,
+          "acceptedChunkCount": 14,
+          "rejectedChunkCount": 23,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_245",
+            "chunk_model_247",
+            "chunk_model_248",
+            "chunk_model_249",
+            "chunk_model_251",
+            "chunk_model_252",
+            "chunk_model_253",
+            "chunk_model_254",
+            "chunk_model_255",
+            "chunk_model_256",
+            "chunk_model_257",
+            "chunk_model_258",
+            "chunk_model_259",
+            "chunk_model_270",
+            "chunk_model_276",
+            "chunk_model_277",
+            "chunk_model_278",
+            "chunk_model_280",
+            "chunk_model_281",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 197,
+          "row": 9,
+          "column": 17,
+          "candidateChunkCount": 26,
+          "acceptedChunkCount": 13,
+          "rejectedChunkCount": 13,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_245",
+            "chunk_model_247",
+            "chunk_model_270",
+            "chunk_model_271",
+            "chunk_model_276",
+            "chunk_model_277",
+            "chunk_model_278",
+            "chunk_model_280",
+            "chunk_model_281",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 198,
+          "row": 9,
+          "column": 18,
+          "candidateChunkCount": 48,
+          "acceptedChunkCount": 23,
+          "rejectedChunkCount": 25,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_245",
+            "chunk_model_246",
+            "chunk_model_247",
+            "chunk_model_259",
+            "chunk_model_260",
+            "chunk_model_261",
+            "chunk_model_263",
+            "chunk_model_264",
+            "chunk_model_265",
+            "chunk_model_266",
+            "chunk_model_267",
+            "chunk_model_268",
+            "chunk_model_269",
+            "chunk_model_270",
+            "chunk_model_272",
+            "chunk_model_276",
+            "chunk_model_277",
+            "chunk_model_278",
+            "chunk_model_279",
+            "chunk_model_280",
+            "chunk_model_281",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 199,
+          "row": 9,
+          "column": 19,
+          "candidateChunkCount": 28,
+          "acceptedChunkCount": 12,
+          "rejectedChunkCount": 16,
+          "rejectedChunkIds": [
+            "chunk_model_246",
+            "chunk_model_247",
+            "chunk_model_259",
+            "chunk_model_261",
+            "chunk_model_262",
+            "chunk_model_263",
+            "chunk_model_264",
+            "chunk_model_265",
+            "chunk_model_266",
+            "chunk_model_267",
+            "chunk_model_268",
+            "chunk_model_269",
+            "chunk_model_270",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 200,
+          "row": 10,
+          "column": 0,
+          "candidateChunkCount": 2,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 2,
+          "rejectedChunkIds": [
+            "chunk_model_262",
+            "chunk_model_273"
+          ]
+        },
+        {
+          "cellIndex": 201,
+          "row": 10,
+          "column": 1,
+          "candidateChunkCount": 2,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 2,
+          "rejectedChunkIds": [
+            "chunk_model_273",
+            "chunk_model_274"
+          ]
+        },
+        {
+          "cellIndex": 202,
+          "row": 10,
+          "column": 2,
+          "candidateChunkCount": 1,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_251"
+          ]
+        },
+        {
+          "cellIndex": 204,
+          "row": 10,
+          "column": 4,
+          "candidateChunkCount": 2,
+          "acceptedChunkCount": 1,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_133"
+          ]
+        },
+        {
+          "cellIndex": 205,
+          "row": 10,
+          "column": 5,
+          "candidateChunkCount": 2,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 2,
+          "rejectedChunkIds": [
+            "chunk_model_133",
+            "chunk_model_134"
+          ]
+        },
+        {
+          "cellIndex": 211,
+          "row": 10,
+          "column": 11,
+          "candidateChunkCount": 33,
+          "acceptedChunkCount": 31,
+          "rejectedChunkCount": 2,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 212,
+          "row": 10,
+          "column": 12,
+          "candidateChunkCount": 31,
+          "acceptedChunkCount": 23,
+          "rejectedChunkCount": 8,
+          "rejectedChunkIds": [
+            "chunk_model_130",
+            "chunk_model_132",
+            "chunk_model_133",
+            "chunk_model_134",
+            "chunk_model_135",
+            "chunk_model_136",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 213,
+          "row": 10,
+          "column": 13,
+          "candidateChunkCount": 26,
+          "acceptedChunkCount": 16,
+          "rejectedChunkCount": 10,
+          "rejectedChunkIds": [
+            "chunk_model_130",
+            "chunk_model_131",
+            "chunk_model_132",
+            "chunk_model_133",
+            "chunk_model_134",
+            "chunk_model_135",
+            "chunk_model_136",
+            "chunk_model_141",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 214,
+          "row": 10,
+          "column": 14,
+          "candidateChunkCount": 44,
+          "acceptedChunkCount": 29,
+          "rejectedChunkCount": 15,
+          "rejectedChunkIds": [
+            "chunk_model_119",
+            "chunk_model_120",
+            "chunk_model_121",
+            "chunk_model_123",
+            "chunk_model_124",
+            "chunk_model_125",
+            "chunk_model_130",
+            "chunk_model_131",
+            "chunk_model_132",
+            "chunk_model_133",
+            "chunk_model_134",
+            "chunk_model_135",
+            "chunk_model_136",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 215,
+          "row": 10,
+          "column": 15,
+          "candidateChunkCount": 56,
+          "acceptedChunkCount": 40,
+          "rejectedChunkCount": 16,
+          "rejectedChunkIds": [
+            "chunk_model_119",
+            "chunk_model_120",
+            "chunk_model_121",
+            "chunk_model_123",
+            "chunk_model_124",
+            "chunk_model_125",
+            "chunk_model_142",
+            "chunk_model_244",
+            "chunk_model_247",
+            "chunk_model_250",
+            "chunk_model_251",
+            "chunk_model_252",
+            "chunk_model_253",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 216,
+          "row": 10,
+          "column": 16,
+          "candidateChunkCount": 33,
+          "acceptedChunkCount": 15,
+          "rejectedChunkCount": 18,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_244",
+            "chunk_model_247",
+            "chunk_model_248",
+            "chunk_model_249",
+            "chunk_model_250",
+            "chunk_model_251",
+            "chunk_model_252",
+            "chunk_model_253",
+            "chunk_model_270",
+            "chunk_model_272",
+            "chunk_model_273",
+            "chunk_model_274",
+            "chunk_model_275",
+            "chunk_model_276",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 217,
+          "row": 10,
+          "column": 17,
+          "candidateChunkCount": 29,
+          "acceptedChunkCount": 15,
+          "rejectedChunkCount": 14,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_244",
+            "chunk_model_247",
+            "chunk_model_270",
+            "chunk_model_271",
+            "chunk_model_272",
+            "chunk_model_273",
+            "chunk_model_274",
+            "chunk_model_275",
+            "chunk_model_276",
+            "chunk_model_281",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 218,
+          "row": 10,
+          "column": 18,
+          "candidateChunkCount": 45,
+          "acceptedChunkCount": 26,
+          "rejectedChunkCount": 19,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_247",
+            "chunk_model_259",
+            "chunk_model_260",
+            "chunk_model_261",
+            "chunk_model_262",
+            "chunk_model_263",
+            "chunk_model_264",
+            "chunk_model_265",
+            "chunk_model_270",
+            "chunk_model_271",
+            "chunk_model_272",
+            "chunk_model_273",
+            "chunk_model_274",
+            "chunk_model_275",
+            "chunk_model_276",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 219,
+          "row": 10,
+          "column": 19,
+          "candidateChunkCount": 24,
+          "acceptedChunkCount": 13,
+          "rejectedChunkCount": 11,
+          "rejectedChunkIds": [
+            "chunk_model_247",
+            "chunk_model_259",
+            "chunk_model_260",
+            "chunk_model_261",
+            "chunk_model_262",
+            "chunk_model_263",
+            "chunk_model_264",
+            "chunk_model_265",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 220,
+          "row": 11,
+          "column": 0,
+          "candidateChunkCount": 2,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 2,
+          "rejectedChunkIds": [
+            "chunk_model_262",
+            "chunk_model_273"
+          ]
+        },
+        {
+          "cellIndex": 221,
+          "row": 11,
+          "column": 1,
+          "candidateChunkCount": 1,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_273"
+          ]
+        },
+        {
+          "cellIndex": 222,
+          "row": 11,
+          "column": 2,
+          "candidateChunkCount": 1,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_250"
+          ]
+        },
+        {
+          "cellIndex": 224,
+          "row": 11,
+          "column": 4,
+          "candidateChunkCount": 2,
+          "acceptedChunkCount": 1,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_133"
+          ]
+        },
+        {
+          "cellIndex": 225,
+          "row": 11,
+          "column": 5,
+          "candidateChunkCount": 1,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_133"
+          ]
+        },
+        {
+          "cellIndex": 231,
+          "row": 11,
+          "column": 11,
+          "candidateChunkCount": 13,
+          "acceptedChunkCount": 11,
+          "rejectedChunkCount": 2,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 232,
+          "row": 11,
+          "column": 12,
+          "candidateChunkCount": 18,
+          "acceptedChunkCount": 12,
+          "rejectedChunkCount": 6,
+          "rejectedChunkIds": [
+            "chunk_model_130",
+            "chunk_model_132",
+            "chunk_model_134",
+            "chunk_model_136",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 233,
+          "row": 11,
+          "column": 13,
+          "candidateChunkCount": 14,
+          "acceptedChunkCount": 6,
+          "rejectedChunkCount": 8,
+          "rejectedChunkIds": [
+            "chunk_model_130",
+            "chunk_model_132",
+            "chunk_model_133",
+            "chunk_model_134",
+            "chunk_model_135",
+            "chunk_model_136",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 234,
+          "row": 11,
+          "column": 14,
+          "candidateChunkCount": 20,
+          "acceptedChunkCount": 10,
+          "rejectedChunkCount": 10,
+          "rejectedChunkIds": [
+            "chunk_model_119",
+            "chunk_model_121",
+            "chunk_model_123",
+            "chunk_model_124",
+            "chunk_model_132",
+            "chunk_model_133",
+            "chunk_model_135",
+            "chunk_model_136",
+            "chunk_model_142",
+            "chunk_model_283"
+          ]
+        },
+        {
+          "cellIndex": 235,
+          "row": 11,
+          "column": 15,
+          "candidateChunkCount": 22,
+          "acceptedChunkCount": 12,
+          "rejectedChunkCount": 10,
+          "rejectedChunkIds": [
+            "chunk_model_121",
+            "chunk_model_124",
+            "chunk_model_142",
+            "chunk_model_247",
+            "chunk_model_250",
+            "chunk_model_251",
+            "chunk_model_252",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 236,
+          "row": 11,
+          "column": 16,
+          "candidateChunkCount": 19,
+          "acceptedChunkCount": 5,
+          "rejectedChunkCount": 14,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_244",
+            "chunk_model_247",
+            "chunk_model_249",
+            "chunk_model_250",
+            "chunk_model_251",
+            "chunk_model_252",
+            "chunk_model_253",
+            "chunk_model_270",
+            "chunk_model_272",
+            "chunk_model_274",
+            "chunk_model_276",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 237,
+          "row": 11,
+          "column": 17,
+          "candidateChunkCount": 15,
+          "acceptedChunkCount": 4,
+          "rejectedChunkCount": 11,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_247",
+            "chunk_model_270",
+            "chunk_model_272",
+            "chunk_model_273",
+            "chunk_model_274",
+            "chunk_model_275",
+            "chunk_model_276",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 238,
+          "row": 11,
+          "column": 18,
+          "candidateChunkCount": 20,
+          "acceptedChunkCount": 6,
+          "rejectedChunkCount": 14,
+          "rejectedChunkIds": [
+            "chunk_model_142",
+            "chunk_model_247",
+            "chunk_model_259",
+            "chunk_model_261",
+            "chunk_model_262",
+            "chunk_model_263",
+            "chunk_model_264",
+            "chunk_model_272",
+            "chunk_model_273",
+            "chunk_model_275",
+            "chunk_model_276",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 239,
+          "row": 11,
+          "column": 19,
+          "candidateChunkCount": 10,
+          "acceptedChunkCount": 3,
+          "rejectedChunkCount": 7,
+          "rejectedChunkIds": [
+            "chunk_model_247",
+            "chunk_model_261",
+            "chunk_model_262",
+            "chunk_model_264",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ]
+        },
+        {
+          "cellIndex": 253,
+          "row": 12,
+          "column": 13,
+          "candidateChunkCount": 1,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_142"
+          ]
+        },
+        {
+          "cellIndex": 254,
+          "row": 12,
+          "column": 14,
+          "candidateChunkCount": 1,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_142"
+          ]
+        }
+      ],
+      "rejectedOnlyCells": [
+        {
+          "cellIndex": 160,
+          "row": 8,
+          "column": 0,
+          "rejectedChunkCount": 2,
+          "candidateChunkCount": 2
+        },
+        {
+          "cellIndex": 161,
+          "row": 8,
+          "column": 1,
+          "rejectedChunkCount": 2,
+          "candidateChunkCount": 2
+        },
+        {
+          "cellIndex": 162,
+          "row": 8,
+          "column": 2,
+          "rejectedChunkCount": 1,
+          "candidateChunkCount": 1
+        },
+        {
+          "cellIndex": 164,
+          "row": 8,
+          "column": 4,
+          "rejectedChunkCount": 2,
+          "candidateChunkCount": 2
+        },
+        {
+          "cellIndex": 165,
+          "row": 8,
+          "column": 5,
+          "rejectedChunkCount": 2,
+          "candidateChunkCount": 2
+        },
+        {
+          "cellIndex": 177,
+          "row": 8,
+          "column": 17,
+          "rejectedChunkCount": 20,
+          "candidateChunkCount": 20
+        },
+        {
+          "cellIndex": 180,
+          "row": 9,
+          "column": 0,
+          "rejectedChunkCount": 1,
+          "candidateChunkCount": 1
+        },
+        {
+          "cellIndex": 181,
+          "row": 9,
+          "column": 1,
+          "rejectedChunkCount": 1,
+          "candidateChunkCount": 1
+        },
+        {
+          "cellIndex": 182,
+          "row": 9,
+          "column": 2,
+          "rejectedChunkCount": 1,
+          "candidateChunkCount": 1
+        },
+        {
+          "cellIndex": 184,
+          "row": 9,
+          "column": 4,
+          "rejectedChunkCount": 1,
+          "candidateChunkCount": 1
+        },
+        {
+          "cellIndex": 185,
+          "row": 9,
+          "column": 5,
+          "rejectedChunkCount": 1,
+          "candidateChunkCount": 1
+        },
+        {
+          "cellIndex": 200,
+          "row": 10,
+          "column": 0,
+          "rejectedChunkCount": 2,
+          "candidateChunkCount": 2
+        },
+        {
+          "cellIndex": 201,
+          "row": 10,
+          "column": 1,
+          "rejectedChunkCount": 2,
+          "candidateChunkCount": 2
+        },
+        {
+          "cellIndex": 202,
+          "row": 10,
+          "column": 2,
+          "rejectedChunkCount": 1,
+          "candidateChunkCount": 1
+        },
+        {
+          "cellIndex": 205,
+          "row": 10,
+          "column": 5,
+          "rejectedChunkCount": 2,
+          "candidateChunkCount": 2
+        },
+        {
+          "cellIndex": 220,
+          "row": 11,
+          "column": 0,
+          "rejectedChunkCount": 2,
+          "candidateChunkCount": 2
+        },
+        {
+          "cellIndex": 221,
+          "row": 11,
+          "column": 1,
+          "rejectedChunkCount": 1,
+          "candidateChunkCount": 1
+        },
+        {
+          "cellIndex": 222,
+          "row": 11,
+          "column": 2,
+          "rejectedChunkCount": 1,
+          "candidateChunkCount": 1
+        },
+        {
+          "cellIndex": 225,
+          "row": 11,
+          "column": 5,
+          "rejectedChunkCount": 1,
+          "candidateChunkCount": 1
+        },
+        {
+          "cellIndex": 253,
+          "row": 12,
+          "column": 13,
+          "rejectedChunkCount": 1,
+          "candidateChunkCount": 1
+        },
+        {
+          "cellIndex": 254,
+          "row": 12,
+          "column": 14,
+          "rejectedChunkCount": 1,
+          "candidateChunkCount": 1
+        }
+      ]
+    },
+    "bboxRoiMapping": {
+      "mappedRejectedChunkCount": 90,
+      "rejectedChunksOutsideMappedBboxRois": 0,
+      "rois": [
+        {
+          "roiId": "ROI-01-PLAN-KAT1",
+          "mappingStatus": "bbox-estimate",
+          "candidateChunkCount": 18,
+          "acceptedChunkCount": 4,
+          "rejectedChunkCount": 14,
+          "rejectedChunkIds": [
+            "chunk_model_128",
+            "chunk_model_133",
+            "chunk_model_134",
+            "chunk_model_138",
+            "chunk_model_140",
+            "chunk_model_250",
+            "chunk_model_251",
+            "chunk_model_256",
+            "chunk_model_262",
+            "chunk_model_268",
+            "chunk_model_273",
+            "chunk_model_274",
+            "chunk_model_278",
+            "chunk_model_280"
+          ],
+          "profileHandleCount": 0,
+          "sourceHandleMappingStatus": "no-valid-profile-handles"
+        },
+        {
+          "roiId": "ROI-02-PLAN-KAT2",
+          "mappingStatus": "bbox-estimate",
+          "candidateChunkCount": 284,
+          "acceptedChunkCount": 194,
+          "rejectedChunkCount": 90,
+          "rejectedChunkIds": [
+            "chunk_model_119",
+            "chunk_model_120",
+            "chunk_model_121",
+            "chunk_model_123",
+            "chunk_model_124",
+            "chunk_model_125",
+            "chunk_model_126",
+            "chunk_model_127",
+            "chunk_model_128",
+            "chunk_model_129",
+            "chunk_model_130",
+            "chunk_model_131",
+            "chunk_model_132",
+            "chunk_model_133",
+            "chunk_model_134",
+            "chunk_model_135",
+            "chunk_model_136",
+            "chunk_model_137",
+            "chunk_model_138",
+            "chunk_model_139",
+            "chunk_model_140",
+            "chunk_model_141",
+            "chunk_model_142",
+            "chunk_model_214",
+            "chunk_model_217",
+            "chunk_model_218",
+            "chunk_model_220",
+            "chunk_model_221",
+            "chunk_model_223",
+            "chunk_model_224",
+            "chunk_model_225",
+            "chunk_model_226",
+            "chunk_model_227",
+            "chunk_model_228",
+            "chunk_model_229",
+            "chunk_model_230",
+            "chunk_model_231",
+            "chunk_model_232",
+            "chunk_model_233",
+            "chunk_model_234",
+            "chunk_model_235",
+            "chunk_model_236",
+            "chunk_model_237",
+            "chunk_model_238",
+            "chunk_model_239",
+            "chunk_model_240",
+            "chunk_model_241",
+            "chunk_model_242",
+            "chunk_model_243",
+            "chunk_model_244",
+            "chunk_model_245",
+            "chunk_model_246",
+            "chunk_model_247",
+            "chunk_model_248",
+            "chunk_model_249",
+            "chunk_model_250",
+            "chunk_model_251",
+            "chunk_model_252",
+            "chunk_model_253",
+            "chunk_model_254",
+            "chunk_model_255",
+            "chunk_model_256",
+            "chunk_model_257",
+            "chunk_model_258",
+            "chunk_model_259",
+            "chunk_model_260",
+            "chunk_model_261",
+            "chunk_model_262",
+            "chunk_model_263",
+            "chunk_model_264",
+            "chunk_model_265",
+            "chunk_model_266",
+            "chunk_model_267",
+            "chunk_model_268",
+            "chunk_model_269",
+            "chunk_model_270",
+            "chunk_model_271",
+            "chunk_model_272",
+            "chunk_model_273",
+            "chunk_model_274",
+            "chunk_model_275",
+            "chunk_model_276",
+            "chunk_model_277",
+            "chunk_model_278",
+            "chunk_model_279",
+            "chunk_model_280",
+            "chunk_model_281",
+            "chunk_model_282",
+            "chunk_model_283",
+            "chunk_model_284"
+          ],
+          "profileHandleCount": 0,
+          "sourceHandleMappingStatus": "no-valid-profile-handles"
+        },
+        {
+          "roiId": "ROI-03-U317-OUTLIER",
+          "mappingStatus": "bbox-estimate",
+          "candidateChunkCount": 1,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 1,
+          "rejectedChunkIds": [
+            "chunk_model_262"
+          ],
+          "profileHandleCount": 2,
+          "sourceHandleMappingStatus": "handle-present-but-not-bound-to-chunk"
+        },
+        {
+          "roiId": "ROI-04-NEG-Z-INSERTS",
+          "mappingStatus": "bbox-estimate",
+          "candidateChunkCount": 6,
+          "acceptedChunkCount": 0,
+          "rejectedChunkCount": 6,
+          "rejectedChunkIds": [
+            "chunk_model_262",
+            "chunk_model_268",
+            "chunk_model_273",
+            "chunk_model_274",
+            "chunk_model_278",
+            "chunk_model_280"
+          ],
+          "profileHandleCount": 6,
+          "sourceHandleMappingStatus": "handle-present-but-not-bound-to-chunk"
+        },
+        {
+          "roiId": "ROI-05-HATCH-COLUMNS",
+          "mappingStatus": "unmapped-no-world-bbox",
+          "candidateChunkCount": null,
+          "acceptedChunkCount": null,
+          "rejectedChunkCount": null,
+          "rejectedChunkIds": [],
+          "profileHandleCount": 0,
+          "sourceHandleMappingStatus": "no-valid-profile-handles"
+        },
+        {
+          "roiId": "ROI-06-DIM-ANNOTATIONS",
+          "mappingStatus": "unmapped-no-world-bbox",
+          "candidateChunkCount": null,
+          "acceptedChunkCount": null,
+          "rejectedChunkCount": null,
+          "rejectedChunkIds": [],
+          "profileHandleCount": 0,
+          "sourceHandleMappingStatus": "no-valid-profile-handles"
+        },
+        {
+          "roiId": "ROI-07-TURKISH-TEXT",
+          "mappingStatus": "unmapped-no-world-bbox",
+          "candidateChunkCount": null,
+          "acceptedChunkCount": null,
+          "rejectedChunkCount": null,
+          "rejectedChunkIds": [],
+          "profileHandleCount": 0,
+          "sourceHandleMappingStatus": "no-valid-profile-handles"
+        },
+        {
+          "roiId": "ROI-08-LINEWEIGHT-PROFILES",
+          "mappingStatus": "unmapped-no-world-bbox",
+          "candidateChunkCount": null,
+          "acceptedChunkCount": null,
+          "rejectedChunkCount": null,
+          "rejectedChunkIds": [],
+          "profileHandleCount": 0,
+          "sourceHandleMappingStatus": "no-valid-profile-handles"
+        },
+        {
+          "roiId": "ROI-09-DASHED-LINES",
+          "mappingStatus": "unmapped-no-world-bbox",
+          "candidateChunkCount": null,
+          "acceptedChunkCount": null,
+          "rejectedChunkCount": null,
+          "rejectedChunkIds": [],
+          "profileHandleCount": 0,
+          "sourceHandleMappingStatus": "no-valid-profile-handles"
+        },
+        {
+          "roiId": "ROI-10-TITLE-BLOCK",
+          "mappingStatus": "unmapped-no-world-bbox",
+          "candidateChunkCount": null,
+          "acceptedChunkCount": null,
+          "rejectedChunkCount": null,
+          "rejectedChunkIds": [],
+          "profileHandleCount": 0,
+          "sourceHandleMappingStatus": "no-valid-profile-handles"
+        }
+      ]
+    },
+    "rejectedChunkMap": [
+      {
+        "chunkId": "chunk_model_119",
+        "projectedCellIds": [
+          171,
+          172,
+          191,
+          192,
+          194,
+          195,
+          214,
+          215,
+          234
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6147520,
+        "candidateGpuBufferBytes": 4360320
+      },
+      {
+        "chunkId": "chunk_model_120",
+        "projectedCellIds": [
+          194,
+          214,
+          215
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6291244,
+        "candidateGpuBufferBytes": 4776672
+      },
+      {
+        "chunkId": "chunk_model_121",
+        "projectedCellIds": [
+          194,
+          195,
+          214,
+          215,
+          234,
+          235
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 5909628,
+        "candidateGpuBufferBytes": 4476120
+      },
+      {
+        "chunkId": "chunk_model_123",
+        "projectedCellIds": [
+          194,
+          195,
+          214,
+          215,
+          234
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 2711628,
+        "candidateGpuBufferBytes": 1359696
+      },
+      {
+        "chunkId": "chunk_model_124",
+        "projectedCellIds": [
+          194,
+          195,
+          214,
+          215,
+          234,
+          235
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 4735204,
+        "candidateGpuBufferBytes": 2914680
+      },
+      {
+        "chunkId": "chunk_model_125",
+        "projectedCellIds": [
+          174,
+          175,
+          194,
+          195,
+          214,
+          215
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6366376,
+        "candidateGpuBufferBytes": 4675356
+      },
+      {
+        "chunkId": "chunk_model_126",
+        "projectedCellIds": [
+          174,
+          194,
+          195
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6300868,
+        "candidateGpuBufferBytes": 4780344
+      },
+      {
+        "chunkId": "chunk_model_127",
+        "projectedCellIds": [
+          174,
+          175,
+          194,
+          195
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 5857628,
+        "candidateGpuBufferBytes": 4468056
+      },
+      {
+        "chunkId": "chunk_model_128",
+        "projectedCellIds": [
+          164,
+          174,
+          175,
+          184,
+          194,
+          195
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 2885944,
+        "candidateGpuBufferBytes": 1420104
+      },
+      {
+        "chunkId": "chunk_model_129",
+        "projectedCellIds": [
+          194,
+          195
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 2858092,
+        "candidateGpuBufferBytes": 1347384
+      },
+      {
+        "chunkId": "chunk_model_130",
+        "projectedCellIds": [
+          174,
+          175,
+          192,
+          193,
+          194,
+          195,
+          212,
+          213,
+          214,
+          232,
+          233
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6003900,
+        "candidateGpuBufferBytes": 4100436
+      },
+      {
+        "chunkId": "chunk_model_131",
+        "projectedCellIds": [
+          193,
+          213,
+          214
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6325812,
+        "candidateGpuBufferBytes": 4778772
+      },
+      {
+        "chunkId": "chunk_model_132",
+        "projectedCellIds": [
+          194,
+          212,
+          213,
+          214,
+          232,
+          233,
+          234
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 5197060,
+        "candidateGpuBufferBytes": 3687504
+      },
+      {
+        "chunkId": "chunk_model_133",
+        "projectedCellIds": [
+          204,
+          205,
+          212,
+          213,
+          214,
+          224,
+          225,
+          233,
+          234
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 4428008,
+        "candidateGpuBufferBytes": 3050616
+      },
+      {
+        "chunkId": "chunk_model_134",
+        "projectedCellIds": [
+          205,
+          212,
+          213,
+          214,
+          232,
+          233
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 3182312,
+        "candidateGpuBufferBytes": 1779168
+      },
+      {
+        "chunkId": "chunk_model_135",
+        "projectedCellIds": [
+          212,
+          213,
+          214,
+          233,
+          234
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 3266048,
+        "candidateGpuBufferBytes": 1679664
+      },
+      {
+        "chunkId": "chunk_model_136",
+        "projectedCellIds": [
+          173,
+          192,
+          193,
+          194,
+          212,
+          213,
+          214,
+          232,
+          233,
+          234
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6400316,
+        "candidateGpuBufferBytes": 4546740
+      },
+      {
+        "chunkId": "chunk_model_137",
+        "projectedCellIds": [
+          172,
+          173,
+          174,
+          192,
+          193,
+          194
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 5775932,
+        "candidateGpuBufferBytes": 4214988
+      },
+      {
+        "chunkId": "chunk_model_138",
+        "projectedCellIds": [
+          164,
+          165,
+          173,
+          174,
+          192,
+          193,
+          194
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 4320036,
+        "candidateGpuBufferBytes": 2866008
+      },
+      {
+        "chunkId": "chunk_model_139",
+        "projectedCellIds": [
+          173,
+          174,
+          194
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 5589524,
+        "candidateGpuBufferBytes": 4301688
+      },
+      {
+        "chunkId": "chunk_model_140",
+        "projectedCellIds": [
+          165,
+          172,
+          173,
+          185,
+          192,
+          193,
+          194
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 2850376,
+        "candidateGpuBufferBytes": 1381008
+      },
+      {
+        "chunkId": "chunk_model_141",
+        "projectedCellIds": [
+          172,
+          173,
+          174,
+          192,
+          193,
+          194,
+          213
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 4772900,
+        "candidateGpuBufferBytes": 2935776
+      },
+      {
+        "chunkId": "chunk_model_142",
+        "projectedCellIds": [
+          171,
+          172,
+          173,
+          174,
+          175,
+          176,
+          177,
+          178,
+          191,
+          192,
+          193,
+          194,
+          195,
+          196,
+          197,
+          198,
+          211,
+          212,
+          213,
+          214,
+          215,
+          216,
+          217,
+          218,
+          231,
+          232,
+          233,
+          234,
+          235,
+          236,
+          237,
+          238,
+          253,
+          254
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 4090184,
+        "candidateGpuBufferBytes": 1321056
+      },
+      {
+        "chunkId": "chunk_model_214",
+        "projectedCellIds": [
+          195
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 36260,
+        "candidateGpuBufferBytes": 6048
+      },
+      {
+        "chunkId": "chunk_model_217",
+        "projectedCellIds": [
+          195
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 34580,
+        "candidateGpuBufferBytes": 5208
+      },
+      {
+        "chunkId": "chunk_model_218",
+        "projectedCellIds": [
+          175,
+          176,
+          177,
+          178
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 13392,
+        "candidateGpuBufferBytes": 6912
+      },
+      {
+        "chunkId": "chunk_model_220",
+        "projectedCellIds": [
+          175
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 35396,
+        "candidateGpuBufferBytes": 5616
+      },
+      {
+        "chunkId": "chunk_model_221",
+        "projectedCellIds": [
+          175,
+          176,
+          177,
+          178
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 13392,
+        "candidateGpuBufferBytes": 6912
+      },
+      {
+        "chunkId": "chunk_model_223",
+        "projectedCellIds": [
+          175
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 35108,
+        "candidateGpuBufferBytes": 5472
+      },
+      {
+        "chunkId": "chunk_model_224",
+        "projectedCellIds": [
+          175,
+          176,
+          177,
+          178
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 13392,
+        "candidateGpuBufferBytes": 6912
+      },
+      {
+        "chunkId": "chunk_model_225",
+        "projectedCellIds": [
+          178,
+          179
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 7264,
+        "candidateGpuBufferBytes": 2016
+      },
+      {
+        "chunkId": "chunk_model_226",
+        "projectedCellIds": [
+          175
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 32804,
+        "candidateGpuBufferBytes": 4320
+      },
+      {
+        "chunkId": "chunk_model_227",
+        "projectedCellIds": [
+          175,
+          176,
+          177,
+          178
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 13392,
+        "candidateGpuBufferBytes": 6912
+      },
+      {
+        "chunkId": "chunk_model_228",
+        "projectedCellIds": [
+          178,
+          179
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 7264,
+        "candidateGpuBufferBytes": 2016
+      },
+      {
+        "chunkId": "chunk_model_229",
+        "projectedCellIds": [
+          175
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 36260,
+        "candidateGpuBufferBytes": 6048
+      },
+      {
+        "chunkId": "chunk_model_230",
+        "projectedCellIds": [
+          175,
+          176,
+          177,
+          178
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 13392,
+        "candidateGpuBufferBytes": 6912
+      },
+      {
+        "chunkId": "chunk_model_231",
+        "projectedCellIds": [
+          178,
+          179
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 7264,
+        "candidateGpuBufferBytes": 2016
+      },
+      {
+        "chunkId": "chunk_model_232",
+        "projectedCellIds": [
+          175
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 29808,
+        "candidateGpuBufferBytes": 2832
+      },
+      {
+        "chunkId": "chunk_model_233",
+        "projectedCellIds": [
+          175,
+          176,
+          177,
+          178
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 13392,
+        "candidateGpuBufferBytes": 6912
+      },
+      {
+        "chunkId": "chunk_model_234",
+        "projectedCellIds": [
+          178,
+          179
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 7264,
+        "candidateGpuBufferBytes": 2016
+      },
+      {
+        "chunkId": "chunk_model_235",
+        "projectedCellIds": [
+          175
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 30672,
+        "candidateGpuBufferBytes": 3264
+      },
+      {
+        "chunkId": "chunk_model_236",
+        "projectedCellIds": [
+          175,
+          176,
+          177,
+          178
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 13392,
+        "candidateGpuBufferBytes": 6912
+      },
+      {
+        "chunkId": "chunk_model_237",
+        "projectedCellIds": [
+          178,
+          179
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 7264,
+        "candidateGpuBufferBytes": 2016
+      },
+      {
+        "chunkId": "chunk_model_238",
+        "projectedCellIds": [
+          175
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 35156,
+        "candidateGpuBufferBytes": 5496
+      },
+      {
+        "chunkId": "chunk_model_239",
+        "projectedCellIds": [
+          175,
+          176,
+          177,
+          178
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 13392,
+        "candidateGpuBufferBytes": 6912
+      },
+      {
+        "chunkId": "chunk_model_240",
+        "projectedCellIds": [
+          178,
+          179
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 7264,
+        "candidateGpuBufferBytes": 2016
+      },
+      {
+        "chunkId": "chunk_model_241",
+        "projectedCellIds": [
+          175
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 33236,
+        "candidateGpuBufferBytes": 4536
+      },
+      {
+        "chunkId": "chunk_model_242",
+        "projectedCellIds": [
+          175,
+          176,
+          177,
+          178
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 13392,
+        "candidateGpuBufferBytes": 6912
+      },
+      {
+        "chunkId": "chunk_model_243",
+        "projectedCellIds": [
+          178,
+          179
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 7264,
+        "candidateGpuBufferBytes": 2016
+      },
+      {
+        "chunkId": "chunk_model_244",
+        "projectedCellIds": [
+          175,
+          215,
+          216,
+          217,
+          236
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 67240,
+        "candidateGpuBufferBytes": 8928
+      },
+      {
+        "chunkId": "chunk_model_245",
+        "projectedCellIds": [
+          195,
+          196,
+          197,
+          198
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 13392,
+        "candidateGpuBufferBytes": 6912
+      },
+      {
+        "chunkId": "chunk_model_246",
+        "projectedCellIds": [
+          198,
+          199
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 7264,
+        "candidateGpuBufferBytes": 2016
+      },
+      {
+        "chunkId": "chunk_model_247",
+        "projectedCellIds": [
+          175,
+          176,
+          177,
+          178,
+          179,
+          195,
+          196,
+          197,
+          198,
+          199,
+          215,
+          216,
+          217,
+          218,
+          219,
+          235,
+          236,
+          237,
+          238,
+          239
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 7372260,
+        "candidateGpuBufferBytes": 4111056
+      },
+      {
+        "chunkId": "chunk_model_248",
+        "projectedCellIds": [
+          196,
+          216
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6314164,
+        "candidateGpuBufferBytes": 4776672
+      },
+      {
+        "chunkId": "chunk_model_249",
+        "projectedCellIds": [
+          195,
+          196,
+          216,
+          236
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 5955544,
+        "candidateGpuBufferBytes": 4472448
+      },
+      {
+        "chunkId": "chunk_model_250",
+        "projectedCellIds": [
+          195,
+          215,
+          216,
+          222,
+          235,
+          236
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 4692164,
+        "candidateGpuBufferBytes": 3300960
+      },
+      {
+        "chunkId": "chunk_model_251",
+        "projectedCellIds": [
+          195,
+          196,
+          202,
+          215,
+          216,
+          235,
+          236
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 2733836,
+        "candidateGpuBufferBytes": 1319952
+      },
+      {
+        "chunkId": "chunk_model_252",
+        "projectedCellIds": [
+          195,
+          196,
+          215,
+          216,
+          235,
+          236
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 3412580,
+        "candidateGpuBufferBytes": 1813296
+      },
+      {
+        "chunkId": "chunk_model_253",
+        "projectedCellIds": [
+          175,
+          176,
+          195,
+          196,
+          215,
+          216,
+          236
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6373020,
+        "candidateGpuBufferBytes": 4491072
+      },
+      {
+        "chunkId": "chunk_model_254",
+        "projectedCellIds": [
+          176,
+          196
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6315336,
+        "candidateGpuBufferBytes": 4776672
+      },
+      {
+        "chunkId": "chunk_model_255",
+        "projectedCellIds": [
+          176,
+          195,
+          196
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 5933316,
+        "candidateGpuBufferBytes": 4476120
+      },
+      {
+        "chunkId": "chunk_model_256",
+        "projectedCellIds": [
+          162,
+          175,
+          176,
+          182,
+          195,
+          196
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 4476048,
+        "candidateGpuBufferBytes": 3056304
+      },
+      {
+        "chunkId": "chunk_model_257",
+        "projectedCellIds": [
+          175,
+          176,
+          195,
+          196
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 2795616,
+        "candidateGpuBufferBytes": 1376040
+      },
+      {
+        "chunkId": "chunk_model_258",
+        "projectedCellIds": [
+          175,
+          176,
+          195,
+          196
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 3974744,
+        "candidateGpuBufferBytes": 2299368
+      },
+      {
+        "chunkId": "chunk_model_259",
+        "projectedCellIds": [
+          175,
+          176,
+          195,
+          196,
+          198,
+          199,
+          218,
+          219,
+          238
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6150048,
+        "candidateGpuBufferBytes": 4360320
+      },
+      {
+        "chunkId": "chunk_model_260",
+        "projectedCellIds": [
+          198,
+          218,
+          219
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6292448,
+        "candidateGpuBufferBytes": 4776672
+      },
+      {
+        "chunkId": "chunk_model_261",
+        "projectedCellIds": [
+          198,
+          199,
+          218,
+          219,
+          238,
+          239
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 5910480,
+        "candidateGpuBufferBytes": 4476120
+      },
+      {
+        "chunkId": "chunk_model_262",
+        "projectedCellIds": [
+          199,
+          200,
+          218,
+          219,
+          220,
+          238,
+          239
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2",
+          "ROI-03-U317-OUTLIER",
+          "ROI-04-NEG-Z-INSERTS"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 4052060,
+        "candidateGpuBufferBytes": 2589528
+      },
+      {
+        "chunkId": "chunk_model_263",
+        "projectedCellIds": [
+          198,
+          199,
+          218,
+          219,
+          238
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 2712208,
+        "candidateGpuBufferBytes": 1359696
+      },
+      {
+        "chunkId": "chunk_model_264",
+        "projectedCellIds": [
+          198,
+          199,
+          218,
+          219,
+          238,
+          239
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 4737528,
+        "candidateGpuBufferBytes": 2914680
+      },
+      {
+        "chunkId": "chunk_model_265",
+        "projectedCellIds": [
+          178,
+          179,
+          198,
+          199,
+          218,
+          219
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6368340,
+        "candidateGpuBufferBytes": 4675356
+      },
+      {
+        "chunkId": "chunk_model_266",
+        "projectedCellIds": [
+          178,
+          198,
+          199
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6301540,
+        "candidateGpuBufferBytes": 4780344
+      },
+      {
+        "chunkId": "chunk_model_267",
+        "projectedCellIds": [
+          178,
+          179,
+          198,
+          199
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 5857760,
+        "candidateGpuBufferBytes": 4468056
+      },
+      {
+        "chunkId": "chunk_model_268",
+        "projectedCellIds": [
+          160,
+          178,
+          179,
+          180,
+          198,
+          199
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2",
+          "ROI-04-NEG-Z-INSERTS"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 2834492,
+        "candidateGpuBufferBytes": 1368192
+      },
+      {
+        "chunkId": "chunk_model_269",
+        "projectedCellIds": [
+          198,
+          199
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 2859148,
+        "candidateGpuBufferBytes": 1347384
+      },
+      {
+        "chunkId": "chunk_model_270",
+        "projectedCellIds": [
+          178,
+          179,
+          196,
+          197,
+          198,
+          199,
+          216,
+          217,
+          218,
+          236,
+          237
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6004688,
+        "candidateGpuBufferBytes": 4100436
+      },
+      {
+        "chunkId": "chunk_model_271",
+        "projectedCellIds": [
+          197,
+          217,
+          218
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6326664,
+        "candidateGpuBufferBytes": 4778772
+      },
+      {
+        "chunkId": "chunk_model_272",
+        "projectedCellIds": [
+          198,
+          216,
+          217,
+          218,
+          236,
+          237,
+          238
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 5197600,
+        "candidateGpuBufferBytes": 3687504
+      },
+      {
+        "chunkId": "chunk_model_273",
+        "projectedCellIds": [
+          200,
+          201,
+          216,
+          217,
+          218,
+          220,
+          221,
+          237,
+          238
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2",
+          "ROI-04-NEG-Z-INSERTS"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 4127140,
+        "candidateGpuBufferBytes": 2749512
+      },
+      {
+        "chunkId": "chunk_model_274",
+        "projectedCellIds": [
+          201,
+          216,
+          217,
+          218,
+          236,
+          237
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2",
+          "ROI-04-NEG-Z-INSERTS"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 3085084,
+        "candidateGpuBufferBytes": 1681608
+      },
+      {
+        "chunkId": "chunk_model_275",
+        "projectedCellIds": [
+          216,
+          217,
+          218,
+          237,
+          238
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 3266072,
+        "candidateGpuBufferBytes": 1679664
+      },
+      {
+        "chunkId": "chunk_model_276",
+        "projectedCellIds": [
+          177,
+          196,
+          197,
+          198,
+          216,
+          217,
+          218,
+          236,
+          237,
+          238
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 6400480,
+        "candidateGpuBufferBytes": 4546848
+      },
+      {
+        "chunkId": "chunk_model_277",
+        "projectedCellIds": [
+          176,
+          177,
+          178,
+          196,
+          197,
+          198
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 5775904,
+        "candidateGpuBufferBytes": 4214988
+      },
+      {
+        "chunkId": "chunk_model_278",
+        "projectedCellIds": [
+          160,
+          161,
+          177,
+          178,
+          196,
+          197,
+          198
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2",
+          "ROI-04-NEG-Z-INSERTS"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 4082612,
+        "candidateGpuBufferBytes": 2628768
+      },
+      {
+        "chunkId": "chunk_model_279",
+        "projectedCellIds": [
+          177,
+          178,
+          198
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 5589524,
+        "candidateGpuBufferBytes": 4301688
+      },
+      {
+        "chunkId": "chunk_model_280",
+        "projectedCellIds": [
+          161,
+          176,
+          177,
+          181,
+          196,
+          197,
+          198
+        ],
+        "bboxRoiIds": [
+          "ROI-01-PLAN-KAT1",
+          "ROI-02-PLAN-KAT2",
+          "ROI-04-NEG-Z-INSERTS"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 2850196,
+        "candidateGpuBufferBytes": 1381008
+      },
+      {
+        "chunkId": "chunk_model_281",
+        "projectedCellIds": [
+          176,
+          177,
+          178,
+          196,
+          197,
+          198,
+          217
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 4772856,
+        "candidateGpuBufferBytes": 2935776
+      },
+      {
+        "chunkId": "chunk_model_282",
+        "projectedCellIds": [
+          175,
+          177,
+          178,
+          179,
+          195,
+          196,
+          197,
+          198,
+          199,
+          215,
+          216,
+          217,
+          218,
+          219,
+          235,
+          237,
+          238,
+          239
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 1905624,
+        "candidateGpuBufferBytes": 661368
+      },
+      {
+        "chunkId": "chunk_model_283",
+        "projectedCellIds": [
+          151,
+          155,
+          171,
+          172,
+          173,
+          174,
+          175,
+          176,
+          177,
+          178,
+          179,
+          191,
+          192,
+          193,
+          194,
+          195,
+          196,
+          197,
+          198,
+          199,
+          211,
+          212,
+          213,
+          214,
+          215,
+          216,
+          217,
+          218,
+          219,
+          231,
+          232,
+          233,
+          234,
+          235,
+          236,
+          237,
+          238,
+          239
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 7817420,
+        "candidateGpuBufferBytes": 887280
+      },
+      {
+        "chunkId": "chunk_model_284",
+        "projectedCellIds": [
+          175,
+          176,
+          177,
+          178,
+          179,
+          195,
+          196,
+          197,
+          198,
+          199,
+          215,
+          216,
+          217,
+          218,
+          219,
+          235,
+          236,
+          237,
+          238,
+          239
+        ],
+        "bboxRoiIds": [
+          "ROI-02-PLAN-KAT2"
+        ],
+        "rejectionResources": [
+          "cpu"
+        ],
+        "candidateCpuBytes": 4903504,
+        "candidateGpuBufferBytes": 272400
+      }
+    ],
+    "limitation": "Projected-cell occupancy and ROI bbox intersections are test-only geometry proxies. ROI entries without worldBBoxEstimate cannot be assigned chunk IDs; profile handles are not tied to chunks by this mapping. No semantic or AutoCAD coverage is implied."
+  },
+  "limitations": [
+    "The 20x20 projected cells are compiled-geometry proxies, not pixel or semantic coverage.",
+    "ROI mapping uses provisional worldBBoxEstimate values only. ROI-05 through ROI-10 lack worldBBoxEstimate and valid chunk-bound source handles, so their rejected-chunk membership is unmeasured.",
+    "ROI-02 bbox intersects all 284 visible Model chunks and is not selective. ROI memberships overlap; per-ROI rejected counts must not be summed.",
+    "R001 compiler/native status remains provisional: LibreDWG error 68; AutoCAD oracle NOT_RUN. This artifact is not F08 acceptance."
+  ]
+}

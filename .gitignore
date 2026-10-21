@@ -65,6 +65,7 @@ logolar/
 eklediklerim/*
 !eklediklerim/ornek_dosyalar/
 get-shit-done/
+ecc/
 -EKLEDİKLERİM/
 .tmp/
 output.html
@@ -79,10 +80,14 @@ test_scrollytelling.js
 scratch/
 .data/
 .test-data/
+/services/cad-v2-compiler/dist/
 .gorsel-cikti-ham/
 $cacheRoot/
 test-output/
-scripts/cad-v2/
+.playwright-mcp/
+*.dwl
+*.dwl2
+next-prod-l11-v22-on-d/
 tests/visual-inspection/
 docs/pdf-zoom-v2-screenshots/
 

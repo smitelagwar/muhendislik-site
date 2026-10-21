@@ -30,7 +30,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     const service = CadV2DurableService.getInstance();
-    const job = service.getJob(jobId);
+    const job = await service.getJobAsync(jobId);
 
     if (!job) {
       return NextResponse.json(
@@ -40,7 +40,10 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     // İşin ait olduğu dosyanın bu paylaşıma dahil olduğunu doğrula
-    if (auth.fileIds && !auth.fileIds.includes(job.fileId)) {
+    if (
+      !auth.fileIds?.includes(job.fileId) ||
+      (job.shareLinkId && job.shareLinkId !== auth.linkId)
+    ) {
       return NextResponse.json(
         { error: "Bu işe ait dosya paylaşıma dahil değil.", code: "ACCESS_DENIED" },
         { status: 403, headers: { "Cache-Control": "private, no-store" } }

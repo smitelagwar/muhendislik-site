@@ -32,17 +32,50 @@ export interface CadLinetype {
   description?: string;
   pattern: number[]; // e.g. [1.0, -0.25, 0.25, -0.25] (pozitif çizgi, negatif boşluk)
   totalLength: number;
+  complexElements?: CadLinetypeComplexElement[];
+}
+
+/** Embedded shape/text data attached to a source LTYPE pattern element. */
+export interface CadLinetypeComplexElement {
+  patternIndex: number;
+  /** DXF group 74 bits: 1 absolute rotation, 2 embedded text, 4 embedded shape. */
+  elementTypeFlag: number;
+  shapeNumber?: number;
+  styleObjectId?: string;
+  scale?: number;
+  rotation?: number;
+  offsetX?: number;
+  offsetY?: number;
+  text?: string;
 }
 
 export interface CadTextStyle {
   id: string;
   name: string;
+  /** Original STYLE table handle/object id when exposed by the decoder. */
+  objectHandle?: string;
   fontFileName: string;
   bigFontFileName?: string;
+  /** STYLE records can also name SHX shape files rather than text fonts. */
+  isShapeFile?: boolean;
   height: number;
   widthFactor: number;
   obliqueAngleDeg: number;
   isVertical: boolean;
+}
+
+/** Drawing header values related to linetype scale; mode values are not multipliers. */
+export interface CadLinetypeScaleSettings {
+  /** Global factor applied to existing entities together with their stored entity scale. */
+  globalScale: number;
+  /** CELTSCALE is the default for newly created entities; it is not an extra render factor. */
+  currentEntityScale?: number;
+  /** PSLTSCALE: true means viewport/paper-space linetype scaling is enabled. */
+  paperSpaceViewportScaling?: boolean;
+  /** MSLTSCALE: true means model-tab linetypes follow the annotation scale. */
+  modelTabAnnotationScaling?: boolean;
+  /** Current model-space annotation scale factor from the SCALE record: paperUnits / drawingUnits. */
+  modelTabAnnotationScaleFactor?: number;
 }
 
 export type CadPoint2D = [number, number];
@@ -160,6 +193,14 @@ export interface CadHatchEntity extends CadBaseEntity {
   solidFill?: boolean;
   patternScale?: number;
   patternAngleDeg?: number;
+  /** Decoder-normalized pattern line definitions. Base/offset/dashes already carry the source scale. */
+  patternLines?: Array<{
+    angleRad: number;
+    base: CadPoint2D;
+    offset: CadPoint2D;
+    dashLengths?: number[];
+  }>;
+  patternDouble?: boolean;
   hatchStyle?: number;
   patternType?: number;
   loops: CadHatchLoop[];
@@ -202,6 +243,8 @@ export interface CadClipBoundary {
 
 export interface CadInsertEntity extends CadBaseEntity {
   type: "INSERT";
+  /** Original source handle/objectId used when joining source-owned records. */
+  sourceHandle?: string;
   blockName: string;
   insertionPoint: CadPoint2D;
   scale: [number, number, number];
@@ -212,8 +255,12 @@ export interface CadInsertEntity extends CadBaseEntity {
   rowSpacing?: number;
   extrusionDirection?: [number, number, number];
   attributes?: Record<string, string>;
+  /** Source ATTRIB entities attached to this INSERT, already positioned in the INSERT's parent plane. */
+  attributeEntities?: CadAttribEntity[];
   clipBoundary?: CadClipBoundary;
 }
+
+export type CadDimensionUnitFormat = "decimal" | "scientific";
 
 export interface CadDimensionEntity extends CadBaseEntity {
   type: "DIMENSION";
@@ -233,6 +280,20 @@ export interface CadDimensionEntity extends CadBaseEntity {
   measurement?: number;
   dimScale?: number;
   arrowSize?: number;
+  /** Resolved DIMSTYLE DIMDEC for primary linear units (supported values: 0–8). */
+  primaryUnitDecimals?: number;
+  /** Positive DIMSTYLE DIMTSZ replaces arrowheads with oblique ticks on linear/radius/diameter dimensions. */
+  tickSize?: number;
+  /** DIMSTYLE DIMSE1 suppresses the first extension line in synthesized linear/aligned dimensions. */
+  suppressFirstExtensionLine?: boolean;
+  /** DIMSTYLE DIMSE2 suppresses the second extension line in synthesized linear/aligned dimensions. */
+  suppressSecondExtensionLine?: boolean;
+  /** Resolved DIMSTYLE DIMLUNIT format for primary linear units. */
+  primaryUnitFormat?: CadDimensionUnitFormat;
+  /** Positive or zero DIMSTYLE DIMLFAC applied to primary linear label values; omitted means 1. */
+  primaryUnitScale?: number;
+  /** Resolved symmetric DIMTOL profile. DIMTP/DIMTM are not multiplied by DIMLFAC. */
+  symmetricTolerance?: { value: number; decimals: number };
 }
 
 export interface CadWipeoutEntity extends CadBaseEntity {
@@ -356,11 +417,14 @@ export interface CadCanonicalDocument {
   codepage: string;
   units: number; // INSUNITS
   measurement: number; // 0=English, 1=Metric
+  linetypeScaleSettings?: CadLinetypeScaleSettings;
   layers: Record<string, CadLayer>;
   linetypes: Record<string, CadLinetype>;
   textStyles: Record<string, CadTextStyle>;
   blocks: Record<string, CadBlockDefinition>;
   layouts: Record<string, CadLayout>;
+  /** Source-native model extents used to open/fit the Model view; does not clip entity or chunk bounds. */
+  modelSpaceViewBounds?: CadBBox2D;
   viewports: Record<string, CadViewport>;
   modelSpaceEntities: CadEntity[];
   paperSpaceEntities?: Record<string, CadEntity[]>;

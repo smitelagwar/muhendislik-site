@@ -134,6 +134,13 @@ Eski `aps-dwg-viewer.tsx` migration sırasında kaldırılmıştır.
 
 Ayrıntılı güncel mimari: `docs/DOKUMANTASYON_CAD_MIMARI_HAFIZA.md`.
 
+### Ayrı CAD V2 sunucu derleyicisi (aday çalışma; production primary değildir)
+
+- `src/lib/cad-v2/` ve `/api/dokumantasyon/cad-v2/*` bu ayrı planın sunucu taraflı compile/sahne teslim zinciridir.
+- `PLAN/DWG_DXF_MOTOR_V2_GPT_6_LUNA_EXTRA_HIGH_PLANI.md` kapsamındaki kabul tamamlanana ve ayrıca cutover kararı verilene kadar mevcut upstream CAD zinciri ve V1 fallback korunur; V2 adayı production hazır sayılmaz.
+- L00–L14 ilerlemesi ve açık kabuller ana çalışma alanındaki `DWG_PLAN_DURUMU.md` içinde planın tam yolu ile izlenir.
+- Candidate worktree'deki L03 uygulaması `src/lib/cad-v2/db/` altındaki migration/repository ile durable job/session ve DB READY pointer'ı sağlar. PGlite yerel testleri Neon/Private Blob veya canlı public route kabulü yerine geçmez; production primary ya da cutover durumu değildir.
+
 ## CAD upstream snapshot
 
 30 Ağustos 2026 production snapshot'ında doğrudan paketler:

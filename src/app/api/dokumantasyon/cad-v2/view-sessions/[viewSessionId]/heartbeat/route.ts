@@ -29,7 +29,7 @@ export async function POST(_request: Request, { params }: RouteParams) {
     }
 
     const service = CadV2DurableService.getInstance();
-    const result = service.heartbeatViewSession(viewSessionId);
+    const result = await service.heartbeatViewSessionAsync(viewSessionId);
 
     return NextResponse.json(result, {
       status: 200,

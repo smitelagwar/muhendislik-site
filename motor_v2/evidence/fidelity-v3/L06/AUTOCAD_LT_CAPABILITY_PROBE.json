@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "observedAtUtc": "2026-10-17T21:22:57Z",
+  "probeKind": "local file metadata, Authenticode, and official Autodesk capability documentation; no AutoCAD process was launched",
+  "product": {
+    "name": "AutoCAD LT 2027 for Windows",
+    "installDirectory": "C:\\Program Files\\Autodesk\\AutoCAD LT 2027",
+    "guiExecutable": {
+      "path": "C:\\Program Files\\Autodesk\\AutoCAD LT 2027\\acadlt.exe",
+      "productVersion": "R26.0.60.0.0",
+      "fileVersion": "R26.0.60.0.0",
+      "bytes": 6491992,
+      "sha256": "4DD8653F4A36DA708529BBE50B2C675D705AFF1ED23314C4C2F46E030A257AA0",
+      "authenticode": "HashMismatch",
+      "signerSubject": "CN=Autodesk, Inc., O=Autodesk, Inc., L=San Francisco, S=California, C=US"
+    },
+    "coreConsoleExecutable": {
+      "path": "C:\\Program Files\\Autodesk\\AutoCAD LT 2027\\accoreconsole.exe",
+      "productVersion": "26.0.60.0.0",
+      "fileVersion": "26.0.60.0.0",
+      "bytes": 504664,
+      "sha256": "FC6B59C29FEA759D556083CF43D9DE3657974EF0BF57962D49A19892F729FA77",
+      "authenticode": "Valid",
+      "use": "not launched; LT Core Console automation support was not assumed"
+    }
+  },
+  "documentedWindowsLtCapabilities": {
+    "AutoLISP": "supported",
+    "VisualLISP": "limited",
+    "ActiveXAutomation": "limited to AutoLISP; external COM automation is not assumed",
+    "ObjectARX": "not supported for AutoCAD LT",
+    "ManagedDotNet": "not supported for AutoCAD LT",
+    "startupScript": "supported via executable_path drawing_name /b script_name; /b and script path are final arguments",
+    "sources": [
+      "https://help.autodesk.com/cloudhelp/2027/ENU/AutoCAD-Customization/files/GUID-E6429154-36DF-4D84-8ABC-9FCA15B66158.htm",
+      "https://help.autodesk.com/cloudhelp/2027/ENU/AutoCAD-Customization/files/GUID-8675B657-8C15-4594-BDFB-644B66BD02D7.htm"
+    ]
+  },
+  "preparedReadOnlyLane": {
+    "inventoryScript": "motor_v2/evidence/fidelity-v3/L06/autocad-lt-readonly-inventory.lsp",
+    "startupScript": "motor_v2/evidence/fidelity-v3/L06/autocad-lt-readonly-session.scr",
+    "sampleCopies": "C:\\Users\\hsyn\\Desktop\\cad-engine-references\\analysis\\cad-v2-l06-candidate-20261017T210354Z-618d1bd2\\autocad-copies",
+    "sampleCopyShaMatchesSource": true,
+    "sampleCopiesReadOnly": true,
+    "staticSafetyTest": "PASS; no drawing mutation commands or SAVE/AUDIT/PURGE/EXPLODE calls",
+    "runtimeTest": "NOT_RUN"
+  },
+  "nativeOracle": {
+    "status": "NOT_RUN",
+    "blocker": "acadlt.exe Authenticode verification returned HashMismatch. The GUI executable was not launched; reference drawings were not opened.",
+    "requiredInput": "Autodesk-supported verification/repair result showing the installed GUI executable is authentic and a fresh Valid Authenticode status/hash. No local install repair was attempted."
+  },
+  "notes": [
+    "accoreconsole.exe being present and signed does not establish that AutoCAD LT supports the intended headless workflow.",
+    "No external COM ProgID was used or treated as evidence of supported automation.",
+    "The script writes only its inventory report under TEMP and only enumerates the currently open drawing. Run it only against the prepared read-only copies after the GUI binary is verified."
+  ]
+}

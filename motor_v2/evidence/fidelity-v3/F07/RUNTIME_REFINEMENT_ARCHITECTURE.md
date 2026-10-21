@@ -717,3 +717,222 @@ The independent source evaluator uses `theta=4*atan(b)` and an analytic circular
 Focused real-host Chromium 1/1; nested affine/composite accounting unit and curve-refinement unit PASS; runtime typecheck PASS. The repository-wide test-inclusive TypeScript check still fails in other existing tests and older viewport Worker.postMessage instrumentation; the new test is absent from the final diagnostic list. All evidence is retained in `D:\codex-cad-v2-f07-nested-bulge-raster-20260925`.
 
 This expands only the synthetic rendered-error matrix. Native-device coverage, broader families/context matrix, and same-source AutoCAD remain open. No runtime source/protocol/cache revision was changed: compiler/cache v30, pipeline p08, schema v1, render ABI v2; public worker hashes unchanged. F07 stays IN_PROGRESS at ~67% (2 PASS + 4 PARTIAL of 6 groups); overall plan 14/19 (74%), five packages open.
+
+## 2026-09-26 — Settled 156% return path through runtime refinement
+
+The real host-to-worker-to-renderer path was measured in both DPR1 and DPR2 at 156% after camera changes and real pointer pans. DPR1 preserves the existing stale-response rejection sequence, then revisits 156%; its held reply count reaches zero, final request target is 0.25 CSS px, and camera is (918.55,475.275,k=9.5). DPR2 returns from 195% to 156%, reaches 10 replies for 10 targets and then pans from (753.4,392.7,k=9.5) to (801.4,416.7,k=9.5).
+
+An independent quarter-circle evaluator measures the device screenshot, not the worker tessellation. DPR1: 612 pixels, rendered-to-source/source-to-rendered maxima 0.9621349720/0.7532715925 CSS px. DPR2: 1,544 pixels, maxima 0.5933250455/0.4743416490 CSS px. The 1.25 px envelope holds in both cases. Synthetic SwiftShader is the measured device profile. Chromium 2/2 and a focused DPR1 retry 1/1 passed; three related unit/browser scripts and runtime typecheck passed. Full test-inclusive TypeScript remains exit 2 on pre-existing test diagnostics.
+
+This is an R08 rendered-error matrix addition. The accessible checkout is v30/p08/ABI v2; the unavailable v42/p19 worktree is not represented by this code. F07 and R08 remain open for DPR3, broader source families/context matrix and native hardware/device measurement. No F08 resource-lifecycle claim is made.
+
+## 2026-09-26 -- F07 internal R11 supported periodic SPLINE matrix
+
+R11 verifies the synthetic source→worker path for supported periodic SPLINE degree 1–8, knot multiplicity, active-domain transforms, rational weights and endpoints. Seven new DXF profiles yielded 28,007 independent De Boor samples (maximum error 0.0436049487 / 0.05 world units), and all 43 positive knot spans reached binary scene/META and worker refinement (maximum independent rational Bezier error 0.0436046739 world units). Invalid cycles and unsupported degree 9 fail closed. No runtime, cache, schema or ABI change occurred.
+
+## 2026-09-26 — R03 spatial direct LINE and viewport-driven chunk requests
+
+The compiler divides eligible direct LINE centerlines into <=4,096-world-unit spatial spans, including lineweight padding in the chunk bbox. Continuous lines, hairline two-term shader dashes and wide CPU-expanded dash segments preserve path distance and source order. An independent 12,000-unit oracle produced three chunks, exact tested endpoints, continuous PATH_DISTANCE seams and the later overlay order. A high-origin test at 1e9 reconstructed the exact source endpoint/bbox profile while encoded Float32 coordinates stayed below 3,000 local units.
+
+The maximum is 256 slices per direct source LINE. The 1,100,000-unit boundary fixture would need 269; fallback retains the whole primitive in one chunk and reports DIRECT_LINE_SPATIAL_PARTITION_LIMIT_REACHED with qualityStatus degraded. This is a deliberate partial precision contract: geometry is retained and chunk count is bounded, while that exceptional chunk may exceed the spatial span target and normal local Float32 error bounds.
+
+HostShell initially loads only chunks intersecting the active layout and current camera viewport; later camera changes request newly visible chunks after a 120 ms debounce, and selecting a layout fetches its current viewport. Already loaded chunks remain renderer-managed and camera visibility continues to cull them. Host browser acceptance used the actual host UI with a mocked scene service: near chunk fetched on initial view, far chunk withheld until zoom exposed it, then fetched once. Layout switching passed separately. The limited shader-dash WebGL test was rerun and matched for one/six chunks (five runs; gaps 97/97/98/97 px; equal screenshot hash 264758117837085532fc5ad17b5f5b9ff469b550ccf1a0dd14e68d678545b). That short [24,-16] raster fixture does not claim broad linetype or long-line raster parity.
+
+Focused compiler (24 assertions), painter-order, scheduler/cache, layout viewport (9/9), three Chromium cases (1/1 each), and runtime tsconfig.next typecheck passed; full unit/release suites were not rerun. Compiler/cache revision advanced v30→v31; pipeline p08, schema v1, ABI v2 and public worker hash are unchanged. R03 is complete at package scope; the seven terminal F07 acceptance gates remain 0/7 fully PASS and F07 remains IN_PROGRESS.
+
+## 2026-09-26 — R04 direct non-LINE stroke spatial architecture
+
+For direct CIRCLE/ARC/ELLIPSE/SPLINE and widthless LWPOLYLINE, the compiler measures the entity stroke envelope before chunking. Only a source wider than 4,096 world units enters the spatial path. Ordered chord packing uses padded bbox bounds; straight long polyline chords may be sliced, with PATH_DISTANCE interpolated from the original source run. Curved chords carrying analytic CURVE_DATA are never sliced: the worker must see their original parametric interval, especially for rational SPLINE Bezier source records.
+
+A preflight estimate and a 256-chunk source budget prevent very wide or repeatedly oscillating sources from producing unbounded spatial chunks. On overflow, the original primitives remain in sequence, scene quality becomes degraded and NON_LINE_STROKE_SPATIAL_PARTITION_LIMIT_REACHED is emitted. The exceptional fallback is intentionally outside the 4,096-unit bbox/Float32-locality guarantee. Existing direct LINE diagnostic remains distinct.
+
+Binary source/worker acceptance covered 4/3/3/3 CIRCLE/ARC/ELLIPSE/SPLINE chunks at a 1e9 origin, curve sidecars in every chunk, continuous BULGE/polyline path distance, a later overlay painter run, oversized analytic and 299-edge oscillating partial cases. The full CAD V2 unit chain, runtime typecheck and host viewport-fetch Chromium 1/1 passed. Host layout/camera request selection is generic and consumes these new chunk bboxes; direct non-LINE rendered raster and nested/paper/filled/glyph profiles remain separate open gates. Compiler/cache v32, pipeline p08, schema v1, ABI v2.
+
+## 2026-09-26 — R05 fill/glyph and paper-fetch architecture
+
+The compiler marks direct glyph strokes and wide fill meshes before chunking. Ordered glyph segments reuse the stroke preflight and 4,096-world-unit grouping. HATCH/WIPEOUT/width-bearing LWPOLYLINE meshes are walked in complete triangle triples, grouped with a 256-group per-source cap, and emitted with their original source order index. No triangle is clipped or remeshed. Oversized indivisible primitives and cap overflow remain whole, degrade quality and emit family-specific diagnostics. Spatial range bboxes cover padded stroke endpoints and triangle vertices.
+
+Binary tests confirmed area, topology, high-origin local coordinates, painter order and layout separation. Real Chromium host confirmed camera/layout selection requests only active visible fill/glyph chunks; far SHEET_A glyph waited for zoom and SHEET_B waited for selection (1/1). Nested INSERT and viewport projection remain open. Full CAD V2 unit chain and runtime tsconfig.next passed. Compiler/cache v33, pipeline p08, schema v1, ABI v2.
+
+## 2026-09-26 — R06 compiled composite envelope
+
+R06 adds two manifest/index fields in world units and optional active-view CSS pixels: maxFillGlyphCompositeError for overlapping fill plus direct glyph within a chunk, and maxAdjacentChunkCompositeError for spatially overlapping neighboring painter chunks. The compiler preserves source order and binary geometry. A seam pair uses the sum of the two chunks' strongest static geometry/encoding bounds; a same-chunk fill/glyph pair uses fill source-boundary plus triangle encoding and glyph endpoint encoding. Disjoint same-chunk bounds yield zero. Over-budget sums set CHUNK_COMPOSITE_PRECISION_LIMIT_REACHED and degraded. The validator rejects negative/non-finite values and flat/index disagreement.
+
+Independent high-origin source/binary oracles measured fill pair 2.384185791015625e-7, glyph pair 0.00008489787140318244, mixed fill→glyph painter boundary 1.1920928955078125e-7, and local fill/glyph 0.000028610479930766117 world units. Full CAD V2 unit and runtime typecheck passed. This static envelope does not include non-adjacent overlapping chunk pairs, runtime refinement, font-source outline or raster/device error. Compiler/cache v34, pipeline p08, schema v1, ABI v2.
+
+## 2026-09-26 — R07 signed multi-term path-distance shader
+
+The compiler accepts finite nonzero signed dash/gap sequences up to 12 terms for straight hairline LINE and open straight widthless PLINEGEN polylines. Two-term positive/negative profiles keep the original LineDashedMaterial path. Other eligible sequences carry the scaled signed pattern and cumulative PATH_DISTANCE into draw-command metadata. A ShaderMaterial evaluates the signed period at each fragment from lineDistance; the renderer merges only adjacent commands with identical patterns and keeps theme/monochrome shader uniforms in sync. Zero-length dots, wide/closed and curved profiles continue through CPU expansion.
+
+Source/binary acceptance covered 12,000 units/three chunks, one/six-chunk polyline parity, CENTER, PHANTOM and leading-gap metadata. Real Chromium/WebGL2 rendered CENTER as eight identical runs in one versus six chunks, with equal framebuffer hash; the prior DASHED case retained five identical runs. Unit chain, runtime typecheck and targeted browser 1/1 passed. This extends the shader only for the eligible straight hairline family; curved, dot/shape, wide and transformed model/paper visual phase still require R07 work. Compiler/cache v35, pipeline p08, schema v1, ABI v2.
+
+## 2026-09-26 — R07 analytic bulge phase and finite arc dots
+
+The widthless dashed LWPOLYLINE CPU path now walks source vertices and dispatches bulge spans to analytic arc dash tessellation; emitted segment d0/d1 values receive the preceding source-distance offset before binary encoding. This makes phase independent of bulge chord refinement and preserves continuous phase through a closed edge. ARC/CIRCLE zero-length dot terms emit tiny tangent line primitives with finite path distances so WebGL can rasterize them. The compiler identity moves to v36; scene schema/pipeline/render ABI stay unchanged.
+
+Source/binary one-versus-many chunk values and a real WebGL one-versus-36-chunk framebuffer hash matched. This package does not prove native CAD dot styling or transformed model/paper parity.
+
+## 2026-09-26 — R07 wide dash initial renderer setting
+
+The host initializes CadV2Renderer lineweight visibility from its current settings at renderer-ready time. Subsequent setting changes keep using setLineweight; the UI toggle exposes aria-pressed. The wide DASHED CPU geometry and binary PATH_DISTANCE contract were not changed. Four source weights at entity scale 2 retained one/many-chunk phase, and Chromium one/five-chunk wide output had the same framebuffer hash. A live off/on toggle changed red coverage 16,728→1,387→16,728 with the original red-pixel position checksum restored. Compiler/cache remains v36; pipeline p08, schema v1, ABI v2.
+
+## 2026-09-26 — R07 source-first LINE dash under transforms
+
+EntityVisitor now generates dashed LINE intervals in source space, then applies INSERT affine transforms. The transformed segment carries source d0/d1, including through XCLIP interpolation. Scene compilation forwards that distance through INSERT and paper viewport clipping/projection; zero-length boundary contacts are not emitted. The shader-eligible direct paper LINE uses entity linetypeScale as before. This changes compiled bytes, so compiler/cache moves to v37 while pipeline p08, DV2SCN01 schema v1 and render ABI v2 remain fixed.
+
+Binary mirror 1/5 and viewport 1/3 chunk phases matched independent coordinates. Chromium/WebGL2 matched full screenshot hashes in both partitions: mirror 83e43d3d4e60d03c657e3f234ec2564f5944872a8022f3472e4e2b58567db29d, viewport 19c69e2f1519eded7109059a5c18d58d9a7bd5ef74c6179b38fd42ed7bc44efc. This does not establish AutoCAD-native dash scaling for all affine families.
+
+
+## 2026-09-27 — Canonical LTYPE table and complex element diagnostics
+
+The DXF adapter combines parsed symbol-table records with direct DXF group-pair metadata because the pinned data-model reader discards the embedded shape/text fields. The DWG adapter reads LibreDwg `LTYPE.entries`. Canonical `CadLinetype` now retains indexed `complexElements` alongside the numeric pattern. The compiler's existing document-diagnostic path propagates `UNSUPPORTED_COMPLEX_LINETYPE_ELEMENT` to the scene quality summary, where the profile remains degraded while embedded glyphs are absent. Numeric dash/gap/dot strokes keep their source pattern and phase rather than becoming an accidental continuous stroke.
+
+Acceptance is intentionally partial: ASCII and binary synthetic DXF plus the real R001 DWG table passed focused decode checks; no embedded SHX/text glyph geometry or native AutoCAD raster parity has been established. Next group owns glyph generation, transform/chunk phase and independent render comparison. Compiler/cache v38, pipeline p08, schema 1 and render ABI v2.
+
+## 2026-09-27 — Canonical STYLE bridge for R07-E
+
+The DXF adapter reads raw STYLE pairs for handle, flags, font/bigfont names and metrics; the DWG adapter maps the pinned LibreDwg STYLE table entries. Canonical `CadTextStyle` retains `objectHandle` and `isShapeFile` beside properties consumed by `FontLayoutEngine`. Empty-name shape-file entries use a handle-based key. This is source-resource plumbing, not evidence that SHX `shapeNumber` has been laid out or rendered as complex LTYPE geometry.
+
+DXF ASCII/binary STYLE tests retained named style handles and LTYPE-to-STYLE relationships; the text resolver received `simplex.shx` from the decoded style and reported the absent font as `shx_not_found` rather than exact. R001 reported 12 mapped STYLE entries including `Standard` / `arial.ttf`, while the same decoder pass logged error 68; this profile remains qualified. A post-fix audit of three project DWGs found 14/6/8 LTYPE records with no complex metadata/warnings; two files logged error 64/68. No SHX/LIN resource or clean complex DWG fixture is present in the checkout. Compiler/cache v40 invalidates scenes after the canonical/diagnostic behavior change; protocol schema, pipeline and render ABI are unchanged.
+
+## 2026-09-27 — DWG dash STYLE-reference bridge
+
+Before the DWG data pointer is freed, the adapter enumerates native LTYPE dash structures, resolves `dash.style` references through `dwg_ref_get_id`, verifies each handle against the converted STYLE table, then attaches it by LTYPE name and pattern index. A direct converter value remains authoritative. The adapter test covers resolved and unresolvable IDs plus the canonical STYLE handle join; R001 exercises the real no-reference path and logs error 68. A separate real DWG DIMSTYLE probe resolves STYLE references, but no available drawing has a populated complex LTYPE dash reference, so that specific native path lacks positive real-file evidence.
+
+The dedicated DXF placement fixture and ASCII/binary profile verify source flags/placement only. No SHX resource exists here; complex glyph geometry, runtime phase/chunk continuity, raster output and native comparison remain open. Compiler/cache v41; pipeline p08, schema 1 and render ABI v2.
+
+## 2026-09-27 — R07-E direct LINE complex SHAPE/TEXT geometry
+
+`compile/complex-linetype-glyphs.ts` is the shared straight-source placement path. It resolves `CadLinetypeComplexElement.styleObjectId` only through decoded STYLE handle/name identity, then reuses the real font/layout mechanisms: exact SHX `getLayoutCharShape` for shape numbers, and `FontLayoutEngine.layoutTextDetailed` for embedded strings. A font fallback is never promoted to exact SHX shape support. Element positions derive from the source pattern prefix plus each pattern cycle, not chunk-local coordinates. DXF group 74 bit 1 selects absolute orientation; otherwise rotation is relative to the source line tangent. Scale, offsets and effective linetype scale are applied before the INSERT/viewport transform.
+
+Direct scene compilation and `EntityVisitor` both call this helper for LINE. Glyph strokes join the source entity's ordered primitive stream and normal spatial chunking; the linetype's numeric dash pattern continues to render. Static decoder diagnostics were removed because decode alone cannot determine font availability. The compiler now reports `UNSUPPORTED_COMPLEX_LINETYPE_ELEMENT` and degraded quality only when an active glyph cannot be rendered (unresolved STYLE/font/shape, invalid flags/payload or instance cap).
+
+The current test injects an in-memory SHX shape and uses the bundled Arial TTF for text. It checks a diagonal line's absolute/relative rotation, repeated pattern placements before/after x=4096, chunk encoding and mirrored INSERT. ASCII/binary placement and missing `simplex.shx` degradation are checked separately. `complex-linetype`, multi-term phase, transformed-phase and cache identity tests plus scoped changed-module TypeScript pass. This is local synthetic evidence only: curved sources have no complex-glyph path yet; no actual SHX/complex-DWG source or AutoCAD raster/measurement oracle was available. Compiler/cache v42; pipeline p08, schema 1 and ABI v2 unchanged.
+
+## 2026-09-27 — R07-E analytic curved glyph stations (compiler/cache v43)
+
+The shared complex-linetype helper now models each source as one or more path segments with distance, point and tangent evaluators. Circular arcs—including CIRCLE and LWPOLYLINE bulges—evaluate symbol stations analytically from radius and sweep; lines compose into multi-edge paths. Closed paths omit a repeated terminal station. `PLINEGEN=0` restarts complex pattern generation on each polyline edge; `PLINEGEN=1` carries the cumulative edge distance. ELLIPSE and SPLINE paths reuse bounded compiler tessellation points. Glyph geometry is emitted in the entity source frame and then transformed, preserving one source anchor sequence for direct, INSERT and viewport traversals.
+
+To avoid extra curve work on ordinary drawings, `layoutComplexLinetypeEntity` exits before building any path unless the active LTYPE has a shape/text payload. Existing unsupported-resource behavior remains: missing exact STYLE/font/shape makes the scene degraded; an inert rotation-only field does not.
+
+The synthetic SHX test verifies the 15-unit station on a quarter ARC, unique stations around a closed CIRCLE, true-arc-distance placement on a semicircle bulge, `PLINEGEN=1` continuation and `PLINEGEN=0` per-edge restart, multi-chunk CIRCLE glyph count, and nested mirrored ARC geometry. Direct curved glyphs are included in the source entity's ordered/spatial primitive group; visitor emits them before its INSERT transform. Seven targeted regressions and scoped TypeScript pass; compiler/cache v43, p08/schema 1/ABI v2. ELLIPSE/SPLINE station phase is tessellation-based rather than analytic. Real DWG/SHX and AutoCAD native parity are not available, so R07-E remains partial and G5 remains partial.
+
+## 2026-09-27 — Nested affine glyph ranges (compiler/cache v44)
+
+The affine glyph contract follows source-first placement: circular ARC/CIRCLE/BULGE stations are analytic; ELLIPSE/SPLINE stations reuse bounded source tessellation. Glyph points are emitted in that source frame and receive the complete nested INSERT matrix afterwards. `complex-linetype.test.ts` measures ARC, CIRCLE, bulge, ELLIPSE and SPLINE glyph segment endpoints through mirrored/non-uniform/rotated two-level INSERT transforms, including tangent-relative orientation and source offsets.
+
+A nested expanded INSERT previously bypassed top-level non-line spatial-range grouping. The scene compiler now measures its expanded ordered line-stroke span and, above 4096 world units, routes that ordered group through existing bounded spatial slicing. This covers descendant curves and glyph strokes while retaining the current range cap and explicit degraded cap behavior. A transformed large CIRCLE is verified in multiple Model chunks, with an equivalent complex-minus-baseline glyph count in Model and paper viewport outputs.
+
+Compiler/cache advanced v43→v44; protocol schema 1, p08 pipeline and ABI v2 unchanged. Geometry/chunk/viewport and regression tests pass. F07 G3/G5 remain partial because this checkpoint did not measure actual WebGL pixels, on-demand chunk scheduling, or same-source AutoCAD output. Browser affine glyph raster masks are the next local R07-F check.
+
+## 2026-09-27 — Browser chunk parity for nested curved SHAPE glyphs
+
+The v44 runtime/WebGL path was exercised with actual compiler chunks rather than a hand-authored protocol scene. Chromium loaded one canonical curved source via two nested affine INSERTs, both in a single-chunk scene and with per-primitive splitting, and rendered Model plus its projected SHEET viewport. Each split raster was compared against the corresponding single-chunk full-canvas PNG and pixel mask. Results: Model 1/52 chunks, 1,427 colored pixels, SHA-256 `dadeb8a9a163248bf7bfab822b0ea3f6e92dcc7929b8c559900b54062804f232`; SHEET 1/46 chunks, 2,512 colored pixels, SHA-256 `042215ee2da430e27c77cf528c5a507df58ae56f0d0f2ed3574864421d9d3733`. Both mask checksums and screenshot hashes matched within each single/split pair.
+
+This is Chromium/SwiftShader evidence for a synthetic exact SHX code, not a distributable SHX or AutoCAD parity result. It closes the local R07-F raster comparison. R07-G scale semantics and R07-H/R10 same-source native comparison remain; F07 G3/G5 are still partial and terminal gates remain 0/7. The browser fixture selects layouts by visible name and stubs heartbeat to keep the deterministic session alive; the initial harness mismatch was corrected without changing product rendering.
+
+## 2026-09-27 — R07-G linetype scale propagation (compiler/cache v45)
+
+The canonical drawing header now carries `LTSCALE`, the `CELTSCALE` entity-creation default, and boolean `PSLTSCALE`/`MSLTSCALE` modes. A DXF HEADER pair reader retains `$MSLTSCALE`, which the installed data-model header reader omits; the same pair reader handles ASCII and binary DXF. LibreDWG exposed header fields are captured by the DWG adapter, with unavailable MSLTSCALE kept absent instead of inferred. Entity group 48 remains the saved per-entity factor.
+
+`resolveEntityLinetype` now resolves the base effective scale as entity × global only. Top-level direct geometry gets canonical LTSCALE; `BlockTransformer` passes it to `EntityVisitor` for INSERT descendants. For paper viewport model geometry, the visitor context can override the global factor: PSLTSCALE=1 applies `LTSCALE / (paperHeight / modelViewHeight)` before source tessellation, so the displayed period is stable in paper units; PSLTSCALE=0 passes LTSCALE unchanged. Nested contexts preserve the viewport override. The existing viewport transform is a uniform scale+twist matrix, so the profile uses its singular scale without direction-dependent approximation.
+
+The deterministic geometry oracle measured both modes at 1:10: with a 10/-10 source pattern, PSL=1 gave 2 visible segments, each 10 paper units; PSL=0 gave 15 visible segments, each 1 paper unit. Direct and nested LTSCALE/group48 behavior and ASCII/binary header preservation are in `linetype-scale-settings.test.ts`. The former nested curved-glyph viewport expected count used unscaled spacing; its independent expected count now uses the Autodesk-defined PSLTSCALE context factor. The R07-F browser fixture is a manual canonical drawing without paper-scaling settings, so its prior synthetic mask result is unaffected.
+
+MSLTSCALE remains a mode only: the active annotation scale is not present in canonical source/header state or the current host-to-compiler scene request. Do not treat the boolean as a numeric factor or infer a scale from camera zoom; follow-up work must trace a real selected annotation scale into the compiler and validate a model-tab profile. DXF can preserve MSLTSCALE; the installed LibreDWG schema does not expose an MSLTSCALE field. R07-G broader matrices, R07-E positive complex DWG/real SHX, and R07-H/R10 native comparison remain open. F07 G5 partial, terminal 0/7.
+
+## 2026-09-27 — Runtime scale context follow-up (compiler/cache v46)
+
+The model annotation scale is drawing metadata, not a camera zoom value. Autodesk's scale record defines its factor as paper units divided by drawing units; MSLTSCALE enables that factor for linetypes on Model. The DXF pair reader follows the current CANNOSCALE dictionary entry to its DICTIONARYVAR name and then the matching SCALE record. It accepts only one unambiguous named scale with finite positive paper and drawing units. No ratio is inferred from the viewport camera.
+
+Canonical scale settings now include modelTabAnnotationScaleFactor. Scene compilation multiplies global LTSCALE by that factor only for the Model layout when modelTabAnnotationScaling is true, and passes the resolved value into both direct entity resolution and BlockTransformer/EntityVisitor nested INSERTs. Paper layouts continue to use the document global scale and their existing PSLTSCALE viewport override. If MSLTSCALE is true but no valid current factor is available, model compilation retains conservative base geometry and marks quality degraded with MODEL_ANNOTATION_SCALE_UNRESOLVED.
+
+The installed LibreDWG web data schema omits CANNOSCALEVALUE and MSLTSCALE from HEADER_VARIABLES and exposes generic DICTIONARY objects without DICTIONARYVAR/SCALE records. The DWG path therefore does not fabricate a factor. R07-G remains partial pending broader finite scale coverage, a viable DWG metadata path, real SHX/complex DWG and AutoCAD same-source evidence.
+### 2026-09-27 — MSLTSCALE world scale stays separate from active-view refinement
+
+The parser/compiler profile covers 1:1, 1:2, 1:50 and 2:1 active CANNOSCALE ratios in ASCII and binary DXF. The resolved paperUnits/drawingUnits factor is applied in Model to the existing pattern × entity scale × global LTSCALE product; a differently named inactive SCALE entry does not take effect. Invalid zero-unit and ambiguous duplicate-name records yield no factor, and the MSLTSCALE path reports degraded quality when resolution fails.
+
+A paired compile varies unitsPerCssPixel from 0.01 to 1 at the same 0.25 CSS-pixel ARC target. The ARC refinement/tessellation density changes while the direct dash metadata remains equal. That confirms view-error budgeting is not used as a substitute MSLTSCALE factor. It does not promise a fixed screen-pixel dash length: zoom projects the same world-unit pattern to a different number of pixels.
+
+Verification in this subgroup: linetype-scale-settings.test.ts runtime PASS; strict targeted TSC PASS when the existing opentype declaration is included. No runtime source changed, so compiler/cache v46 remains. DWG scale schema and native AutoCAD comparisons remain open.
+
+## 2026-09-27 — Emulated-DPR3 ELLIPSE host refinement at 156%
+
+A real host/worker browser profile now traverses the initial fit view, a fit-space pan, and 125%→156% UI zoom under emulated devicePixelRatio=3. The zoom requests settle in worker order to .75 transient and .25 idle CSS-pixel targets; replies match all six captured target requests. Pan changes camera translation without issuing a same-bucket refinement. At 156% the camera remains centered-zoom consistent and the inherited pan offset scales from (-10,-5) to (-15.625,-7.8125) CSS px.
+
+The renderer intentionally caps its drawing buffer at 2× while the browser device screenshot reflects emulated DPR3. This profile keeps refinement error in CSS pixels: with 4097 independent ellipse samples and 3404 selected pixels, the 156% bidirectional raster distances are 0.6774800229 and 0.3755782579 CSS px. Chromium test command, source identity and fit-cell result are recorded in the R08 acceptance note. This is a local emulation of the host/renderer path; it is not physical-device performance, memory, GPU precision, or AutoCAD parity evidence. G6 remains partial.
+
+## 2026-09-27 — Emulated-DPR3 rational SPLINE zoom and raster evidence
+
+The host/worker profile keeps the fit and 80% zoom-out path, then drives centered UI zoom steps at 100%, 125% and 156%. Each request settles at a .25 CSS-pixel idle target with all replies received. A real (+24,+12) CSS-pixel pan at 156% changes camera translation only; the captured worker state remains stable at 10/10 replies. The D3 scale is k=9.5 at 156%, consistent with fit k=6.08.
+
+The renderer stays at its 2× drawing-buffer limit in the Chromium deviceScaleFactor=3 emulation. The independent rational Bernstein oracle uses 4097 samples; the 80% and 156% raster cells have bidirectional CSS-pixel distances 0.6668573448/0.2322079741 and 0.6433524477/0.4022573566. Full source bounds remain visible. The final 156% pan did not queue another refinement. Intermediate 100% and 125% entries demonstrate refinement settling only; they have no independent raster metric. This remains a synthetic browser profile and does not measure physical DPR3 GPU or AutoCAD behavior; G6 stays partial.
+
+Verification identity: targeted Playwright `npx playwright test tests/document-studio/cad-v2-layout-viewport.spec.ts --project=chromium --grep "80% and 156% zoom-pan" --reporter=line --workers=1 --timeout=90000` passed 1/1. Test-source SHA-256: `A5F7CA4A3A02E1403ED93A79D4E96E032BA02EEAB18BC8064D176EB473D41195`.
+
+## 2026-09-27 — DPR3 rational SPLINE at 195% after pan
+
+The live host→refinement-worker→WebGL synthetic rational SPLINE profile adds the UI zoom from 156% to 195%, waits for all worker replies, then pans the real camera by (+24,+12) CSS px. The pan leaves the settled worker state unchanged. At 195% the final refinement target is .25 CSS px, all 12 target replies are present, and the largest observed line buffer contains 114 vertices.
+
+The independent rational Bernstein oracle samples 4097 source points and 7993 rendered pixels. At camera (669.5859375,350.79296875,k=11.875), all projected source bounds fit within the 1280×672 CSS viewport. Directed raster errors are 0.6696125902 CSS px rendered-to-source and 0.2561999628 CSS px source-to-render. Chromium DPR3 is emulated and the WebGL drawing buffer stays at 2×; this test does not measure physical device/GPU behavior. Targeted Playwright passed 1/1 in 1.2 minutes; whole test-source SHA-256 `8AB8F0514FF26D17EC16C88A1A3A57D161782E602057529237E4BA0586C2C05B`.
+
+## 2026-09-27 — DPR3 ELLIPSE 195% refinement and pan raster
+
+The host→worker→WebGL ELLIPSE profile continues from the settled 156% raster to 195%, then pans (+24,+12) CSS px. Centered zoom is k=11.875; final camera (644.46875,338.234375), preserving the complete analytic quarter-ellipse in the viewport. The raster oracle compares 4097 analytic samples with 4289 rendered pixels and observes [0,π/2]. Bidirectional errors are 0.7001692267/0.4022573566 CSS px. The worker is settled at .25 CSS px with 8/8 replies and at most 46 line vertices; pan changes camera translation without new refinement.
+
+Targeted Playwright passed 1/1 in 57.2 s. Whole test source SHA-256 `40C31D08A78F6FBE0DD747D3A8167D89749AB3E1C295DF66293D38FED45C10B`. Two initial runs failed due to a test-only sequence error that measured the 195% camera in the earlier 156% assertion; the corrected separated step passed. The DPR2 ARC zoom loop was restored and verified before success. Runtime/product source, tolerance and compiler/cache identity did not change. DevicePixelRatio 3 remains browser-emulated with a 2× buffer cap.
+
+## 2026-09-27 — DPR3 ARC refinement through 195% and clipped raster coverage
+
+The live ARC profile drives the host→scene-worker→WebGL path at emulated devicePixelRatio 3. The drawing buffer stays at 2× while the device screenshot is 3× CSS dimensions. After fit-pan raster evidence it settles the 100/125/156/195% worker refinement sequence, then changes camera translation with a real pan at 195%. The final 195% view clips the quarter circle; the independent oracle explicitly clips its source domain to the visible angular interval instead of comparing invisible source points.
+
+The fit-pan and 195%-pan raster cells each satisfy the unchanged 1.25 CSS-pixel bidirectional error envelope: 0.7535568878/0.2524335670 and 0.7321633267/0.2658020055. The high-zoom worker state settled with all 8 replies, target .25 CSS px and at most 46 line vertices. Targeted Playwright passed 1/1 in 48.8 s; whole test source SHA-256 `568D5DC50E40E89140E6EDB025BCA7CDB2AD6275EAB62BC2DFDF54BD27C9D28E`. This establishes local synthetic browser behavior only; physical DPR3 hardware, remaining matrix coverage and native AutoCAD remain outside this evidence.
+
+## 2026-09-27 — DPR3 emulation 125% raster measurements across the three curve profiles
+
+The live host→refinement-worker→WebGL profiles now capture a true 125% zoom and a real +24,+12 CSS-pixel camera pan for ARC, ELLIPSE and rational SPLINE. At the 125% scale (k=7.6), final cameras are ARC (724,378), ELLIPSE (651.5,341.75), and SPLINE (648.375,340.1875). Oracle/pixel/error results in render→source then source→render order: ARC adaptive quarter-circle 957 points / 3402 pixels / 0.7130987918 and 0.2712624842 CSS px; ELLIPSE 4097 analytic points / 2746 pixels / 0.6766723248 and 0.2552488787; rational SPLINE 4097 Bernstein points / 5147 pixels / 0.5827244287 and 0.2459745357. All full source quarters/bounds are within the viewport and satisfy the unchanged 1.25 CSS-pixel envelope.
+
+At emulated deviceScaleFactor 3, each profile has CSS dimensions 1280×672, drawing buffer 2560×1344 (renderer cap 2×), and device screenshot 3840×2016. Worker settling is .25 CSS px; cumulative reply/maximum-vertex observations are 4/4 and 40 (ARC), 4/4 and 40 (ELLIPSE), 8/8 and 110 (SPLINE). Pan itself leaves worker state unchanged. Each test resets the camera pan so existing 156%/195% evidence continues on its prior path. Targeted suite passed 3/3 in 2.9 min; source SHA-256 `B4744DA1C0E4C2223E03EC1DE0290281041A43B89A9031DE8B93F38E074D59E3`. Runtime/compiler source was not changed; physical R09 and AutoCAD R10 remain separate.
+
+## 2026-09-27 — Solver minimum vs selected camera/raster profiles
+
+The current precision-refinement acceptance test passes the required four zooms [1,8,64,512] at DPR1/2/3 (12/12). It uses world tolerance 0.25/(zoom×DPR) and observes maximum device-scaled sagitta ≤0.250001 px. Command: npx tsx tests/cad-v2/precision-refinement.test.ts; 1.3 s; whole-test SHA-256 DE31C8AC07C6DE33C7E6C0E6E382DDE95FDF88051643E132D579C94E6DB9127D.
+
+This unit suite proves the solver budget only. Existing host camera/WebGL tests provide selected raster integration cells and refinement-only zooms across ARC, ELLIPSE and rational SPLINE at DPR1/2/3; they are not the complete Cartesian matrix, which the plan does not specify as mandatory. The separate browser 3/3 result from the prior group was not rerun. No production code or test source changed in this audit, so typecheck was not repeated. R08/G6 remains partial for physical-device R09 and native AutoCAD R10 evidence.
+
+## 2026-09-27 — Spatial eligibility after paper-viewport projection (G3/R04, v47)
+
+Scene compilation now runs the long non-LINE spatial-range classifier on newly emitted line primitives after each paper viewport's clipping/projection path. Root-space classification continues through the same helper. LINE behavior is unchanged. The helper preserves the 4096-world-unit span rule, the 256-chunk cap and degraded diagnostic so projected output cannot bypass chunk eligibility. The runtime acceptance is bounded to the existing chunk/painter-order contract; this does not establish on-demand loading by the host.
+
+The R04 regression uses nested affine INSERTs with CIRCLE/ARC/ELLIPSE/SPLINE/bulge sources, high origin and a later overlay. It checks 25 ordered chunks, maximum bbox span 4093.360040664673, local Float32 extents, provenance/family sidecars and painter order. The paper viewport CIRCLE profile checks four chunks and maximum span 844.033254477853 after projection. The viewport assertion was observed failing before the code change and passing afterward. Focused runtime tests, v47 cache identity and scoped runtime TypeScript passed. Broader G3 on-demand fetch, global bounds/cap profiles and fill/glyph partition behavior remain outside this result.
+## 2026-09-27 — R05 glyph provenance ve host fetch yolu
+
+EntityVisitor TEXT/MTEXT/ATTDEF/ATTRIB segmentlerine isGlyphStroke kimliğini clipping sonrasında verir. Scene compiler INSERT expansion ve viewport projection üzerinden bu alanı korur; uzun INSERT spatial sınıflandırmasında glyph ailesi tanısını ayrı tutar. Host loadVisibleChunksRef ilk kamera için prepare sonrası, handleCameraChange içinde 120 ms debounce ile ve handleSelectLayout sonrasında çağrılır. Filtre layoutId + isChunkVisibleInCamera kullanır; eksik/in-flight chunk'ları indirir ve hash/byte doğrular. Gerçek host Chromium görünür fetch testleri 2/2 PASS. Bu, bütün global cap, eviction veya F08 lifecycle kabulü değildir. VisitorResult yalnız segments taşıdığı için nested fill mesh ve viewport fill projeksiyonu açık mimari iştir.
+
+## F07 G3-G4/R05 nested fill and viewport projection — v49
+
+`VisitorResult` now carries ordered `drawItems` alongside the legacy segment/fill collections. `EntityVisitor` emits transformed HATCH solid and WIPEOUT fill meshes; each nested INSERT inherits the active clip and affine transform. `scene-compiler` consumes the ordered items for INSERT and dimension/attribute visitor paths. Paper viewport projection transforms every fill vertex into paper coordinates, clips against the viewport polygon (or its rectangular paper bounds), and retains the viewport order. The normal XCLIP path clips fill triangles only for validated convex polygons; inverted or non-convex XCLIP is fail-closed for meshes and marks the scene degraded with `UNSUPPORTED_FILL_CLIP`. Boundary strokes continue using the existing line clipping path.
+
+Mesh clipping is triangle-local Sutherland–Hodgman clipping followed by fan triangulation. Tests independently measure transformed areas and order: two-level nested HATCH+WIPEOUT total 24000; normal convex XCLIP combined area 5500; paper rectangular viewport area 2500; convex triangular viewport area 1250. Inverted/concave clips emit no fill and carry the explicit degraded diagnostic. This does not cover nested LWPOLYLINE width meshes or establish full nested-fill/fill-glyph composite, global spatial caps or native raster acceptance. Host `loadVisibleChunks` is wired to initial camera, debounced camera updates and layout selection; the selected active-paper fill/glyph Chromium fetch test passes 1/1. CAD unit suite and runtime typecheck pass at compiler/cache v49. G3/G4 remain partial; F07 terminal 0/7 and overall 14/19 remain historical.
+
+## F07 G3-G4/R05 nested width-fill and bounded chunk encoding — v50
+
+`EntityVisitor` routes `expanded.thickTriangles` through the visitor fill path after the corresponding stroke output. This carries width meshes through nested affine INSERT transforms, active clipping, styles and ordered draw items. Paper viewport projection applies the model→paper affine and polygon clipping to those fill vertices. The compiler partitions large fills into windows of at most 16,384 triangles. When the 256 spatial fill-group cap is reached, count-based bounded windows retain the original mesh and mark quality degraded with `FILL_SPATIAL_PARTITION_LIMIT_REACHED`; geometry is not silently dropped.
+
+Before encoding a candidate chunk, the compiler estimates exact section storage including the 32-byte binary header, each 32-byte section-table entry and 8-byte alignment. Ranges above 2 MiB split at a primitive midpoint and retry recursively while preserving source order; one indivisible over-cap primitive fails explicitly. Compact fills may stay in the same chunk as nearby glyphs so the fill/glyph error envelope remains measurable. R001 P08 acceptance produced 286 chunks, each <=2 MiB, and a 484,094-byte manifest <=1 MiB.
+
+The selected fixture oracles measure nested two-level affine width-fill area 240 and paper viewport clipped width-fill area 500. Nested fill/glyph composite error fields are >0 in both model and paper manifests. This is binary/compiler accounting evidence, not a full runtime remesh or raster oracle. Inverted/concave fill clipping remains explicit fail-closed/degraded. Global bounds variants, cross-chunk/runtime fill-glyph composite and native AutoCAD comparison remain open.
+
+## F07 G4/R06 non-adjacent fill/glyph static bound — v51
+
+Scene compilation retains source fill and glyph bounds plus their separate encoded-geometry error terms per chunk. After chunk encoding, overlapping fill/glyph bounds are compared across different chunks in the same layout. The sum is copied to both chunk manifests and their index entries before index serialization. With an active screen profile it is converted through the maximum transform singular value and units-per-CSS-pixel, so the existing quality gate can flag a composite-only target violation.
+
+The cross-chunk candidate check limit is 16,384. When reached, a layout-wide maximum fill term plus maximum glyph term is written to every chunk containing participating fill or glyph geometry; the compiler adds `FILL_GLYPH_COMPOSITE_ANALYSIS_LIMIT_REACHED` and reports degraded quality. This deliberately broad fallback is conservative and visible to callers.
+
+The focused high-origin test exercises an overlapping non-adjacent width-fill/glyph pair with intervening chunks and a screen-target violation. Its cap fixture verifies the conservative path; the full CAD unit suite, cache identity and runtime typecheck pass at compiler/cache v51. No host/worker/WebGL or native AutoCAD raster run occurred in this group. Runtime raster propagation, broader input-family comparisons and wider global bounds remain open.
+
+## 2026-09-27 — F07 v3 G2/G3/G4 local acceptance cross-check
+
+This turn reran the existing HATCH boundary `curve-refinement.test.ts`, P07 `hatch-topology.test.ts`, direct and non-LINE spatial partition tests, fill/glyph paper spatial test, and the existing Chromium visible-paper chunk-fetch test (1/1). The HATCH worker dense-source bound is ≤0.2001 CSS px; Float64 mesh and bounded chunk/order/cap behavior are covered by the current precision/spatial profiles. Direct LINE, nested five-family curves, HATCH/WIPEOUT/width-fill, and visible host fetch meet the finite F07 scope recorded in the v25 dashboard. No geometry, zoom, DPR or bounds profile was added.
+
+R06 v51 already has the prior focused + full unit proof for its static composite envelope and 16,384-candidate fallback. F07 does not require the extra runtime/raster composite or broad source-family Cartesian comparisons; those are optional follow-ups. Same-source render parity remains R10/G7 NOT_RUN; physical R09 belongs to V01.

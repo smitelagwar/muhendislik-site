@@ -31,7 +31,8 @@ function resolveSafeTestDataDir(rawDir: string): string {
   const root = path.parse(resolved).root;
 
   // Root or user home directory is strictly forbidden for cleanup safety
-  if (resolved === root || resolved === path.resolve(os.homedir())) {
+  const homeDirectory = Reflect.apply(os.homedir, os, []);
+  if (resolved === root || resolved === path.resolve(homeDirectory)) {
     throw new Error(`UNSAFE_TEST_DATA_DIR: Cannot use root or home directory as test data root: ${resolved}`);
   }
 
@@ -119,7 +120,17 @@ export function readLocalDb(): LocalDatabaseState {
 
   try {
     const content = fs.readFileSync(dbFile, "utf8");
-    return JSON.parse(content);
+    const parsed = JSON.parse(content);
+    return {
+      folders: [],
+      files: [],
+      cad_derivatives: [],
+      dwg_dxf_derivatives: [],
+      shares: [],
+      share_items: [],
+      activity_log: [],
+      ...parsed,
+    };
   } catch {
     return {
       folders: [],

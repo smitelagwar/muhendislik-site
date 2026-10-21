@@ -7,7 +7,7 @@ import { getErrorMessage } from "@/lib/cad-v2/error-utils";
 
 import { NextResponse } from "next/server";
 import { requireDokumantasyonAdmin } from "@/lib/dokumantasyon/auth";
-import { CadV2DurableService } from "@/lib/cad-v2/service/cad-v2-durable-service";
+import { CadV2DurableService, isValidCadV2StorageId } from "@/lib/cad-v2/service/cad-v2-durable-service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,7 +20,7 @@ export async function GET(
     await requireDokumantasyonAdmin();
     const { sceneId, indexId } = await params;
 
-    if (!sceneId || !indexId) {
+    if (!sceneId || !indexId || !isValidCadV2StorageId(sceneId) || !isValidCadV2StorageId(indexId)) {
       return NextResponse.json(
         { code: "INVALID_PARAMETERS", message: "sceneId ve indexId zorunludur." },
         { status: 400, headers: { "Cache-Control": "private, no-store" } }

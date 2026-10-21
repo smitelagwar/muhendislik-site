@@ -12,6 +12,7 @@ import { CadV2DurableService } from "../../src/lib/cad-v2/service/cad-v2-durable
 import { parseDwgToCanonical } from "../../src/lib/cad-v2/decode/dwg-adapter";
 import { parseDxfToCanonical } from "../../src/lib/cad-v2/decode/dxf-adapter";
 import { compileCanonicalToScene } from "../../src/lib/cad-v2/compile/scene-compiler";
+import { hydrateSceneManifestIndexes } from "../../src/lib/cad-v2/protocol/manifest-index-pages";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -44,6 +45,13 @@ interface BenchmarkResult {
   speedImprovementPercent: number;
 }
 
+interface ColdWarmClassSmokeResult {
+  usageClass: "<=30MB" | ">30-70MB";
+  representativeFileId: string;
+  coldSamplesMs: number[];
+  pairedWarmSamplesMs: number[][];
+}
+
 async function runAccuracyPerformanceAcceptanceTests() {
   console.log("=== DWG/DXF Motor V2 - G15 Doğruluk, Performans ve İşletim Kabulü Testi ===\n");
 
@@ -54,10 +62,48 @@ async function runAccuracyPerformanceAcceptanceTests() {
 
   // Acceptance tests must never index or write the user's .data scene store.
   // Use a per-process isolated directory and inspect only artifacts from this run.
-  const isolatedStorageDir = path.resolve(process.cwd(), "test-output/cad-v2-tmp", `g15-${process.pid}-${Date.now()}`);
+  const runId = `g15-${process.pid}-${Date.now()}`;
+  const outputRoot = path.resolve(process.env.CAD_V2_TEST_OUTPUT_ROOT || "test-output/cad-v2-tmp");
+  const runDir = path.join(outputRoot, runId);
+  const isolatedStorageDir = path.join(runDir, "scenes");
   process.env.CAD_V2_STORAGE_DIR = isolatedStorageDir;
   const service = CadV2DurableService.getInstance();
   const benchmarkResults: BenchmarkResult[] = [];
+  const coldWarmClassSmokeResults: ColdWarmClassSmokeResult[] = [];
+  let verifiedChunksCount = 0;
+
+  function verifyArtifactFile(
+    sceneId: string,
+    generation: string,
+    fileName: string,
+    byteLength: number,
+    sha256: string,
+    label: string,
+    maximumByteLength?: number,
+  ) {
+    const artifactPath = path.join(isolatedStorageDir, sceneId, "objects", generation, fileName);
+    assert(fs.existsSync(artifactPath), `${label} artifact dosyası mevcut`);
+    const bytes = fs.readFileSync(artifactPath);
+    assert(bytes.byteLength === byteLength, `${label} byteLength manifest ile eşleşti`);
+    assert(crypto.createHash("sha256").update(bytes).digest("hex") === sha256, `${label} SHA-256 manifest ile eşleşti`);
+    if (maximumByteLength !== undefined) {
+      assert(bytes.byteLength <= maximumByteLength, `${label} byteLength <= ${maximumByteLength} sınırına uyuyor`);
+    }
+  }
+
+  async function loadAndHydrateManifest(sceneId: string) {
+    const rawManifest = await service.getManifestAsync(sceneId);
+    assert(Boolean(rawManifest), `READY sahnenin ${sceneId} manifesti okunabildi`);
+    return hydrateSceneManifestIndexes(rawManifest as Record<string, any>, async (indexId) => {
+      const indexPath = path.join(isolatedStorageDir, sceneId, "objects", rawManifest!.storageGeneration, `index_${indexId}.json`);
+      assert(fs.existsSync(indexPath), `Immutable index sayfası mevcut: ${indexId}`);
+      const bytes = fs.readFileSync(indexPath);
+      return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    });
+  }
+
+  const allManifestChunks = (manifest: { indexPages?: Array<{ chunks?: Array<{ chunkId: string; byteLength: number; sha256: string }> }> }) =>
+    (manifest.indexPages || []).flatMap((page) => page.chunks || []);
 
   // --------------------------------------------------------------------------
   // BÖLÜM 1: Gerçek Corpus Doğruluk ve Katman Doğrulaması (R001 - R004)
@@ -104,8 +150,8 @@ async function runAccuracyPerformanceAcceptanceTests() {
   // --------------------------------------------------------------------------
   console.log("\n--- BÖLÜM 2: Cold vs Warm Hazırlama Hız Benchmarkı (>=30 Tekrar) ---");
 
-  for (const item of realCorpus.slice(0, 2)) {
-    // R001 ve R002 üzerinde kapsamlı ölçüm
+  for (const item of realCorpus) {
+    // Release warm ölçümünü manifestte kayıtlı gerçek corpus'un her dosyasında yap.
     const fullPath = path.join(process.cwd(), item.relativePath);
     const fileBuffer = fs.readFileSync(fullPath);
     const versionKey = `v_bench_${item.id}_${Date.now()}`;
@@ -122,8 +168,52 @@ async function runAccuracyPerformanceAcceptanceTests() {
     });
     const coldDuration = performance.now() - startCold;
 
-    assert(coldResult.status === "ready" && !!coldResult.sceneId, `${item.id} Cold prepare hazır sahne döndü`);
+    const coldJob = coldResult.jobId ? service.getJob(coldResult.jobId) : null;
+    assert(coldResult.status === "ready" && !!coldResult.sceneId,
+      `${item.id} Cold prepare hazır sahne döndü (response=${coldResult.status}, job=${coldJob?.status || "missing"}, phase=${coldJob?.phase || "missing"}, error=${coldJob?.error || "none"})`);
     const sceneId = coldResult.sceneId!;
+    const session = service.getViewSession(coldResult.viewSessionId);
+    assert(!!session, `${item.id} READY yanıtının view session kaydı mevcut`);
+    assert(session!.fileId === `file_${item.id}` && !!session!.jobId,
+      `${item.id} session file/job bağları eksiksiz`);
+    assert(!session!.sceneId || session!.sceneId === sceneId,
+      `${item.id} session varsa yalnız aynı READY scene'e bağlı`);
+    const readyJob = service.getJob(session!.jobId!);
+    assert(!!readyJob, `${item.id} READY session job kaydı mevcut`);
+    assert(readyJob!.status === "ready" && readyJob!.sceneId === sceneId && readyJob!.sourceVersionKey === versionKey,
+      `${item.id} job status/scene/revision READY yanıtıyla eşleşti`);
+
+    const manifest = await loadAndHydrateManifest(sceneId);
+    assert(!!manifest && manifest.sceneId === sceneId, `${item.id} READY sahnenin manifesti okunabildi`);
+    assert(typeof manifest!.storageGeneration === "string" && manifest!.storageGeneration.length > 0,
+      `${item.id} manifest immutable generation içeriyor`);
+    const chunks = allManifestChunks(manifest!);
+    assert(chunks.length > 0, `${item.id} doğrulanmış index sayfaları en az bir çizim chunk'ı içeriyor`);
+    const chunkRouteProbe = chunks.find((chunk) => chunk.chunkId === "chunk_model_004") || chunks[0]!;
+    const servedChunk = await service.getChunkAsync(sceneId, chunkRouteProbe.chunkId);
+    assert(Boolean(servedChunk && servedChunk.byteLength === chunkRouteProbe.byteLength &&
+      crypto.createHash("sha256").update(servedChunk).digest("hex") === chunkRouteProbe.sha256),
+    `${item.id} READY manifestteki ${chunkRouteProbe.chunkId} chunk endpoint'inden aynı byte/hash ile okunur`);
+    assert(await service.getChunkAsync(sceneId, "chunk_model_unauthorized_l11") === null,
+      `${item.id} manifest allow-list dışında kalan chunk isteği 404 olarak reddedilir`);
+    const rootManifestPath = path.join(isolatedStorageDir, sceneId, "manifest.json");
+    assert(fs.existsSync(rootManifestPath), `${item.id} READY scene root manifest artifact'ı mevcut`);
+    assert(fs.statSync(rootManifestPath).size <= 1024 * 1024, `${item.id} manifest boyutu <= 1 MiB`);
+    assert(JSON.parse(fs.readFileSync(rootManifestPath, "utf8")).storageGeneration === manifest!.storageGeneration,
+      `${item.id} root manifest published generation ile eşleşti`);
+    for (const chunk of chunks) {
+      verifyArtifactFile(sceneId, manifest!.storageGeneration, `${chunk.chunkId}.bin`, chunk.byteLength, chunk.sha256,
+        `${item.id} chunk ${chunk.chunkId}`, 2 * 1024 * 1024);
+      verifiedChunksCount++;
+    }
+    for (const page of manifest!.indexPages || []) {
+      verifyArtifactFile(sceneId, manifest!.storageGeneration, `index_${page.indexId}.json`, page.byteLength, page.sha256,
+        `${item.id} index ${page.indexId}`);
+    }
+    for (const page of manifest!.metadataPages || []) {
+      verifyArtifactFile(sceneId, manifest!.storageGeneration, `meta_${page.metadataId}.json`, page.byteLength, page.sha256,
+        `${item.id} metadata ${page.metadataId}`);
+    }
 
     // 30 Tekrar Warm Ölçümü
     const warmDurations: number[] = [];
@@ -169,41 +259,84 @@ async function runAccuracyPerformanceAcceptanceTests() {
   }
 
   // --------------------------------------------------------------------------
+  // BÖLÜM 2B: İki kaynak boyutu sınıfında 5 cold/warm keşif çifti
+  // --------------------------------------------------------------------------
+  console.log("\n--- BÖLÜM 2B: Boyut sınıfı başına 5 cold/warm keşif örneği ---");
+  const smokeRepresentatives = (["<=30MB", ">30-70MB"] as const).map((usageClass) => {
+    const item = realCorpus.find((candidate) =>
+      (candidate.sizeBytes <= 30 * 1024 * 1024 ? "<=30MB" : ">30-70MB") === usageClass);
+    assert(Boolean(item), `${usageClass} sınıfında gerçek corpus temsilcisi mevcut`);
+    return { usageClass, item: item! };
+  });
+
+  for (const { usageClass, item } of smokeRepresentatives) {
+    const sourceBuffer = fs.readFileSync(path.join(process.cwd(), item.relativePath));
+    const coldSamplesMs: number[] = [];
+    const pairedWarmSamplesMs: number[][] = [];
+    for (let sample = 1; sample <= 5; sample++) {
+      const fileId = `file_l11_smoke_${item.id}_${sample}_${runId}`;
+      const sourceVersionKey = `v_l11_smoke_${item.id}_${sample}_${runId}`;
+      const clientRequestId = `req-l11-cold-${item.id}-${sample}-${runId}`;
+      const coldStarted = performance.now();
+      const coldResult = await service.prepare({
+        fileId,
+        expectedSourceVersionKey: sourceVersionKey,
+        clientRequestId,
+        sourceBuffer,
+        fileName: path.basename(item.relativePath),
+      });
+      const coldDuration = performance.now() - coldStarted;
+      assert(coldResult.status === "ready" && !!coldResult.sceneId,
+        `${usageClass} cold örnek ${sample}/5 READY sahne üretti`);
+      const sceneId = coldResult.sceneId!;
+      const manifest = await loadAndHydrateManifest(sceneId);
+      const chunks = allManifestChunks(manifest);
+      assert(chunks.length > 0, `${usageClass} cold örnek ${sample}/5 doğrulanmış index sayfaları boş değil`);
+      const transportManifest = await service.getManifestAsync(sceneId);
+      assert(Buffer.byteLength(JSON.stringify(transportManifest), "utf8") <= transportManifest!.limits.maxManifestBytes,
+        `${usageClass} cold örnek ${sample}/5 transport manifest boyut sınırında`);
+      for (const chunk of chunks) {
+        verifyArtifactFile(sceneId, manifest!.storageGeneration, `${chunk.chunkId}.bin`,
+          chunk.byteLength, chunk.sha256, `L11 ${usageClass} cold ${sample}/5 ${chunk.chunkId}`, 2 * 1024 * 1024);
+        verifiedChunksCount++;
+      }
+
+      const warmSamples: number[] = [];
+      const sessionIds = new Set([coldResult.viewSessionId]);
+      for (let warm = 1; warm <= 5; warm++) {
+        const warmStarted = performance.now();
+        const warmResult = await service.prepare({
+          fileId,
+          expectedSourceVersionKey: sourceVersionKey,
+          clientRequestId: `req-l11-warm-${item.id}-${sample}-${warm}-${runId}`,
+        });
+        const warmDuration = performance.now() - warmStarted;
+        assert(warmResult.status === "ready" && warmResult.sceneId === sceneId,
+          `${usageClass} warm örnek ${sample}/5 (${warm}/5) aynı sahneyi döndürdü`);
+        warmSamples.push(warmDuration);
+        sessionIds.add(warmResult.viewSessionId);
+      }
+
+      coldSamplesMs.push(coldDuration);
+      pairedWarmSamplesMs.push(warmSamples);
+      for (const sessionId of sessionIds) {
+        if (service.getViewSession(sessionId)) {
+          const deleted = service.deleteViewSession(sessionId);
+          assert(deleted, `${usageClass} cold örnek ${sample}/5 oturumu temizlendi`);
+        }
+      }
+    }
+    coldWarmClassSmokeResults.push({ usageClass, representativeFileId: item.id, coldSamplesMs, pairedWarmSamplesMs });
+    console.log(`  -> ${usageClass} / ${item.id}: 5 cold + 25 paired warm samples`);
+  }
+
+  // --------------------------------------------------------------------------
   // BÖLÜM 3: Payload Boyut Sınırları ve İkili Doğruluk (D13, R17)
   // --------------------------------------------------------------------------
   console.log("\n--- BÖLÜM 3: Parça ve Manifest Boyut Sözleşmesi (D13: Manifest <= 1MB, Chunk <= 2MB) ---");
 
-  // R001 sahnesini incele
-  const r001SceneId = service.getFileIdForScene("scene_r001") || "";
-  // Service'deki hazır sahneleri dolaş
-  let verifiedChunksCount = 0;
-  for (const item of realCorpus) {
-    const versionKey = `v_bench_${item.id}`;
-    // Mevcut bir sahnenin manifestini al
-    const manifest = service.getManifest(`scene_${item.id}`) || service.getManifest(benchmarkResults[0]?.fileId ? `scene_r001` : "");
-  }
-
-  // CLI veya Service üzerinden üretilen R001 sahne manifestini doğrudan doğrula
-  const scenesDir = isolatedStorageDir;
-  if (fs.existsSync(scenesDir)) {
-    const sceneFolders = fs.readdirSync(scenesDir).filter((d) => d.startsWith("scene_"));
-    if (sceneFolders.length > 0) {
-      const sampleScene = sceneFolders[0];
-      const manifestFile = path.join(scenesDir, sampleScene, "manifest.json");
-      if (fs.existsSync(manifestFile)) {
-        const manifestStat = fs.statSync(manifestFile);
-        assert(manifestStat.size <= 1024 * 1024, `Manifest boyutu <= 1 MiB (Gerçek: ${manifestStat.size} bayt)`);
-
-        const chunkFiles = fs.readdirSync(path.join(scenesDir, sampleScene)).filter((f) => f.endsWith(".bin"));
-        for (const chunkFile of chunkFiles) {
-          const chunkStat = fs.statSync(path.join(scenesDir, sampleScene, chunkFile));
-          assert(chunkStat.size <= 2 * 1024 * 1024, `Parça boyutu <= 2 MiB: ${chunkFile} (${chunkStat.size} bayt)`);
-          verifiedChunksCount++;
-        }
-        console.log(`  -> Doğrulanan ikili parça sayısı: ${verifiedChunksCount} adet (Tümü <= 2 MiB sınırına uyuyor)`);
-      }
-    }
-  }
+  assert(verifiedChunksCount > 0, `Gerçek corpus sahnelerinde ${verifiedChunksCount} chunk doğrulandı`);
+  console.log(`  -> Manifest ile eşlenen immutable generation dizinlerinde doğrulanan chunk sayısı: ${verifiedChunksCount} adet`);
 
   // --------------------------------------------------------------------------
   // BÖLÜM 4: Kurtarma, Hata İzolasyonu ve Fencing Token Güvenliği (R40, R46, R47)
@@ -218,16 +351,15 @@ async function runAccuracyPerformanceAcceptanceTests() {
     sourceBuffer: corruptBuffer,
     fileName: "broken.dwg",
   });
-  // Servis çökmemeli; iş ya failed durumunda olmalı ya da uygun hata dönmeli
-  assert(
-    corruptJobResult.status === "preparing" || corruptJobResult.status === "ready",
-    "Bozuk dosya durumunda servis çökmeden güvenli yanıt verdi"
-  );
-  const corruptJob = service.getJob(corruptJobResult.jobId || "");
-  if (corruptJob) {
-    assert(corruptJob.status === "failed", "Bozuk dosya işi 'failed' olarak işaretlendi");
-    assert(!!corruptJob.error, "Bozuk dosya için redakte hata mesajı kaydedildi");
-  }
+  assert(corruptJobResult.status === "preparing" && !corruptJobResult.sceneId,
+    "Bozuk dosya hiçbir zaman READY/scene yanıtı üretmedi");
+  assert(!!corruptJobResult.jobId, "Bozuk dosya için takip edilebilir job ID döndü");
+  const corruptJob = service.getJob(corruptJobResult.jobId!);
+  assert(!!corruptJob, "Bozuk dosya job kaydı zorunlu olarak mevcut");
+  assert(corruptJob!.status === "failed", "Bozuk dosya işi 'failed' olarak işaretlendi");
+  assert(!!corruptJob!.error, "Bozuk dosya için redakte hata mesajı kaydedildi");
+  assert(!corruptJob!.sceneId && service.getManifest(corruptJob!.sceneId || "") === null,
+    "Bozuk dosya job'ı READY scene/manifest referansı taşımıyor");
 
   // Idempotency: Aynı clientRequestId ile çağrıldığında aynı job/session'ı dönme
   const idempReqId = "req-idempotent-test-unique";
@@ -254,13 +386,15 @@ async function runAccuracyPerformanceAcceptanceTests() {
   }
 
   // Sonuç özeti tablosunu kaydet
-  const reportPath = path.join(process.cwd(), "tests/cad-v2/benchmark-g15-results.json");
+  fs.mkdirSync(runDir, { recursive: true });
+  const reportPath = path.join(runDir, "benchmark-g15-results.json");
   fs.writeFileSync(
     reportPath,
     JSON.stringify(
       {
         timestamp: new Date().toISOString(),
         benchmarkResults,
+        coldWarmClassSmokeResults,
         verifiedChunksCount,
         corpusCovered: realCorpus.map((c) => ({ id: c.id, size: c.sizeBytes, sha256: c.sha256 })),
       },
@@ -271,6 +405,7 @@ async function runAccuracyPerformanceAcceptanceTests() {
   );
 
   console.log(`\n>>> G15 DOĞRULUK, PERFORMANS VE İŞLETİM KABULÜ TESTLERİ BAŞARIYLA GEÇTİ (PASS) <<<`);
+  console.log(`G15 run evidence: ${reportPath}`);
 }
 
 runAccuracyPerformanceAcceptanceTests().catch((err) => {

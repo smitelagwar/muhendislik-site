@@ -6,6 +6,7 @@ import {
   uploadCadPreviewV2Fixture,
   cleanupUploadedCadFixtures,
 } from "./cad-test-helpers";
+import { measureRaster } from "./cad-v2-l11-raster-metrics";
 
 test.describe("CAD Review Workspace V1 — Stage 7/10 Desktop, Tablet, Mobil ve Erişilebilirlik (A11y)", () => {
   test.afterEach(async ({ page }) => {
@@ -158,70 +159,48 @@ test.describe("CAD Review Workspace V1 — Stage 7/10 Desktop, Tablet, Mobil ve 
     expect(initialBox?.width).toBeGreaterThan(100);
     expect(initialBox?.height).toBeGreaterThan(100);
 
-    // 2. Initial modelSpace entity count
-    const initialEntityCount = await host.evaluate((el: HTMLElement) => {
-      const adapter = (el as unknown as {
-        __cadAdapter?: {
-          manager?: {
-            curDocument?: {
-              database?: {
-                tables?: {
-                  blockTable?: {
-                    modelSpace?: {
-                      newIterator?: () => Iterable<unknown>;
-                    };
-                  };
-                };
-              };
-            };
-          };
-        };
+    const getReadiness = () => page.evaluate(() => {
+      const adapter = (window as unknown as {
+        __cadAdapter?: { getRenderReadinessSnapshot?: () => unknown };
       }).__cadAdapter;
-
-      const ms = adapter?.manager?.curDocument?.database?.tables?.blockTable?.modelSpace;
-      let count = 0;
-      if (ms?.newIterator) {
-        const iter = ms.newIterator();
-        for (const entity of iter) {
-          if (entity) count++;
-        }
-      }
-      return count;
+      return adapter?.getRenderReadinessSnapshot?.() as {
+        isReady: boolean;
+        cameraValid: boolean;
+        viewport: { clientWidth: number; clientHeight: number };
+      } | null | undefined;
     });
 
-    expect(initialEntityCount).toBe(4);
+    const initialReadiness = await getReadiness();
+    expect(initialReadiness).toBeTruthy();
+    expect(initialReadiness!.isReady).toBe(true);
+    expect(initialReadiness!.cameraValid).toBe(true);
+    expect(initialReadiness!.viewport.clientWidth).toBeGreaterThan(100);
 
-    // 3. Final entity count after viewport actions
-    const finalEntityCount = await host.evaluate((el: HTMLElement) => {
-      const adapter = (el as unknown as {
-        __cadAdapter?: {
-          manager?: {
-            curDocument?: {
-              database?: {
-                tables?: {
-                  blockTable?: {
-                    modelSpace?: {
-                      newIterator?: () => Iterable<unknown>;
-                    };
-                  };
-                };
-              };
-            };
-          };
-        };
-      }).__cadAdapter;
+    const canvas = host.locator("canvas").last();
+    const initialRaster = measureRaster(await canvas.screenshot());
+    expect(initialRaster.foregroundPixelCount, "real DXF initial canvas must contain drawn geometry")
+      .toBeGreaterThan(0);
 
-      const ms = adapter?.manager?.curDocument?.database?.tables?.blockTable?.modelSpace;
-      let count = 0;
-      if (ms?.newIterator) {
-        const iter = ms.newIterator();
-        for (const entity of iter) {
-          if (entity) count++;
-        }
-      }
-      return count;
-    });
+    await page.getByTestId("cad-tool-fit").click();
+    await page.getByTestId("cad-tool-layers").click();
+    await expect(host).toHaveAttribute("data-cad-layer-panel-open", "true");
+    await page.getByTestId("cad-tool-layers").click();
+    await expect(host).toHaveAttribute("data-cad-layer-panel-open", "false");
 
-    expect(finalEntityCount).toBe(initialEntityCount);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect.poll(async () => (await host.boundingBox())?.width ?? 0)
+      .toBeGreaterThan(100);
+    await page.getByTestId("cad-tool-fit").click();
+
+    const finalReadiness = await getReadiness();
+    expect(finalReadiness).toBeTruthy();
+    expect(finalReadiness!.isReady).toBe(true);
+    expect(finalReadiness!.cameraValid).toBe(true);
+    expect(finalReadiness!.viewport.clientWidth).toBeGreaterThan(100);
+    expect(finalReadiness!.viewport.clientHeight).toBeGreaterThan(100);
+
+    const finalRaster = measureRaster(await canvas.screenshot());
+    expect(finalRaster.foregroundPixelCount, "real DXF canvas must retain drawn geometry after fit, layer drawer, and mobile resize")
+      .toBeGreaterThan(0);
   });
 });

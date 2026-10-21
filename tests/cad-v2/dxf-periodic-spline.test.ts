@@ -7,6 +7,7 @@ import { compileCanonicalToScene } from "../../src/lib/cad-v2/compile/scene-comp
 import { parseDxfToCanonical } from "../../src/lib/cad-v2/decode/dxf-adapter";
 import { parseDxfSplines } from "../../src/lib/cad-v2/decode/dxf-xclip-pairs";
 import { parseSceneChunk, SceneTag } from "../../src/lib/cad-v2/protocol/binary-protocol";
+import { refineUnpackedChunkCurves, unpackSceneChunk } from "../../src/workers/cad-v2/cad-v2-scene-worker";
 
 function makeSplineEntity(handle: string, flags: number, points: [number, number][], knots: number[], weights?: number[], degree = 3): string {
   const pairs = [
@@ -106,6 +107,20 @@ function distanceToPolyline(point: [number, number], points: [number, number][])
   return minimum;
 }
 
+function evaluateRationalBezier(points: readonly (readonly [number, number])[], weights: readonly number[], t: number): [number, number] {
+  let level = points.map((point, index): [number, number, number] => [
+    point[0] * weights[index]!, point[1] * weights[index]!, weights[index]!,
+  ]);
+  while (level.length > 1) {
+    level = level.slice(0, -1).map((point, index): [number, number, number] => [
+      point[0] * (1 - t) + level[index + 1]![0] * t,
+      point[1] * (1 - t) + level[index + 1]![1] * t,
+      point[2] * (1 - t) + level[index + 1]![2] * t,
+    ]);
+  }
+  return [level[0]![0] / level[0]![2], level[0]![1] / level[0]![2]];
+}
+
 async function main(): Promise<void> {
   const fixturePath = path.resolve(process.cwd(), "tests/fixtures/cad-preview-v2/known-geometry-measurements.dxf");
   const base = fs.readFileSync(fixturePath, "utf8");
@@ -114,6 +129,26 @@ async function main(): Promise<void> {
   const degreeNineProfile = makePeriodicProfile([3.4, 3.8, 4.2, 4.6, 5, 5.4, 5.8, 6.2, 6.6], undefined, 9);
   const doubleKnotProfile = makePeriodicProfile([4, 4, 5, 6]);
   const tripleKnotProfile = makePeriodicProfile([4, 4, 4, 5, 6]);
+  const matrixInputs = [
+    { handle: "F081", degree: 1, interior: [4, 5, 6], shift: -10, scale: 0.5, rational: false },
+    { handle: "F082", degree: 2, interior: [4, 5, 6], shift: 0, scale: 1, rational: true },
+    { handle: "F084", degree: 4, interior: [4, 4, 5, 6, 6], shift: 100, scale: 25, rational: false },
+    { handle: "F085", degree: 5, interior: [4, 4, 4, 5, 6, 6], shift: -7, scale: 0.5, rational: true },
+    { handle: "F086", degree: 6, interior: [3.5, 4, 4.5, 5, 5.5, 6, 6.5], shift: 1, scale: 2, rational: false },
+    { handle: "F087", degree: 7, interior: [3.4, 3.8, 4.2, 4.6, 5, 5.4, 5.8, 6.2], shift: 0, scale: 1, rational: true },
+    { handle: "F088", degree: 8, interior: [3.4, 3.8, 4.2, 4.6, 5, 5.4, 5.8, 6.2, 6.6], shift: 0, scale: 1, rational: false },
+  ] as const;
+  const matrixProfiles = matrixInputs.map((input) => {
+    const uniqueWeights = input.rational
+      ? Array.from({ length: input.interior.length + 1 }, (_, index) => [1, 0.65, 1.4, 0.85][index % 4]!)
+      : undefined;
+    const profile = makePeriodicProfile([...input.interior], uniqueWeights, input.degree);
+    return {
+      ...input,
+      ...profile,
+      knots: profile.knots.map((knot) => input.shift + knot * input.scale),
+    };
+  });
   const clampedControls: [number, number][] = [[0, 0], [2, 5], [4, -1], [6, 7]];
   const clampedKnots = [0, 0, 0, 0, 1, 1, 1, 1];
   const appendedEntities = [
@@ -124,6 +159,8 @@ async function main(): Promise<void> {
     makeSplineEntity("F075", 2, tripleKnotProfile.controlPoints, tripleKnotProfile.knots),
     makeSplineEntity("F077", 6, rationalProfile.controlPoints, rationalProfile.knots, rationalProfile.weights),
     makeSplineEntity("F078", 2, degreeNineProfile.controlPoints, degreeNineProfile.knots, undefined, 9),
+    ...matrixProfiles.map((profile) => makeSplineEntity(
+      profile.handle, profile.rational ? 6 : 2, profile.controlPoints, profile.knots, profile.weights, profile.degree)),
   ].join("\n");
   const augmented = base.replace(
     /0\r?\nENDSEC\r?\n0\r?\nEOF\s*$/,
@@ -244,6 +281,91 @@ async function main(): Promise<void> {
   assert.equal(doubleKnot.knots.filter((knot) => knot === 4).length, 2, "independent knot-count oracle sees multiplicity 2");
   assert.equal(tripleKnot.knots.filter((knot) => knot === 4).length, 3, "independent knot-count oracle sees degree multiplicity 3");
 
+  const matrixMeasurements: Array<{ handle: string; degree: number; maxError: number; spanCount: number }> = [];
+  for (const profile of matrixProfiles) {
+    const spline = byHandle(document.modelSpaceEntities, profile.handle);
+    const binarySpline = byHandle(binaryDocument.modelSpaceEntities, profile.handle);
+    assert.deepEqual(binarySpline, spline, `${profile.handle}: ASCII/binary decode parity`);
+    assert.equal(spline.degree, profile.degree, `${profile.handle}: degree survives decode`);
+    assert.deepEqual(spline.knots, profile.knots, `${profile.handle}: shifted/scaled knot domain survives decode`);
+    assert.deepEqual(spline.weights, profile.weights, `${profile.handle}: rational weights survive decode`);
+    const start = spline.knots[spline.degree]!;
+    const end = spline.knots[spline.controlPoints.length]!;
+    assert.equal(start, profile.shift + 3 * profile.scale, `${profile.handle}: active domain start`);
+    assert.equal(end, profile.shift + 7 * profile.scale, `${profile.handle}: active domain end`);
+    const tessellation = GeometryCompiler.tessellateSplineWithBudget(spline, 0.05);
+    assert.equal(tessellation.invalidInput, undefined, `${profile.handle}: supported periodic profile accepted`);
+    assert.equal(tessellation.errorBoundMet, true, `${profile.handle}: requested error bound met`);
+    assert.ok(tessellation.splineBezierSpans?.length, `${profile.handle}: analytic span sidecars retained`);
+    const expectedSpans = new Set(spline.knots.slice(spline.degree, spline.controlPoints.length + 1)).size - 1;
+    assert.equal(tessellation.splineBezierSpans.length, expectedSpans, `${profile.handle}: zero-width repeated spans excluded`);
+    const startPoint = evaluateDeBoor(spline, start);
+    const endPoint = evaluateDeBoor(spline, end);
+    assert.ok(Math.hypot(startPoint[0] - endPoint[0], startPoint[1] - endPoint[1]) < 1e-8,
+      `${profile.handle}: independent oracle closes the active domain`);
+    assert.ok(Math.hypot(tessellation.points[0]![0] - startPoint[0], tessellation.points[0]![1] - startPoint[1]) < 1e-8,
+      `${profile.handle}: first endpoint matches source`);
+    assert.ok(Math.hypot(tessellation.points.at(-1)![0] - endPoint[0], tessellation.points.at(-1)![1] - endPoint[1]) < 1e-8,
+      `${profile.handle}: last endpoint matches source`);
+    let maxError = 0;
+    for (let sample = 0; sample <= 4_000; sample++) {
+      const parameter = start + (end - start) * sample / 4_000;
+      maxError = Math.max(maxError, distanceToPolyline(evaluateDeBoor(spline, parameter), tessellation.points));
+    }
+    assert.ok(maxError <= 0.050001 && maxError <= tessellation.maxSagittaWorld + 1e-6,
+      `${profile.handle}: independent De Boor error ${maxError} fits reported bound ${tessellation.maxSagittaWorld}`);
+    matrixMeasurements.push({ handle: profile.handle, degree: profile.degree, maxError, spanCount: expectedSpans });
+  }
+  console.log("F07 periodic degree/domain/weight matrix:", JSON.stringify(matrixMeasurements));
+
+  const matrixScene = compileCanonicalToScene({
+    ...document,
+    modelSpaceEntities: matrixProfiles.map((profile) => byHandle(document.modelSpaceEntities, profile.handle)),
+    paperSpaceEntities: {},
+    blocks: {},
+  }, { sceneId: "scene_f07_periodic_degree_matrix" });
+  assert.notEqual(matrixScene.manifest.qualityStatus, "degraded", "supported periodic matrix compiles without degradation");
+  const expectedRefCount = matrixMeasurements.reduce((count, item) => count + item.spanCount, 0);
+  let refinedRefCount = 0;
+  let maximumWorkerOracleError = 0;
+  for (const chunkRef of matrixScene.manifest.chunks.filter((chunk) => chunk.layoutId === "Model")) {
+    const bytes = matrixScene.chunks.get(chunkRef.chunkId)!;
+    const parsed = parseSceneChunk(bytes);
+    const meta = JSON.parse(new TextDecoder().decode(parsed.sections.get(SceneTag.META)!.data as Uint8Array)) as {
+      curveSourceRefs?: Array<{
+        curveId: string;
+        sourceHandle: string;
+        sourceType: string;
+        splineSource?: { controlPoints: [number, number][]; weights: number[] };
+      }>;
+    };
+    const refs = meta.curveSourceRefs?.filter((ref) => ref.sourceType === "SPLINE") || [];
+    const refined = refineUnpackedChunkCurves(unpackSceneChunk(chunkRef.chunkId, bytes), {
+      targetErrorCssPixels: 0.25, unitsPerCssPixel: 0.1, maxTransformSingularValue: 1,
+    });
+    assert.equal(refined.errorBoundMet, true, `${chunkRef.chunkId}: worker meets 0.25 CSS px target`);
+    assert.equal(refined.intervals.length, refs.length, `${chunkRef.chunkId}: every span reaches worker`);
+    for (const interval of refined.intervals) {
+      const ref = refs.find((candidate) => candidate.curveId === interval.curveId);
+      assert.ok(ref?.splineSource && interval.coordinates, `${interval.curveId}: rational source and refined vertices exist`);
+      const source = ref.splineSource;
+      const points = Array.from({ length: interval.coordinates.length / 2 }, (_, index): [number, number] => [
+        interval.coordinates![index * 2]!, interval.coordinates![index * 2 + 1]!,
+      ]);
+      let error = 0;
+      for (let sample = 0; sample <= 1_000; sample++) {
+        error = Math.max(error, distanceToPolyline(
+          evaluateRationalBezier(source.controlPoints, source.weights, sample / 1_000), points));
+      }
+      maximumWorkerOracleError = Math.max(maximumWorkerOracleError, error);
+      assert.ok(error <= 0.0251 && error <= interval.conservativeErrorCssPixels * 0.1 + 1e-4,
+        `${interval.curveId}: worker source error ${error} fits 0.025 world-unit budget`);
+      refinedRefCount++;
+    }
+  }
+  assert.equal(refinedRefCount, expectedRefCount, "binary scene and worker retain every expected degree-matrix knot span");
+  console.log("F07 periodic worker matrix:", JSON.stringify({ refinedRefCount, maximumWorkerOracleError }));
+
   const malformedDegreePairs = makeSplineEntity("F076", 2, simpleProfile.controlPoints, simpleProfile.knots)
     .replace("71\n3", "71\n0");
   const malformedDegreeDxf = Buffer.from(augmented.replace(appendedEntities, appendedEntities + "\n" + malformedDegreePairs));
@@ -264,6 +386,18 @@ async function main(): Promise<void> {
     "a source flagged periodic but whose active endpoints do not close fails closed");
   assert.equal(openPeriodicResult.points.length, 0,
     "an invalid periodic seam is never rendered as fabricated geometry");
+  const invalidWeightCycle: CadSplineEntity = {
+    ...rationalPeriodic,
+    weights: rationalPeriodic.weights!.map((weight, index) => index === rationalPeriodic.weights!.length - 1 ? weight + 0.1 : weight),
+  };
+  assert.equal(GeometryCompiler.tessellateSplineWithBudget(invalidWeightCycle, 0.05).invalidInput, true,
+    "mismatched rational wraparound weights fail closed");
+  const invalidKnotCycle: CadSplineEntity = {
+    ...periodicOnly,
+    knots: periodicOnly.knots.map((knot, index) => index === 0 ? knot - 0.1 : knot),
+  };
+  assert.equal(GeometryCompiler.tessellateSplineWithBudget(invalidKnotCycle, 0.05).invalidInput, true,
+    "mismatched periodic knot extension fails closed");
 
   const periodicScene = compileCanonicalToScene({
     ...document,

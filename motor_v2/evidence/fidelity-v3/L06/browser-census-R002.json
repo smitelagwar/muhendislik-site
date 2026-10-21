@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "candidate browser/compiler census; not an AutoCAD oracle",
+  "source": {
+    "id": "R002",
+    "path": "eklediklerim/ornek_dosyalar/kiris_acilimlari_tum_katlar.dwg",
+    "format": "DWG",
+    "magic": "AC1032",
+    "bytes": 2139550,
+    "sha256": "9a59ff9e5496e2a3c62b378f062e5f0f3cfa707b9bd4b5a0bf6749cd8bf52459"
+  },
+  "candidate": {
+    "compilerVersion": "cad-v2-compiler-2026.09-v71",
+    "pipelineVersion": "fidelity-v3-p08",
+    "renderAbi": "three172-cad2d-v2"
+  },
+  "runtime": {
+    "parseMs": 1584.8,
+    "compileMs": 10881.5
+  },
+  "canonical": {
+    "acadVersion": "AC1032",
+    "codepage": "ANSI_1254",
+    "units": 4,
+    "measurement": 1,
+    "modelEntityCount": 288,
+    "entityCountsByLayout": {
+      "Model": {
+        "INSERT": 282,
+        "LINE": 5,
+        "LWPOLYLINE": 1
+      },
+      "Layout1": {}
+    },
+    "layerCount": 10,
+    "blockDefinitionCount": 283,
+    "textStyles": [
+      {
+        "name": "Standard",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "arial_1_18",
+        "fontFileName": "arial.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "times new roman_1_18",
+        "fontFileName": "times.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      },
+      {
+        "name": "symbol_1_18",
+        "fontFileName": "symbol.ttf",
+        "bigFontFileName": null,
+        "isShapeFile": false
+      }
+    ],
+    "layouts": [
+      {
+        "id": "Model",
+        "name": "Model",
+        "isModelSpace": true,
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "viewportIds": []
+      },
+      {
+        "id": "Layout1",
+        "name": "Layout1",
+        "isModelSpace": false,
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "viewportIds": []
+      }
+    ],
+    "viewports": [],
+    "diagnosticCountsBySeverityAndCode": {},
+    "resourceWarnings": {}
+  },
+  "compiled": {
+    "schemaVersion": 1,
+    "renderAbi": "three172-cad2d-v2",
+    "qualityStatus": "degraded",
+    "diagnosticsSummary": {
+      "unknownEntityCount": 0,
+      "unknownObjectCount": 0,
+      "missingFontCount": 0,
+      "missingDependencyCount": 0,
+      "diagnosticCodes": [
+        "DROPPED_TEXT_IN_BLOCK"
+      ]
+    },
+    "layouts": [
+      {
+        "layoutId": "Model",
+        "sourceName": "Model",
+        "kind": "model",
+        "bbox": [
+          23800.95637175379,
+          9628.319658346854,
+          80068.73003983521,
+          14137.296945155178
+        ],
+        "units": 4
+      },
+      {
+        "layoutId": "Layout1",
+        "sourceName": "Layout1",
+        "kind": "paper",
+        "bbox": [
+          0,
+          0,
+          1000,
+          1000
+        ],
+        "units": 4
+      }
+    ],
+    "chunkCount": 150,
+    "maximumChunkBytes": 1322720,
+    "totalChunkBytes": 121072384
+  },
+  "nativeOracle": {
+    "status": "NOT_RUN",
+    "reason": "AutoCAD LT GUI oracle is gated by acadlt.exe Authenticode HashMismatch; exact FAIL-404 source is also absent."
+  }
+}

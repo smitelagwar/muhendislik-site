@@ -148,6 +148,9 @@ Deployment bilerek oluşturulduysa:
 - build sonucu kontrol edilir,
 - gerekli smoke testler tek deployment üzerinde yapılır,
 - aynı doğrulama için peş peşe yeni deployment üretilmez.
+- **Takılma Önleme (Windows PowerShell & Vercel CLI):**
+  - Windows PowerShell'de `curl` komutu `Invoke-WebRequest` alias'ı olduğu için `curl -I` gibi bayraklar interaktif prompt açıp arka plan görevini sonsuza kadar asılı bırakır. Çıplak `curl` kullanımı **kesinlikle yasaktır**; gerekirse yalnızca `curl.exe -s -I --max-time 10` veya `read_url_content` kullanılır.
+  - `git push origin main` sonrasında Vercel derlemesi `● Ready` olduktan sonra gereksiz ek CLI/HTTP komutları başlatıp kullanıcıyı bekletmek yasaktır; arka plana düşen komutlarda `.agents/rules/test-ve-otomasyon-standardi.md` Bölüm 5'teki emniyet zamanlayıcısı (`schedule`) kuralı zorunludur.
 
 ## 8. İstisnalar
 

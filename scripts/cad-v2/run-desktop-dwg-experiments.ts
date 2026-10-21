@@ -105,7 +105,7 @@ async function run() {
     console.log(`  SHA-256   : ${item.sha256}`);
 
     // Var olan kayıt var mı kontrol et
-    const existing = db.files.find((f) => f.display_name === baseName && !f.deleted_at);
+    let existing = db.files.find((f) => f.display_name === baseName && !f.deleted_at);
 
     let fileId: string;
     if (existing) {

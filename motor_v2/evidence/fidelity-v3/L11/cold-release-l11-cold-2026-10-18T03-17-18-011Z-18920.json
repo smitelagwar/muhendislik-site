@@ -1,0 +1,41 @@
+{
+  "status": "COMPLETE",
+  "runId": "l11-cold-2026-10-18T03-17-18-011Z-18920",
+  "startedAt": "2026-10-18T03:17:18.012Z",
+  "finishedAt": "2026-10-18T03:19:08.097Z",
+  "compilerRevision": "cad-v2-compiler-2026.09-v71",
+  "nodeVersion": "v24.15.0",
+  "platform": "win32-x64",
+  "coldDefinition": "Each sample starts a fresh Node process with a new service and empty isolated storage; timing covers service.prepare only and excludes child-process startup. Samples run sequentially. Successful artifact storage is removed after each sample; sample logs and this report are retained.",
+  "sampleCountPerFile": 1,
+  "percentiles": "p50 and descriptive p95 only; no p99 claim from 30 observations.",
+  "files": [
+    {
+      "id": "R003",
+      "format": "DWG",
+      "sourceBytes": 16084252,
+      "sourceSha256": "8ff5680fa4f9d570fed738def92bc6ca8149fde1b5aed9e0a495dd2baaf521e6",
+      "samples": [
+        {
+          "sample": 1,
+          "status": "ready",
+          "elapsedMs": 106792.927,
+          "sceneId": "scene_f9e6a445b18380e066004468",
+          "sourceSha256": "8ff5680fa4f9d570fed738def92bc6ca8149fde1b5aed9e0a495dd2baaf521e6",
+          "rootManifestBytes": 602528,
+          "rootManifestMaxBytes": 1048576,
+          "indexPageCount": 63,
+          "chunkCount": 19529,
+          "firstChunkBytes": 78176,
+          "qualityStatus": "degraded"
+        }
+      ],
+      "medianColdPrepareMs": 106792.927
+    }
+  ],
+  "resumedFileIds": [],
+  "priorEvidencePath": null,
+  "priorAttemptFailures": [],
+  "failures": [],
+  "evidencePath": "C:\\Users\\hsyn\\.codex\\worktrees\\91a0\\muhendis-mimar-portali\\motor_v2\\evidence\\fidelity-v3\\L11\\cold-release-l11-cold-2026-10-18T03-17-18-011Z-18920.json"
+}

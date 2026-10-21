@@ -16,6 +16,17 @@ okunur.
 
 Gemini mevcut çalışan sistemi tahmin ederek yeniden kurmaz; önce repo gerçekliğini okur.
 
+<!-- ECC_INTEGRATION_START -->
+### 1.1 ECC (Everything Claude Code) Entegrasyonu ve Okuma Zorunluluğu
+
+> **ECC DURUMU:** `AKTİF` <!-- ECC_STATUS:ACTIVE -->
+> *(Kullanıcı "ecc github reposunu kullanma" veya "deaktive et" dediğinde bu durum `PASİF` yapılır; tekrar "ecc aktive et" dediğinde `AKTİF` yapılır. Komut satırından `npm run ecc:toggle` veya `node scripts/toggle-ecc.mjs` ile de değiştirilebilir.)*
+
+**Gemini isen ecc github reposunu okumalısın:**
+- Durum `AKTİF` iken: Gemini bu repodaki `ecc/` dizinini (`ecc/README.md`, `ecc/.gemini/GEMINI.md`, `ecc/agents/`, `ecc/skills/`, `ecc/rules/` vb.) okumak, buradaki mimari ve güvenlik prensiplerini uygulamak ve görevle ilgili becerileri (`ecc/skills/`) rehber almakla yükümlüdür.
+- Durum `PASİF` iken: `ecc/` deposunu okuma zorunluluğu yoktur; standart repo kurallarına göre devam edilir.
+<!-- ECC_INTEGRATION_END -->
+
 ## 2. CAD / DXF / DWG / DWF görevi için ZORUNLU özel okuma
 
 Görev CAD, DXF, DWG, DWF, CAD toolbar, CAD ölçüm, CAD viewer, parser, renderer, worker, MLightCAD veya LibreDWG ile ilgiliyse **kod değiştirmeden önce** şu sıra zorunludur:

@@ -1,5 +1,13 @@
-import type { SceneDrawCommand, UnpackedSceneChunk } from "../../../workers/cad-v2/cad-v2-scene-worker";
+import type { UnpackedSceneChunk } from "../../../workers/cad-v2/cad-v2-scene-worker";
 import type { CurveRefinementResult, RefinedCurveInterval } from "./curve-refinement";
+import { decodeCadV2PositionArray } from "./position-compaction";
+
+type DrawCommand = {
+  kind: "line" | "triangle" | "wipeout";
+  firstVertex: number;
+  vertexCount: number;
+  [key: string]: unknown;
+};
 
 /** Builds a fresh fallback-compatible chunk. The input is never mutated. */
 export function applyCurveRefinementsToChunk(
@@ -12,8 +20,9 @@ export function applyCurveRefinementsToChunk(
     .sort((a, b) => a.firstVertex - b.firstVertex);
   if (refinements.length === 0) return source;
 
-  const commands: SceneDrawCommand[] = source.meta?.drawCommands ?? [];
+  const commands = (source.meta?.drawCommands ?? []) as DrawCommand[];
   const sourceVertexCount = source.xyArray.length / 2;
+  const sourceXY = decodeCadV2PositionArray(source.xyArray, source.positionCodec);
   let previousEnd = 0;
   for (const item of refinements) {
     if (!Number.isFinite(item.requestedErrorCssPixels) || item.requestedErrorCssPixels <= 0 ||
@@ -41,7 +50,7 @@ export function applyCurveRefinementsToChunk(
   for (const item of refinements) {
     const start = item.firstVertex;
     const end = start + item.vertexCount;
-    pieces.push(source.xyArray.subarray(cursor * 2, start * 2));
+    pieces.push(sourceXY.subarray(cursor * 2, start * 2));
     if (source.pathDistancesArray) pathPieces.push(source.pathDistancesArray.subarray(cursor, start));
     const segments = new Float32Array(item.segmentCount * 4);
     const pathSegments = source.pathDistancesArray ? new Float32Array(item.segmentCount * 2) : null;
@@ -89,7 +98,7 @@ export function applyCurveRefinementsToChunk(
     deltas.push({ start, end, delta: segments.length / 2 - item.vertexCount });
     cursor = end;
   }
-  pieces.push(source.xyArray.subarray(cursor * 2));
+  pieces.push(sourceXY.subarray(cursor * 2));
   if (source.pathDistancesArray) pathPieces.push(source.pathDistancesArray.subarray(cursor));
 
   const newLength = pieces.reduce((sum, piece) => sum + piece.length, 0);
@@ -128,6 +137,7 @@ export function applyCurveRefinementsToChunk(
   return {
     ...source,
     xyArray,
+    positionCodec: undefined,
     pathDistancesArray,
     vertexCount: xyArray.length / 2,
     meta: source.meta ? { ...source.meta, drawCommands: shiftedCommands } : source.meta,

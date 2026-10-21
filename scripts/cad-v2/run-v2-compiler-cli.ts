@@ -10,6 +10,7 @@ import crypto from "node:crypto";
 import { parseDwgToCanonical } from "../../src/lib/cad-v2/decode/dwg-adapter";
 import { parseDxfToCanonical } from "../../src/lib/cad-v2/decode/dxf-adapter";
 import { compileCanonicalToScene } from "../../src/lib/cad-v2/compile/scene-compiler";
+import { FontLayoutEngine } from "../../src/lib/cad-v2/text/font-layout-engine";
 import type { CadCanonicalDocument } from "../../src/lib/cad-v2/canonical/types";
 
 interface CliOptions {
@@ -80,10 +81,12 @@ export async function runCompilerCli(options: CliOptions): Promise<{
   // 2. Sahneye derle (DV2SCN01)
   console.log(`-> Sahne derleyicisi çalıştırılıyor (DV2SCN01 ikili formatı)...`);
   const { computeSceneIdentity } = await import("../../src/lib/cad-v2/service/scene-identity");
+  const fontDigest = FontLayoutEngine.getFontDigest();
   const idResult = computeSceneIdentity({
     fileId: fileName,
     sourceSha256: fileHash,
     authoritativeRevision: fileName,
+    fontDigest,
   });
   const compiled = compileCanonicalToScene(canonicalDoc, {
     sceneId: idResult.sceneId,

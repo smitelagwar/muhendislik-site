@@ -5,6 +5,7 @@
 import * as THREE from "three";
 import { D3CameraAdapter, type CadCameraState } from "../../src/lib/cad-v2/interaction/d3-camera-adapter";
 import type { CadBBox2D } from "../../src/lib/cad-v2/canonical/types";
+import { isChunkVisibleInCamera } from "../../src/lib/cad-v2/render/chunk-visibility";
 
 interface CameraAdapterTestSurface {
   handleKeyDown(event: Pick<KeyboardEvent, "key" | "code" | "preventDefault">): void;
@@ -90,6 +91,25 @@ if (Math.abs(largeState.center[0] - 100000050.0) > 1e-3) {
 }
 console.log("- N17: 1e8 koordinat hassasiyeti (Float64): PASS");
 
+// 4.1. Dynamic manifest Fit must expand the initial generic zoom-out ceiling.
+const defaultViewAdapter = new D3CameraAdapter({
+  inputElement: mockInputElement,
+  initialBBox: [-500, -500, 500, 500],
+  threeCamera: new THREE.OrthographicCamera(-400, 400, 300, -300, 0.1, 10),
+});
+const largeModelBBox: CadBBox2D = [-2101368.467597651, -226895.87184664537, 76874.60264085402, 360294.8964678075];
+const inModelChunkBBox: CadBBox2D = [15238.175254949834, 11267.759635930415, 15680.001307291677, 12982.891610916995];
+defaultViewAdapter.fit(largeModelBBox);
+const fittedLargeModel = defaultViewAdapter.getState();
+if (!isChunkVisibleInCamera(inModelChunkBBox, fittedLargeModel)) {
+  throw new Error(`[N24] Dynamic large-model Fit hid an in-bounds model chunk: u=${fittedLargeModel.unitsPerCssPixel}, center=${fittedLargeModel.center}`);
+}
+defaultViewAdapter.zoomOut();
+if (defaultViewAdapter.getState().unitsPerCssPixel <= fittedLargeModel.unitsPerCssPixel) {
+  throw new Error("[N24] Dynamic large-model Fit did not expand the D3 zoom-out extent.");
+}
+console.log("- N24: Varsayılan görünümden büyük manifest bbox Fit ve chunk görünürlüğü: PASS");
+
 // 5. Boyut Değişimi (Resize) ve Dünya Merkezini Koruma (N14)
 const beforeCenter = adapter.getState().center;
 adapter.resize(1920, 1080);
@@ -171,6 +191,7 @@ console.log("- Space basılı ve blur sıfırlama testi: PASS");
 // 9. Yaşam Döngüsü ve Teardown (N23)
 adapter.dispose();
 largeAdapter.dispose();
+defaultViewAdapter.dispose();
 callbackAdapter.dispose();
 console.log("- N23: Teardown & disposal temizliği: PASS");
 
