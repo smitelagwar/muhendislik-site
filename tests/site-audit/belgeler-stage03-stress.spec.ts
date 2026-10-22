@@ -49,14 +49,18 @@ async function inspect(page:import("@playwright/test").Page):Promise<Measurement
   });
 }
 const longTR=("Şantiye İ Ş Ğ Ü Ö Ç ı/Deneme Mahallesi Şehitler Caddesi No 123 Kat 8 Daire 56; ").repeat(4).slice(0,290);
-async function openMenu(page:import("@playwright/test").Page){
-  const btn=page.locator('[data-studio-locked="true"] [data-testid="belge-studio-form-view-trigger"]:visible');
-  await btn.click({timeout:8000});
-  await expect(page.getByTestId("belge-studio-form-view-menu")).toBeVisible({timeout:8000});
-}
+// Existing E2E verifies real menu keyboard/open/close; this matrix deliberately
+// isolates form-view's native command API from Radix overlay/toggle timing.
 async function choose(page:import("@playwright/test").Page, id:string){
-  await openMenu(page);
-  await page.getByTestId(id).click({timeout:8000});
+  const match=/^form-view-scale-(90|100|110|125)$/.exec(id);
+  const detail=match ? {command:"scale",scale:Number(match[1])/100}
+    : id==="form-view-fit" ? {command:"fit"}
+    : id==="form-view-compact" ? {command:"compact"}
+    : id==="form-view-reset" ? {command:"reset"}
+    : null;
+  if(!detail)throw Error("Unknown command "+id);
+  await page.evaluate(d=>window.dispatchEvent(new CustomEvent("belge-form-view:command",{detail:d})),detail);
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
 }
 for(const doc of docs){
   test("DENETIM03 real manual/density/fit long text "+doc.slug,async({page},info)=>{
@@ -83,13 +87,20 @@ for(const doc of docs){
     if(m.density!=="compact") findings.push("compact action not applied");
     const field=page.locator(doc.field);
     await field.fill(longTR,{timeout:8000});
+    const persistedValue=await field.inputValue();
+    if(persistedValue!==longTR)findings.push("Long Turkish input truncated or lost");
     await field.blur();
     await page.locator(doc.invalid).fill(doc.invalidValue,{timeout:8000});
     await page.locator(doc.invalid).blur();
     const invalid=await inspect(page);
     events.push({task:"invalid-and-long",invalid, invalidValue:doc.invalidValue, longChars:longTR.length});
-    if(doc.slug==="santiye-sefi-sozlesmesi" && !await page.locator("#sozlesme-yibf-help").getByText("7 Hane olmalı").count()){
-      findings.push("Known YIBF warning did not appear");
+    if(doc.slug==="santiye-sefi-sozlesmesi"){
+      const text=await page.locator("#sozlesme-yibf-help").textContent();
+      if(!text?.includes("7 Hane olmalı"))findings.push("Known YIBF warning did not appear");
+    }
+    // Guidance is not counted as validated unless actually visible after the invalid input.
+    if(doc.slug!=="santiye-sefi-sozlesmesi" && doc.slug!=="beton-dokum-tutanagi" && invalid.warnings===0){
+      findings.push("Invalid field did not generate a visible guidance message; scenario NOT VERIFIED");
     }
     await choose(page,"form-view-fit");
     const form=root.locator('[data-belge-form-content="true"]');
