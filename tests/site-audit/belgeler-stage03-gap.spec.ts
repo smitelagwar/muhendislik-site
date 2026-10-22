@@ -98,14 +98,20 @@ for(const doc of docs){
     await page.goto("/belgeler/"+doc,{waitUntil:"domcontentloaded",timeout:30000});
     const root=page.locator('[data-studio-locked="true"]:visible').first();
     await expect(root).toBeVisible({timeout:8000});
+    await expect(root.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.",{timeout:45000});
     const states=[];
     for(const width of [320,390,430]){
       await page.setViewportSize({width,height:800});
       const actions=root.getByTestId("belge-studio-mobile-actions");
       await expect(actions).toBeVisible({timeout:8000});
-      const edit=actions.getByRole("button",{name:"Formu Düzenle"});
-      if(await edit.isVisible()) await edit.click({timeout:8000});
-      const form=root.getByRole("region",{name:"Belge form alanları"});
+      const edit=actions.locator('button[aria-label="Formu Düzenle"]');
+      if(await edit.count()) await edit.click({timeout:8000});
+      const form=root.getByTestId("belge-studio-form-scroll");
+      const diagnostic=await form.evaluate(el=>({display:getComputedStyle(el).display,hidden:el.hasAttribute("hidden"),
+        rect:el.getBoundingClientRect().toJSON(),ariaLabel:el.getAttribute("aria-label"),
+        activeTabButton:document.querySelector('[data-testid="belge-studio-mobile-actions"] button[aria-label="Canlı PDF Önizle"]')!==null}));
+      console.log("STAGE03_MOBILE_FORM",JSON.stringify({doc,width,diagnostic}));
+      save(doc+"-mobile-diagnostic-"+width,diagnostic);
       await expect(form).toBeVisible({timeout:8000});
       await actions.getByRole("button",{name:"Diğer belge işlemleri"}).click({timeout:8000});
       await page.getByTestId("belge-mobile-form-view-trigger").click({timeout:8000});
@@ -136,7 +142,9 @@ test("DENETIM03 keyboard focus/menu + saved preferences",async({page})=>{
   const root=page.locator('[data-studio-locked="true"]:visible').first();
   const trigger=root.getByTestId("belge-studio-form-view-trigger");
   await expect(trigger).toBeVisible({timeout:8000});
+  await expect(root.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.",{timeout:45000});
   await trigger.focus();await page.keyboard.press("Enter");
+  console.log("STAGE03_KEYBOARD",JSON.stringify({expanded:await trigger.getAttribute("aria-expanded"),menus:await page.getByTestId("belge-studio-form-view-menu").count()}));
   await expect(page.getByTestId("belge-studio-form-view-menu")).toBeVisible({timeout:8000});
   await page.keyboard.press("Escape");
   await expect(trigger).toBeFocused();

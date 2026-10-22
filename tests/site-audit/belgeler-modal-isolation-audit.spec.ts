@@ -4,7 +4,7 @@ mkdirSync("audit-artifacts-stage03-gaps",{recursive:true});
 test("DENETIM03 two simultaneous modal instances isolation and global command",async({page})=>{
   test.setTimeout(120000);
   await page.setViewportSize({width:1920,height:1080});
-  await page.goto("/__audit/belgeler-form-view",{waitUntil:"domcontentloaded",timeout:30000});
+  await page.goto("/audit-belgeler-form-view",{waitUntil:"domcontentloaded",timeout:30000});
   const a=page.getByTestId("audit-modal-a"),b=page.getByTestId("audit-modal-b");
   const av=a.locator('[data-belge-form-content="true"]'),bv=b.locator('[data-belge-form-content="true"]');
   await expect(av).toBeVisible({timeout:8000});await expect(bv).toBeVisible({timeout:8000});
