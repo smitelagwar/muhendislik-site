@@ -134,6 +134,7 @@ export function BelgeStudioPdfPreview({
   statusHandlerRef.current = onStatusChange;
   const snapshotRef = useRef(snapshot);
   snapshotRef.current = snapshot;
+  const renderedRevisionRef = useRef<number | null>(null);
   const renderedTokenRef = useRef<RenderedToken | null>(null);
   renderedTokenRef.current = renderedToken;
   const lastRenderedContainerSizeRef = useRef({ width: 0, height: 0 });
@@ -257,7 +258,11 @@ export function BelgeStudioPdfPreview({
       }
       renderTaskRef.current = null;
     }
-    report("rendering");
+    const isFirstRenderOfRevision =
+      renderedRevisionRef.current !== snapshotRef.current?.revision;
+    if (isFirstRenderOfRevision) {
+      report("rendering");
+    }
 
     const bufferCanvas = document.createElement("canvas");
     try {
@@ -386,6 +391,7 @@ export function BelgeStudioPdfPreview({
       }
       setInlineFields(mappedFields);
       if (mappedFields.length > 0) setNavFields(orderInlineFields(mappedFields));
+      renderedRevisionRef.current = snapshotRef.current?.revision ?? null;
       const nextToken: RenderedToken = {
         revision: snapshotRef.current?.revision ?? 0,
         pageNumber: renderPageNumber,
@@ -430,6 +436,7 @@ export function BelgeStudioPdfPreview({
   }, [activeTabMobile, renderPage]);
 
   useEffect(() => {
+    renderedRevisionRef.current = null;
     renderedTokenRef.current = null;
     setRenderedToken(null);
     setInlineFields([]);
@@ -629,10 +636,9 @@ export function BelgeStudioPdfPreview({
     };
     zoomRef.current = clampedZoom;
     setRenderedToken(null);
-    report("rendering");
     applyZoomAnchor();
     setZoomLevel(clampedZoom);
-  }, [applyZoomAnchor, report]);
+  }, [applyZoomAnchor]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -771,7 +777,6 @@ export function BelgeStudioPdfPreview({
       if (nextZoom !== zoomRef.current) {
         renderedTokenRef.current = null;
         setRenderedToken(null);
-        report("rendering");
       }
       zoomRef.current = nextZoom;
       setZoomLevel(nextZoom);
@@ -863,6 +868,7 @@ export function BelgeStudioPdfPreview({
       return;
     }
     if (localStatus === "error") {
+      renderedRevisionRef.current = null;
       setLoadAttempt((attempt) => attempt + 1);
     }
   };
