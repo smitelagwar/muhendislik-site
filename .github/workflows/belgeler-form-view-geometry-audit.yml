@@ -1,0 +1,34 @@
+name: belgeler-form-view-geometry-audit
+on:
+  push:
+    branches: [internal-belgeler-geometry-audit]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  geometry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Audit actual UI geometry (CSS viewport, not browser zoom)
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-form-geometry-audit.spec.ts --project=chromium-desktop-1920 --reporter=line
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: belgeler-form-geometry-report
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
