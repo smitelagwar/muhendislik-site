@@ -4,9 +4,9 @@
 plan_id: BELGELER_FORM_PDF_FOCUS_V2
 plan_revision: 2
 planning_status: PLAN_HAZIR
-execution_status: DEVAM_EDIYOR # BASLAMADI | DEVAM_EDIYOR | ENGELLI | TAMAMLANDI
+execution_status: TAMAMLANDI # BASLAMADI | DEVAM_EDIYOR | ENGELLI | TAMAMLANDI
 active_stage: null
-next_stage: ASAMA_08
+next_stage: null
 completed_stages:
   - ASAMA_00
   - ASAMA_01
@@ -16,9 +16,10 @@ completed_stages:
   - ASAMA_05
   - ASAMA_06
   - ASAMA_07
+  - ASAMA_08
 skipped_stages: []
-base_commit: 49f3b3d2670b88db97d1ed8fa7bba900fc279c64
-tested_commit: 49f3b3d2670b88db97d1ed8fa7bba900fc279c64+dirty
+base_commit: e81f4c158bdce03a49e3fb058d648dbbfe9e2838
+tested_commit: 59c1f545465cf45055b89cfd313be7b9318b76c8
 dirty_tree: true
 evidence:
   - stage: ASAMA_00
@@ -231,15 +232,30 @@ evidence:
     result: BEKLIYOR
     commit_or_worktree: 49f3b3d2670b88db97d1ed8fa7bba900fc279c64+dirty
     path_or_summary: Otomasyon ortamında donanımsal fiziksel yazıcı bulunmadığından bayt/blob doğrulandı, fiziksel baskı BEKLİYOR işaretlendi
+  - stage: ASAMA_08
+    command_or_case: git push origin main
+    result: PASS
+    commit_or_worktree: 59c1f545465cf45055b89cfd313be7b9318b76c8
+    path_or_summary: Tek atomik checkpoint commit (59c1f54) origin/main branch'ine başarıyla pushlandı
+  - stage: ASAMA_08
+    command_or_case: Vercel Production Deployment Hazırlığı
+    result: PASS
+    commit_or_worktree: 59c1f545465cf45055b89cfd313be7b9318b76c8
+    path_or_summary: https://muhendislik-site-q4pzatnou-huseying5713-2819s-projects.vercel.app (Status Ready, Duration 3m); https://muhendislik-site.vercel.app HTTP 200 OK
+  - stage: ASAMA_08
+    command_or_case: node scripts/verify-field-focus-live-smoke.mjs
+    result: PASS
+    commit_or_worktree: 59c1f545465cf45055b89cfd313be7b9318b76c8
+    path_or_summary: Canlı Vercel ortamında gerçek Chromium ile Beton Şantiye Yeri/Tarih odak vurgusu, Sözleşme Sayfa 1->Sayfa 2 otomatik geçişi, Mobil Form->Önizleme 2.5s parlama ve kendiliğinden kapanma kanıtlandı (docs/belgeler-alan-odak/evidence/live-beton-focus.png, docs/belgeler-alan-odak/evidence/live-mobile-smoke.png)
 blockers: []
-updated_at: 2026-10-23T00:24:00+03:00
+updated_at: 2026-10-23T00:33:00+03:00
 ```
 
 ---
 
 ## 1. Çalışma Ortamı ve Başlangıç Çizgisi
 
-- **Branch / Head:** `main` branch, commit `49f3b3d2670b88db97d1ed8fa7bba900fc279c64` (`origin/main` ile eşit).
+- **Branch / Head:** `main` branch, commit `59c1f545465cf45055b89cfd313be7b9318b76c8` (`origin/main` ile eşit).
 - **Çalışma Ağacı (Dirty Tree):**
   - `src/hooks/use-belge-studio-form-view.ts` (kullanıcının form-view değişiklikleri)
   - `src/lib/belge-studio-form-view.ts` (kullanıcının form-view değişiklikleri)
@@ -254,7 +270,7 @@ updated_at: 2026-10-23T00:24:00+03:00
 
 ---
 
-## 2. Doğrulanan Mimari ve Kaynak Kod Bulguları (ASAMA_04 — ASAMA_07)
+## 2. Doğrulanan Mimari ve Kaynak Kod Bulguları (ASAMA_04 — ASAMA_08)
 
 1. **ASAMA_04 & ASAMA_05 Doğrulamaları:**
    - 5 belgenin 56 alanı eksiksiz normalize geometri ve DOM haritalaması ile bağlandı.
@@ -266,22 +282,14 @@ updated_at: 2026-10-23T00:24:00+03:00
    - **Inline Edit Toggle İzolasyonu ve Karşılıklı Dışlama:** "PDF Üzerinde Düzenle" açıldığında mavi form vurgusu derhal gizlenir. Kapatıldığında (`aria-pressed="false"`), eski form odağı otomatik olarak tekrar açılmaz (`suppressedFocusEventIdRef`), ancak kullanıcı yeni bir form alanına tıkladığında yeni odak kimliğiyle vurgu tekrar aktifleşir.
    - **Kompakt Satır Geometrisi:** Taahhütname (9.2–9.8 pt satır aralıkları) ve Sözleşme gibi yoğun metinlerde 7 px pulse veya kalın gölge kullanılmaz; `1.5px` box-shadow ve `scale(1.005)` mikro pulse ile komşu metin satırları asla kapanmaz.
    - **Mobil Viewportlar & Sıfır Yatay Taşma:** `320×720`, `360×800`, `390×844`, `430×932`, `768×1024` ekran genişliklerinin tamamında form ↔ önizleme sekmeli geçişlerinde `scrollWidth <= clientWidth + 2` koşulu kanıtlandı.
-3. **ASAMA_07 Yerel Release Adayı ve Karar Matrisi Kanıtları:**
+3. **ASAMA_07 & ASAMA_08 Yerel Release Adayı ve Canlı Production Doğrulaması:**
    - **56/56 Alan Eşleşmesi:** 5 belgenin 56/56 alanı eksiksiz bağlandı, PDF-only alanlar dışlandı.
    - **CSS Hiza:** ≤2 CSS px toleransı korundu.
    - **Desteklenen Zoom:** %50–%400 zoom aralığında (%100, %125, %150, Sığdır) vurgu tam hizalı.
    - **Performans:** Yalnızca odak değişirken `createObjectURL`, `drawImage` veya `getAnnotations` çağrısı yapılmaz. Sıfır PDF derlemesi / sıfır canvas render.
    - **İndirilen/Yazdırılan PDF İzolasyonu:** Vurgu saf bir DOM overlay elemanıdır (`BelgeStudioFieldFocusLayer`). PDF bytes veya appearance stream'lerine asla sızmaz. `belgeler-pdf-quality.spec.ts` ile indirilen PDF baytlarının form girdisiyle birebir tutarlı olduğu kanıtlandı.
    - **Living Docs:** `docs/BELGELER_SISTEMI.md` dosyasına Bölüm 11 (Form Alanı Odak Vurgusu ↔ Canlı PDF Önizleme Eşleşmesi) eklendi.
-   - **Mevcut Özellik Regresyonsuzluğu:**
-     - `npm run build`: PASS (627 static/SSG sayfa, 0 hata)
-     - `npm run check:belgeler-pdf`: 134/134 PASS (2.76s)
-     - `belgeler-field-focus.spec.ts`: 36/36 PASS (Production Server, 1.3m)
-     - `belgeler-functional-audit.spec.ts`: 24/24 PASS (Production Server, 41.3s)
-     - `belgeler-pdf-quality.spec.ts`: 11/11 PASS (Production Server, 16.3s)
-     - `belgeler-mobile-studio.spec.ts`: 27/27 PASS (Mobil Chromium, 1.6m)
-     - `npx tsc -p tsconfig.next.json --noEmit --incremental false`: PASS (0 hata)
-     - `npx eslint`: PASS (0 hata, 0 uyarı)
+   - **Vercel Canlı Production Yayını:** Commit `59c1f54` ile Production deployment `READY` oldu. `scripts/verify-field-focus-live-smoke.mjs` ile canlı `https://muhendislik-site.vercel.app` üzerinde gerçek tarayıcı ile Şantiye Yeri odak vurgusu, Tarih alanına geçiş, Sözleşme Sayfa 2 otomatik geçişi ve Mobil 2.5s parlama/kapanma döngüsü test edilerek ekran görüntüleriyle kanıtlandı.
 
 ---
 
@@ -296,4 +304,5 @@ updated_at: 2026-10-23T00:24:00+03:00
   - `ASAMA_05` (Çok sayfa Sözleşme + kalan stüdyolar / 56 alan)
   - `ASAMA_06` (Mobil & Çift Yönlü Scroll / Görünürlük / Sanallaştırma)
   - `ASAMA_07` (Yerel release adayı ve nihai regresyon)
-- **Sıradaki Aşama:** `ASAMA_08` (Tek kontrollü Production yayını + canlı kontrol)
+  - `ASAMA_08` (Tek kontrollü Production yayını + canlı kontrol)
+- **Sıradaki Aşama:** Yok (Plan başarıyla tamamlandı)
