@@ -15,6 +15,7 @@ import {
   BELGE_STUDIO_MAIN_SPLIT_CLASS,
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
+import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
@@ -122,6 +123,7 @@ export function InsaatRuhsatiStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
+  const formView = useBelgeStudioFormView({ isModal });
 
   useEffect(() => {
     prewarmBelgeDocument("insaat-ruhsati-dilekcesi");
@@ -308,6 +310,7 @@ export function InsaatRuhsatiStudio({
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons */}
         <div
+          ref={formView.scrollContainerRef}
           id="insaat-ruhsati-mobile-panel-form"
           role="region"
           aria-label="Belge form alanları"
@@ -316,6 +319,7 @@ export function InsaatRuhsatiStudio({
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
+          <div {...formView.contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="insaat-ruhsati-dilekcesi" layouts={layouts} excludedFields={["tarih", "adres", "tel"]} />
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
@@ -506,6 +510,7 @@ export function InsaatRuhsatiStudio({
             </div>
           </div>
 
+          </div>
         </div>
 
         <div
@@ -526,6 +531,7 @@ export function InsaatRuhsatiStudio({
               values: formData as unknown as Record<string, string>,
               onCommit: (field, value) => handleFieldChange(field as keyof InsaatRuhsatiData, value),
             }}
+            formView={formView}
           />
         </div>
       </div>
@@ -543,6 +549,7 @@ export function InsaatRuhsatiStudio({
         downloading={isDownloading}
         documentId="insaat-ruhsati-dilekcesi"
         templateFilename="INSAAT_RUHSATI_DILEKCESI_BOS.pdf"
+        formView={formView}
       />
     </div>
   );

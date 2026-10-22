@@ -16,6 +16,7 @@ import {
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
+import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
 import { BelgePdfLayoutWarnings } from "@/components/belge-pdf-layout-warnings";
@@ -74,6 +75,7 @@ export function SozlesmeStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
+  const formView = useBelgeStudioFormView({ isModal });
 
   useEffect(() => {
     prewarmBelgeDocument("santiye-sefi-sozlesmesi");
@@ -178,11 +180,11 @@ export function SozlesmeStudio({
     return (
       <div className="flex items-center justify-between gap-1 mb-1">
         <div className="flex items-center gap-1.5 min-w-0">
-          <label htmlFor={getFieldId(fieldKey)} className="text-[11px] font-bold leading-tight text-foreground">
+          <label htmlFor={getFieldId(fieldKey)} className="text-[11px] font-bold leading-tight text-foreground truncate" title={label}>
             {label}
           </label>
           {badge && (
-            <span className="text-[9px] font-mono text-muted-foreground/80">
+            <span className="text-[9px] font-mono text-muted-foreground/80 shrink-0">
               {badge}
             </span>
           )}
@@ -273,6 +275,7 @@ export function SozlesmeStudio({
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons */}
         <div
+          ref={formView.scrollContainerRef}
           id="sozlesme-mobile-panel-form"
           role="region"
           aria-label="Belge form alanları"
@@ -281,6 +284,7 @@ export function SozlesmeStudio({
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
+          <div {...formView.contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-sozlesmesi" layouts={layouts} excludedFields={["adres", "ucret", "sozlesme_tarihi"]} />
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
@@ -345,7 +349,7 @@ export function SozlesmeStudio({
             </h3>
 
             <div className="grid grid-cols-2 gap-2">
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("İl", "il")}
                 <input
                   type="text"
@@ -356,7 +360,7 @@ export function SozlesmeStudio({
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-center text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("İlçe", "ilce")}
                 <input
                   type="text"
@@ -391,7 +395,7 @@ export function SozlesmeStudio({
             </div>
 
             <div className="grid grid-cols-[2fr_1fr_1fr] gap-2">
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("Mahalle", "mahalle")}
                 <input
                   type="text"
@@ -402,7 +406,7 @@ export function SozlesmeStudio({
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("Ada", "ada")}
                 <input
                   type="text"
@@ -414,7 +418,7 @@ export function SozlesmeStudio({
                   className="h-8 w-full rounded-md border border-border bg-background px-2 text-center text-xs font-mono text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("Parsel", "parsel")}
                 <input
                   type="text"
@@ -430,7 +434,7 @@ export function SozlesmeStudio({
 
             <div className="grid grid-cols-[2fr_1fr] gap-2">
               <div
-                className={`rounded-lg border p-1.5 transition-colors ${
+                className={`min-w-0 rounded-lg border p-1.5 transition-colors ${
                   yibfInvalid
                     ? "border-red-500/60 bg-red-500/[0.04] dark:bg-red-950/20"
                     : "border-border/80 bg-card/60"
@@ -488,7 +492,7 @@ export function SozlesmeStudio({
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("Pafta", "pafta")}
                 <input
                   type="text"
@@ -510,7 +514,7 @@ export function SozlesmeStudio({
             </h3>
 
             <div className="grid gap-2 sm:grid-cols-2">
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("Aylık Brüt Ücret", "ucret", "(Madde 5)")}
                 <input
                   type="text"
@@ -531,7 +535,7 @@ export function SozlesmeStudio({
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("Sözleşme Tarihi", "sozlesme_tarihi", "(Madde 8)")}
                 <input
                   type="text"
@@ -562,7 +566,7 @@ export function SozlesmeStudio({
             </h3>
 
             <div className="grid gap-2 sm:grid-cols-2">
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("Şantiye Şefi (İmza)", "santiye_sefi_imza_adi")}
                 <input
                   type="text"
@@ -573,7 +577,7 @@ export function SozlesmeStudio({
                   className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("Müteahhit (İmza)", "muteahhit_imza_unvan")}
                 <input
                   type="text"
@@ -587,6 +591,7 @@ export function SozlesmeStudio({
             </div>
           </div>
 
+          </div>
         </div>
 
         <div
@@ -607,6 +612,7 @@ export function SozlesmeStudio({
               values: formData as unknown as Record<string, string>,
               onCommit: (field, value) => handleFieldChange(field as keyof SozlesmeData, value),
             }}
+            formView={formView}
           />
         </div>
       </div>
@@ -624,6 +630,7 @@ export function SozlesmeStudio({
         downloading={isDownloading}
         documentId="santiye-sefi-sozlesmesi"
         templateFilename="SANTIYE_SEFI_SOZLESMESI_BOS.pdf"
+        formView={formView}
       />
     </div>
   );

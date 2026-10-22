@@ -1,0 +1,1859 @@
+{
+  "generatedAt": "2026-10-22T08:56:14.961Z",
+  "configurations": {
+    "sozlesme": [
+      {
+        "config": {
+          "name": "1920x1080_zoom100",
+          "label": "1920×1080 (%100 Zoom)",
+          "width": 1920,
+          "height": 1080,
+          "dpr": 1
+        },
+        "metrics": {
+          "window": {
+            "innerWidth": 1920,
+            "innerHeight": 1080,
+            "devicePixelRatio": 1,
+            "isLgUp": true,
+            "isXlUp": true
+          },
+          "form": {
+            "isFormVisible": true,
+            "clientWidth": 449,
+            "clientHeight": 954,
+            "scrollWidth": 449,
+            "scrollHeight": 954,
+            "hasHorizontalOverflow": false,
+            "hasVerticalOverflow": false,
+            "verticalOverflowPx": 0,
+            "rect": {
+              "width": 450,
+              "height": 954,
+              "top": 57,
+              "left": 8
+            },
+            "firstCardTopOffset": 14,
+            "lastCardBottomOffset": -269,
+            "lastCardVisibleWithoutScroll": true,
+            "lastCardCutOff": 0
+          },
+          "preview": {
+            "clientWidth": 1454,
+            "clientHeight": 954,
+            "rect": {
+              "width": 1454,
+              "height": 954
+            }
+          },
+          "toolbar": {
+            "clientWidth": 1438,
+            "scrollWidth": 1438,
+            "hasHorizontalOverflow": false,
+            "rect": {
+              "width": 1438,
+              "height": 44
+            }
+          },
+          "splitMain": {
+            "flexDirection": "row"
+          },
+          "mobileTabState": null
+        },
+        "screenshot": "sozlesme_1920x1080_zoom100.png"
+      },
+      {
+        "config": {
+          "name": "1920x1080_zoom125",
+          "label": "1920×1080 (%125 Zoom)",
+          "width": 1536,
+          "height": 864,
+          "dpr": 1.25
+        },
+        "metrics": {
+          "window": {
+            "innerWidth": 1536,
+            "innerHeight": 864,
+            "devicePixelRatio": 1.25,
+            "isLgUp": true,
+            "isXlUp": true
+          },
+          "form": {
+            "isFormVisible": true,
+            "clientWidth": 449,
+            "clientHeight": 738,
+            "scrollWidth": 449,
+            "scrollHeight": 738,
+            "hasHorizontalOverflow": false,
+            "hasVerticalOverflow": false,
+            "verticalOverflowPx": 0,
+            "rect": {
+              "width": 450,
+              "height": 738,
+              "top": 57,
+              "left": 8
+            },
+            "firstCardTopOffset": 14,
+            "lastCardBottomOffset": -53,
+            "lastCardVisibleWithoutScroll": true,
+            "lastCardCutOff": 0
+          },
+          "preview": {
+            "clientWidth": 1070,
+            "clientHeight": 738,
+            "rect": {
+              "width": 1070,
+              "height": 738
+            }
+          },
+          "toolbar": {
+            "clientWidth": 1054,
+            "scrollWidth": 1054,
+            "hasHorizontalOverflow": false,
+            "rect": {
+              "width": 1054,
+              "height": 44
+            }
+          },
+          "splitMain": {
+            "flexDirection": "row"
+          },
+          "mobileTabState": null
+        },
+        "screenshot": "sozlesme_1920x1080_zoom125.png"
+      },
+      {
+        "config": {
+          "name": "1920x1080_zoom150",
+          "label": "1920×1080 (%150 Zoom)",
+          "width": 1280,
+          "height": 720,
+          "dpr": 1.5
+        },
+        "metrics": {
+          "window": {
+            "innerWidth": 1280,
+            "innerHeight": 720,
+            "devicePixelRatio": 1.5,
+            "isLgUp": true,
+            "isXlUp": true
+          },
+          "form": {
+            "isFormVisible": true,
+            "clientWidth": 449,
+            "clientHeight": 594,
+            "scrollWidth": 449,
+            "scrollHeight": 699,
+            "hasHorizontalOverflow": false,
+            "hasVerticalOverflow": true,
+            "verticalOverflowPx": 105,
+            "rect": {
+              "width": 450,
+              "height": 594,
+              "top": 57,
+              "left": 8
+            },
+            "firstCardTopOffset": 14,
+            "lastCardBottomOffset": 91,
+            "lastCardVisibleWithoutScroll": false,
+            "lastCardCutOff": 90.5
+          },
+          "preview": {
+            "clientWidth": 814,
+            "clientHeight": 594,
+            "rect": {
+              "width": 814,
+              "height": 594
+            }
+          },
+          "toolbar": {
+            "clientWidth": 798,
+            "scrollWidth": 798,
+            "hasHorizontalOverflow": false,
+            "rect": {
+              "width": 798,
+              "height": 44
+            }
+          },
+          "splitMain": {
+            "flexDirection": "row"
+          },
+          "mobileTabState": null
+        },
+        "screenshot": "sozlesme_1920x1080_zoom150.png"
+      },
+      {
+        "config": {
+          "name": "1640x922_zoom150",
+          "label": "1640×922 (%150 Zoom - Kullanıcı Örneği)",
+          "width": 1093,
+          "height": 615,
+          "dpr": 1.5
+        },
+        "metrics": {
+          "window": {
+            "innerWidth": 1093,
+            "innerHeight": 615,
+            "devicePixelRatio": 1.5,
+            "isLgUp": true,
+            "isXlUp": false
+          },
+          "form": {
+            "isFormVisible": true,
+            "clientWidth": 409,
+            "clientHeight": 489,
+            "scrollWidth": 409,
+            "scrollHeight": 699,
+            "hasHorizontalOverflow": false,
+            "hasVerticalOverflow": true,
+            "verticalOverflowPx": 210,
+            "rect": {
+              "width": 410,
+              "height": 489,
+              "top": 57,
+              "left": 8
+            },
+            "firstCardTopOffset": 14,
+            "lastCardBottomOffset": 196,
+            "lastCardVisibleWithoutScroll": false,
+            "lastCardCutOff": 195.5
+          },
+          "preview": {
+            "clientWidth": 667,
+            "clientHeight": 489,
+            "rect": {
+              "width": 667,
+              "height": 489
+            }
+          },
+          "toolbar": {
+            "clientWidth": 651,
+            "scrollWidth": 651,
+            "hasHorizontalOverflow": false,
+            "rect": {
+              "width": 651,
+              "height": 44
+            }
+          },
+          "splitMain": {
+            "flexDirection": "row"
+          },
+          "mobileTabState": null
+        },
+        "screenshot": "sozlesme_1640x922_zoom150.png"
+      },
+      {
+        "config": {
+          "name": "1536x864_zoom100",
+          "label": "1536×864 (%100 Zoom)",
+          "width": 1536,
+          "height": 864,
+          "dpr": 1
+        },
+        "metrics": {
+          "window": {
+            "innerWidth": 1536,
+            "innerHeight": 864,
+            "devicePixelRatio": 1,
+            "isLgUp": true,
+            "isXlUp": true
+          },
+          "form": {
+            "isFormVisible": true,
+            "clientWidth": 449,
+            "clientHeight": 738,
+            "scrollWidth": 449,
+            "scrollHeight": 738,
+            "hasHorizontalOverflow": false,
+            "hasVerticalOverflow": false,
+            "verticalOverflowPx": 0,
+            "rect": {
+              "width": 450,
+              "height": 738,
+              "top": 57,
+              "left": 8
+            },
+            "firstCardTopOffset": 14,
+            "lastCardBottomOffset": -53,
+            "lastCardVisibleWithoutScroll": true,
+            "lastCardCutOff": 0
+          },
+          "preview": {
+            "clientWidth": 1070,
+            "clientHeight": 738,
+            "rect": {
+              "width": 1070,
+              "height": 738
+            }
+          },
+          "toolbar": {
+            "clientWidth": 1054,
+            "scrollWidth": 1054,
+            "hasHorizontalOverflow": false,
+            "rect": {
+              "width": 1054,
+              "height": 44
+            }
+          },
+          "splitMain": {
+            "flexDirection": "row"
+          },
+          "mobileTabState": null
+        },
+        "screenshot": "sozlesme_1536x864_zoom100.png"
+      },
+      {
+        "config": {
+          "name": "1536x864_zoom125",
+          "label": "1536×864 (%125 Zoom)",
+          "width": 1229,
+          "height": 691,
+          "dpr": 1.25
+        },
+        "metrics": {
+          "window": {
+            "innerWidth": 1229,
+            "innerHeight": 691,
+            "devicePixelRatio": 1.25,
+            "isLgUp": true,
+            "isXlUp": false
+          },
+          "form": {
+            "isFormVisible": true,
+            "clientWidth": 409,
+            "clientHeight": 565,
+            "scrollWidth": 409,
+            "scrollHeight": 699,
+            "hasHorizontalOverflow": false,
+            "hasVerticalOverflow": true,
+            "verticalOverflowPx": 134,
+            "rect": {
+              "width": 410,
+              "height": 565,
+              "top": 57,
+              "left": 8
+            },
+            "firstCardTopOffset": 14,
+            "lastCardBottomOffset": 120,
+            "lastCardVisibleWithoutScroll": false,
+            "lastCardCutOff": 119.5
+          },
+          "preview": {
+            "clientWidth": 803,
+            "clientHeight": 565,
+            "rect": {
+              "width": 803,
+              "height": 565
+            }
+          },
+          "toolbar": {
+            "clientWidth": 787,
+            "scrollWidth": 787,
+            "hasHorizontalOverflow": false,
+            "rect": {
+              "width": 787,
+              "height": 44
+            }
+          },
+          "splitMain": {
+            "flexDirection": "row"
+          },
+          "mobileTabState": null
+        },
+        "screenshot": "sozlesme_1536x864_zoom125.png"
+      },
+      {
+        "config": {
+          "name": "1536x864_zoom150",
+          "label": "1536×864 (%150 Zoom)",
+          "width": 1024,
+          "height": 576,
+          "dpr": 1.5
+        },
+        "metrics": {
+          "window": {
+            "innerWidth": 1024,
+            "innerHeight": 576,
+            "devicePixelRatio": 1.5,
+            "isLgUp": true,
+            "isXlUp": false
+          },
+          "form": {
+            "isFormVisible": true,
+            "clientWidth": 409,
+            "clientHeight": 450,
+            "scrollWidth": 409,
+            "scrollHeight": 699,
+            "hasHorizontalOverflow": false,
+            "hasVerticalOverflow": true,
+            "verticalOverflowPx": 249,
+            "rect": {
+              "width": 410,
+              "height": 450,
+              "top": 57,
+              "left": 8
+            },
+            "firstCardTopOffset": 14,
+            "lastCardBottomOffset": 235,
+            "lastCardVisibleWithoutScroll": false,
+            "lastCardCutOff": 234.5
+          },
+          "preview": {
+            "clientWidth": 598,
+            "clientHeight": 450,
+            "rect": {
+              "width": 598,
+              "height": 450
+            }
+          },
+          "toolbar": {
+            "clientWidth": 582,
+            "scrollWidth": 582,
+            "hasHorizontalOverflow": false,
+            "rect": {
+              "width": 582,
+              "height": 44
+            }
+          },
+          "splitMain": {
+            "flexDirection": "row"
+          },
+          "mobileTabState": null
+        },
+        "screenshot": "sozlesme_1536x864_zoom150.png"
+      },
+      {
+        "config": {
+          "name": "1366x768_zoom100",
+          "label": "1366×768 (%100 Zoom)",
+          "width": 1366,
+          "height": 768,
+          "dpr": 1
+        },
+        "metrics": {
+          "window": {
+            "innerWidth": 1366,
+            "innerHeight": 768,
+            "devicePixelRatio": 1,
+            "isLgUp": true,
+            "isXlUp": true
+          },
+          "form": {
+            "isFormVisible": true,
+            "clientWidth": 449,
+            "clientHeight": 642,
+            "scrollWidth": 449,
+            "scrollHeight": 699,
+            "hasHorizontalOverflow": false,
+            "hasVerticalOverflow": true,
+            "verticalOverflowPx": 57,
+            "rect": {
+              "width": 450,
+              "height": 642,
+              "top": 57,
+              "left": 8
+            },
+            "firstCardTopOffset": 14,
+            "lastCardBottomOffset": 43,
+            "lastCardVisibleWithoutScroll": false,
+            "lastCardCutOff": 42.5
+          },
+          "preview": {
+            "clientWidth": 900,
+            "clientHeight": 642,
+            "rect": {
+              "width": 900,
+              "height": 642
+            }
+          },
+          "toolbar": {
+            "clientWidth": 884,
+            "scrollWidth": 884,
+            "hasHorizontalOverflow": false,
+            "rect": {
+              "width": 884,
+              "height": 44
+            }
+          },
+          "splitMain": {
+            "flexDirection": "row"
+          },
+          "mobileTabState": null
+        },
+        "screenshot": "sozlesme_1366x768_zoom100.png"
+      },
+      {
+        "config": {
+          "name": "1366x768_zoom125",
+          "label": "1366×768 (%125 Zoom)",
+          "width": 1093,
+          "height": 614,
+          "dpr": 1.25
+        },
+        "metrics": {
+          "window": {
+            "innerWidth": 1093,
+            "innerHeight": 614,
+            "devicePixelRatio": 1.25,
+            "isLgUp": true,
+            "isXlUp": false
+          },
+          "form": {
+            "isFormVisible": true,
+            "clientWidth": 409,
+            "clientHeight": 488,
+            "scrollWidth": 409,
+            "scrollHeight": 699,
+            "hasHorizontalOverflow": false,
+            "hasVerticalOverflow": true,
+            "verticalOverflowPx": 211,
+            "rect": {
+              "width": 410,
+              "height": 488,
+              "top": 57,
+              "left": 8
+            },
+            "firstCardTopOffset": 14,
+            "lastCardBottomOffset": 197,
+            "lastCardVisibleWithoutScroll": false,
+            "lastCardCutOff": 196.5
+          },
+          "preview": {
+            "clientWidth": 667,
+            "clientHeight": 488,
+            "rect": {
+              "width": 667,
+              "height": 488
+            }
+          },
+          "toolbar": {
+            "clientWidth": 651,
+            "scrollWidth": 651,
+            "hasHorizontalOverflow": false,
+            "rect": {
+              "width": 651,
+              "height": 44
+            }
+          },
+          "splitMain": {
+            "flexDirection": "row"
+          },
+          "mobileTabState": null
+        },
+        "screenshot": "sozlesme_1366x768_zoom125.png"
+      },
+      {
+        "config": {
+          "name": "1366x768_zoom150",
+          "label": "1366×768 (%150 Zoom - lg altına düşüş)",
+          "width": 911,
+          "height": 512,
+          "dpr": 1.5
+        },
+        "metrics": {
+          "window": {
+            "innerWidth": 911,
+            "innerHeight": 512,
+            "devicePixelRatio": 1.5,
+            "isLgUp": false,
+            "isXlUp": false
+          },
+          "form": {
+            "isFormVisible": true,
+            "clientWidth": 911,
+            "clientHeight": 450,
+            "scrollWidth": 911,
+            "scrollHeight": 762,
+            "hasHorizontalOverflow": false,
+            "hasVerticalOverflow": true,
+            "verticalOverflowPx": 312,
+            "rect": {
+              "width": 911,
+              "height": 451,
+              "top": 0,
+              "left": 0
+            },
+            "firstCardTopOffset": 0,
+            "lastCardBottomOffset": 297,
+            "lastCardVisibleWithoutScroll": false,
+            "lastCardCutOff": 297
+          },
+          "preview": {
+            "clientWidth": 911,
+            "clientHeight": 451,
+            "rect": {
+              "width": 911,
+              "height": 451
+            }
+          },
+          "toolbar": {
+            "clientWidth": 899,
+            "scrollWidth": 899,
+            "hasHorizontalOverflow": false,
+            "rect": {
+              "width": 899,
+              "height": 44
+            }
+          },
+          "splitMain": {
+            "flexDirection": "column"
+          },
+          "mobileTabState": "switched_to_form_tab"
+        },
+        "screenshot": "sozlesme_1366x768_zoom150.png"
+      },
+      {
+        "config": {
+          "name": "1280x720_zoom100",
+          "label": "1280×720 (%100 Zoom)",
+          "width": 1280,
+          "height": 720,
+          "dpr": 1
+        },
+        "metrics": {
+          "window": {
+            "innerWidth": 1280,
+            "innerHeight": 720,
+            "devicePixelRatio": 1,
+            "isLgUp": true,
+            "isXlUp": true
+          },
+          "form": {
+            "isFormVisible": true,
+            "clientWidth": 449,
+            "clientHeight": 594,
+            "scrollWidth": 449,
+            "scrollHeight": 699,
+            "hasHorizontalOverflow": false,
+            "hasVerticalOverflow": true,
+            "verticalOverflowPx": 105,
+            "rect": {
+              "width": 450,
+              "height": 594,
+              "top": 57,
+              "left": 8
+            },
+            "firstCardTopOffset": 14,
+            "lastCardBottomOffset": 91,
+            "lastCardVisibleWithoutScroll": false,
+            "lastCardCutOff": 90.5
+          },
+          "preview": {
+            "clientWidth": 814,
+            "clientHeight": 594,
+            "rect": {
+              "width": 814,
+              "height": 594
+            }
+          },
+          "toolbar": {
+            "clientWidth": 798,
+            "scrollWidth": 798,
+            "hasHorizontalOverflow": false,
+            "rect": {
+              "width": 798,
+              "height": 44
+            }
+          },
+          "splitMain": {
+            "flexDirection": "row"
+          },
+          "mobileTabState": null
+        },
+        "screenshot": "sozlesme_1280x720_zoom100.png"
+      }
+    ]
+  },
+  "documentComparisons": {
+    "sozlesme": {
+      "name": "Şantiye Şefi Hizmet Sözleşmesi",
+      "path": "/belgeler/santiye-sefi-sozlesmesi",
+      "cases": [
+        {
+          "case": "desktop_1920_zoom100",
+          "viewport": {
+            "width": 1920,
+            "height": 1080
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "devicePixelRatio": 1,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 954,
+              "scrollWidth": 449,
+              "scrollHeight": 954,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": false,
+              "verticalOverflowPx": 0,
+              "rect": {
+                "width": 450,
+                "height": 954,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": -269,
+              "lastCardVisibleWithoutScroll": true,
+              "lastCardCutOff": 0
+            },
+            "preview": {
+              "clientWidth": 1454,
+              "clientHeight": 954,
+              "rect": {
+                "width": 1454,
+                "height": 954
+              }
+            },
+            "toolbar": {
+              "clientWidth": 1438,
+              "scrollWidth": 1438,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 1438,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "sozlesme_desktop_1920_zoom100.png"
+        },
+        {
+          "case": "desktop_1920_zoom150",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1280,
+              "innerHeight": 720,
+              "devicePixelRatio": 1.5,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 594,
+              "scrollWidth": 449,
+              "scrollHeight": 699,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": true,
+              "verticalOverflowPx": 105,
+              "rect": {
+                "width": 450,
+                "height": 594,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": 91,
+              "lastCardVisibleWithoutScroll": false,
+              "lastCardCutOff": 90.5
+            },
+            "preview": {
+              "clientWidth": 814,
+              "clientHeight": 594,
+              "rect": {
+                "width": 814,
+                "height": 594
+              }
+            },
+            "toolbar": {
+              "clientWidth": 798,
+              "scrollWidth": 798,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 798,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "sozlesme_desktop_1920_zoom150.png"
+        },
+        {
+          "case": "laptop_1366_zoom100",
+          "viewport": {
+            "width": 1366,
+            "height": 768
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1366,
+              "innerHeight": 768,
+              "devicePixelRatio": 1,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 642,
+              "scrollWidth": 449,
+              "scrollHeight": 699,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": true,
+              "verticalOverflowPx": 57,
+              "rect": {
+                "width": 450,
+                "height": 642,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": 43,
+              "lastCardVisibleWithoutScroll": false,
+              "lastCardCutOff": 42.5
+            },
+            "preview": {
+              "clientWidth": 900,
+              "clientHeight": 642,
+              "rect": {
+                "width": 900,
+                "height": 642
+              }
+            },
+            "toolbar": {
+              "clientWidth": 884,
+              "scrollWidth": 884,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 884,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "sozlesme_laptop_1366_zoom100.png"
+        },
+        {
+          "case": "laptop_1366_zoom150",
+          "viewport": {
+            "width": 911,
+            "height": 512
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 911,
+              "innerHeight": 512,
+              "devicePixelRatio": 1.5,
+              "isLgUp": false,
+              "isXlUp": false
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 911,
+              "clientHeight": 450,
+              "scrollWidth": 911,
+              "scrollHeight": 762,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": true,
+              "verticalOverflowPx": 312,
+              "rect": {
+                "width": 911,
+                "height": 451,
+                "top": 0,
+                "left": 0
+              },
+              "firstCardTopOffset": 0,
+              "lastCardBottomOffset": 297,
+              "lastCardVisibleWithoutScroll": false,
+              "lastCardCutOff": 297
+            },
+            "preview": {
+              "clientWidth": 911,
+              "clientHeight": 451,
+              "rect": {
+                "width": 911,
+                "height": 451
+              }
+            },
+            "toolbar": {
+              "clientWidth": 899,
+              "scrollWidth": 899,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 899,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "column"
+            },
+            "mobileTabState": "switched_to_form_tab"
+          },
+          "screenshot": "sozlesme_laptop_1366_zoom150.png"
+        }
+      ]
+    },
+    "istifa": {
+      "name": "Şantiye Şefi İstifa Dilekçesi",
+      "path": "/belgeler/santiye-sefi-istifa-dilekcesi",
+      "cases": [
+        {
+          "case": "desktop_1920_zoom100",
+          "viewport": {
+            "width": 1920,
+            "height": 1080
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "devicePixelRatio": 1,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 954,
+              "scrollWidth": 449,
+              "scrollHeight": 954,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": false,
+              "verticalOverflowPx": 0,
+              "rect": {
+                "width": 450,
+                "height": 954,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": -345,
+              "lastCardVisibleWithoutScroll": true,
+              "lastCardCutOff": 0
+            },
+            "preview": {
+              "clientWidth": 1454,
+              "clientHeight": 954,
+              "rect": {
+                "width": 1454,
+                "height": 954
+              }
+            },
+            "toolbar": {
+              "clientWidth": 1438,
+              "scrollWidth": 1438,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 1438,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "istifa_desktop_1920_zoom100.png"
+        },
+        {
+          "case": "desktop_1920_zoom150",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1280,
+              "innerHeight": 720,
+              "devicePixelRatio": 1.5,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 594,
+              "scrollWidth": 449,
+              "scrollHeight": 623,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": true,
+              "verticalOverflowPx": 29,
+              "rect": {
+                "width": 450,
+                "height": 594,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": 15,
+              "lastCardVisibleWithoutScroll": false,
+              "lastCardCutOff": 15
+            },
+            "preview": {
+              "clientWidth": 814,
+              "clientHeight": 594,
+              "rect": {
+                "width": 814,
+                "height": 594
+              }
+            },
+            "toolbar": {
+              "clientWidth": 798,
+              "scrollWidth": 798,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 798,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "istifa_desktop_1920_zoom150.png"
+        },
+        {
+          "case": "laptop_1366_zoom100",
+          "viewport": {
+            "width": 1366,
+            "height": 768
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1366,
+              "innerHeight": 768,
+              "devicePixelRatio": 1,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 642,
+              "scrollWidth": 449,
+              "scrollHeight": 642,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": false,
+              "verticalOverflowPx": 0,
+              "rect": {
+                "width": 450,
+                "height": 642,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": -33,
+              "lastCardVisibleWithoutScroll": true,
+              "lastCardCutOff": 0
+            },
+            "preview": {
+              "clientWidth": 900,
+              "clientHeight": 642,
+              "rect": {
+                "width": 900,
+                "height": 642
+              }
+            },
+            "toolbar": {
+              "clientWidth": 884,
+              "scrollWidth": 884,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 884,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "istifa_laptop_1366_zoom100.png"
+        },
+        {
+          "case": "laptop_1366_zoom150",
+          "viewport": {
+            "width": 911,
+            "height": 512
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 911,
+              "innerHeight": 512,
+              "devicePixelRatio": 1.5,
+              "isLgUp": false,
+              "isXlUp": false
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 911,
+              "clientHeight": 450,
+              "scrollWidth": 911,
+              "scrollHeight": 677,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": true,
+              "verticalOverflowPx": 227,
+              "rect": {
+                "width": 911,
+                "height": 451,
+                "top": 0,
+                "left": 0
+              },
+              "firstCardTopOffset": 0,
+              "lastCardBottomOffset": 212,
+              "lastCardVisibleWithoutScroll": false,
+              "lastCardCutOff": 211.5
+            },
+            "preview": {
+              "clientWidth": 911,
+              "clientHeight": 451,
+              "rect": {
+                "width": 911,
+                "height": 451
+              }
+            },
+            "toolbar": {
+              "clientWidth": 899,
+              "scrollWidth": 899,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 899,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "column"
+            },
+            "mobileTabState": "switched_to_form_tab"
+          },
+          "screenshot": "istifa_laptop_1366_zoom150.png"
+        }
+      ]
+    },
+    "taahhutname": {
+      "name": "İşe Başlama Taahhütnamesi",
+      "path": "/belgeler/santiye-sefi-taahhutnamesi",
+      "cases": [
+        {
+          "case": "desktop_1920_zoom100",
+          "viewport": {
+            "width": 1920,
+            "height": 1080
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "devicePixelRatio": 1,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 954,
+              "scrollWidth": 449,
+              "scrollHeight": 954,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": false,
+              "verticalOverflowPx": 0,
+              "rect": {
+                "width": 450,
+                "height": 954,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": -294,
+              "lastCardVisibleWithoutScroll": true,
+              "lastCardCutOff": 0
+            },
+            "preview": {
+              "clientWidth": 1454,
+              "clientHeight": 954,
+              "rect": {
+                "width": 1454,
+                "height": 954
+              }
+            },
+            "toolbar": {
+              "clientWidth": 1438,
+              "scrollWidth": 1438,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 1438,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "taahhutname_desktop_1920_zoom100.png"
+        },
+        {
+          "case": "desktop_1920_zoom150",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1280,
+              "innerHeight": 720,
+              "devicePixelRatio": 1.5,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 594,
+              "scrollWidth": 449,
+              "scrollHeight": 674,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": true,
+              "verticalOverflowPx": 80,
+              "rect": {
+                "width": 450,
+                "height": 594,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": 66,
+              "lastCardVisibleWithoutScroll": false,
+              "lastCardCutOff": 66.25
+            },
+            "preview": {
+              "clientWidth": 814,
+              "clientHeight": 594,
+              "rect": {
+                "width": 814,
+                "height": 594
+              }
+            },
+            "toolbar": {
+              "clientWidth": 798,
+              "scrollWidth": 798,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 798,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "taahhutname_desktop_1920_zoom150.png"
+        },
+        {
+          "case": "laptop_1366_zoom100",
+          "viewport": {
+            "width": 1366,
+            "height": 768
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1366,
+              "innerHeight": 768,
+              "devicePixelRatio": 1,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 642,
+              "scrollWidth": 449,
+              "scrollHeight": 674,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": true,
+              "verticalOverflowPx": 32,
+              "rect": {
+                "width": 450,
+                "height": 642,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": 18,
+              "lastCardVisibleWithoutScroll": false,
+              "lastCardCutOff": 18.25
+            },
+            "preview": {
+              "clientWidth": 900,
+              "clientHeight": 642,
+              "rect": {
+                "width": 900,
+                "height": 642
+              }
+            },
+            "toolbar": {
+              "clientWidth": 884,
+              "scrollWidth": 884,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 884,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "taahhutname_laptop_1366_zoom100.png"
+        },
+        {
+          "case": "laptop_1366_zoom150",
+          "viewport": {
+            "width": 911,
+            "height": 512
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 911,
+              "innerHeight": 512,
+              "devicePixelRatio": 1.5,
+              "isLgUp": false,
+              "isXlUp": false
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 911,
+              "clientHeight": 450,
+              "scrollWidth": 911,
+              "scrollHeight": 750,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": true,
+              "verticalOverflowPx": 300,
+              "rect": {
+                "width": 911,
+                "height": 451,
+                "top": 0,
+                "left": 0
+              },
+              "firstCardTopOffset": 0,
+              "lastCardBottomOffset": 285,
+              "lastCardVisibleWithoutScroll": false,
+              "lastCardCutOff": 284.75
+            },
+            "preview": {
+              "clientWidth": 911,
+              "clientHeight": 451,
+              "rect": {
+                "width": 911,
+                "height": 451
+              }
+            },
+            "toolbar": {
+              "clientWidth": 899,
+              "scrollWidth": 899,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 899,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "column"
+            },
+            "mobileTabState": "switched_to_form_tab"
+          },
+          "screenshot": "taahhutname_laptop_1366_zoom150.png"
+        }
+      ]
+    },
+    "ruhsat": {
+      "name": "İnşaat Ruhsatı Formu",
+      "path": "/belgeler/insaat-ruhsati-dilekcesi",
+      "cases": [
+        {
+          "case": "desktop_1920_zoom100",
+          "viewport": {
+            "width": 1920,
+            "height": 1080
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "devicePixelRatio": 1,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 954,
+              "scrollWidth": 449,
+              "scrollHeight": 954,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": false,
+              "verticalOverflowPx": 0,
+              "rect": {
+                "width": 450,
+                "height": 954,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": -337,
+              "lastCardVisibleWithoutScroll": true,
+              "lastCardCutOff": 0
+            },
+            "preview": {
+              "clientWidth": 1454,
+              "clientHeight": 954,
+              "rect": {
+                "width": 1454,
+                "height": 954
+              }
+            },
+            "toolbar": {
+              "clientWidth": 1438,
+              "scrollWidth": 1438,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 1438,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "ruhsat_desktop_1920_zoom100.png"
+        },
+        {
+          "case": "desktop_1920_zoom150",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1280,
+              "innerHeight": 720,
+              "devicePixelRatio": 1.5,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 594,
+              "scrollWidth": 449,
+              "scrollHeight": 631,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": true,
+              "verticalOverflowPx": 37,
+              "rect": {
+                "width": 450,
+                "height": 594,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": 23,
+              "lastCardVisibleWithoutScroll": false,
+              "lastCardCutOff": 23
+            },
+            "preview": {
+              "clientWidth": 814,
+              "clientHeight": 594,
+              "rect": {
+                "width": 814,
+                "height": 594
+              }
+            },
+            "toolbar": {
+              "clientWidth": 798,
+              "scrollWidth": 798,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 798,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "ruhsat_desktop_1920_zoom150.png"
+        },
+        {
+          "case": "laptop_1366_zoom100",
+          "viewport": {
+            "width": 1366,
+            "height": 768
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1366,
+              "innerHeight": 768,
+              "devicePixelRatio": 1,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 642,
+              "scrollWidth": 449,
+              "scrollHeight": 642,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": false,
+              "verticalOverflowPx": 0,
+              "rect": {
+                "width": 450,
+                "height": 642,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": -25,
+              "lastCardVisibleWithoutScroll": true,
+              "lastCardCutOff": 0
+            },
+            "preview": {
+              "clientWidth": 900,
+              "clientHeight": 642,
+              "rect": {
+                "width": 900,
+                "height": 642
+              }
+            },
+            "toolbar": {
+              "clientWidth": 884,
+              "scrollWidth": 884,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 884,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "ruhsat_laptop_1366_zoom100.png"
+        },
+        {
+          "case": "laptop_1366_zoom150",
+          "viewport": {
+            "width": 911,
+            "height": 512
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 911,
+              "innerHeight": 512,
+              "devicePixelRatio": 1.5,
+              "isLgUp": false,
+              "isXlUp": false
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 911,
+              "clientHeight": 450,
+              "scrollWidth": 911,
+              "scrollHeight": 694,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": true,
+              "verticalOverflowPx": 244,
+              "rect": {
+                "width": 911,
+                "height": 451,
+                "top": 0,
+                "left": 0
+              },
+              "firstCardTopOffset": 0,
+              "lastCardBottomOffset": 229,
+              "lastCardVisibleWithoutScroll": false,
+              "lastCardCutOff": 228.5
+            },
+            "preview": {
+              "clientWidth": 911,
+              "clientHeight": 451,
+              "rect": {
+                "width": 911,
+                "height": 451
+              }
+            },
+            "toolbar": {
+              "clientWidth": 899,
+              "scrollWidth": 899,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 899,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "column"
+            },
+            "mobileTabState": "switched_to_form_tab"
+          },
+          "screenshot": "ruhsat_laptop_1366_zoom150.png"
+        }
+      ]
+    },
+    "beton": {
+      "name": "Beton Döküm Tutanağı",
+      "path": "/belgeler/beton-dokum-tutanagi",
+      "cases": [
+        {
+          "case": "desktop_1920_zoom100",
+          "viewport": {
+            "width": 1920,
+            "height": 1080
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "devicePixelRatio": 1,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 954,
+              "scrollWidth": 449,
+              "scrollHeight": 954,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": false,
+              "verticalOverflowPx": 0,
+              "rect": {
+                "width": 450,
+                "height": 954,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": -242,
+              "lastCardVisibleWithoutScroll": true,
+              "lastCardCutOff": 0
+            },
+            "preview": {
+              "clientWidth": 1454,
+              "clientHeight": 954,
+              "rect": {
+                "width": 1454,
+                "height": 954
+              }
+            },
+            "toolbar": {
+              "clientWidth": 1438,
+              "scrollWidth": 1438,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 1438,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "beton_desktop_1920_zoom100.png"
+        },
+        {
+          "case": "desktop_1920_zoom150",
+          "viewport": {
+            "width": 1280,
+            "height": 720
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1280,
+              "innerHeight": 720,
+              "devicePixelRatio": 1.5,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 594,
+              "scrollWidth": 449,
+              "scrollHeight": 726,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": true,
+              "verticalOverflowPx": 132,
+              "rect": {
+                "width": 450,
+                "height": 594,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": 118,
+              "lastCardVisibleWithoutScroll": false,
+              "lastCardCutOff": 118.25
+            },
+            "preview": {
+              "clientWidth": 814,
+              "clientHeight": 594,
+              "rect": {
+                "width": 814,
+                "height": 594
+              }
+            },
+            "toolbar": {
+              "clientWidth": 798,
+              "scrollWidth": 798,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 798,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "beton_desktop_1920_zoom150.png"
+        },
+        {
+          "case": "laptop_1366_zoom100",
+          "viewport": {
+            "width": 1366,
+            "height": 768
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 1366,
+              "innerHeight": 768,
+              "devicePixelRatio": 1,
+              "isLgUp": true,
+              "isXlUp": true
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 449,
+              "clientHeight": 642,
+              "scrollWidth": 449,
+              "scrollHeight": 726,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": true,
+              "verticalOverflowPx": 84,
+              "rect": {
+                "width": 450,
+                "height": 642,
+                "top": 57,
+                "left": 8
+              },
+              "firstCardTopOffset": 14,
+              "lastCardBottomOffset": 70,
+              "lastCardVisibleWithoutScroll": false,
+              "lastCardCutOff": 70.25
+            },
+            "preview": {
+              "clientWidth": 900,
+              "clientHeight": 642,
+              "rect": {
+                "width": 900,
+                "height": 642
+              }
+            },
+            "toolbar": {
+              "clientWidth": 884,
+              "scrollWidth": 884,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 884,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "row"
+            },
+            "mobileTabState": null
+          },
+          "screenshot": "beton_laptop_1366_zoom100.png"
+        },
+        {
+          "case": "laptop_1366_zoom150",
+          "viewport": {
+            "width": 911,
+            "height": 512
+          },
+          "metrics": {
+            "window": {
+              "innerWidth": 911,
+              "innerHeight": 512,
+              "devicePixelRatio": 1.5,
+              "isLgUp": false,
+              "isXlUp": false
+            },
+            "form": {
+              "isFormVisible": true,
+              "clientWidth": 911,
+              "clientHeight": 450,
+              "scrollWidth": 911,
+              "scrollHeight": 850,
+              "hasHorizontalOverflow": false,
+              "hasVerticalOverflow": true,
+              "verticalOverflowPx": 400,
+              "rect": {
+                "width": 911,
+                "height": 451,
+                "top": 0,
+                "left": 0
+              },
+              "firstCardTopOffset": 0,
+              "lastCardBottomOffset": 385,
+              "lastCardVisibleWithoutScroll": false,
+              "lastCardCutOff": 385.25
+            },
+            "preview": {
+              "clientWidth": 911,
+              "clientHeight": 451,
+              "rect": {
+                "width": 911,
+                "height": 451
+              }
+            },
+            "toolbar": {
+              "clientWidth": 899,
+              "scrollWidth": 899,
+              "hasHorizontalOverflow": false,
+              "rect": {
+                "width": 899,
+                "height": 44
+              }
+            },
+            "splitMain": {
+              "flexDirection": "column"
+            },
+            "mobileTabState": "switched_to_form_tab"
+          },
+          "screenshot": "beton_laptop_1366_zoom150.png"
+        }
+      ]
+    }
+  }
+}

@@ -14,6 +14,7 @@ import {
   BELGE_STUDIO_MAIN_SPLIT_CLASS,
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
+import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
@@ -74,6 +75,7 @@ export function TaahhutnameStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
+  const formView = useBelgeStudioFormView({ isModal });
 
   useEffect(() => {
     prewarmBelgeDocument("santiye-sefi-taahhutnamesi");
@@ -265,6 +267,7 @@ export function TaahhutnameStudio({
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons (Independent vertical scroll inside form) */}
         <div
+          ref={formView.scrollContainerRef}
           id="taahhutname-mobile-panel-form"
           role="region"
           aria-label="Belge form alanları"
@@ -273,6 +276,7 @@ export function TaahhutnameStudio({
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
+          <div {...formView.contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-taahhutnamesi" layouts={layouts} excludedFields={["tc_kimlik_no", "telefon", "adres", "yapi_adresi", "yapi_sahibi_adresi", "tarih"]} />
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
@@ -563,6 +567,7 @@ export function TaahhutnameStudio({
             </div>
           </div>
 
+          </div>
         </div>
 
         <div
@@ -583,6 +588,7 @@ export function TaahhutnameStudio({
               values: formData as unknown as Record<string, string>,
               onCommit: (field, value) => handleFieldChange(field as keyof TaahhutnameData, value),
             }}
+            formView={formView}
           />
         </div>
       </div>
@@ -600,6 +606,7 @@ export function TaahhutnameStudio({
         downloading={isDownloading}
         documentId="santiye-sefi-taahhutnamesi"
         templateFilename="SANTIYE_SEFI_TAAHHUTNAMESI_BOS.pdf"
+        formView={formView}
       />
     </div>
   );

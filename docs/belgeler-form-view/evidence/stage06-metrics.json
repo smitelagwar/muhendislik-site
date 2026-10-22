@@ -1,0 +1,182 @@
+{
+  "generatedAt": "2026-10-22T09:33:36.931Z",
+  "stage": "ASAMA_06",
+  "documents": [
+    {
+      "slug": "santiye-sefi-sozlesmesi",
+      "title": "Şantiye Şefi Hizmet Sözleşmesi",
+      "desktop": {
+        "desktopMetrics": {
+          "formScrollExists": true,
+          "contentWrapperExists": true,
+          "formScrollHeight": 954,
+          "formClientHeight": 954,
+          "dataScale": "1",
+          "dataDensity": "normal",
+          "dataMode": "manual",
+          "triggerLabel": "Form %100\n▾",
+          "toolbarHeight": 44,
+          "isLeftOfTheme": true,
+          "isSingleRow": true
+        },
+        "fitMetrics": {
+          "mode": "fit",
+          "fitStatus": "fitted",
+          "scale": 1.15,
+          "density": "normal",
+          "triggerLabel": "Form · Sığdır (%115)\n▾"
+        },
+        "passed": true
+      },
+      "mobile": {
+        "initialLabel": "Formu Düzenle",
+        "switchedLabel": "Canlı PDF Önizle",
+        "tabSwitchPassed": true,
+        "mobileScaleApplied": "0.9",
+        "passed": true
+      },
+      "passed": true
+    },
+    {
+      "slug": "santiye-sefi-istifa-dilekcesi",
+      "title": "Şantiye Şefi İstifa Dilekçesi",
+      "desktop": {
+        "desktopMetrics": {
+          "formScrollExists": true,
+          "contentWrapperExists": true,
+          "formScrollHeight": 954,
+          "formClientHeight": 954,
+          "dataScale": "1",
+          "dataDensity": "normal",
+          "dataMode": "manual",
+          "triggerLabel": "Form %100\n▾",
+          "toolbarHeight": 44,
+          "isLeftOfTheme": true,
+          "isSingleRow": true
+        },
+        "fitMetrics": {
+          "mode": "fit",
+          "fitStatus": "fitted",
+          "scale": 1.15,
+          "density": "normal",
+          "triggerLabel": "Form · Sığdır (%115)\n▾"
+        },
+        "passed": true
+      },
+      "mobile": {
+        "initialLabel": "Formu Düzenle",
+        "switchedLabel": "Canlı PDF Önizle",
+        "tabSwitchPassed": true,
+        "mobileScaleApplied": "0.9",
+        "passed": true
+      },
+      "passed": true
+    },
+    {
+      "slug": "santiye-sefi-taahhutnamesi",
+      "title": "Şantiye Şefi Taahhütnamesi",
+      "desktop": {
+        "desktopMetrics": {
+          "formScrollExists": true,
+          "contentWrapperExists": true,
+          "formScrollHeight": 954,
+          "formClientHeight": 954,
+          "dataScale": "1",
+          "dataDensity": "normal",
+          "dataMode": "manual",
+          "triggerLabel": "Form %100\n▾",
+          "toolbarHeight": 44,
+          "isLeftOfTheme": true,
+          "isSingleRow": true
+        },
+        "fitMetrics": {
+          "mode": "fit",
+          "fitStatus": "fitted",
+          "scale": 1.15,
+          "density": "normal",
+          "triggerLabel": "Form · Sığdır (%115)\n▾"
+        },
+        "passed": true
+      },
+      "mobile": {
+        "initialLabel": "Formu Düzenle",
+        "switchedLabel": "Canlı PDF Önizle",
+        "tabSwitchPassed": true,
+        "mobileScaleApplied": "0.9",
+        "passed": true
+      },
+      "passed": true
+    },
+    {
+      "slug": "insaat-ruhsati-dilekcesi",
+      "title": "İnşaat Ruhsatı Dilekçesi",
+      "desktop": {
+        "desktopMetrics": {
+          "formScrollExists": true,
+          "contentWrapperExists": true,
+          "formScrollHeight": 954,
+          "formClientHeight": 954,
+          "dataScale": "1",
+          "dataDensity": "normal",
+          "dataMode": "manual",
+          "triggerLabel": "Form %100\n▾",
+          "toolbarHeight": 44,
+          "isLeftOfTheme": true,
+          "isSingleRow": true
+        },
+        "fitMetrics": {
+          "mode": "fit",
+          "fitStatus": "fitted",
+          "scale": 1.15,
+          "density": "normal",
+          "triggerLabel": "Form · Sığdır (%115)\n▾"
+        },
+        "passed": true
+      },
+      "mobile": {
+        "initialLabel": "Formu Düzenle",
+        "switchedLabel": "Canlı PDF Önizle",
+        "tabSwitchPassed": true,
+        "mobileScaleApplied": "0.9",
+        "passed": true
+      },
+      "passed": true
+    },
+    {
+      "slug": "beton-dokum-tutanagi",
+      "title": "Beton Döküm Tutanağı",
+      "desktop": {
+        "desktopMetrics": {
+          "formScrollExists": true,
+          "contentWrapperExists": true,
+          "formScrollHeight": 954,
+          "formClientHeight": 954,
+          "dataScale": "1",
+          "dataDensity": "normal",
+          "dataMode": "manual",
+          "triggerLabel": "Form %100\n▾",
+          "toolbarHeight": 44,
+          "isLeftOfTheme": true,
+          "isSingleRow": true
+        },
+        "fitMetrics": {
+          "mode": "fit",
+          "fitStatus": "fitted",
+          "scale": 1.15,
+          "density": "normal",
+          "triggerLabel": "Form · Sığdır (%115)\n▾"
+        },
+        "passed": true
+      },
+      "mobile": {
+        "initialLabel": "Formu Düzenle",
+        "switchedLabel": "Canlı PDF Önizle",
+        "tabSwitchPassed": true,
+        "mobileScaleApplied": "0.9",
+        "passed": true
+      },
+      "passed": true
+    }
+  ],
+  "allPassed": true
+}

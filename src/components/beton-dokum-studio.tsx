@@ -11,6 +11,7 @@ import {
   BELGE_STUDIO_MAIN_SPLIT_CLASS,
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
+import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
@@ -71,6 +72,7 @@ export function BetonDokumStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
+  const formView = useBelgeStudioFormView({ isModal });
 
   useEffect(() => {
     prewarmBelgeDocument("beton-dokum-tutanagi");
@@ -250,6 +252,7 @@ export function BetonDokumStudio({
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons (Independent vertical scroll inside form) */}
         <div
+          ref={formView.scrollContainerRef}
           id="beton-dokum-mobile-panel-form"
           role="region"
           aria-label="Belge form alanları"
@@ -257,6 +260,7 @@ export function BetonDokumStudio({
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${activeTabMobile === "form" ? "block" : "hidden lg:block"
             }`}
         >
+          <div {...formView.contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="beton-dokum-tutanagi" layouts={layouts} excludedFields={["tarih", "yer"]} />
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between gap-2 pb-1 border-b border-border/60">
@@ -490,6 +494,7 @@ export function BetonDokumStudio({
             </div>
           </div>
 
+          </div>
         </div>
 
         <div
@@ -510,6 +515,7 @@ export function BetonDokumStudio({
               values: formData as unknown as Record<string, string>,
               onCommit: (field, value) => handleFieldChange(field as keyof BetonDokumData, value),
             }}
+            formView={formView}
           />
         </div>
       </div>
@@ -527,6 +533,7 @@ export function BetonDokumStudio({
         downloading={isDownloading}
         documentId="beton-dokum-tutanagi"
         templateFilename="BETON_DOKUM_TUTANAGI_BOS_SABLON.pdf"
+        formView={formView}
       />
     </div>
   );

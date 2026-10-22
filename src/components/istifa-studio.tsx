@@ -15,6 +15,7 @@ import {
   BELGE_STUDIO_MAIN_SPLIT_CLASS,
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
+import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
@@ -75,6 +76,7 @@ export function IstifaStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
+  const formView = useBelgeStudioFormView({ isModal });
 
   useEffect(() => {
     prewarmBelgeDocument("santiye-sefi-istifa-dilekcesi");
@@ -258,6 +260,7 @@ export function IstifaStudio({
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons (Independent vertical scroll inside form) */}
         <div
+          ref={formView.scrollContainerRef}
           id="istifa-mobile-panel-form"
           role="region"
           aria-label="Belge form alanları"
@@ -266,6 +269,7 @@ export function IstifaStudio({
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
         >
+          <div {...formView.contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-istifa-dilekcesi" layouts={layouts} excludedFields={["tarih", "tc_deger", "iletisim_deger", "adres_deger"]} />
           {/* Top Title & Sync Status (Desktop compact inline) */}
           <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
@@ -373,7 +377,7 @@ export function IstifaStudio({
 
             {/* Tarih, unvan & ad soyad */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("tarih", "Dilekçe Tarihi")}
                 <input
                   type="text"
@@ -394,7 +398,7 @@ export function IstifaStudio({
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("unvan", "Mesleki Unvan")}
                 <input
                   type="text"
@@ -406,7 +410,7 @@ export function IstifaStudio({
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("ad_soyad", "Şantiye Şefi Ad Soyad")}
                 <input
                   type="text"
@@ -422,7 +426,7 @@ export function IstifaStudio({
 
             {/* TC No & İletişim */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("tc_deger", "T.C. Kimlik Numarası")}
                 <input
                   type="text"
@@ -444,7 +448,7 @@ export function IstifaStudio({
                 />
               </div>
 
-              <div>
+              <div className="min-w-0">
                 {renderFieldHeader("iletisim_deger", "İletişim Telefonu")}
                 <input
                   type="text"
@@ -492,6 +496,7 @@ export function IstifaStudio({
             </div>
           </div>
 
+          </div>
         </div>
 
         <div
@@ -512,6 +517,7 @@ export function IstifaStudio({
               values: formData as unknown as Record<string, string>,
               onCommit: (field, value) => handleFieldChange(field as keyof IstifaDilekcesiData, value),
             }}
+            formView={formView}
           />
         </div>
       </div>
@@ -529,6 +535,7 @@ export function IstifaStudio({
         downloading={isDownloading}
         documentId="santiye-sefi-istifa-dilekcesi"
         templateFilename="SANTIYE_SEFI_ISTIFA_DILEKCESI_BOS.pdf"
+        formView={formView}
       />
     </div>
   );

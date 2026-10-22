@@ -1,0 +1,108 @@
+{
+  "generatedAt": "2026-10-22T09:25:06.955Z",
+  "stage": "ASAMA_05",
+  "scenarios": [
+    {
+      "scenario": "desktop_toolbar_and_menu",
+      "toolbarMetrics": {
+        "toolbarHeight": 44,
+        "triggerLabel": "Form %100\n▾",
+        "isLeftOfTheme": true,
+        "isSingleRow": true,
+        "triggerRect": {
+          "top": 65,
+          "left": 1719.78125,
+          "width": 115.21875,
+          "height": 44
+        },
+        "themeRect": {
+          "top": 65,
+          "left": 1839,
+          "width": 65,
+          "height": 44
+        }
+      },
+      "menuDetails": {
+        "menuExists": true,
+        "hasAllPresets": true,
+        "scale100Checked": true,
+        "scale110Checked": false,
+        "fitChecked": false,
+        "compactChecked": false,
+        "resetExists": true
+      },
+      "passed": true
+    },
+    {
+      "scenario": "manual_scale_and_compact_storage",
+      "stateCheck": {
+        "scale": "1.1",
+        "density": "compact",
+        "mode": "manual",
+        "triggerText": "Form %110\n▾",
+        "storage": {
+          "version": 3,
+          "mode": "manual",
+          "manualScale": 1.1,
+          "manualDensity": "compact"
+        }
+      },
+      "passed": true
+    },
+    {
+      "scenario": "fit_and_reset_actions",
+      "fitState": {
+        "mode": "fit",
+        "fitStatus": "fitted",
+        "scale": "1.15",
+        "triggerText": "Form · Sığdır (%115)\n▾"
+      },
+      "resetState": {
+        "mode": "manual",
+        "density": "normal",
+        "scale": "1",
+        "triggerText": "Form %100\n▾"
+      },
+      "passed": true
+    },
+    {
+      "scenario": "keyboard_a11y_and_theme_independence",
+      "menuClosed": true,
+      "themeSwitched": true,
+      "passed": true
+    },
+    {
+      "scenario": "laptop_1366_toolbar_and_menu",
+      "layoutCheck": {
+        "toolbarHeight": 44,
+        "isSingleRow": true,
+        "hasHorizontalOverflow": false
+      },
+      "menuBounds": {
+        "fitsInWindow": true,
+        "rect": {
+          "left": 1068.199951171875,
+          "right": 1281,
+          "top": 109,
+          "bottom": 401.6000061035156
+        }
+      },
+      "passed": true
+    },
+    {
+      "scenario": "mobile_footer_form_view_menu",
+      "desktopTriggerHidden": true,
+      "mobileScaleApplied": "0.9",
+      "passed": true
+    },
+    {
+      "scenario": "persistence_and_reload",
+      "persistedState": {
+        "scale": "1.25",
+        "triggerText": "Form %125\n▾"
+      },
+      "passed": true
+    }
+  ],
+  "allPassed": true
+}

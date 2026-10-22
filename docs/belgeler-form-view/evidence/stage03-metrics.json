@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-10-22T09:09:07.099Z",
+  "stage": "ASAMA_03",
+  "tests": [
+    {
+      "name": "zoom_100_default",
+      "metrics": {
+        "formScrollHeight": 699,
+        "formClientHeight": 594,
+        "formScrollWidth": 383,
+        "formClientWidth": 383,
+        "contentZoom": "1",
+        "pdfZoomLabel": "%100"
+      }
+    },
+    {
+      "name": "zoom_90_manual",
+      "metrics": {
+        "formScrollHeight": 632,
+        "formClientHeight": 594,
+        "formScrollWidth": 383,
+        "formClientWidth": 383,
+        "hasHorizontalOverflow": false
+      },
+      "tabNavigatedId": "sozlesme-santiye_sefi_ad",
+      "inputWorks": true,
+      "scrollHeightReduced": true
+    },
+    {
+      "name": "zoom_125_manual",
+      "metrics": {
+        "formScrollHeight": 871,
+        "formClientHeight": 594,
+        "formScrollWidth": 383,
+        "formClientWidth": 383,
+        "hasHorizontalOverflow": false
+      },
+      "lastCardVisibleAtBottom": true
+    },
+    {
+      "name": "density_compact",
+      "metrics": {
+        "formScrollHeight": 690,
+        "formClientHeight": 594
+      },
+      "scrollHeightReduced": true
+    }
+  ],
+  "pdfIsolation": {
+    "toolbarWidth": 864,
+    "toolbarHasOverflow": false,
+    "pdfZoomUnchanged": "%100"
+  }
+}

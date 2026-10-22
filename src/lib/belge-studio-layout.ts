@@ -8,7 +8,7 @@ export const BELGE_STUDIO_MAIN_SPLIT_CLASS =
   "relative flex flex-col lg:flex-row flex-1 min-h-0 min-w-0 max-w-full overflow-hidden divide-y lg:divide-y-0 lg:divide-x divide-border";
 
 export const BELGE_STUDIO_FORM_SCROLL_CLASS =
-  "w-full max-w-full lg:w-[410px] xl:w-[450px] shrink-0 h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain touch-pan-y scroll-pt-4 scroll-pb-4 p-2.5 sm:p-3.5 space-y-2.5";
+  "w-full max-w-full lg:w-[clamp(360px,30vw,460px)] lg:min-w-[350px] lg:max-w-[480px] shrink-0 h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain touch-pan-y scroll-pt-4 scroll-pb-4 p-2.5 sm:p-3.5 space-y-2.5";
 
 export const BELGE_STUDIO_MOBILE_TABLIST_CLASS =
   "flex h-[52px] lg:hidden shrink-0 items-center gap-1.5 border-b border-border bg-muted/60 p-1.5 dark:bg-zinc-900/90";

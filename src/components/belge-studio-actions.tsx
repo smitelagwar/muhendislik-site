@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { generateBlankBelgePdf } from "@/lib/pdf-engine";
 import type { BelgeDocumentId } from "@/lib/belgeler-pdf-profiles";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Check, Loader2, RotateCcw, SlidersHorizontal, Sparkles } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,8 +12,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { FORM_SCALE_PRESETS } from "@/lib/belge-studio-form-view";
+import type { BelgeStudioFormViewApi } from "@/hooks/use-belge-studio-form-view";
 import {
   BelgeBackIcon,
   BelgeBlankFormIcon,
@@ -42,6 +47,7 @@ type BelgeStudioActionsProps = {
   downloading: boolean;
   documentId: BelgeDocumentId;
   templateFilename: string;
+  formView?: BelgeStudioFormViewApi;
 };
 
 export function BelgeStudioActions(props: BelgeStudioActionsProps) {
@@ -109,6 +115,88 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
               {isDark ? <BelgeSunIcon className="size-4 text-amber-400" /> : <BelgeMoonIcon className="size-4 text-amber-600" />}
               {isDark ? "Aydınlık temaya geç" : "Koyu temaya geç"}
             </DropdownMenuItem>
+            {props.formView && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger
+                    className="min-h-11 rounded-xl"
+                    data-testid="belge-mobile-form-view-trigger"
+                  >
+                    <SlidersHorizontal className="size-4 text-amber-500" />
+                    <span>Form Görünümü</span>
+                    <span className="ml-auto text-xs font-mono text-muted-foreground mr-1">
+                      {props.formView.mode === "fit"
+                        ? props.formView.fitStatus === "limited"
+                          ? "Sığdır (Sınırlı)"
+                          : "Sığdır"
+                        : `%${Math.round(props.formView.manualScale * 100)}`}
+                    </span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent
+                    className="w-56 rounded-xl border border-border bg-popover p-1.5 shadow-xl text-popover-foreground z-50"
+                    data-testid="belge-mobile-form-view-content"
+                  >
+                    <DropdownMenuItem
+                      onSelect={props.formView.onFit}
+                      className="min-h-11 rounded-lg text-xs justify-between"
+                      data-testid="belge-mobile-form-view-fit"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Sparkles className="size-4 text-amber-500" />
+                        Formu tam sığdır
+                      </span>
+                      {props.formView.mode === "fit" && <Check className="size-4 text-amber-500" />}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={props.formView.onToggleCompact}
+                      className="min-h-11 rounded-lg text-xs justify-between"
+                      data-testid="belge-mobile-form-view-compact"
+                    >
+                      <span className="flex items-center gap-2">
+                        <SlidersHorizontal className="size-4 text-muted-foreground" />
+                        Kompakt görünüm
+                      </span>
+                      {props.formView.density === "compact" && <Check className="size-4 text-amber-500" />}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {FORM_SCALE_PRESETS.map((scale) => {
+                      const isSelected =
+                        props.formView?.mode === "manual" &&
+                        Math.abs((props.formView?.manualScale ?? 1) - scale) < 0.01;
+                      return (
+                        <DropdownMenuItem
+                          key={scale}
+                          onSelect={() => props.formView?.onChooseScale(scale)}
+                          className="min-h-10 rounded-lg text-xs justify-between"
+                          data-testid={`belge-mobile-form-scale-${Math.round(scale * 100)}`}
+                        >
+                          <span>
+                            {scale === 1.00
+                              ? "Normal %100"
+                              : scale === 0.90
+                              ? "Küçük %90"
+                              : scale === 1.10
+                              ? "Büyük %110"
+                              : "Çok büyük %125"}
+                          </span>
+                          {isSelected && <Check className="size-4 text-amber-500" />}
+                        </DropdownMenuItem>
+                      );
+                    })}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onSelect={props.formView.onReset}
+                      className="min-h-10 rounded-lg text-xs text-muted-foreground"
+                      data-testid="belge-mobile-form-view-reset"
+                    >
+                      <RotateCcw className="size-3.5 mr-2" />
+                      Varsayılana dön
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem className="min-h-11 rounded-xl" disabled={!ready} onSelect={props.onPrint}><BelgePrintIcon className="size-4" />Yazdır</DropdownMenuItem>
             <DropdownMenuItem className="min-h-11 rounded-xl" disabled={blankDownloading} onSelect={() => void downloadBlank()}><BelgeBlankFormIcon className="size-4" />Boş form indir</DropdownMenuItem>

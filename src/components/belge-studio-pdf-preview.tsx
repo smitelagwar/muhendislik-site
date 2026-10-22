@@ -7,6 +7,7 @@ import { AlertCircle, Edit3, Loader2, RefreshCw } from "lucide-react";
 import { PDFJS_CMAPS, PDFJS_FONTS, PDFJS_ICCS, PDFJS_WASM } from "@/lib/pdfjs-paths";
 import { getSharedBrowserPdfWorker, loadBrowserPdfJs, type BrowserPdfJs } from "@/lib/pdfjs-client";
 import { BelgeStudioPreviewToolbar } from "@/components/belge-studio-preview-toolbar";
+import type { BelgeStudioFormViewApi } from "@/hooks/use-belge-studio-form-view";
 import { BELGE_STUDIO_PREVIEW_CANVAS_CLASS, BELGE_STUDIO_PREVIEW_PANEL_CLASS } from "@/lib/belge-studio-layout";
 import { clampBelgeZoom, getBelgePreviewRasterScale, getBelgeZoomAnchorScroll } from "@/lib/belge-studio-zoom";
 import {
@@ -54,6 +55,7 @@ type BelgeStudioPdfPreviewProps = {
   onRetry: () => void;
   editing?: BelgeStudioInlineEditingConfig;
   activeTabMobile?: "form" | "preview";
+  formView?: BelgeStudioFormViewApi;
 };
 
 type Point = { x: number; y: number };
@@ -75,6 +77,7 @@ export function BelgeStudioPdfPreview({
   onRetry,
   editing,
   activeTabMobile,
+  formView,
 }: BelgeStudioPdfPreviewProps) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
@@ -1087,6 +1090,7 @@ export function BelgeStudioPdfPreview({
         pdfUrl={generationPending ? null : snapshot?.blobUrl ?? null}
         page={{ current: currentPage, total: pageCount, onChange: handlePageChange }}
         disabled={!snapshot || generationPending || visibleError}
+        formView={formView}
       />
       {editing && !isMobileSheetOpen && (
         <div className="absolute bottom-3 right-3 z-20 pointer-events-auto">

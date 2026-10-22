@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { BELGE_ZOOM_STEP, MAX_BELGE_ZOOM, MIN_BELGE_ZOOM, clampBelgeZoom } from "@/lib/belge-studio-zoom";
 import { BELGE_STUDIO_PREVIEW_TOOLBAR_CLASS } from "@/lib/belge-studio-layout";
+import { BelgeStudioFormViewMenu } from "@/components/belge-studio-form-view-menu";
+import type { BelgeStudioFormViewApi } from "@/hooks/use-belge-studio-form-view";
 import {
   BelgeFitPageIcon,
   BelgeMoonIcon,
@@ -31,6 +33,7 @@ type BelgeStudioPreviewToolbarProps = {
   pdfUrl: string | null;
   page?: { current: number; total: number; onChange: (page: number) => void };
   disabled?: boolean;
+  formView?: BelgeStudioFormViewApi;
 };
 
 export function BelgeStudioPreviewToolbar({
@@ -40,6 +43,7 @@ export function BelgeStudioPreviewToolbar({
   pdfUrl,
   page,
   disabled = false,
+  formView,
 }: BelgeStudioPreviewToolbarProps) {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -213,7 +217,21 @@ export function BelgeStudioPreviewToolbar({
         </div>
       )}
 
-      <div className="belge-preview-utilities hidden items-center justify-end gap-[4px] lg:flex" role="group" aria-label="Tema görünümü">
+      <div className="belge-preview-utilities hidden items-center justify-end gap-[4px] lg:flex" role="group" aria-label="Form görünümü ve tema">
+        {formView && (
+          <BelgeStudioFormViewMenu
+            mode={formView.mode}
+            manualScale={formView.manualScale}
+            density={formView.density}
+            appliedScale={formView.appliedScale}
+            fitStatus={formView.fitStatus}
+            onChooseScale={formView.onChooseScale}
+            onToggleCompact={formView.onToggleCompact}
+            onFit={formView.onFit}
+            onReset={formView.onReset}
+            disabled={disabled}
+          />
+        )}
         <button
           type="button"
           role="switch"

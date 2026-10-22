@@ -1,0 +1,64 @@
+{
+  "generatedAt": "2026-10-22T09:16:39.985Z",
+  "stage": "ASAMA_04",
+  "scenarios": [
+    {
+      "scenario": "1920x1080_fit_success",
+      "fitResult": {
+        "fitStatus": "fitted",
+        "appliedScale": 1.15,
+        "density": "normal",
+        "clientWidth": 459,
+        "clientHeight": 954,
+        "scrollWidth": 459,
+        "scrollHeight": 954,
+        "isFittedOnBothAxes": true,
+        "notExceedingMaxScale": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "1366x768_laptop_fit",
+      "fitResult": {
+        "fitStatus": "fitted",
+        "appliedScale": 0.92,
+        "density": "compact",
+        "scrollH": 642,
+        "clientH": 642,
+        "isFitted": true,
+        "lastCardVisibleWithoutScroll": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "1280x720_zoom150_honest_limited",
+      "limitedResult": {
+        "fitStatus": "limited",
+        "appliedScale": 1,
+        "density": "compact",
+        "isHonestLimited": true,
+        "safeNormalScaleKept": true,
+        "compactSelected": true,
+        "lastCardAccessibleWithScroll": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "scroll_trap_resilience",
+      "scrollTrapResult": {
+        "fitStatus": "fitted",
+        "notFalseFailed": true
+      },
+      "pass": true
+    },
+    {
+      "scenario": "resize_loop_resilience",
+      "loopResult": {
+        "errorCount": 0,
+        "finalStatus": "fitted",
+        "stable": true
+      },
+      "pass": true
+    }
+  ]
+}

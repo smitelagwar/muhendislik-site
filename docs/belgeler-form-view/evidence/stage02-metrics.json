@@ -1,0 +1,234 @@
+{
+  "generatedAt": "2026-10-22T09:04:06.690Z",
+  "stage": "ASAMA_02",
+  "viewportVerifications": [
+    {
+      "viewport": {
+        "name": "1920x1080_desktop",
+        "label": "1920×1080 Standart Masaüstü",
+        "width": 1920,
+        "height": 1080,
+        "dpr": 1
+      },
+      "metrics": {
+        "isLgUp": true,
+        "form": {
+          "clientWidth": 459,
+          "clientHeight": 954,
+          "scrollWidth": 459,
+          "scrollHeight": 954,
+          "hasHorizontalOverflow": false,
+          "anyInputOverflows": false,
+          "maxInputRight": 444,
+          "formRight": 468
+        },
+        "preview": {
+          "clientWidth": 1444,
+          "clientHeight": 954,
+          "isAvailable": true
+        },
+        "toolbar": {
+          "clientWidth": 1428,
+          "scrollWidth": 1428,
+          "hasHorizontalOverflow": false
+        },
+        "lastCard": {
+          "exists": true,
+          "bottomOffset": -269
+        }
+      },
+      "screenshot": "stage02_1920x1080_desktop.png",
+      "pass": true
+    },
+    {
+      "viewport": {
+        "name": "1366x768_laptop",
+        "label": "1366×768 Standart Laptop",
+        "width": 1366,
+        "height": 768,
+        "dpr": 1
+      },
+      "metrics": {
+        "isLgUp": true,
+        "form": {
+          "clientWidth": 409,
+          "clientHeight": 642,
+          "scrollWidth": 409,
+          "scrollHeight": 699,
+          "hasHorizontalOverflow": false,
+          "anyInputOverflows": false,
+          "maxInputRight": 393.796875,
+          "formRight": 417.796875
+        },
+        "preview": {
+          "clientWidth": 940,
+          "clientHeight": 642,
+          "isAvailable": true
+        },
+        "toolbar": {
+          "clientWidth": 924,
+          "scrollWidth": 924,
+          "hasHorizontalOverflow": false
+        },
+        "lastCard": {
+          "exists": true,
+          "bottomOffset": 43
+        }
+      },
+      "screenshot": "stage02_1366x768_laptop.png",
+      "pass": true
+    },
+    {
+      "viewport": {
+        "name": "1280x720_zoom150",
+        "label": "1280×720 (1920 %150 Zoom)",
+        "width": 1280,
+        "height": 720,
+        "dpr": 1.5
+      },
+      "metrics": {
+        "isLgUp": true,
+        "form": {
+          "clientWidth": 383,
+          "clientHeight": 594,
+          "scrollWidth": 383,
+          "scrollHeight": 699,
+          "hasHorizontalOverflow": false,
+          "anyInputOverflows": false,
+          "maxInputRight": 368,
+          "formRight": 392
+        },
+        "preview": {
+          "clientWidth": 880,
+          "clientHeight": 594,
+          "isAvailable": true
+        },
+        "toolbar": {
+          "clientWidth": 864,
+          "scrollWidth": 864,
+          "hasHorizontalOverflow": false
+        },
+        "lastCard": {
+          "exists": true,
+          "bottomOffset": 91
+        }
+      },
+      "screenshot": "stage02_1280x720_zoom150.png",
+      "pass": true
+    },
+    {
+      "viewport": {
+        "name": "1093x615_zoom150",
+        "label": "1093×615 (1640 %150 Zoom - Referans)",
+        "width": 1093,
+        "height": 615,
+        "dpr": 1.5
+      },
+      "metrics": {
+        "isLgUp": true,
+        "form": {
+          "clientWidth": 359,
+          "clientHeight": 489,
+          "scrollWidth": 359,
+          "scrollHeight": 699,
+          "hasHorizontalOverflow": false,
+          "anyInputOverflows": false,
+          "maxInputRight": 344,
+          "formRight": 368
+        },
+        "preview": {
+          "clientWidth": 717,
+          "clientHeight": 489,
+          "isAvailable": true
+        },
+        "toolbar": {
+          "clientWidth": 701,
+          "scrollWidth": 701,
+          "hasHorizontalOverflow": false
+        },
+        "lastCard": {
+          "exists": true,
+          "bottomOffset": 196
+        }
+      },
+      "screenshot": "stage02_1093x615_zoom150.png",
+      "pass": true
+    },
+    {
+      "viewport": {
+        "name": "1024x768_lg_boundary",
+        "label": "1024×768 (Tam lg Eşiği)",
+        "width": 1024,
+        "height": 768,
+        "dpr": 1
+      },
+      "metrics": {
+        "isLgUp": true,
+        "form": {
+          "clientWidth": 359,
+          "clientHeight": 642,
+          "scrollWidth": 359,
+          "scrollHeight": 699,
+          "hasHorizontalOverflow": false,
+          "anyInputOverflows": false,
+          "maxInputRight": 344,
+          "formRight": 368
+        },
+        "preview": {
+          "clientWidth": 648,
+          "clientHeight": 642,
+          "isAvailable": true
+        },
+        "toolbar": {
+          "clientWidth": 632,
+          "scrollWidth": 632,
+          "hasHorizontalOverflow": false
+        },
+        "lastCard": {
+          "exists": true,
+          "bottomOffset": 43
+        }
+      },
+      "screenshot": "stage02_1024x768_lg_boundary.png",
+      "pass": true
+    },
+    {
+      "viewport": {
+        "name": "911x512_laptop_zoom150",
+        "label": "911×512 (1366 %150 Zoom - Mobil Tab)",
+        "width": 911,
+        "height": 512,
+        "dpr": 1.5
+      },
+      "metrics": {
+        "isLgUp": false,
+        "form": {
+          "clientWidth": 911,
+          "clientHeight": 450,
+          "scrollWidth": 911,
+          "scrollHeight": 762,
+          "hasHorizontalOverflow": false,
+          "anyInputOverflows": false,
+          "maxInputRight": 888,
+          "formRight": 911
+        },
+        "preview": {
+          "clientWidth": 911,
+          "clientHeight": 451,
+          "isAvailable": true
+        },
+        "toolbar": {
+          "clientWidth": 899,
+          "scrollWidth": 899,
+          "hasHorizontalOverflow": false
+        },
+        "lastCard": {
+          "exists": true,
+          "bottomOffset": 297
+        }
+      },
+      "screenshot": "stage02_911x512_laptop_zoom150.png",
+      "pass": true
+    }
+  ]
+}
