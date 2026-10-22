@@ -1,0 +1,97 @@
+name: belgeler-stage05-release-candidate
+on:
+  push:
+    branches: [internal-belgeler-form-view-rc]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Install PDF visual renderer
+        run: sudo apt-get install -y poppler-utils
+      - name: Changed scope lint
+        id: lint
+        continue-on-error: true
+        run: npx eslint src/hooks/use-belge-studio-form-view.ts tests/site-audit/belgeler-stage05-fix.spec.ts
+      - name: Deployable TypeScript
+        id: tsc
+        continue-on-error: true
+        run: npx tsc -p tsconfig.next.json --noEmit --incremental false
+      - name: PDF unit and visual acceptance
+        id: pdf
+        continue-on-error: true
+        run: npm run check:belgeler-pdf
+      - name: Manual, fit and toolbar rect on all five studios
+        id: fit
+        continue-on-error: true
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-stage05-fix.spec.ts --project=chromium-desktop-1366 --reporter=line
+      - name: Existing desktop form menu end-to-end
+        id: desktop_menu
+        continue-on-error: true
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-form-view.spec.ts --project=chromium-desktop-1366 --reporter=line
+      - name: Browser downloaded PDF semantic regression (five studios)
+        id: downloads
+        continue-on-error: true
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-stage04-pdf-e2e.spec.ts --project=chromium-desktop-1366 --grep "D04 real filled and blank" --reporter=line
+      - name: Existing mobile inline PDF edit
+        id: inline
+        continue-on-error: true
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npm run check:belgeler-inline-mobile
+      - name: Production build
+        id: build
+        continue-on-error: true
+        run: npm run build
+      - name: Built site smoke
+        id: smoke
+        continue-on-error: true
+        run: npm run check:smoke
+      - name: Upload fail-or-pass evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: belgeler-stage05-release-evidence
+          path: |
+            test-results/
+            playwright-report/
+            test-output/belgeler-visual-acceptance/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Enforce all gates (no hidden green)
+        if: always()
+        env:
+          LINT: ${{ steps.lint.outcome }}
+          TSC: ${{ steps.tsc.outcome }}
+          PDF: ${{ steps.pdf.outcome }}
+          FIT: ${{ steps.fit.outcome }}
+          DESKTOP: ${{ steps.desktop_menu.outcome }}
+          DOWNLOADS: ${{ steps.downloads.outcome }}
+          INLINE: ${{ steps.inline.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          SMOKE: ${{ steps.smoke.outcome }}
+        run: |
+          printf '%s\n' "lint=$LINT" "tsc=$TSC" "pdf=$PDF" "fit=$FIT" "desktop=$DESKTOP" "downloads=$DOWNLOADS" "inline=$INLINE" "build=$BUILD" "smoke=$SMOKE"
+          for value in "$LINT" "$TSC" "$PDF" "$FIT" "$DESKTOP" "$DOWNLOADS" "$INLINE" "$BUILD" "$SMOKE"; do
+            test "$value" = success || exit 1
+          done

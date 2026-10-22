@@ -203,6 +203,11 @@ export function useBelgeStudioFormView(
         }
       }
 
+      // The candidate loop mutates live DOM. Commit the WINNER explicitly:
+      // unchanged React style props do not necessarily restore probed zoom.
+      contentEl.style.zoom = resolvedScale === 1 ? "" : String(resolvedScale);
+      contentEl.className = resolvedDensity === "compact" ? "space-y-1.5" : "space-y-2.5";
+
       // Orijinal scroll pozisyonunu geri yükle
       scrollEl.scrollTop = originalScrollTop;
 
@@ -285,32 +290,44 @@ export function useBelgeStudioFormView(
     if (mode !== "fit") return;
 
     const scrollEl = scrollContainerRef.current;
-    if (!scrollEl) return;
+    const contentEl = contentWrapperRef.current;
+    if (!scrollEl || !contentEl) return;
 
-    // İlk ölçümü rAF ile planla
-    rafIdRef.current = window.requestAnimationFrame(() => {
-      executeFitMeasurement();
-    });
+    // One cancellable measurement scheduled at a time.
+    const schedule = () => {
+      if (rafIdRef.current !== null) window.cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = window.requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        executeFitMeasurement();
+      });
+    };
+    schedule();
 
     const observer = new ResizeObserver(() => {
       // Kendi ölçüm mutasyonumuz sırasında tetiklenen resize'ları yut
       if (isMeasuringRef.current) return;
 
-      if (rafIdRef.current) {
-        window.cancelAnimationFrame(rafIdRef.current);
-      }
-
-      rafIdRef.current = window.requestAnimationFrame(() => {
-        executeFitMeasurement();
-      });
+      schedule();
     });
 
     observer.observe(scrollEl);
+    // New field warnings can resize the contents but not the fixed panel.
+    observer.observe(contentEl);
+
+    // While typing, fit deliberately preserves caret; retry after blur.
+    const handleFocusOut = () => {
+      window.requestAnimationFrame(() => {
+        if (scrollContainerRef.current === scrollEl) schedule();
+      });
+    };
+    scrollEl.addEventListener("focusout", handleFocusOut);
 
     return () => {
       observer.disconnect();
-      if (rafIdRef.current) {
+      scrollEl.removeEventListener("focusout", handleFocusOut);
+      if (rafIdRef.current !== null) {
         window.cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
       }
     };
   }, [mode, executeFitMeasurement]);

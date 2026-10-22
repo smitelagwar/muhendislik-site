@@ -1457,26 +1457,26 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
 }
 
 @media (min-width: 1024px) {
-  @container (max-width: 560px) {
-    .belge-preview-controls[data-multipage="true"] {
+  @container (max-width: 700px) {
+    .belge-preview-controls {
       grid-template-columns: minmax(0, 1fr) auto;
       row-gap: 3px;
       column-gap: 4px;
     }
 
-    .belge-preview-controls[data-multipage="true"] .belge-preview-navigation {
+    .belge-preview-controls .belge-preview-navigation {
       grid-column: 1;
       grid-row: 1;
       justify-self: start;
     }
 
-    .belge-preview-controls[data-multipage="true"] .belge-preview-utilities {
+    .belge-preview-controls .belge-preview-utilities {
       grid-column: 2;
       grid-row: 1;
       justify-self: end;
     }
 
-    .belge-preview-controls[data-multipage="true"] .belge-preview-zoom {
+    .belge-preview-controls .belge-preview-zoom {
       grid-column: 1 / -1;
       grid-row: 2;
       justify-self: center;
@@ -1484,24 +1484,7 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   }
 }
 
-@media (min-width: 1024px) {
-  @container (max-width: 360px) {
-    .belge-preview-controls[data-multipage="false"] {
-      grid-template-columns: minmax(0, 1fr) auto;
-      row-gap: 3px;
-    }
 
-    .belge-preview-controls[data-multipage="false"] .belge-preview-utilities {
-      grid-column: 2;
-      grid-row: 1;
-    }
-
-    .belge-preview-controls[data-multipage="false"] .belge-preview-zoom {
-      grid-column: 1 / -1;
-      grid-row: 2;
-    }
-  }
-}
 
 [data-testid="belge-studio-preview-toolbar"] .preview-tool-button:hover:not(:disabled) {
   background: var(--secondary);
