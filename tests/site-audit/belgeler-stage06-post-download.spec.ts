@@ -65,6 +65,14 @@ test("D06 Preview reproducer: form 125%, Fit, synthetic address, then download",
   await expect(root.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.",{timeout:45000});
   const before=new URL(page.url());
   const form=root.locator('[data-belge-form-content="true"]');
+  const mobile=info.project.name.includes("mobile");
+  // Mobile studio intentionally defaults to PDF preview. The form is hidden
+  // until the user taps the bottom "Formu Düzenle" action.
+  if(mobile) {
+    await root.getByTestId("belge-studio-mobile-actions")
+      .getByRole("button",{name:"Formu Düzenle"}).click();
+    await expect(root.locator("#sozlesme-adres")).toBeVisible({timeout:8000});
+  }
   await page.evaluate(()=>window.dispatchEvent(new CustomEvent("belge-form-view:command",{detail:{command:"scale",scale:1.25}})));
   await expect(form).toHaveAttribute("data-scale","1.25");
   await page.evaluate(()=>window.dispatchEvent(new CustomEvent("belge-form-view:command",{detail:{command:"fit"}})));
@@ -73,7 +81,6 @@ test("D06 Preview reproducer: form 125%, Fit, synthetic address, then download",
   await address.fill("DENETIM 06 Ornek Mahallesi 16 Sokak No 5 Ankara");
   await address.blur();
   await expect(root.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.",{timeout:45000});
-  const mobile=info.project.name.includes("mobile");
   const btn=root.getByTestId(mobile?"belge-studio-mobile-actions":"belge-studio-desktop-actions")
     .getByRole("button",{name:"PDF İndir"});
   const task=page.waitForEvent("download",{timeout:25000});
