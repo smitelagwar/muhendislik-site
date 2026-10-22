@@ -43,7 +43,7 @@ async function setNativeChromeZoom(page: import("@playwright/test").Page, target
 }
 
 async function geometry(page: import("@playwright/test").Page) {
-  return page.getByTestId("belge-studio-preview-toolbar").evaluate(el => {
+  return page.locator('[data-studio-locked="true"] [data-testid="belge-studio-preview-toolbar"]:visible').evaluate(el => {
     const toolbar = el.getBoundingClientRect();
     const controls = Array.from(el.querySelectorAll("button, a"))
       .filter(node => {
@@ -99,7 +99,7 @@ for (const doc of docs) {
     page.on("pageerror", e => errors.push(e.message));
     await page.setViewportSize({ width: 1536, height: 864 });
     await page.goto("/belgeler/" + doc, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await expect(page.getByTestId("belge-studio-preview-toolbar")).toBeVisible({ timeout: 8000 });
+    await expect.poll(() => page.locator('[data-studio-locked="true"] [data-testid="belge-studio-preview-toolbar"]:visible').count(), { timeout: 8000 }).toBe(1);
     await expect(page.locator('[data-studio-locked="true"]:visible').first().getByRole("status").first()).toHaveText("PDF önizlemesi hazır.", { timeout: 30000 });
     try {
       for (const target of [1, 1.25, 1.5, 2]) {

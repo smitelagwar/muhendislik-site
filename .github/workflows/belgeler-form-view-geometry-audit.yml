@@ -26,6 +26,13 @@ jobs:
           PLAYWRIGHT_PRODUCTION_SERVER: "0"
         run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-form-geometry-audit.spec.ts --project=chromium-desktop-1920 --reporter=line
         continue-on-error: true
+      - name: Mobile, keyboard, modal and ready-state browser probes
+        id: interaction
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-stage03-gap.spec.ts tests/site-audit/belgeler-modal-isolation-audit.spec.ts --project=chromium-desktop-1920 --reporter=line
+        continue-on-error: true
       - name: TRUE Chrome UI zoom via OS keyboard (not emulation/pageScaleFactor)
         id: nativezoom
         env:
@@ -42,6 +49,7 @@ jobs:
             test-results/
             playwright-report/
             audit-artifacts-native-zoom/
+            audit-artifacts-stage03-gaps/
           if-no-files-found: error
           retention-days: 14
 
@@ -50,4 +58,4 @@ jobs:
         run: |
           echo 'CSS outcome: ${{ steps.cssgeometry.outcome }}'
           echo 'Native zoom outcome: ${{ steps.nativezoom.outcome }}'
-          test '${{ steps.cssgeometry.outcome }}' = 'success' && test '${{ steps.nativezoom.outcome }}' = 'success'
+          test '${{ steps.cssgeometry.outcome }}' = 'success' && test '${{ steps.nativezoom.outcome }}' = 'success' && test '${{ steps.interaction.outcome }}' = 'success'
