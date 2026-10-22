@@ -1457,7 +1457,9 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
 }
 
 @media (min-width: 1024px) {
-  @container (max-width: 700px) {
+  /* Fit labels are wider than manual labels; keep the 2-row controls
+     until there is enough room for the full translated status text. */
+  @container (max-width: 780px) {
     .belge-preview-controls {
       grid-template-columns: minmax(0, 1fr) auto;
       row-gap: 3px;

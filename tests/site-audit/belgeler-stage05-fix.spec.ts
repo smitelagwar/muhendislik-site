@@ -76,6 +76,36 @@ for(const doc of docs){
   await info.attach(doc+"-fit.json",{body:Buffer.from(JSON.stringify(observations,null,2)),contentType:"application/json"});
  });
 }
+for(const doc of docs){
+ test("D07 fit-label toolbar does not overlap across 700–820px container boundary: "+doc,async({page})=>{
+  test.setTimeout(160000);
+  await page.setViewportSize({width:1366,height:768});
+  await page.goto("/belgeler/"+doc,{waitUntil:"domcontentloaded",timeout:30000});
+  const root=page.locator('[data-studio-locked="true"]:visible');
+  await expect(root.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.",{timeout:45000});
+  const form=root.locator('[data-belge-form-content="true"]');
+  // The expanded "Form · Sığdır (%...)" / "Sınırlı" label occupies
+  // more horizontal room than the default "Form %100" label.
+  await page.evaluate(()=>window.dispatchEvent(new CustomEvent("belge-form-view:command",{detail:{command:"fit"}})));
+  await expect(form).toHaveAttribute("data-mode","fit",{timeout:8000});
+  await expect.poll(()=>form.getAttribute("data-fit-status"),{timeout:8000})
+    .toMatch(/^(fitted|limited|unavailable)$/);
+  for(const width of [1024,1060,1093,1130,1170,1180,1220,1366]){
+   await page.setViewportSize({width,height:768});
+   await page.waitForTimeout(180);
+   const m=await geometry(page);
+   expect(m.overlaps,doc+" width="+width+" toolbar="+JSON.stringify(m)).toEqual([]);
+  }
+  for(const width of [1093,1170,1180]){
+   await page.setViewportSize({width,height:600});
+   await page.waitForTimeout(180);
+   const m=await geometry(page);
+   expect(m.overlaps,doc+" limited width="+width+" toolbar="+JSON.stringify(m)).toEqual([]);
+  }
+  await page.setViewportSize({width:1366,height:768});
+ });
+}
+
 test("D05 focused input fit eventually settles after blur; PDF zoom isolated",async({page})=>{
  test.setTimeout(120000);
  await page.setViewportSize({width:1366,height:768});
