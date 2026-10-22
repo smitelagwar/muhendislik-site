@@ -1,0 +1,52 @@
+name: belgeler-stage04-print-and-poppler-evidence
+on:
+  push:
+    branches: [internal-belgeler-geometry-audit]
+    paths:
+      - ".github/workflows/belgeler-stage04-print-and-poppler-evidence.yml"
+      - "tests/belgeler/stage04-print-handoff.test.ts"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pdf-visual-and-print-handoff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install required Poppler PDF rasterizer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y poppler-utils
+          pdftoppm -v
+      - run: npm ci
+      - name: Run complete PDF unit+visual acceptance (without mocking rasterizer)
+        id: pdf_visual
+        continue-on-error: true
+        run: npm run check:belgeler-pdf
+      - name: Verify print window creation and navigation handoff
+        id: print_contract
+        continue-on-error: true
+        run: npx tsx --test tests/belgeler/stage04-print-handoff.test.ts
+      - name: Upload PDF visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: belgeler-stage04-pdf-poppler-evidence
+          path: |
+            test-output/belgeler-visual-acceptance/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Enforce actual quality outcomes
+        if: always()
+        env:
+          PDF_VISUAL: ${{ steps.pdf_visual.outcome }}
+          PRINT_CONTRACT: ${{ steps.print_contract.outcome }}
+        run: |
+          echo "pdf_visual=$PDF_VISUAL"
+          echo "print_contract=$PRINT_CONTRACT"
+          test "$PDF_VISUAL" = success && test "$PRINT_CONTRACT" = success
