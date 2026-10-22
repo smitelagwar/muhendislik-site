@@ -1,0 +1,86 @@
+name: belgeler-stage04-pdf-regression-audit
+on:
+  push:
+    branches: [internal-belgeler-geometry-audit]
+    paths:
+      - ".github/workflows/belgeler-stage04-pdf-regression-audit.yml"
+      - "tests/site-audit/belgeler-stage04-pdf-e2e.spec.ts"
+      - "tests/belgeler/**"
+      - "src/lib/pdf-engine.ts"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pdf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: PDF unit contracts, AP text, long text, blank and visuals
+        id: pdf_unit
+        continue-on-error: true
+        run: npm run check:belgeler-pdf
+      - name: Browser PDF binary roundtrip, blank and print
+        id: browser
+        continue-on-error: true
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-stage04-pdf-e2e.spec.ts --project=chromium-desktop-1366 --reporter=line
+      - name: Existing inline mobile touch editing, apply, cancel and keyboard
+        id: inline
+        continue-on-error: true
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npm run check:belgeler-inline-mobile
+      - name: Existing form-view menu browser regression
+        id: menu
+        continue-on-error: true
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-form-view.spec.ts --project=chromium-desktop-1366 --project=chromium-mobile-390 --reporter=line
+      - name: Representative site accessibility
+        id: a11y
+        continue-on-error: true
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/a11y-wcag.spec.ts --project=chromium-desktop-1366 --reporter=line
+      - name: Representative site overflow and theme baseline
+        id: site
+        continue-on-error: true
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/responsive-overflow.spec.ts tests/site-audit/theme-consistency.spec.ts --project=chromium-desktop-1366 --reporter=line
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: belgeler-stage04-pdf-evidence
+          path: |
+            audit-artifacts-stage04-pdf/
+            test-results/
+            playwright-report/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Assert actual test results
+        if: always()
+        env:
+          UNIT: ${{ steps.pdf_unit.outcome }}
+          BROWSER: ${{ steps.browser.outcome }}
+          INLINE: ${{ steps.inline.outcome }}
+          MENU: ${{ steps.menu.outcome }}
+          A11Y: ${{ steps.a11y.outcome }}
+          SITE: ${{ steps.site.outcome }}
+        run: |
+          printf '%s\n' "pdf_unit=$UNIT" "pdf_browser=$BROWSER" "inline_mobile=$INLINE" "form_menu=$MENU" "site_a11y=$A11Y" "site_baseline=$SITE"
+          test "$UNIT" = success && test "$BROWSER" = success && test "$INLINE" = success && test "$MENU" = success && test "$A11Y" = success && test "$SITE" = success
