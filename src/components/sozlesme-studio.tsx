@@ -17,6 +17,7 @@ import {
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
+import { useBelgeFieldFocus } from "@/hooks/use-belge-field-focus";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
 import { BelgePdfLayoutWarnings } from "@/components/belge-pdf-layout-warnings";
@@ -76,6 +77,14 @@ export function SozlesmeStudio({
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const formView = useBelgeStudioFormView({ isModal });
+  const {
+    selection: fieldFocus,
+    containerProps: formFocusContainerProps,
+    clearSelection: clearFieldFocusSelection,
+  } = useBelgeFieldFocus({
+    documentId: "santiye-sefi-sozlesmesi",
+    studioRootRef,
+  });
 
   useEffect(() => {
     prewarmBelgeDocument("santiye-sefi-sozlesmesi");
@@ -118,19 +127,21 @@ export function SozlesmeStudio({
 
   // Global reset to original PDF default values (Sıfırla)
   const handleResetToPdfDefaults = useCallback(() => {
+    clearFieldFocusSelection();
     setUndoData({ ...formData });
     setFormData({ ...SOZLESME_DEFAULT_DATA });
-  }, [formData]);
+  }, [formData, clearFieldFocusSelection]);
 
   // Clear all fields (Temizle)
   const handleClearAll = useCallback(() => {
+    clearFieldFocusSelection();
     setUndoData({ ...formData });
     setFormData(
       Object.fromEntries(
         Object.keys(SOZLESME_DEFAULT_DATA).map((k) => [k, ""])
       ) as SozlesmeData
     );
-  }, [formData]);
+  }, [formData, clearFieldFocusSelection]);
 
   const handleUndo = () => {
     if (!undoData) return;
@@ -283,6 +294,7 @@ export function SozlesmeStudio({
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
+          {...formFocusContainerProps}
         >
           <div {...formView.contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-sozlesmesi" layouts={layouts} excludedFields={["adres", "ucret", "sozlesme_tarihi"]} />
@@ -607,6 +619,7 @@ export function SozlesmeStudio({
             onStatusChange={(revision, status) => setPreviewResult({ revision, status })}
             onRetry={document.retry}
             activeTabMobile={activeTabMobile}
+            fieldFocus={fieldFocus}
             editing={{
               documentId: "santiye-sefi-sozlesmesi",
               values: formData as unknown as Record<string, string>,

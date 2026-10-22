@@ -16,6 +16,7 @@ import {
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
+import { useBelgeFieldFocus } from "@/hooks/use-belge-field-focus";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
@@ -77,6 +78,14 @@ export function IstifaStudio({
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const formView = useBelgeStudioFormView({ isModal });
+  const {
+    selection: fieldFocus,
+    containerProps: formFocusContainerProps,
+    clearSelection: clearFieldFocusSelection,
+  } = useBelgeFieldFocus({
+    documentId: "santiye-sefi-istifa-dilekcesi",
+    studioRootRef,
+  });
 
   useEffect(() => {
     prewarmBelgeDocument("santiye-sefi-istifa-dilekcesi");
@@ -100,12 +109,14 @@ export function IstifaStudio({
 
   // Global reset to original PDF default values (Sıfırla)
   const handleResetToPdfDefaults = () => {
+    clearFieldFocusSelection();
     setUndoData({ ...formData });
     setFormData({ ...ISTIFA_DILEKCESI_DEFAULT_DATA });
   };
 
   // Clear all fields (Temizle)
   const handleClearAll = () => {
+    clearFieldFocusSelection();
     setUndoData({ ...formData });
     setFormData({
       hitap_1: "",
@@ -268,6 +279,7 @@ export function IstifaStudio({
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
+          {...formFocusContainerProps}
         >
           <div {...formView.contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-istifa-dilekcesi" layouts={layouts} excludedFields={["tarih", "tc_deger", "iletisim_deger", "adres_deger"]} />
@@ -512,6 +524,7 @@ export function IstifaStudio({
             onStatusChange={(revision, status) => setPreviewResult({ revision, status })}
             onRetry={document.retry}
             activeTabMobile={activeTabMobile}
+            fieldFocus={fieldFocus}
             editing={{
               documentId: "santiye-sefi-istifa-dilekcesi",
               values: formData as unknown as Record<string, string>,

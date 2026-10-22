@@ -1525,6 +1525,54 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   margin: auto;
 }
 
+/* --- Belgeler Form ↔ PDF Alan Odak Vurgusu Katmanı --- */
+.belge-field-focus-highlight {
+  box-sizing: border-box;
+  border: 2px solid #2563eb;
+  background-color: rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 1.5px rgba(37, 99, 235, 0.25);
+  animation: belge-focus-pulse 350ms ease-out;
+}
+
+@keyframes belge-focus-pulse {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.99);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.005);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .belge-field-focus-highlight {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .belge-field-focus-highlight {
+    outline: 2px solid Highlight;
+    border-color: Highlight;
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+@media print {
+  .belge-field-focus-highlight,
+  [data-testid="belge-field-focus-layer"],
+  [data-testid="belge-field-focus-highlight"] {
+    display: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-testid="belge-studio-preview-toolbar"] .preview-tool-button {
     transition: none;

@@ -15,6 +15,7 @@ import {
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
+import { useBelgeFieldFocus } from "@/hooks/use-belge-field-focus";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
@@ -76,6 +77,14 @@ export function TaahhutnameStudio({
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const formView = useBelgeStudioFormView({ isModal });
+  const {
+    selection: fieldFocus,
+    containerProps: formFocusContainerProps,
+    clearSelection: clearFieldFocusSelection,
+  } = useBelgeFieldFocus({
+    documentId: "santiye-sefi-taahhutnamesi",
+    studioRootRef,
+  });
 
   useEffect(() => {
     prewarmBelgeDocument("santiye-sefi-taahhutnamesi");
@@ -106,12 +115,14 @@ export function TaahhutnameStudio({
 
   // Global reset to original PDF default values (Sıfırla)
   const handleResetToPdfDefaults = () => {
+    clearFieldFocusSelection();
     setUndoData({ ...formData });
     setFormData({ ...TAAHHUTNAME_DEFAULT_DATA });
   };
 
   // Clear all fields (Temizle)
   const handleClearAll = () => {
+    clearFieldFocusSelection();
     setUndoData({ ...formData });
     setFormData({
       oda_sicil_no: "",
@@ -275,6 +286,7 @@ export function TaahhutnameStudio({
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
+          {...formFocusContainerProps}
         >
           <div {...formView.contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-taahhutnamesi" layouts={layouts} excludedFields={["tc_kimlik_no", "telefon", "adres", "yapi_adresi", "yapi_sahibi_adresi", "tarih"]} />
@@ -583,6 +595,7 @@ export function TaahhutnameStudio({
             onStatusChange={(revision, status) => setPreviewResult({ revision, status })}
             onRetry={document.retry}
             activeTabMobile={activeTabMobile}
+            fieldFocus={fieldFocus}
             editing={{
               documentId: "santiye-sefi-taahhutnamesi",
               values: formData as unknown as Record<string, string>,

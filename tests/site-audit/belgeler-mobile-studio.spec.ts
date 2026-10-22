@@ -749,7 +749,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
         touchPoints: [{ x: centerX - 68, y: centerY }, { x: centerX + 68, y: centerY }],
       });
       await expect
-        .poll(() => studio.getByTestId("belge-studio-preview-toolbar").getByText(/%\d+/, { exact: true }).textContent())
+        .poll(() => studio.getByTestId("belge-studio-preview-toolbar").getByTestId("belge-studio-zoom-level").textContent())
         .not.toBe("%100");
       await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
       await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.");

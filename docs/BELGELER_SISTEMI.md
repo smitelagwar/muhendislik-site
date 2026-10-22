@@ -315,3 +315,20 @@ Olası bir regresyon veya geri alma durumunda:
 - Dokunma hit-test'i `findInlineFieldAtPoint` (44px hedefe tamamlayan en fazla 14px tolerans), gezinme sırası `orderInlineFields`, klavye boşluğu `computeKeyboardInset`, otomatik kaydırma `getInlineFieldRevealDelta` (`src/lib/belge-inline-mobile.ts`).
 - Alt sayfa açıkken önizleme fit ölçüsü dondurulur; klavye önizlemeyi yeniden ölçeklemez. Kirli taslak başka alana dokunma, sayfa değiştirme ve aşağı kaydırma ile silinmez.
 - Kabul: `npx tsx --test tests/belgeler/inline-mobile.test.ts` ve `npm run check:belgeler-inline-mobile`.
+
+---
+
+## 11. Form Alanı Odak Vurgusu ↔ Canlı PDF Önizleme Eşleşmesi (Field Focus Highlight)
+
+- **Temel Mimari:** Kullanıcı soldaki stüdyo formundaki bir alana (input, textarea, select) odaklandığında (`focusin`), sağdaki canlı PDF önizleme tuvali üzerinde ilgili AcroForm alanının koordinatlarına `BelgeStudioFieldFocusLayer` üzerinden saf bir DOM overlay çerçevesi yerleşir. Bu etkileşim PDF motoruna sıfır yük bindirir; **hiçbir odak değişimi yeni PDF derlemesi veya canvas render tetiklemez**.
+- **56/56 Alan Sözleşmesi:** Beş stüdyonun tamamında (`beton-dokum-tutanagi`, `insaat-ruhsati-dilekcesi`, `santiye-sefi-istifa-dilekcesi`, `santiye-sefi-sozlesmesi`, `santiye-sefi-taahhutnamesi`) `DOCUMENT_EDITABLE_FIELDS` allowlist'indeki 56 alan birebir `src/lib/belge-field-focus.ts` içinde DOM ID'leri ile eşlenmiştir. İstifa dilekçesindeki salt okunur (PDF-only) alanlar (`sayi_deger`, `ekler_deger`, `hitap_ek_deger`) dışlanmıştır ve asla sahte vurgu üretmez.
+- **Geometri Çıkarma ve Önbellekleme:** `extractFieldFocusRects`, PDF belgesi yüklendiğinde AcroForm widget alanlarını bir kez normalize koordinatlara (`0..1` aralığında sol, üst, genişlik, yükseklik) dönüştürür ve belge ID'sine göre bellekte önbelleğe alır. Zoom veya pencere boyutu değiştiğinde yeni annotation araması yapılmaz; CSS piksel koordinatları anında ölçeklenir (≤2 px hata toleransı).
+- **Çok Sayfalı Gezinti (Sözleşme):** Sayfa 2'de yer alan bir form alanına odaklanıldığında önizleme otomatik ve kontrollü olarak 2. sayfaya geçer (`handlePageChange`) ve alan görünür değilse `getInlineFieldRevealDelta` ile minimal pürüzsüz kaydırma (`smooth reveal`) uygular.
+- **Mobil 2.5 sn Yaşam Döngüsü:** Mobil ekranda kullanıcı form sekmesinde bir alana veri girdikten sonra "Canlı PDF Önizle" sekmesine geçtiğinde, son odaklanan alan için 2.5 saniye süren geçici bir parlama efekti devreye girer ve ardından kendiliğinden kaybolur. Form sekmesine geri dönüldüğünde zamanlayıcı derhal iptal edilir.
+- **İzolasyon ve Karşılıklı Dışlama:** "PDF Üzerinde Düzenle" (inline edit) modu açıkken form rehberi tamamen gizlenir; amber düzenleme hotspot'u ile mavi form çerçevesi asla çakışmaz. Inline edit kapatıldığında eski odak otomatik açılmaz (`suppressedFocusEventIdRef`), kullanıcının yeni bir alana tıklaması gerekir.
+- **Yoğun Satır Geometrisi:** Taahhütname (9.2–9.8 pt satır aralıkları) gibi kompakt metin bloklarında komşu metin satırlarını kapatmamak için kalın gölge veya 7 px pulse yerine `1.5px` box-shadow ve `scale(1.005)` mikro animasyon kullanılır. `prefers-reduced-motion` aktifken animasyonlar ve yumuşak kaydırmalar sıfır gecikmeli statik moda geçer.
+- **Yeni Şablon Ekleme Kontratı:** Yeni bir belge stüdyosu eklendiğinde `DOCUMENT_EDITABLE_FIELDS` içerisine alanlar kaydedilir, form bileşeninde `useBelgeFieldFocus` hook'u başlatılır ve `BelgeStudioPdfPreview` bileşenine `fieldFocus={fieldFocus}` ve `onClearFieldFocus={clearFieldFocus}` aktarılır.
+- **Test ve Doğrulama Komutları:**
+  - Saf Geometri ve State Makinesi Birim Testleri: `npx tsx --test tests/belgeler/field-focus.test.ts`
+  - Çoklu Çözünürlük ve Görsel Odak E2E Paketi: `npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-field-focus.spec.ts`
+  - PDF Motoru ve Görsel Koruma Paketi: `npm run check:belgeler-pdf`

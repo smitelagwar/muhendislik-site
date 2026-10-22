@@ -12,6 +12,7 @@ import {
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
+import { useBelgeFieldFocus } from "@/hooks/use-belge-field-focus";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
@@ -73,6 +74,14 @@ export function BetonDokumStudio({
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const formView = useBelgeStudioFormView({ isModal });
+  const {
+    selection: fieldFocus,
+    containerProps: formFocusContainerProps,
+    clearSelection: clearFieldFocusSelection,
+  } = useBelgeFieldFocus({
+    documentId: "beton-dokum-tutanagi",
+    studioRootRef,
+  });
 
   useEffect(() => {
     prewarmBelgeDocument("beton-dokum-tutanagi");
@@ -96,12 +105,14 @@ export function BetonDokumStudio({
 
   // Global reset to original PDF default values (Sıfırla)
   const handleResetToPdfDefaults = () => {
+    clearFieldFocusSelection();
     setUndoData({ ...formData });
     setFormData({ ...BETON_DOKUM_DEFAULT_DATA });
   };
 
   // Clear all fields (Temizle)
   const handleClearAll = () => {
+    clearFieldFocusSelection();
     setUndoData({ ...formData });
     setFormData({
       tutanak_alt_baslik: "",
@@ -259,6 +270,7 @@ export function BetonDokumStudio({
           data-testid="belge-studio-form-scroll"
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${activeTabMobile === "form" ? "block" : "hidden lg:block"
             }`}
+          {...formFocusContainerProps}
         >
           <div {...formView.contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="beton-dokum-tutanagi" layouts={layouts} excludedFields={["tarih", "yer"]} />
@@ -516,6 +528,7 @@ export function BetonDokumStudio({
               onCommit: (field, value) => handleFieldChange(field as keyof BetonDokumData, value),
             }}
             formView={formView}
+            fieldFocus={fieldFocus}
           />
         </div>
       </div>

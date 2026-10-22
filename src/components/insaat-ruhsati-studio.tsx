@@ -16,6 +16,7 @@ import {
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
+import { useBelgeFieldFocus } from "@/hooks/use-belge-field-focus";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
@@ -124,6 +125,14 @@ export function InsaatRuhsatiStudio({
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const formView = useBelgeStudioFormView({ isModal });
+  const {
+    selection: fieldFocus,
+    containerProps: formFocusContainerProps,
+    clearSelection: clearFieldFocusSelection,
+  } = useBelgeFieldFocus({
+    documentId: "insaat-ruhsati-dilekcesi",
+    studioRootRef,
+  });
 
   useEffect(() => {
     prewarmBelgeDocument("insaat-ruhsati-dilekcesi");
@@ -147,12 +156,14 @@ export function InsaatRuhsatiStudio({
 
   // Global reset to original PDF default values (Sıfırla)
   const handleResetToPdfDefaults = () => {
+    clearFieldFocusSelection();
     setUndoData({ ...formData });
     setFormData({ ...INSAAT_RUHSATI_DEFAULT_DATA });
   };
 
   // Randomize button handler
   const handleRandomize = () => {
+    clearFieldFocusSelection();
     setUndoData(null);
     const randomIndex = Math.floor(Math.random() * RANDOM_SAMPLES.length);
     const sample = RANDOM_SAMPLES[randomIndex];
@@ -161,6 +172,7 @@ export function InsaatRuhsatiStudio({
 
   // Clear all fields (Temizle)
   const handleClearAll = () => {
+    clearFieldFocusSelection();
     setUndoData({ ...formData });
     setFormData({
       tarih: "",
@@ -318,6 +330,7 @@ export function InsaatRuhsatiStudio({
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
             activeTabMobile === "form" ? "block" : "hidden lg:block"
           }`}
+          {...formFocusContainerProps}
         >
           <div {...formView.contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="insaat-ruhsati-dilekcesi" layouts={layouts} excludedFields={["tarih", "adres", "tel"]} />
@@ -526,6 +539,7 @@ export function InsaatRuhsatiStudio({
             onStatusChange={(revision, status) => setPreviewResult({ revision, status })}
             onRetry={document.retry}
             activeTabMobile={activeTabMobile}
+            fieldFocus={fieldFocus}
             editing={{
               documentId: "insaat-ruhsati-dilekcesi",
               values: formData as unknown as Record<string, string>,
