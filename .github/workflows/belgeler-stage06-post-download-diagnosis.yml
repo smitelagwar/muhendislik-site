@@ -1,0 +1,46 @@
+name: belgeler-stage06-post-download-diagnosis
+on:
+  push:
+    branches: [internal-belgeler-preview-download-diagnosis]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prod-equivalent-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Compile same RC source as production
+        run: npm run build
+      - name: Check actual PDF download + same-route React resilience, desktop and 390px mobile
+        id: browser
+        continue-on-error: true
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "1"
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-stage06-post-download.spec.ts --project=chromium-desktop-1366 --project=chromium-mobile-390 --reporter=line
+      - name: Keep diagnostic screenshots and JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: belgeler-stage06-download-state-proof
+          path: |
+            audit-artifacts-stage06-download/
+            test-results/
+            playwright-report/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Enforce pass
+        if: always()
+        env:
+          BROWSER: ${{ steps.browser.outcome }}
+        run: |
+          echo "download_route_persistence=$BROWSER"
+          test "$BROWSER" = success
