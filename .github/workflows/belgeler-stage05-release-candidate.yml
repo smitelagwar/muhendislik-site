@@ -18,7 +18,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - name: Install PDF visual renderer
-        run: sudo apt-get install -y poppler-utils
+        run: sudo apt-get install -y poppler-utils xdotool
       - name: Changed scope lint
         id: lint
         continue-on-error: true
@@ -38,6 +38,13 @@ jobs:
           CI: "true"
           PLAYWRIGHT_PRODUCTION_SERVER: "0"
         run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-stage05-fix.spec.ts --project=chromium-desktop-1366 --reporter=line
+      - name: True Chrome OS page-zoom regression Z01-Z08
+        id: native_zoom
+        continue-on-error: true
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: xvfb-run -a -s "-screen 0 2400x1400x24" npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-stage05-native-zoom.spec.ts --headed --project=chromium-desktop-1920 --reporter=line
       - name: Existing desktop form menu end-to-end
         id: desktop_menu
         continue-on-error: true
@@ -76,6 +83,7 @@ jobs:
             test-results/
             playwright-report/
             test-output/belgeler-visual-acceptance/
+            audit-artifacts-stage03-p0/
           if-no-files-found: warn
           retention-days: 14
       - name: Enforce all gates (no hidden green)
@@ -85,13 +93,14 @@ jobs:
           TSC: ${{ steps.tsc.outcome }}
           PDF: ${{ steps.pdf.outcome }}
           FIT: ${{ steps.fit.outcome }}
+          NATIVE_ZOOM: ${{ steps.native_zoom.outcome }}
           DESKTOP: ${{ steps.desktop_menu.outcome }}
           DOWNLOADS: ${{ steps.downloads.outcome }}
           INLINE: ${{ steps.inline.outcome }}
           BUILD: ${{ steps.build.outcome }}
           SMOKE: ${{ steps.smoke.outcome }}
         run: |
-          printf '%s\n' "lint=$LINT" "tsc=$TSC" "pdf=$PDF" "fit=$FIT" "desktop=$DESKTOP" "downloads=$DOWNLOADS" "inline=$INLINE" "build=$BUILD" "smoke=$SMOKE"
-          for value in "$LINT" "$TSC" "$PDF" "$FIT" "$DESKTOP" "$DOWNLOADS" "$INLINE" "$BUILD" "$SMOKE"; do
+          printf '%s\n' "lint=$LINT" "tsc=$TSC" "pdf=$PDF" "fit=$FIT" "native_zoom=$NATIVE_ZOOM" "desktop=$DESKTOP" "downloads=$DOWNLOADS" "inline=$INLINE" "build=$BUILD" "smoke=$SMOKE"
+          for value in "$LINT" "$TSC" "$PDF" "$FIT" "$NATIVE_ZOOM" "$DESKTOP" "$DOWNLOADS" "$INLINE" "$BUILD" "$SMOKE"; do
             test "$value" = success || exit 1
           done

@@ -68,13 +68,19 @@ export function useBelgeStudioFormView(
   const rafIdRef = useRef<number | null>(null);
   const revisionRef = useRef(0);
 
-  // Hydration sonrası kayıtlı kullanıcı tercihini yükle
+  // SSR uses stable defaults; hydrate saved preferences in a microtask,
+  // avoiding synchronous setState inside an effect during React commit.
   useEffect(() => {
-    const pref = loadFormViewPreference();
-    setMode(pref.mode);
-    setManualScale(pref.manualScale);
-    setManualDensity(pref.manualDensity);
-    setIsHydrated(true);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      const pref = loadFormViewPreference();
+      setMode(pref.mode);
+      setManualScale(pref.manualScale);
+      setManualDensity(pref.manualDensity);
+      setIsHydrated(true);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // Tercih değiştiğinde kaydet
