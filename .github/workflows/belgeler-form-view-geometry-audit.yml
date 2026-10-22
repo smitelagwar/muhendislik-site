@@ -17,16 +17,24 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Audit actual UI geometry (CSS viewport, not browser zoom)
+      - name: Install OS input tool for true Chrome browser zoom
+        run: sudo apt-get install -y xdotool
+      - name: Real app DOM geometry and breakpoint tests
         env:
           CI: "true"
           PLAYWRIGHT_PRODUCTION_SERVER: "0"
         run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-form-geometry-audit.spec.ts --project=chromium-desktop-1920 --reporter=line
-      - name: Upload results
+        continue-on-error: true
+      - name: TRUE Chrome UI zoom via OS keyboard (not emulation/pageScaleFactor)
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+        run: xvfb-run -a -s "-screen 0 2400x1400x24" npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-native-chrome-zoom.spec.ts --headed --project=chromium-desktop-1920 --reporter=line
+      - name: Upload results even on failure
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: belgeler-form-geometry-report
+          name: belgeler-form-geometry-and-native-zoom-report
           path: |
             test-results/
             playwright-report/
