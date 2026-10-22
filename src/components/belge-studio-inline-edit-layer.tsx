@@ -410,8 +410,8 @@ export const BelgeStudioInlineEditLayer = memo(function BelgeStudioInlineEditLay
                   isSelected
                     ? "border-amber-500 bg-amber-500/25 ring-2 ring-amber-500/60"
                     : touchOptimized
-                      ? "border-amber-500/70 bg-amber-500/10"
-                      : "border-amber-500/20 bg-amber-500/[0.03] hover:border-amber-500/80 hover:bg-amber-500/15"
+                      ? "border-amber-500/75 bg-amber-500/10"
+                      : "border-amber-500/75 bg-amber-500/10 hover:border-amber-600 hover:bg-amber-500/20 hover:ring-1 hover:ring-amber-500/40"
                 }
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:border-amber-500 focus-visible:bg-amber-500/20 cursor-pointer`}
             >
