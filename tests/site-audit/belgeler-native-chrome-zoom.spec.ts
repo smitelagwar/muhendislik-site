@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { execFileSync } from "node:child_process";
+import { mkdirSync, writeFileSync } from "node:fs";
+
+mkdirSync("audit-artifacts-native-zoom", { recursive: true });
 
 const docs = [
   "santiye-sefi-sozlesmesi",
@@ -97,21 +100,25 @@ for (const doc of docs) {
     await page.setViewportSize({ width: 1536, height: 864 });
     await page.goto("/belgeler/" + doc, { waitUntil: "domcontentloaded", timeout: 30000 });
     await expect(page.getByTestId("belge-studio-preview-toolbar")).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('[data-studio-locked="true"]:visible').first().getByRole("status").first()).toHaveText("PDF önizlemesi hazır.", { timeout: 30000 });
     try {
       for (const target of [1, 1.25, 1.5, 2]) {
         if (target !== 1) await setNativeChromeZoom(page, target);
         const metrics = await browserMetrics(page);
         const toolbar = await geometry(page);
+        console.log("NATIVE_ZOOM_METRICS", JSON.stringify({ doc, target, metrics, overlaps: toolbar.overlaps }));
         const formVisible = await page.locator('[data-belge-form-content="true"]').first().isVisible();
         const datum: Record<string, unknown> = { doc, target, metrics, toolbar, formVisible };
         if (formVisible) datum.form = await formGeometry(page);
         observations.push(datum);
         if (target === 1.5 || target === 2) {
           await info.attach(doc + "-native-" + target + ".png", {
-            body: await page.screenshot({ animations: "disabled" }), contentType: "image/png",
+            body: await page.screenshot({ animations: "disabled", path: `audit-artifacts-native-zoom/${doc}-${target}.png` }), contentType: "image/png",
           });
         }
         expect(Math.abs(metrics.dpr - target), JSON.stringify(datum)).toBeLessThan(0.025);
+        // True browser zoom must REFLOW CSS layout, not merely change DPR or pinch scale.
+        expect(Math.abs(metrics.innerWidth - Math.round(1536 / target)), JSON.stringify(datum)).toBeLessThan(5);
         expect(metrics.viewportScale, "Pinch zoom must remain unchanged").toBeCloseTo(1, 1);
       }
     } finally {
@@ -119,6 +126,7 @@ for (const doc of docs) {
         body: Buffer.from(JSON.stringify({ observations, errors }, null, 2)),
         contentType: "application/json",
       });
+      writeFileSync(`audit-artifacts-native-zoom/${doc}-metrics.json`, JSON.stringify({ observations, errors }, null, 2));
       nativeKey("ctrl+0");
     }
     expect(errors).toEqual([]);
@@ -167,6 +175,7 @@ test("DENETIM03 native zoom fit/focus/warning contract", async ({page},info) => 
     await info.attach("native-fit-focus-warning.json", {
       body: Buffer.from(JSON.stringify(observations, null, 2)), contentType: "application/json",
     });
+    writeFileSync("audit-artifacts-native-zoom/fit-focus-warning.json", JSON.stringify(observations, null, 2));
     nativeKey("ctrl+0");
   }
 });

@@ -20,16 +20,19 @@ jobs:
       - name: Install OS input tool for true Chrome browser zoom
         run: sudo apt-get install -y xdotool
       - name: Real app DOM geometry and breakpoint tests
+        id: cssgeometry
         env:
           CI: "true"
           PLAYWRIGHT_PRODUCTION_SERVER: "0"
         run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-form-geometry-audit.spec.ts --project=chromium-desktop-1920 --reporter=line
         continue-on-error: true
       - name: TRUE Chrome UI zoom via OS keyboard (not emulation/pageScaleFactor)
+        id: nativezoom
         env:
           CI: "true"
           PLAYWRIGHT_PRODUCTION_SERVER: "0"
         run: xvfb-run -a -s "-screen 0 2400x1400x24" npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-native-chrome-zoom.spec.ts --headed --project=chromium-desktop-1920 --reporter=line
+        continue-on-error: true
       - name: Upload results even on failure
         if: always()
         uses: actions/upload-artifact@v4
@@ -38,5 +41,13 @@ jobs:
           path: |
             test-results/
             playwright-report/
-          if-no-files-found: ignore
+            audit-artifacts-native-zoom/
+          if-no-files-found: error
           retention-days: 14
+
+      - name: Enforce audit gates after both suites
+        if: always()
+        run: |
+          echo 'CSS outcome: ${{ steps.cssgeometry.outcome }}'
+          echo 'Native zoom outcome: ${{ steps.nativezoom.outcome }}'
+          test '${{ steps.cssgeometry.outcome }}' = 'success' && test '${{ steps.nativezoom.outcome }}' = 'success'
