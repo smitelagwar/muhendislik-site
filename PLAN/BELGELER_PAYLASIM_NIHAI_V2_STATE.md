@@ -5,11 +5,11 @@ plan_id: INSA-BELGELER-LINK-V2-20261023
 plan_revision: 2
 plan_file: PLAN/BELGELER_PAYLASIM_NIHAI_V2_PLAN.md
 planning_status: PLAN_HAZIR
-execution_status: DEVAM_EDIYOR
+execution_status: TAMAMLANDI
 source_branch: main
 source_commit_at_planning: 323b064960bbdc9cbab0b4fbc55f74ca7f6fdf47
 active_stage: null
-next_stage: ASAMA_10
+next_stage: null
 completed_stages:
   - ASAMA_01
   - ASAMA_02
@@ -20,6 +20,7 @@ completed_stages:
   - ASAMA_07
   - ASAMA_08
   - ASAMA_09
+  - ASAMA_10
 stages:
   ASAMA_01: { title: "Baseline ve Node flatten POC", status: PASS }
   ASAMA_02: { title: "Akıllı dosya adı ve PDF İndir", status: PASS }
@@ -30,7 +31,7 @@ stages:
   ASAMA_07: { title: "Bağlantı oluşturma, kopyalama, iptal", status: PASS }
   ASAMA_08: { title: "Cron, purge ve retention", status: PASS }
   ASAMA_09: { title: "Entegre kabul, güvenlik ve performans", status: PASS }
-  ASAMA_10: { title: "Tek Production release", status: PENDING }
+  ASAMA_10: { title: "Tek Production release", status: PASS }
 decisions_locked:
   - "WhatsApp/native PDF paylaşımı, wa.me, navigator.share, QR, e-posta linki yok"
   - "Yalnız Paylaş > Bağlantı oluştur > Kopyala; 90 gun sabit"
@@ -47,8 +48,8 @@ open_checks:
   - "ASAMA_01: migration dizisi ve private Blob/Neon varlık kontrolü [TAMAMLANDI]"
   - "ASAMA_02: 5 belge akıllı dosya adı sözleşmesi ve birim testleri [TAMAMLANDI]"
   - "ASAMA_03: 5 stüdyo Paylaş modal/diyalog ve responsive giriş noktası [TAMAMLANDI]"
-  - "ASAMA_10: BELGE_SHARE_SECRET ve CRON_SECRET üretimde var mı"
-  - "ASAMA_10: Vercel Production READY ve canlı smoke"
+  - "ASAMA_10: BELGE_SHARE_SECRET ve CRON_SECRET üretimde var mı [TAMAMLANDI]"
+  - "ASAMA_10: Vercel Production READY ve canlı smoke [TAMAMLANDI]"
 evidence:
   - stage: ASAMA_01
     date: '2026-10-23T16:21:00+03:00'
@@ -305,8 +306,37 @@ evidence:
         idor_protection: "İptal eylemi x-manage-token gerektirir ve timingSafeEqual ile sabit-zamanlı doğrulanır."
         layout_isolation: "/b/[token] rotasında root layout Navbar, Footer ve GlobalOverlays DOM'dan tamamen çıkarılmıştır."
         living_docs_updated: "docs/BELGELER_SISTEMI.md ve .agents/rules/belgeler-kurallari.md akıllı dosya adı ve paylaşım mimarisiyle güncellendi."
+  - stage: ASAMA_10
+    date: '2026-10-23T18:02:00+03:00'
+    checks:
+      git_release_commit: "47526c5 (feat(belgeler): akilli dosya adi ve 90 gunluk salt okunur link)"
+      branch: "main -> origin/main"
+      vercel_secrets_registered:
+        - "BELGE_SHARE_SECRET: 256-bit cryptographically secure entropy, Production ve Preview için tanımlandı"
+        - "CRON_SECRET: 256-bit cryptographically secure entropy, Production ve Preview için tanımlandı"
+      database_migration: "Neon DB üzerinde 'belge_paylasim_links' tablosu ve indeksleri (token_hash, manage_token_hash, request_id_hash, expires_at/status, creator_ip_hash, lease_until) otomatik şema güvencesiyle hazırlandı"
+      vercel_deployment:
+        deployment_id: "dpl_AKiEyPVAd1Jrvwp5U9nhZfkoGYe7"
+        status: "● Ready (Production)"
+        canonical_alias: "https://muhendislik-site.vercel.app"
+        duration: "4m"
+      live_smoke_verification:
+        cron_unauthorized: "PASS (GET /api/cron/belge-paylasim-temizlik -> 401 Unauthorized)"
+        api_disallowed_methods: "PASS (GET /api/belgeler/paylasim -> 405 Method Not Allowed)"
+        live_api_share_roundtrip: "PASS (POST /api/belgeler/paylasim -> 200 OK + 90 günlük token)"
+        live_pdf_stream: "PASS (GET /api/belgeler/paylasim/[token]/pdf -> 1.28 MB, %PDF-1.4, application/pdf)"
+        live_api_revocation: "PASS (DELETE /api/belgeler/paylasim/[token] + x-manage-token -> 200 OK, status: revoked)"
+        live_instant_410: "PASS (İptal edilen bağlantıya GET /api/belgeler/paylasim/[token]/pdf -> anında 410 Gone)"
+        live_browser_viewer_isolation: "PASS (/b/[token] rota izolasyonu -> nav: 0, siteHeader: 0, footer: 0, DOM'da site chrome yok)"
+        live_browser_pdf_canvas: "PASS (1 adet salt-okunur PDF canvas başarıyla render edildi)"
+        live_zero_whatsapp_check: "PASS (0 WhatsApp / wa.me / share bağlantısı)"
+        live_browser_revoked_screen: "PASS (İptal edilen token yenilendiğinde 'Bağlantı İptal Edildi' 410 ekranı doğrulandı)"
+        live_studio_share_button: "PASS (/belgeler/santiye-sefi-taahhutnamesi -> Paylaş butonu görünür, diyalog açıldı, WhatsApp butonu: 0)"
 blockers: []
-updated_at: '2026-10-23T17:47:00+03:00'
+updated_at: '2026-10-23T18:02:00+03:00'
 ```
 
-**ASAMA_09 başarıyla tamamlandı.** Kural gereği bir mesajda yalnız bir aşama tamamlanır ve durulur. Sıradaki ve son aşama `ASAMA_10` (Tek Production release, Vercel canlı smoke).
+**ASAMA_10 ve tüm plan başarıyla tamamlandı.**
+- Planın tüm 10 aşaması (`ASAMA_01` – `ASAMA_10`) eksiksiz uygulandı ve doğrulandı.
+- Canlı Vercel Production deployment: `dpl_AKiEyPVAd1Jrvwp5U9nhZfkoGYe7` (`● Ready`).
+- Uygulanacak başka aşama bulunmamaktadır (`execution_status: TAMAMLANDI`, `next_stage: null`).
