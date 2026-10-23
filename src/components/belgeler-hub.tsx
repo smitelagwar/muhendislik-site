@@ -13,10 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { AmbientOceanCanvas } from "@/components/ambient-ocean-canvas";
-import { AmbientWhaleCanvas } from "@/components/ambient-whale-canvas";
 import { BelgelerGlassBg } from "@/components/belgeler-glass-bg";
 import { OceanEcosystemIcon } from "@/components/icons/ocean-ecosystem-icon";
-import { WhaleBlueprintIcon } from "@/components/icons/whale-blueprint-icon";
 import {
   DOCUMENTS,
   type DocumentCategory,
@@ -24,37 +22,8 @@ import {
 } from "@/lib/documents-data";
 import { normalizeBelgelerSearchText } from "@/lib/belgeler-search";
 
-const WHALE_STORAGE_KEY = "muhendis_whale_ambient_enabled";
 const OCEAN_STORAGE_KEY = "muhendis_ocean_ambient_enabled";
-let whaleListeners: Array<() => void> = [];
 let oceanListeners: Array<() => void> = [];
-
-function subscribeWhale(listener: () => void) {
-  whaleListeners.push(listener);
-  const handleStorage = (event: StorageEvent) => {
-    if (event.key === WHALE_STORAGE_KEY) {
-      listener();
-    }
-  };
-  window.addEventListener("storage", handleStorage);
-  return () => {
-    whaleListeners = whaleListeners.filter((l) => l !== listener);
-    window.removeEventListener("storage", handleStorage);
-  };
-}
-
-function getWhaleSnapshot() {
-  try {
-    const saved = localStorage.getItem(WHALE_STORAGE_KEY);
-    return saved !== null ? saved === "true" : true;
-  } catch {
-    return true;
-  }
-}
-
-function getWhaleServerSnapshot() {
-  return true;
-}
 
 function subscribeOcean(listener: () => void) {
   oceanListeners.push(listener);
@@ -231,11 +200,6 @@ function DocumentCard({
 
 export function BelgelerHub() {
   const [searchQuery, setSearchQuery] = useState("");
-  const isWhaleEnabled = useSyncExternalStore(
-    subscribeWhale,
-    getWhaleSnapshot,
-    getWhaleServerSnapshot
-  );
   const isOceanEnabled = useSyncExternalStore(
     subscribeOcean,
     getOceanSnapshot,
@@ -243,16 +207,6 @@ export function BelgelerHub() {
   );
   const searchInputId = useId();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-
-  const toggleWhale = () => {
-    try {
-      const next = !isWhaleEnabled;
-      localStorage.setItem(WHALE_STORAGE_KEY, String(next));
-      whaleListeners.forEach((l) => l());
-    } catch {
-      // ignore
-    }
-  };
 
   const toggleOcean = () => {
     try {
@@ -296,7 +250,6 @@ export function BelgelerHub() {
     <section aria-label="Belge arama ve listesi" className="relative min-h-[calc(100vh-140px)]">
       <BelgelerGlassBg />
       <AmbientOceanCanvas enabled={isOceanEnabled} />
-      <AmbientWhaleCanvas enabled={isWhaleEnabled} />
 
       <div className="relative z-10 mx-auto max-w-[1440px] px-5 pt-6 sm:px-8 sm:pt-8 lg:px-12 xl:px-16">
         <div data-whale-protect className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -339,42 +292,6 @@ export function BelgelerHub() {
                     }`}
                   />
                   {isOceanEnabled ? "Açık" : "Kapalı"}
-                </span>
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={toggleWhale}
-              aria-pressed={isWhaleEnabled}
-              aria-label={isWhaleEnabled ? "Blueprint balina animasyonunu kapat" : "Blueprint balina animasyonunu aç"}
-              title={isWhaleEnabled ? "Blueprint balina animasyonunu duraklat / gizle" : "Blueprint balina animasyonunu aç"}
-              className="inline-flex items-center gap-2.5 rounded-2xl border border-black/10 bg-white/80 px-3.5 py-2 text-xs font-semibold text-foreground shadow-sm backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-500/40 hover:bg-white hover:shadow-md dark:border-white/10 dark:bg-white/[0.05] dark:hover:border-cyan-400/40 dark:hover:bg-white/[0.09] dark:hover:shadow-cyan-950/30"
-            >
-              <WhaleBlueprintIcon
-                size={18}
-                active={isWhaleEnabled}
-                className={`transition-colors duration-200 ${
-                  isWhaleEnabled ? "text-amber-600 dark:text-cyan-400" : "text-muted-foreground"
-                }`}
-              />
-              <span className="flex items-center gap-1.5 font-medium">
-                <span>Blueprint Balina</span>
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider transition-colors duration-200 ${
-                    isWhaleEnabled
-                      ? "border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:border-cyan-400/30 dark:bg-cyan-500/15 dark:text-cyan-300"
-                      : "border border-black/10 bg-black/5 text-muted-foreground dark:border-white/10 dark:bg-white/5"
-                  }`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full transition-transform duration-200 ${
-                      isWhaleEnabled
-                        ? "bg-amber-500 shadow-[0_0_6px_currentColor] dark:bg-cyan-400"
-                        : "bg-muted-foreground/40"
-                    }`}
-                  />
-                  {isWhaleEnabled ? "Açık" : "Kapalı"}
                 </span>
               </span>
             </button>
