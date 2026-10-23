@@ -63,16 +63,21 @@ test.describe("Belgeler Akordeon Rollout — ASAMA_06 Kalan 4 Stüdyo", () => {
       await expect(page.locator(`[data-testid="belge-section-toggle-${id}"]`)).toHaveAttribute("aria-expanded", "true");
     }
 
-    // Şimdi hepsi açıkken "Tümünü Kapat" tıkla
-    await expect(master).toContainText("Tümünü Kapat");
+    // Şimdi hepsi açıkken "Diğerlerini Kapat" tıkla (closeOthers sözleşmesi)
+    await expect(master).toContainText("Diğerlerini Kapat");
     await master.click();
-    for (const id of sectionIds) {
+    await expect(master).toContainText("Tümünü Aç");
+
+    // closeOthers ilk/aktif bölümü açık tutar, diğer bölümleri kapatır (0 açık bölüm üretmez)
+    await expect(page.locator(`[data-testid="belge-section-toggle-${sectionIds[0]}"]`)).toHaveAttribute("aria-expanded", "true");
+    for (const id of sectionIds.slice(1)) {
       await expect(page.locator(`[data-testid="belge-section-toggle-${id}"]`)).toHaveAttribute("aria-expanded", "false");
     }
 
     // Tekrar tümünü aç
     await expect(master).toContainText("Tümünü Aç");
     await master.click();
+    await expect(master).toContainText("Diğerlerini Kapat");
     for (const id of sectionIds) {
       await expect(page.locator(`[data-testid="belge-section-toggle-${id}"]`)).toHaveAttribute("aria-expanded", "true");
     }

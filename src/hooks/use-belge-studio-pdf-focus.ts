@@ -16,6 +16,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { BELGE_UX_FLAGS } from "@/lib/belge-ux-config";
 
 const DESKTOP_QUERY = "(min-width: 1024px)";
 
@@ -43,6 +44,8 @@ export interface UseBelgeStudioPdfFocusOptions {
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   /** İsteğe bağlı modal modu */
   isModal?: boolean;
+  /** Feature flag kontrolü (varsayılan: BELGE_UX_FLAGS.FOCUS_MODE) */
+  enabled?: boolean;
 }
 
 export interface UseBelgeStudioPdfFocusReturn {
@@ -55,9 +58,13 @@ export interface UseBelgeStudioPdfFocusReturn {
 
 export function useBelgeStudioPdfFocus({
   scrollContainerRef,
+  enabled = BELGE_UX_FLAGS.FOCUS_MODE,
 }: UseBelgeStudioPdfFocusOptions = {}): UseBelgeStudioPdfFocusReturn {
   const isDesktop = useSyncExternalStore(subscribe, getDesktopSnapshot, getServerSnapshot);
   const [userPdfFocus, setUserPdfFocus] = useState(false);
+
+  const restoreTimerRef = useRef<number | null>(null);
+  useEffect(() => () => { if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current); }, []);
 
   const savedScrollTopRef = useRef<number>(0);
   const lastFocusedInputIdRef = useRef<string | null>(null);
@@ -105,7 +112,8 @@ export function useBelgeStudioPdfFocus({
     lastFocusedInputIdRef.current = null;
 
     if (typeof window !== "undefined") {
-      window.setTimeout(() => {
+      if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
+      restoreTimerRef.current = window.setTimeout(() => {
         if (scrollContainerRef?.current) {
           scrollContainerRef.current.scrollTop = targetScrollTop;
         }
@@ -117,7 +125,7 @@ export function useBelgeStudioPdfFocus({
             el.getClientRects().length > 0 &&
             !el.closest("[hidden]")
           ) {
-            el.focus();
+            if (scrollContainerRef?.current?.contains(el)) el.focus({ preventScroll: true });
           }
         }
       }, 50);
@@ -125,48 +133,31 @@ export function useBelgeStudioPdfFocus({
   }, [scrollContainerRef]);
 
   const togglePdfFocus = useCallback(() => {
-    setUserPdfFocus((prev) => {
-      const willEnable = !prev;
-      if (willEnable) {
-        // Form scrollTop'ı kaydet
-        if (scrollContainerRef?.current) {
-          savedScrollTopRef.current = scrollContainerRef.current.scrollTop;
-        }
-        if (typeof document !== "undefined" && document.activeElement) {
-          const activeEl = document.activeElement;
-          if (
-            scrollContainerRef?.current?.contains(activeEl) &&
-            activeEl.id &&
-            activeEl instanceof HTMLElement
-          ) {
-            lastFocusedInputIdRef.current = activeEl.id;
-          }
-        }
-        // Odaklı girdi gizlenmeden önce görünen toggle düğmesine odak taşı
-        if (typeof window !== "undefined") {
-          window.requestAnimationFrame(() => {
-            const toggleBtn = document.querySelector<HTMLElement>(
-              '[data-testid="belge-pdf-focus-toggle"]'
-            );
-            if (toggleBtn && document.activeElement !== toggleBtn) {
-              toggleBtn.focus();
-            }
-          });
-        }
-      } else {
-        // Çıkış yaparken scrollTop ve odağı restore et
-        restoreFocusAndScroll();
+    if (!enabled || !isDesktop) return;
+    if (restoreTimerRef.current) clearTimeout(restoreTimerRef.current);
+    if (userPdfFocus) {
+      setUserPdfFocus(false);
+      restoreFocusAndScroll();
+      return;
+    }
+    const container = scrollContainerRef?.current;
+    if (container) {
+      savedScrollTopRef.current = container.scrollTop;
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && container.contains(active) && active.id) {
+        lastFocusedInputIdRef.current = active.id;
       }
-      return willEnable;
-    });
-  }, [scrollContainerRef, restoreFocusAndScroll]);
+      container.parentElement?.parentElement?.querySelector<HTMLElement>('[data-testid="belge-pdf-focus-toggle"]')?.focus({ preventScroll: true });
+    }
+    setUserPdfFocus(true);
+  }, [enabled, isDesktop, userPdfFocus, scrollContainerRef, restoreFocusAndScroll]);
 
   const exitPdfFocus = useCallback(() => {
     setUserPdfFocus(false);
     restoreFocusAndScroll();
   }, [restoreFocusAndScroll]);
 
-  const isPdfFocus = isDesktop && userPdfFocus;
+  const isPdfFocus = enabled && isDesktop && userPdfFocus;
 
   return {
     isPdfFocus,

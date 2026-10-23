@@ -89,7 +89,7 @@ describe("ASAMA_03: Belge Stüdyosu Form Görünümü Saf Politika Testleri", ()
       manualScale: 0.90,
       manualDensity: "normal",
     });
-    const dirtyCleaned = cleaned as Record<string, unknown> | null;
+    const dirtyCleaned = cleaned as unknown as Record<string, unknown> | null;
     assert.equal(dirtyCleaned?.tc_kimlik, undefined);
     assert.equal(dirtyCleaned?.pdf_bytes, undefined);
   });

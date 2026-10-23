@@ -31,3 +31,15 @@ Bu bölüm `PLAN/DWG_DXF_MOTOR_V2_GPT_6_LUNA_EXTRA_HIGH_PLANI.md` kapsamındaki 
 - `publish-lease-reconcile.test.ts` rapor modunun salt-okunur olmasını; canlı viewer lease'inin temizliği durdurmasını; stale attempt'in fence edilip `expired`, staging scene'in `orphaned` olmasını; grace, retry ve geç gelen object davranışını; READY pointer/object set'in korunmasını PGlite + bellek içi Blob store ile doğrular. `npm run reconcile:cad-v2` varsayılan olarak yalnız rapor üretir; iki aşamalı açık teyit olmadan silmez. Operasyon adımları `docs/cad-v2/storage-reconcile-runbook.md` içindedir. Bu testler Neon/Private Blob canlı kabulü değildir.
 - Açık L03 kabulü: izole Neon/Private Blob test hedefinde migration, bağlantı ve bağımsız-process eşzamanlılık/cold-read kabulü. Üretimde prepare veya DB migration çalıştırılmadı.
 - Üretim erişimi için Blob nesnelerini veya kullanıcı verisini testlerde kullanma; her fault/cold-reader kabulü run-level izole test store ve veri alanı kullanmalıdır.
+
+## Belge paylaşım depolama sözleşmesi (`belge_paylasim/`) — (23 Ekim 2026)
+
+| Konu | Bağlayıcı davranış |
+| --- | --- |
+| İzolasyon | Dokümantasyon (`dok_storage/`) ve CAD (`cad_v2/`) depolamalarından tamamen izole `belge_paylasim/` öneki. |
+| Metadata otoritesi | Neon `belge_paylasim_links` tablosu; anonim kişisel veri (TC, ad, adres) DB'de ve nesne adında asla tutulmaz. |
+| Nesne otoritesi | Vercel Private Blob; doğrudan genel URL verilmez, erişim yetkili `/api/belgeler/paylasim/[token]/pdf` akışıyla sağlanır. |
+| Yaşam döngüsü (Retention) | Tam 90 gün (90 × 24 saat). Süresi dolan veya iptal edilen kayıt anında HTTP 410 döndürür. |
+| Otomatik temizlik (Cron) | Günlük `0 3 * * *` Vercel Cron (`/api/cron/belge-paylasim-temizlik`) yetkili `CRON_SECRET` ile expired/revoked Blob'ları fiziksel olarak siler. |
+| Hata toleransı ve Mezar taşı | Silme hatasında lease serbest bırakılır ve bir sonraki cron'da yinelenir. Başarılı silinen kayıtlar 30 günlük mezar taşı sonrası GC ile temizlenir. |
+

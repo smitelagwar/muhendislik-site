@@ -31,5 +31,12 @@ Bu notlar, belgeler modülünün inşası sırasında karşılaşılan teknik en
 - **Tavsiye:** Başlıklarda son kullanıcıyı ilgilendirmeyen `(AcroForm)` gibi teknik etiketler kullanılmamalıdır.
 - **Tavsiye:** Masaüstü stüdyo düzeninde dış sayfa kaydırması (`outer scroll`) engellenip `100vh` tam ekrana oturtulduğunda, sol form kendi içinde kayıp sağ PDF tam sığdığında en temiz kullanım deneyimi elde edilmektedir.
 
+### 6. Akıllı Dosya Adı ve Güvenli Paylaşım Kuralları
+- **Akıllı Dosya Adı Zorunluluğu:** PDF İndir eyleminde keyfî veya sabit ad yerine `src/lib/belge-filename.ts` modülü kullanılmalıdır. İndirilen PDF düzenlenebilir (editable AcroForm) kalmalıdır.
+- **Paylaşım Kapsamı Koruması (Strict Exclusion):** WhatsApp paylaşımı, `wa.me`, `navigator.share`, QR kod veya e-posta butonu kesinlikle eklenmemelidir. Yalnızca salt-okunur bağlantı oluşturma ve panoya kopyalama eylemi sunulmalıdır.
+- **Sunucuda Flatten Zorunluluğu:** Paylaşılan linkteki PDF sunucuda `flatten: true` ile oluşturulur; form alanları temizlenir ve salt-okunur hale getirilir.
+- **Görüntüleyici İzolasyonu:** `/b/[token]` sayfasında global navbar, footer ve overlay bileşenleri bulunmamalı; `noindex, nofollow` başlıkları verilmelidir.
+- **Süre ve Temizlik:** Bağlantılar tam 90 gün geçerlidir. Süresi dolan veya iptal edilen bağlantı anında 410 döndürür; günlük Vercel Cron (`/api/cron/belge-paylasim-temizlik`) ile Blob fiziksel olarak silinir.
+
 ---
 *Daha kapsamlı mimari detaylar ve adım adım yeni belge ekleme rehberi için gerektiğinde [docs/BELGELER_SISTEMI.md](file:///c:/Users/hsyn/Desktop/muhendis-mimar-portali/docs/BELGELER_SISTEMI.md) dosyasına göz atabilirsiniz.*

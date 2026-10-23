@@ -84,15 +84,10 @@ test.describe("Belgeler Stüdyosu — ASAMA_08 Entegre UX ve Stres Paketi", () =
     await page.reload();
     await page.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
 
-    // 2. Temizle eylemini tetikle
+    // 2. Temizle eylemini tetikle (window.confirm onay kapısı)
+    page.once("dialog", (dialog) => dialog.accept());
     const clearBtn = page.locator('button:has-text("Temizle")');
     await clearBtn.click();
-
-    // Onay modalında "Tümünü Temizle" seç
-    const confirmClearBtn = page.locator('button:has-text("Tümünü Temizle")');
-    if (await confirmClearBtn.isVisible()) {
-      await confirmClearBtn.click();
-    }
 
     // 3. Formun temizlendiğini ve yeni snapshot'ın boş verilerle kaydolduğunu doğrula
     const yerInput = page.locator("#beton-dokum-yer");
@@ -108,19 +103,18 @@ test.describe("Belgeler Stüdyosu — ASAMA_08 Entegre UX ve Stres Paketi", () =
     await page.reload();
     await page.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
 
-    // Temiz snapshot olduğu için restore banner'ı çıksa bile yüklenince boş kalmalıdır
+    // Temiz snapshot olduğu için restore banner çıksa bile yüklenince boş kalmalıdır
     const restoreBanner = page.locator('[data-testid="belge-draft-restore-banner"]');
-    if (await restoreBanner.isVisible()) {
-      await page.locator('[data-testid="belge-draft-restore-confirm"]').click();
-    }
+    await expect(restoreBanner).toBeVisible({ timeout: 5000 });
+    await page.locator('[data-testid="belge-draft-restore-confirm"]').click();
     await expect(yerInput).toHaveValue("");
 
-    // 5. Geri Al (Undo) butonuna tıkla
+    // 5. Geri Al (Undo) butonuna tıkla ve önceki dolu verinin geri geldiğini doğrula (F17)
     const undoBtn = page.locator('button:has-text("Geri Al")');
-    if (await undoBtn.isVisible() && !(await undoBtn.isDisabled())) {
-      await undoBtn.click();
-      await page.waitForTimeout(500);
-    }
+    await expect(undoBtn).toBeVisible();
+    await expect(undoBtn).toBeEnabled();
+    await undoBtn.click();
+    await expect(yerInput).not.toHaveValue("");
   });
 
   test("Senaryo 3: Cihaz ve Sekme modları, gizlilik ve depolama toleransı", async ({ page }) => {
@@ -189,6 +183,7 @@ test.describe("Belgeler Stüdyosu — ASAMA_08 Entegre UX ve Stres Paketi", () =
     // Sekme B çakışma şeridinde 'Bu Sekmedekiyle Devam Et' (takeover) seçer
     const takeoverBtnB = pageB.locator('[data-testid="belge-draft-conflict-takeover"]');
     await expect(takeoverBtnB).toBeVisible({ timeout: 6000 });
+    pageB.once("dialog", dialog => dialog.accept());
     await takeoverBtnB.click();
     await pageB.waitForTimeout(1200);
 
@@ -196,7 +191,8 @@ test.describe("Belgeler Stüdyosu — ASAMA_08 Entegre UX ve Stres Paketi", () =
     const conflictBannerA = pageA.locator('[data-testid="belge-draft-conflict-banner"]');
     await expect(conflictBannerA).toBeVisible({ timeout: 6000 });
 
-    // Sekme A "Diğer Sekmedekini Yükle" der
+    // Sekme A "Diğer Sekmedekini Yükle" der (F05 window.confirm onay kapısı)
+    pageA.once("dialog", (dialog) => dialog.accept());
     const reloadBtnA = pageA.locator('[data-testid="belge-draft-conflict-reload"]');
     await reloadBtnA.click();
     await expect(conflictBannerA).toHaveCount(0);
@@ -265,12 +261,11 @@ test.describe("Belgeler Stüdyosu — ASAMA_08 Entegre UX ve Stres Paketi", () =
     await page.keyboard.press("Space");
     await expect(sectionToggle).toHaveAttribute("aria-expanded", "true");
 
-    // 2. Minimum 44px dokunma hedefi kontrolü (WCAG 2.5.5 / 2.5.8)
-    const focusToggle = page.locator('[data-testid="belge-pdf-focus-toggle"]');
-    const box = await focusToggle.boundingBox();
-    expect(box).not.toBeNull();
-    if (box) {
-      expect(box.height).toBeGreaterThanOrEqual(40); // 40-44px ergonomik toolbar butonu
+    // 2. Minimum 44px dokunma hedefi kontrolü (WCAG 2.5.5 / 2.5.8) - Akordeon Başlığı (F14/F17)
+    const sectionBox = await sectionToggle.boundingBox();
+    expect(sectionBox).not.toBeNull();
+    if (sectionBox) {
+      expect(sectionBox.height).toBeGreaterThanOrEqual(44);
     }
   });
 

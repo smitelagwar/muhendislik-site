@@ -56,12 +56,12 @@ export const BELGE_STUDIO_SECTIONS: Record<
     },
     {
       id: "dilekce-sahibi",
-      title: "2. Dilekçe Sahibi",
+      title: "3. Dilekçe Sahibi",
       fields: ["ad_soyad", "unvan"],
     },
     {
       id: "iletisim-adres",
-      title: "3. İletişim ve Tebligat Adresi",
+      title: "4. İletişim ve Tebligat Adresi",
       fields: ["adres", "tel"],
     },
   ],

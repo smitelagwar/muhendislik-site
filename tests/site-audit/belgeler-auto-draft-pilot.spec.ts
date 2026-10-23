@@ -161,6 +161,7 @@ test.describe("Belgeler Otomatik Taslak — ASAMA_02 Beton Pilotu", () => {
     await deviceBtn.click();
     await page.waitForTimeout(1200);
 
+    page.once("dialog", dialog => dialog.accept());
     // Temizle butonunu bul ve tıkla
     const clearBtn = page.locator('footer[data-testid="belge-studio-actions"] button:has-text("Temizle")').first();
     if (await clearBtn.isVisible()) {

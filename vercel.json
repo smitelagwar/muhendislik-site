@@ -9,6 +9,12 @@
       "chatgpt-*": false
     }
   },
+  "crons": [
+    {
+      "path": "/api/cron/belge-paylasim-temizlik",
+      "schedule": "0 3 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/vendor/pdfjs/(.*)",

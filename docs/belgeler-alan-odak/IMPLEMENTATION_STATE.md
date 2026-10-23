@@ -1,5 +1,9 @@
 # Belgeler — Form ↔ PDF Alan Odak Vurgusu Uygulama Durumu
 
+> **DÜZELTME BİLGİSİ (2026-10-23 Denetimi):**
+> Bu tarihsel durum dosyasındaki `tested_commit` değeri yazım hatasından kaynaklı geçersiz bir SHA (`59c1f545...`) içeriyordu; gerçek kaynak commit `59c1f54f50d2b090f5090b159b6aa9396655c55d` olarak düzeltilmiştir.
+> B01–B10 bulgularının eksiksiz çözümü, canlı smoke/E2E testleri ve güncel durum kaydı için [docs/belgeler-alan-odak-duzeltme-2026-10-23/IMPLEMENTATION_STATE.md](../belgeler-alan-odak-duzeltme-2026-10-23/IMPLEMENTATION_STATE.md) dosyasına bakınız.
+
 ```yaml
 plan_id: BELGELER_FORM_PDF_FOCUS_V2
 plan_revision: 2
@@ -19,7 +23,7 @@ completed_stages:
   - ASAMA_08
 skipped_stages: []
 base_commit: e81f4c158bdce03a49e3fb058d648dbbfe9e2838
-tested_commit: 59c1f545465cf45055b89cfd313be7b9318b76c8
+tested_commit: 59c1f54f50d2b090f5090b159b6aa9396655c55d
 dirty_tree: true
 evidence:
   - stage: ASAMA_00

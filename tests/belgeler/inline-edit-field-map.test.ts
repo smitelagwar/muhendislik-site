@@ -356,7 +356,7 @@ async function testRealTemplates() {
     );
 
     // 3. Hiçbir PDF-only etiket eşleşmemeli
-    const pdfOnlyKeys = new Set(DOCUMENT_PDF_ONLY_FIELDS[docId]);
+    const pdfOnlyKeys = new Set<string>(DOCUMENT_PDF_ONLY_FIELDS[docId]);
     for (const field of docMappedFields) {
       assert.ok(
         !pdfOnlyKeys.has(field.fieldKey),

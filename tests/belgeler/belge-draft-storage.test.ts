@@ -310,35 +310,69 @@ describe("ASAMA_01: Saf Taslak ve Depolama Çekirdeği Testleri", () => {
     }
   });
 
-  it("10. 64 KiB ± 1 bayt güvenlik boyut sınırını doğru ölçmelidir", () => {
+  it("10. 64 KiB ± 1 bayt güvenlik boyut sınırını (65535, 65536, 65537) doğru ölçmelidir", () => {
     const storage = new InMemoryStorage();
     const docId: BelgeDocumentId = "santiye-sefi-taahhutnamesi";
     const sample = createSampleValuesForDocument(docId);
 
-    // Tam 1000 baytlık bir zarf oluşturup özel maxBytes ile test edelim
-    const created = createDraftEnvelope({
+    // Varsayılan MAX_DRAFT_BYTES (65536 bayt) sınırında tam test:
+    const baseEnvelope = createDraftEnvelope({
       documentId: docId,
-      values: sample,
+      values: { ...sample, adres: "" },
       writerId: "w1",
       revision: 1,
     });
-    assert.equal(created.ok, true);
-    if (!created.ok) return;
+    assert.equal(baseEnvelope.ok, true);
+    if (!baseEnvelope.ok) return;
 
-    const baseLen = utf8ByteLength(JSON.stringify(created.envelope));
+    const baseJsonLen = utf8ByteLength(JSON.stringify(baseEnvelope.envelope));
+    const neededFor65535 = 65535 - baseJsonLen;
+    const neededFor65536 = 65536 - baseJsonLen;
+    const neededFor65537 = 65537 - baseJsonLen;
 
-    // Tam eşit veya 1 bayt büyük sınırda test:
-    const passResult = saveDraft(storage, "device", created.envelope, {
-      maxBytes: baseLen,
+    const env65535 = createDraftEnvelope({
+      documentId: docId,
+      values: { ...sample, adres: "A".repeat(neededFor65535) },
+      writerId: "w1",
+      revision: 1,
     });
-    assert.equal(passResult.ok, true);
+    assert.equal(env65535.ok, true);
+    if (!env65535.ok) return;
+    assert.equal(utf8ByteLength(JSON.stringify(env65535.envelope)), 65535);
 
-    const failResult = saveDraft(storage, "device", created.envelope, {
-      maxBytes: baseLen - 1,
+    const env65536 = createDraftEnvelope({
+      documentId: docId,
+      values: { ...sample, adres: "A".repeat(neededFor65536) },
+      writerId: "w1",
+      revision: 1,
     });
-    assert.equal(failResult.ok, false);
-    if (!failResult.ok) {
-      assert.equal(failResult.error, "OVERSIZE_LIMIT");
+    assert.equal(env65536.ok, true);
+    if (!env65536.ok) return;
+    assert.equal(utf8ByteLength(JSON.stringify(env65536.envelope)), 65536);
+
+    const env65537 = createDraftEnvelope({
+      documentId: docId,
+      values: { ...sample, adres: "A".repeat(neededFor65537) },
+      writerId: "w1",
+      revision: 1,
+    });
+    assert.equal(env65537.ok, true);
+    if (!env65537.ok) return;
+    assert.equal(utf8ByteLength(JSON.stringify(env65537.envelope)), 65537);
+
+    // 65535 bayt -> saveDraft PASS
+    const res65535 = saveDraft(storage, "device", env65535.envelope);
+    assert.equal(res65535.ok, true);
+
+    // 65536 bayt -> saveDraft PASS (sınır dahil)
+    const res65536 = saveDraft(storage, "device", env65536.envelope);
+    assert.equal(res65536.ok, true);
+
+    // 65537 bayt -> saveDraft FAIL (OVERSIZE_LIMIT)
+    const res65537 = saveDraft(storage, "device", env65537.envelope);
+    assert.equal(res65537.ok, false);
+    if (!res65537.ok) {
+      assert.equal(res65537.error, "OVERSIZE_LIMIT");
     }
   });
 
@@ -506,5 +540,131 @@ describe("ASAMA_01: Saf Taslak ve Depolama Çekirdeği Testleri", () => {
     clearDraftConsent(storage, "device");
     assert.equal(loadDraftConsent(storage, "device"), null);
     assert.equal(loadDraftConsent(storage, "session"), "dismissed");
+  });
+
+  it("16. (D01-S01) loadDraft depodaki 64 KiB üstü aşırı büyük veriyi ayrıştırmadan OVERSIZE_LIMIT ile reddetmelidir", () => {
+    const storage = new InMemoryStorage();
+    const docId: BelgeDocumentId = "beton-dokum-tutanagi";
+    const sample = createSampleValuesForDocument(docId);
+    const created = createDraftEnvelope({
+      documentId: docId,
+      values: sample,
+      writerId: "w1",
+      revision: 1,
+    });
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+
+    // 70 KiB büyüklüğünde veri zarfı
+    const largePayload = JSON.stringify({
+      ...created.envelope,
+      values: { ...sample, yer: "x".repeat(70000) },
+    });
+    storage.setItem(getKeyForMode("device", docId), largePayload);
+
+    const loadRes = loadDraft(storage, "device", docId);
+    assert.equal(loadRes.ok, false);
+    if (!loadRes.ok) {
+      assert.equal(loadRes.error, "OVERSIZE_LIMIT");
+    }
+  });
+
+  it("17. (D01-S02) parseDraft prototip zincirinden kalıtılmış zarf nesnesini PROTOTYPE_POLLUTION ile reddetmelidir", () => {
+    const docId: BelgeDocumentId = "beton-dokum-tutanagi";
+    const sample = createSampleValuesForDocument(docId);
+    const created = createDraftEnvelope({
+      documentId: docId,
+      values: sample,
+      writerId: "w1",
+      revision: 1,
+    });
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+
+    const inheritedEnvelope = Object.create(created.envelope);
+    const parseRes = parseDraft(inheritedEnvelope, docId);
+    assert.equal(parseRes.ok, false);
+    if (!parseRes.ok) {
+      assert.equal(parseRes.error, "PROTOTYPE_POLLUTION");
+    }
+  });
+
+  it("18. (D01-S03) parseDraft üst düzey __proto__ ve yasaklı anahtarları PROTOTYPE_POLLUTION ile reddetmelidir", () => {
+    const docId: BelgeDocumentId = "beton-dokum-tutanagi";
+    const sample = createSampleValuesForDocument(docId);
+    const created = createDraftEnvelope({
+      documentId: docId,
+      values: sample,
+      writerId: "w1",
+      revision: 1,
+    });
+    assert.equal(created.ok, true);
+    if (!created.ok) return;
+
+    const raw = JSON.stringify(created.envelope).replace("{", '{"__proto__":{"audit":true},');
+    const parseRes = parseDraft(raw, docId);
+    assert.equal(parseRes.ok, false);
+    if (!parseRes.ok) {
+      assert.equal(parseRes.error, "PROTOTYPE_POLLUTION");
+    }
+  });
+
+  it("19. (D01-S05) deleteDraft silme sonrası doğrulama okuması hata fırlatırsa STORAGE_EXCEPTION dönmeli ve sessizce onaylamamalıdır", () => {
+    const docId: BelgeDocumentId = "beton-dokum-tutanagi";
+    const fakeStorage: StorageLike = {
+      getItem: () => {
+        throw new Error("READ_DENIED_TEST");
+      },
+      setItem: () => {},
+      removeItem: () => {},
+    };
+
+    const delRes = deleteDraft(fakeStorage, "device", docId);
+    assert.equal(delRes.ok, false);
+    if (!delRes.ok) {
+      assert.equal(delRes.error, "STORAGE_EXCEPTION");
+    }
+  });
+
+  it("20. (D01-S05) deleteDraft silme sonrası kayıt hala depoda görünüyorsa READ_BACK_MISMATCH dönmelidir", () => {
+    const docId: BelgeDocumentId = "beton-dokum-tutanagi";
+    const fakeStorage: StorageLike = {
+      getItem: () => '{"still":"here"}',
+      setItem: () => {},
+      removeItem: () => {}, // silme komutunu görmezden gelen sahte depo
+    };
+
+    const delRes = deleteDraft(fakeStorage, "device", docId);
+    assert.equal(delRes.ok, false);
+    if (!delRes.ok) {
+      assert.equal(delRes.error, "READ_BACK_MISMATCH");
+    }
+  });
+
+  it("21. (D01-F02/R01) loadDraft bozuk JSON ile karşılaştığında CORRUPT_JSON dönmeli ve depodaki ham kaydı değiştirmemelidir", () => {
+    const storage = new InMemoryStorage();
+    const docId: BelgeDocumentId = "beton-dokum-tutanagi";
+    const key = getKeyForMode("device", docId);
+    const corruptData = "{AUDIT incompatible saved data";
+    storage.setItem(key, corruptData);
+
+    const loadRes = loadDraft(storage, "device", docId);
+    assert.equal(loadRes.ok, false);
+    if (!loadRes.ok) {
+      assert.equal(loadRes.error, "CORRUPT_JSON");
+    }
+    // Depodaki ham verinin aynen korunduğunun teyidi
+    assert.equal(storage.getItem(key), corruptData);
+  });
+
+  it("22. (D01-F08/R09) saveDraftConsent depolama yazma hatası (kota) durumunda STORAGE_EXCEPTION dönmelidir", () => {
+    const storage = new InMemoryStorage();
+    storage.throwOnSet = true;
+
+    const consentRes = saveDraftConsent(storage, "device", "device");
+    assert.equal(consentRes.ok, false);
+    if (!consentRes.ok) {
+      assert.equal(consentRes.error, "STORAGE_EXCEPTION");
+    }
   });
 });

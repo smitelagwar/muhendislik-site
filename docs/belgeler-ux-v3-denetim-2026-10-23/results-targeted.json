@@ -1,0 +1,29 @@
+{
+  "base": "http://127.0.0.1:3016",
+  "testedAt": "2026-10-23T07:31:19.352Z",
+  "results": [
+    {
+      "id": "R15_pdf_failure_exit_locked",
+      "result": "FAIL",
+      "disabled": true,
+      "formHidden": true
+    },
+    {
+      "id": "R16_spa_navigation_pending_edit",
+      "result": "FAIL",
+      "elapsedMs": 102,
+      "savedValue": "AUDIT synthetic saved"
+    },
+    {
+      "id": "R17_focus_restore_scroll",
+      "result": "PASS",
+      "before": 181,
+      "after": 181
+    },
+    {
+      "id": "R18_session_ignore_without_edit",
+      "result": "FAIL",
+      "overwrittenWithoutSecondConfirmation": true
+    }
+  ]
+}

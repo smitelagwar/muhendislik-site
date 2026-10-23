@@ -15,6 +15,7 @@ test.describe("Belgeler Otomatik Taslak — ASAMA_03 Çoklu Sekme ve Veri Kaybı
     await pageA.evaluate(() => {
       window.localStorage.clear();
       window.sessionStorage.clear();
+      window.localStorage.setItem("belgeler:ux:draft-consent:device:v1", "device");
     });
     await pageA.reload();
     await pageA.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
@@ -27,8 +28,7 @@ test.describe("Belgeler Otomatik Taslak — ASAMA_03 Çoklu Sekme ve Veri Kaybı
     // Tab A izin verir ve yazar
     const inputA = pageA.locator("#beton-dokum-tutanak_alt_baslik");
     await inputA.fill("Sekme A Notu");
-    const deviceBtnA = pageA.locator('[data-testid="belge-draft-consent-device"]');
-    await deviceBtnA.click();
+
     await pageA.waitForTimeout(1200); // Debounce bekle
 
     // Tab B de yazar (aynı belge, farklı writerId)
@@ -37,6 +37,7 @@ test.describe("Belgeler Otomatik Taslak — ASAMA_03 Çoklu Sekme ve Veri Kaybı
     // Tab B çakışma şeridinde 'Bu Sekmedekiyle Devam Et' (takeover) seçerek yazma sahipliğini devralır
     const takeoverBtnB = pageB.locator('[data-testid="belge-draft-conflict-takeover"]');
     await expect(takeoverBtnB).toBeVisible({ timeout: 6000 });
+    pageB.once("dialog", dialog => dialog.accept());
     await takeoverBtnB.click();
     await pageB.waitForTimeout(1200);
 
@@ -46,6 +47,7 @@ test.describe("Belgeler Otomatik Taslak — ASAMA_03 Çoklu Sekme ve Veri Kaybı
 
     // Tab A "Diğer Sekmedekini Yükle" der
     const reloadBtnA = pageA.locator('[data-testid="belge-draft-conflict-reload"]');
+    pageA.once("dialog", dialog => dialog.accept());
     await reloadBtnA.click();
     await expect(conflictBannerA).toHaveCount(0);
 
@@ -62,6 +64,7 @@ test.describe("Belgeler Otomatik Taslak — ASAMA_03 Çoklu Sekme ve Veri Kaybı
     await pageA.evaluate(() => {
       window.localStorage.clear();
       window.sessionStorage.clear();
+      window.localStorage.setItem("belgeler:ux:draft-consent:device:v1", "device");
     });
     await pageA.reload();
     await pageA.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
@@ -73,7 +76,7 @@ test.describe("Belgeler Otomatik Taslak — ASAMA_03 Çoklu Sekme ve Veri Kaybı
     // Tab A kaydeder
     const inputA = pageA.locator("#beton-dokum-tutanak_alt_baslik");
     await inputA.fill("A İlk Metin");
-    await pageA.locator('[data-testid="belge-draft-consent-device"]').click();
+
     await pageA.waitForTimeout(1200);
 
     // Tab B yazar ve devralır (takeover)
@@ -81,6 +84,7 @@ test.describe("Belgeler Otomatik Taslak — ASAMA_03 Çoklu Sekme ve Veri Kaybı
     await inputB.fill("B İkinci Metin");
     const takeoverBtnB = pageB.locator('[data-testid="belge-draft-conflict-takeover"]');
     await expect(takeoverBtnB).toBeVisible({ timeout: 6000 });
+    pageB.once("dialog", dialog => dialog.accept());
     await takeoverBtnB.click();
     await pageB.waitForTimeout(1200);
 
@@ -90,6 +94,7 @@ test.describe("Belgeler Otomatik Taslak — ASAMA_03 Çoklu Sekme ve Veri Kaybı
 
     // Tab A yerel formuyla devam etmeye karar verir (takeover)
     const takeoverBtn = pageA.locator('[data-testid="belge-draft-conflict-takeover"]');
+    pageA.once("dialog", dialog => dialog.accept());
     await takeoverBtn.click();
     await expect(conflictBannerA).toHaveCount(0);
 

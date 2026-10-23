@@ -10,7 +10,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import {
   AlertCircle,
   Check,
@@ -22,12 +22,15 @@ import {
   X,
 } from "lucide-react";
 import type { UseBelgeAutoDraftReturn } from "@/hooks/use-belge-auto-draft";
+import { BELGE_UX_FLAGS } from "@/lib/belge-ux-config";
 
 export interface BelgeStudioDraftControlsProps {
   draftApi: UseBelgeAutoDraftReturn;
 }
 
 export function BelgeStudioDraftControls({ draftApi }: BelgeStudioDraftControlsProps) {
+  if (!BELGE_UX_FLAGS.DRAFT) return null;
+
   const {
     lifecycleState,
     ageStatus,
@@ -49,7 +52,7 @@ export function BelgeStudioDraftControls({ draftApi }: BelgeStudioDraftControlsP
         role="region"
         aria-label="Taslak kayıt tercihi"
         data-testid="belge-draft-consent-banner"
-        className="shrink-0 border-b border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-foreground flex flex-wrap items-center justify-between gap-2 transition-all"
+        className="[&_button]:min-h-11 shrink-0 border-b border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-foreground flex flex-wrap items-center justify-between gap-2 transition-all"
       >
         <div className="flex items-center gap-1.5 min-w-0">
           <Save className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -94,7 +97,7 @@ export function BelgeStudioDraftControls({ draftApi }: BelgeStudioDraftControlsP
         role="alert"
         aria-live="polite"
         data-testid="belge-draft-restore-banner"
-        className="shrink-0 border-b border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs text-foreground flex flex-wrap items-center justify-between gap-2 transition-all"
+        className="[&_button]:min-h-11 shrink-0 border-b border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs text-foreground flex flex-wrap items-center justify-between gap-2 transition-all"
       >
         <div className="flex items-center gap-1.5 min-w-0">
           <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
@@ -157,7 +160,7 @@ export function BelgeStudioDraftControls({ draftApi }: BelgeStudioDraftControlsP
         role="alert"
         aria-live="assertive"
         data-testid="belge-draft-conflict-banner"
-        className="shrink-0 border-b border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-foreground flex flex-wrap items-center justify-between gap-2 transition-all"
+        className="[&_button]:min-h-11 shrink-0 border-b border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-foreground flex flex-wrap items-center justify-between gap-2 transition-all"
       >
         <div className="flex items-center gap-1.5 min-w-0">
           <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -194,7 +197,7 @@ export function BelgeStudioDraftControls({ draftApi }: BelgeStudioDraftControlsP
         role="alert"
         aria-live="assertive"
         data-testid="belge-draft-error-banner"
-        className="shrink-0 border-b border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs text-foreground flex items-center justify-between gap-2"
+        className="[&_button]:min-h-11 shrink-0 border-b border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs text-foreground flex items-center justify-between gap-2"
       >
         <div className="flex items-center gap-1.5 min-w-0">
           <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" />
@@ -219,83 +222,281 @@ export function BelgeStudioDraftControls({ draftApi }: BelgeStudioDraftControlsP
 }
 
 /**
- * Üst çubukta veya toolbar'da kompakt durum rozeti gösterici
+ * Üst çubukta veya toolbar'da kompakt durum rozeti gösterici (F09, F10, F14)
+ * - storageMode === "none" durumunda da görünür; kullanıcı sonradan kaydı açabilir.
+ * - isPaused durumu saved durumundan önce değerlendirilir (R07, R11 düzeltmesi).
+ * - Açılır menü: Kaydı aç, modu değiştir, duraklat/devam ettir, kalıcı kapat, sil, retry.
+ * - Dokunma hedefi (touch target) >= 44px ve klavye/dış tıklama ile güvenli kapanış.
  */
 export function BelgeStudioDraftStatusBadge({ draftApi }: BelgeStudioDraftControlsProps) {
-  const { lifecycleState, storageMode, savedAt, isSaving, isPaused, deleteDraftAction, togglePause } = draftApi;
-  const [open, setOpen] = useState(false);
 
-  if (storageMode === "none") {
-    return null;
+  const {
+    lifecycleState,
+    storageMode,
+    savedAt,
+    isSaving,
+    isPaused,
+    errorMessage,
+    deleteDraftAction,
+    togglePause,
+    setConsent,
+    retrySave,
+  } = draftApi;
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const popupId = useId();
+
+  // Dışa tıklama veya Escape basıldığında menüyü kapat
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (e: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        containerRef.current?.querySelector<HTMLButtonElement>('[data-testid="belge-draft-status-badge"]')?.focus();
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  if (!BELGE_UX_FLAGS.DRAFT) return null;
+  // Rozet görünümü ve metin önceliği:
+  // 1. isSaving -> "Kaydediliyor..."
+  // 2. isPaused -> "Kayıt Duraklatıldı" (saved durumunu gölgeler)
+  // 3. lifecycleState === "save-error" -> "Kayıt Hatası"
+  // 4. storageMode === "none" || lifecycleState === "disabled" -> "Taslak (Kapalı)"
+  // 5. lifecycleState === "saved" -> "Taslak (Cihaz)" veya "Taslak (Sekme)"
+  // 6. varsayılan -> "Taslak"
+  let badgeContent: React.ReactNode;
+
+  if (isSaving) {
+    badgeContent = (
+      <>
+        <Loader2 className="h-3 w-3 animate-spin text-amber-500 shrink-0" />
+        <span className="font-medium text-foreground">Kaydediliyor...</span>
+      </>
+    );
+  } else if (isPaused) {
+    badgeContent = (
+      <>
+        <Clock className="h-3 w-3 text-amber-500 shrink-0" />
+        <span className="font-medium text-amber-600 dark:text-amber-400">Kayıt Duraklatıldı</span>
+      </>
+    );
+  } else if (lifecycleState === "save-error") {
+    badgeContent = (
+      <>
+        <AlertCircle className="h-3 w-3 text-red-500 shrink-0" />
+        <span className="font-medium text-red-600 dark:text-red-400">Kayıt Hatası</span>
+      </>
+    );
+  } else if (storageMode === "none" || lifecycleState === "disabled") {
+    badgeContent = (
+      <>
+        <HardDrive className="h-3 w-3 text-muted-foreground/70 shrink-0" />
+        <span className="font-medium text-muted-foreground">Taslak (Kapalı)</span>
+      </>
+    );
+  } else if (lifecycleState === "saved") {
+    badgeContent = (
+      <>
+        <Check className="h-3 w-3 text-emerald-500 shrink-0" />
+        <span className="font-medium text-foreground">
+          Taslak {storageMode === "device" ? "(Cihaz)" : "(Sekme)"}
+        </span>
+      </>
+    );
+  } else {
+    badgeContent = (
+      <>
+        <HardDrive className="h-3 w-3 text-muted-foreground shrink-0" />
+        <span className="font-medium text-foreground">Taslak</span>
+      </>
+    );
   }
 
+  const isClosed = storageMode === "none" || lifecycleState === "disabled";
+
   return (
-    <div className="relative inline-flex items-center">
+    <div ref={containerRef} className="relative inline-flex items-center">
+      <span role="status" aria-live="polite" className="sr-only">{isPaused ? "Kayıt duraklatıldı" : lifecycleState === "saved" ? "Taslak kaydedildi" : lifecycleState === "save-error" ? "Taslak kayıt hatası" : ""}</span>
       <button
         type="button"
         data-testid="belge-draft-status-badge"
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-background/80 px-2 py-0.5 text-[10px] text-muted-foreground hover:text-foreground transition"
+        aria-expanded={open}
+        aria-controls={open ? popupId : undefined}
+        aria-label="Otomatik taslak durumu ve ayarları"
+        className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-border/80 bg-background/90 px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
         title="Otomatik taslak durumu ve ayarları"
       >
-        {isSaving ? (
-          <>
-            <Loader2 className="h-2.5 w-2.5 animate-spin text-amber-500" />
-            <span className="font-medium">Kaydediliyor...</span>
-          </>
-        ) : lifecycleState === "saved" ? (
-          <>
-            <Check className="h-2.5 w-2.5 text-emerald-500" />
-            <span className="font-medium">
-              Taslak {storageMode === "device" ? "(Cihaz)" : "(Sekme)"}
-            </span>
-          </>
-        ) : isPaused ? (
-          <>
-            <Clock className="h-2.5 w-2.5 text-amber-500" />
-            <span className="font-medium">Kayıt Duraklatıldı</span>
-          </>
-        ) : (
-          <>
-            <HardDrive className="h-2.5 w-2.5 text-muted-foreground" />
-            <span className="font-medium">Taslak</span>
-          </>
-        )}
+        {badgeContent}
       </button>
 
       {open && (
         <div
           data-testid="belge-draft-menu-popup"
-          className="absolute right-0 top-full mt-1 z-50 w-48 rounded-lg border border-border bg-popover p-1 shadow-lg text-xs"
+          id={popupId}
+          role="region"
+          aria-label="Taslak ayarları"
+          className="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-xl border border-border bg-popover text-popover-foreground p-1.5 shadow-xl text-xs space-y-1"
         >
-          <div className="px-2 py-1 border-b border-border/60 text-[10px] text-muted-foreground">
-            Taslak: {storageMode === "device" ? "Bu cihazda" : "Yalnız bu sekmede"}
-            {savedAt ? ` (${new Date(savedAt).toLocaleTimeString()})` : ""}
+          {/* Durum Özeti */}
+          <div className="px-2.5 py-1.5 border-b border-border/60 text-[11px] text-muted-foreground">
+            {isClosed ? (
+              <span className="font-medium text-muted-foreground">Taslak kaydı: Kapalı</span>
+            ) : (
+              <div>
+                <span className="font-semibold text-foreground">
+                  {storageMode === "device" ? "Cihaz Depolaması" : "Sekme Depolaması"}
+                </span>
+                {savedAt && (
+                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                    Son kayıt: {new Date(savedAt).toLocaleTimeString()}
+                  </div>
+                )}
+              </div>
+            )}
+            {lifecycleState === "save-error" && errorMessage && (
+              <div className="text-[10px] text-red-600 dark:text-red-400 mt-1 font-medium">
+                {errorMessage}
+              </div>
+            )}
           </div>
-          <button
-            type="button"
-            data-testid="belge-draft-toggle-pause"
-            onClick={() => {
-              togglePause();
-              setOpen(false);
-            }}
-            className="w-full text-left rounded px-2 py-1.5 hover:bg-secondary text-foreground text-[11px]"
-          >
-            {isPaused ? "Otomatik Kaydı Devam Ettir" : "Otomatik Kaydı Duraklat"}
-          </button>
-          <button
-            type="button"
-            data-testid="belge-draft-delete-btn"
-            onClick={() => {
-              if (window.confirm("Bu belgenin taslağını silmek istediğinize emin misiniz?")) {
-                deleteDraftAction();
-              }
-              setOpen(false);
-            }}
-            className="w-full text-left rounded px-2 py-1.5 hover:bg-red-500/10 text-red-600 dark:text-red-400 text-[11px]"
-          >
-            Taslağı Sil
-          </button>
+
+          {/* Kapalıysa: Kaydı açma seçenekleri */}
+          {isClosed ? (
+            <>
+              <button
+                type="button"
+                data-testid="belge-draft-enable-device"
+                onClick={() => {
+                  setConsent("device");
+                  setOpen(false);
+                }}
+                className="w-full text-left rounded-lg px-2.5 py-2 hover:bg-secondary text-foreground text-xs min-h-[44px] flex items-center transition"
+              >
+                Bu cihazda kaydı aç
+              </button>
+              <button
+                type="button"
+                data-testid="belge-draft-enable-session"
+                onClick={() => {
+                  setConsent("session");
+                  setOpen(false);
+                }}
+                className="w-full text-left rounded-lg px-2.5 py-2 hover:bg-secondary text-foreground text-xs min-h-[44px] flex items-center transition"
+              >
+                Yalnız bu sekmede kaydı aç
+              </button>
+              {savedAt !== null && (
+                <button type="button" data-testid="belge-draft-delete-disabled" className="min-h-11 w-full rounded-lg px-2.5 text-left text-red-600" onClick={() => {
+                  if (window.confirm("Otomatik kayıt kapalı kalacak; saklanan taslak silinsin mi?")) deleteDraftAction();
+                  setOpen(false);
+                }}>Saklanan taslağı sil</button>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Duraklat / Devam Ettir */}
+              <button
+                type="button"
+                data-testid="belge-draft-toggle-pause"
+                onClick={() => {
+                  togglePause();
+                  setOpen(false);
+                }}
+                className="w-full text-left rounded-lg px-2.5 py-2 hover:bg-secondary text-foreground text-xs min-h-[44px] flex items-center transition"
+              >
+                {isPaused ? "Otomatik Kaydı Devam Ettir" : "Otomatik Kaydı Duraklat"}
+              </button>
+
+              {/* Mod Geçişi */}
+              {storageMode === "device" ? (
+                <button
+                  type="button"
+                  data-testid="belge-draft-switch-session"
+                  onClick={() => {
+                    setConsent("session");
+                    setOpen(false);
+                  }}
+                  className="w-full text-left rounded-lg px-2.5 py-2 hover:bg-secondary text-foreground text-xs min-h-[44px] flex items-center transition"
+                >
+                  Yalnız bu sekmeye geçir
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  data-testid="belge-draft-switch-device"
+                  onClick={() => {
+                    setConsent("device");
+                    setOpen(false);
+                  }}
+                  className="w-full text-left rounded-lg px-2.5 py-2 hover:bg-secondary text-foreground text-xs min-h-[44px] flex items-center transition"
+                >
+                  Bu cihaza geçir
+                </button>
+              )}
+
+              {/* Hata durumunda Retry */}
+              {lifecycleState === "save-error" && (
+                <button
+                  type="button"
+                  data-testid="belge-draft-retry-btn"
+                  onClick={() => {
+                    retrySave();
+                    setOpen(false);
+                  }}
+                  className="w-full text-left rounded-lg px-2.5 py-2 hover:bg-red-500/10 text-red-600 dark:text-red-400 text-xs min-h-[44px] flex items-center transition font-semibold"
+                >
+                  Tekrar Dene
+                </button>
+              )}
+
+              {/* Kalıcı Otomatik Kaydı Kapat (Opt-out) */}
+              <button
+                type="button"
+                data-testid="belge-draft-disable-btn"
+                onClick={() => {
+                  setConsent("dismissed");
+                  setOpen(false);
+                }}
+                className="w-full text-left rounded-lg px-2.5 py-2 hover:bg-secondary text-muted-foreground hover:text-foreground text-xs min-h-[44px] flex items-center transition"
+              >
+                Otomatik Kaydı Kapat
+              </button>
+
+              {/* Taslağı Sil */}
+              <button
+                type="button"
+                data-testid="belge-draft-delete-btn"
+                onClick={() => {
+                  if (typeof window !== "undefined" && window.confirm("Bu belgenin taslağını silmek istediğinize emin misiniz?")) {
+                    deleteDraftAction();
+                  }
+                  setOpen(false);
+                }}
+                className="w-full text-left rounded-lg px-2.5 py-2 hover:bg-red-500/10 text-red-600 dark:text-red-400 text-xs min-h-[44px] flex items-center transition font-medium"
+              >
+                Taslağı Sil
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

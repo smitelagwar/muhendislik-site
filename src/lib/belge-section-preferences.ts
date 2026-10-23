@@ -1,15 +1,23 @@
 /**
- * Belge Stüdyosu — Akıllı Bölüm Tercihleri Depolama Motoru (ASAMA_05)
+ * Belge Stüdyosu — Akıllı Bölüm Tercihleri Depolama Motoru (ASAMA_05 & D04)
  *
  * Kurallar:
- * 1. Belge başına kapalı bölüm ID'leri (collapsed section IDs) bağımsız bir anahtarda tutulur.
- * 2. İlk ziyarette tüm bölümler AÇIKTIR (collapsed listesi boştur).
- * 3. Tercih kaydı taslak verisini tetiklemez (taslakla tamamen bağımsızdır).
- * 4. Bozuk/geçersiz depolama verisinde sessizce tüm bölümler açık (all-open) fallback uygulanır.
+ * 1. Belge başına kapalı bölüm ID'leri (closed section IDs) bağımsız bir anahtarda tutulur.
+ * 2. Şema: { version: 1, closedSectionIds: string[] } (F13 gereksinimi).
+ * 3. Geriye dönük uyumluluk: Eski düz dizi formatı (legacy raw array) güvenle okunur ve migrate edilir.
+ * 4. İzinli Bölüm Denetimi (Allowlist): Yalnızca ilgili belgeye ait geçerli bölüm ID'leri kabul edilir (S04 çözümü).
+ * 5. İlk ziyarette tüm bölümler AÇIKTIR (closedSectionIds listesi boştur).
+ * 6. Bozuk/geçersiz depolama verisinde sessizce tüm bölümler açık (all-open) fallback uygulanır.
  */
 
 import { getSectionPreferencesKey, type BelgeDocumentId } from "./belge-ux-config";
 import type { StorageLike } from "./belge-draft-storage";
+import { BELGE_STUDIO_SECTIONS } from "./belge-studio-sections";
+
+export interface BelgeSectionPreferencesEnvelope {
+  version: 1;
+  closedSectionIds: string[];
+}
 
 /**
  * Belge için kapalı bölüm ID'leri kümesini okur.
@@ -27,13 +35,32 @@ export function loadCollapsedSections(
       return new Set();
     }
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
+    const validSections = BELGE_STUDIO_SECTIONS[documentId];
+    const validSectionIds = new Set(validSections ? validSections.map((s) => s.id) : []);
+
+    let candidateIds: unknown[] = [];
+
+    // Hem eski sürümsüz dizi formatını hem de version: 1 zarf formatını destekle
+    if (Array.isArray(parsed)) {
+      candidateIds = parsed;
+    } else if (
+      parsed &&
+      typeof parsed === "object" &&
+      parsed.version === 1 &&
+      Array.isArray(parsed.closedSectionIds)
+    ) {
+      candidateIds = parsed.closedSectionIds;
+    } else {
       return new Set();
     }
+
     const safeSet = new Set<string>();
-    for (const item of parsed) {
+    for (const item of candidateIds) {
       if (typeof item === "string" && item.trim().length > 0) {
-        safeSet.add(item.trim());
+        const trimmed = item.trim();
+        if (validSectionIds.has(trimmed)) {
+          safeSet.add(trimmed);
+        }
       }
     }
     return safeSet;
@@ -43,7 +70,7 @@ export function loadCollapsedSections(
 }
 
 /**
- * Belge için kapalı bölüm ID'leri kümesini kaydeder.
+ * Belge için kapalı bölüm ID'leri kümesini { version: 1, closedSectionIds: [...] } olarak kaydeder.
  */
 export function saveCollapsedSections(
   storage: StorageLike | null | undefined,
@@ -54,8 +81,24 @@ export function saveCollapsedSections(
 
   const key = getSectionPreferencesKey(documentId);
   try {
-    const array = Array.from(collapsedIds);
-    storage.setItem(key, JSON.stringify(array));
+    const validSections = BELGE_STUDIO_SECTIONS[documentId];
+    const validSectionIds = new Set(validSections ? validSections.map((s) => s.id) : []);
+
+    const safeIds: string[] = [];
+    for (const id of collapsedIds) {
+      if (typeof id === "string") {
+        const trimmed = id.trim();
+        if (validSectionIds.has(trimmed) && !safeIds.includes(trimmed)) {
+          safeIds.push(trimmed);
+        }
+      }
+    }
+
+    const envelope: BelgeSectionPreferencesEnvelope = {
+      version: 1,
+      closedSectionIds: safeIds,
+    };
+    storage.setItem(key, JSON.stringify(envelope));
   } catch {
     // Depolama hatası (kota/erişim) sessizce yutulur; UI işleyişi kesintiye uğramaz
   }

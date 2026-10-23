@@ -12,8 +12,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { BELGE_ZOOM_STEP, MAX_BELGE_ZOOM, MIN_BELGE_ZOOM, clampBelgeZoom } from "@/lib/belge-studio-zoom";
 import { BELGE_STUDIO_PREVIEW_TOOLBAR_CLASS } from "@/lib/belge-studio-layout";
+import { BELGE_UX_FLAGS } from "@/lib/belge-ux-config";
 import { BelgeStudioFormViewMenu } from "@/components/belge-studio-form-view-menu";
-import type { BelgeStudioFormViewApi } from "@/hooks/use-belge-studio-form-view";
+import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
 import {
   BelgeFitPageIcon,
   BelgeMoonIcon,
@@ -40,7 +41,7 @@ type BelgeStudioPreviewToolbarProps = {
   pdfUrl: string | null;
   page?: { current: number; total: number; onChange: (page: number) => void };
   disabled?: boolean;
-  formView?: BelgeStudioFormViewApi;
+  formView?: BelgeStudioFormViewControls;
   pdfFocus?: BelgeStudioPdfFocusApi;
 };
 
@@ -227,7 +228,7 @@ export function BelgeStudioPreviewToolbar({
       )}
 
       <div className="belge-preview-utilities hidden items-center justify-end gap-[4px] lg:flex" role="group" aria-label="Form görünümü ve tema">
-        {pdfFocus && (
+        {pdfFocus && BELGE_UX_FLAGS.FOCUS_MODE && (
           <button
             type="button"
             data-testid="belge-pdf-focus-toggle"
@@ -235,7 +236,6 @@ export function BelgeStudioPreviewToolbar({
             aria-label={pdfFocus.isPdfFocus ? "Formu Göster" : "PDF'ye Odaklan"}
             title={pdfFocus.isPdfFocus ? "Formu Göster" : "PDF'ye Odaklan"}
             onClick={pdfFocus.onTogglePdfFocus}
-            disabled={disabled}
             className={`preview-tool-button ${pdfFocus.isPdfFocus ? "preview-tool-button-active" : ""}`}
           >
             {pdfFocus.isPdfFocus ? (

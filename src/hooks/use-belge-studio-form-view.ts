@@ -45,6 +45,8 @@ export interface BelgeStudioFormViewApi {
   };
 }
 
+export type BelgeStudioFormViewControls = Omit<BelgeStudioFormViewApi, "scrollContainerRef" | "contentWrapperRef" | "contentWrapperProps">;
+
 export function useBelgeStudioFormView(
   options: UseBelgeStudioFormViewOptions = {}
 ): BelgeStudioFormViewApi {
@@ -110,7 +112,6 @@ export function useBelgeStudioFormView(
 
     // Gizli / detached panel durumunda unavailable
     if (clientWidth <= 0 || clientHeight <= 0) {
-      setFitStatus("unavailable");
       return;
     }
 

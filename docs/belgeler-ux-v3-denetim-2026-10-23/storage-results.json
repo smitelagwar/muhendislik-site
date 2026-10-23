@@ -1,0 +1,24 @@
+[
+  {
+    "id": "S01_oversize_read",
+    "result": "PASS",
+    "bytes": 70471
+  },
+  {
+    "id": "S02_inherited_envelope",
+    "result": "PASS"
+  },
+  {
+    "id": "S03_forbidden_envelope_key",
+    "result": "PASS",
+    "note": "Accepted top-level key; this alone does not demonstrate exploitable prototype pollution."
+  },
+  {
+    "id": "S04_unknown_section_id",
+    "result": "PASS"
+  },
+  {
+    "id": "S05_delete_unverified",
+    "result": "PASS"
+  }
+]

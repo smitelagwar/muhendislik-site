@@ -41,10 +41,12 @@ export function getSafeBrowserStorage(mode: "device" | "session"): StorageLike |
   try {
     const storage = mode === "device" ? window.localStorage : window.sessionStorage;
     if (!storage) return null;
-    // Özel gezinti veya engellenmiş erişim testi
-    const testKey = `__belge_probe_${Date.now()}__`;
-    storage.setItem(testKey, "1");
-    storage.removeItem(testKey);
+    if (typeof storage.getItem !== "function" || typeof storage.setItem !== "function") {
+      return null;
+    }
+    // Depolama erişimini zararsız bir okuma özelliği ile doğrula (özel gezinti / izin kontrolü).
+    // Kota doluyken hata vermemesi için setItem probe'u kullanılmaz.
+    void storage.length;
     return storage;
   } catch {
     return null;
@@ -271,7 +273,7 @@ export function createDraftEnvelope<D extends BelgeDocumentId>(options: {
     };
   }
 
-  if (!Number.isInteger(revision) || revision < 1) {
+  if (!Number.isSafeInteger(revision) || revision < 1) {
     return {
       ok: false,
       error: "INVALID_REVISION",
@@ -279,7 +281,7 @@ export function createDraftEnvelope<D extends BelgeDocumentId>(options: {
     };
   }
 
-  if (typeof savedAt !== "number" || Number.isNaN(savedAt) || savedAt <= 0) {
+  if (typeof savedAt !== "number" || !Number.isFinite(savedAt) || savedAt <= 0) {
     return {
       ok: false,
       error: "INVALID_SAVED_AT",
@@ -336,7 +338,49 @@ export function parseDraft(
     };
   }
 
+  // S02: Prototip zinciri bozulmuş veya kalıtılmış nesne koruması
+  const proto = Object.getPrototypeOf(parsed);
+  if (proto !== Object.prototype && proto !== null) {
+    return {
+      ok: false,
+      error: "PROTOTYPE_POLLUTION",
+      details: "Taslak zarfı prototipi standart Object.prototype veya null olmalıdır.",
+    };
+  }
+
+  // S03: Yasaklı prototip anahtarları denetimi
+  const forbiddenKeys = ["__proto__", "constructor", "prototype"];
+  for (const fk of forbiddenKeys) {
+    if (Object.prototype.hasOwnProperty.call(parsed, fk)) {
+      return {
+        ok: false,
+        error: "PROTOTYPE_POLLUTION",
+        details: `Taslak zarfında yasaklı prototip anahtarı tespit edildi: ${fk}`,
+      };
+    }
+  }
+
   const record = parsed as Record<string, unknown>;
+
+  // Zarf alanları denetimi (fazla/bilinmeyen üst düzey alan engelleme)
+  const allowedEnvelopeKeys = new Set([
+    "schemaVersion",
+    "documentId",
+    "fieldSchemaFingerprint",
+    "savedAt",
+    "writerId",
+    "revision",
+    "values",
+  ]);
+  for (const key of Object.keys(record)) {
+    if (!allowedEnvelopeKeys.has(key)) {
+      return {
+        ok: false,
+        error: "UNKNOWN_FIELD",
+        details: `Taslak zarfında beklenmeyen alan: ${key}`,
+      };
+    }
+  }
 
   // Şema sürüm denetimi
   if (record.schemaVersion !== BELGE_UX_LIMITS.DRAFT_SCHEMA_VERSION) {
@@ -401,7 +445,7 @@ export function parseDraft(
   // Revizyon denetimi
   if (
     typeof record.revision !== "number" ||
-    !Number.isInteger(record.revision) ||
+    !Number.isSafeInteger(record.revision) ||
     record.revision < 1
   ) {
     return {
@@ -521,10 +565,12 @@ export function loadDraft(
   storage: StorageLike,
   mode: "device" | "session",
   documentId: BelgeDocumentId,
-  now: number = Date.now()
+  now: number = Date.now(),
+  options?: { maxBytes?: number }
 ):
   | { ok: true; draft: BelgeDraftEnvelope | null; ageStatus: DraftAgeStatus | null }
   | { ok: false; error: DraftStorageErrorCode; details: string } {
+  const maxBytes = options?.maxBytes ?? BELGE_UX_LIMITS.DRAFT_MAX_BYTES;
   const key = getKeyForMode(mode, documentId);
 
   let rawValue: string | null = null;
@@ -538,8 +584,18 @@ export function loadDraft(
     };
   }
 
-  if (rawValue === null || rawValue.trim().length === 0) {
+  if (rawValue === null) {
     return { ok: true, draft: null, ageStatus: null };
+  }
+
+  // S01 & F15: Depodaki ham metnin UTF-8 bayt sınırını JSON.parse öncesinde denetle
+  const byteLength = utf8ByteLength(rawValue);
+  if (byteLength > maxBytes) {
+    return {
+      ok: false,
+      error: "OVERSIZE_LIMIT",
+      details: `Depodaki taslak boyutu güvenlik sınırını aşıyor (${byteLength} B > ${maxBytes} B). Güvenlik nedeniyle yüklenmedi.`,
+    };
   }
 
   const parsed = parseDraft(rawValue, documentId);
@@ -585,8 +641,14 @@ export function deleteDraft(
         details: "Taslak silindikten sonra doğrulanamadı; kayıt hala depoda mevcut.",
       };
     }
-  } catch {
-    // Okuma başarısız olsa da silme işlemi yapılmış kabul edilir
+  } catch (err) {
+    return {
+      ok: false,
+      error: "STORAGE_EXCEPTION",
+      details: `Taslak silme doğrulama okuması başarısız: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    };
   }
 
   return { ok: true, key };
@@ -651,23 +713,39 @@ export function saveDraftConsent(
   storage: StorageLike,
   mode: "device" | "session",
   decision: DraftConsentDecision
-): void {
+): { ok: true } | { ok: false; error: DraftStorageErrorCode; details: string } {
   const key = getConsentKeyForMode(mode);
   try {
     storage.setItem(key, decision);
-  } catch {
-    // Depolama hatası sessizce yutulur (UI çalışmaya devam eder)
+    if (storage.getItem(key) !== decision) {
+      return { ok: false, error: "READ_BACK_MISMATCH", details: "Kayıt tercihi doğrulanamadı." };
+    }
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: "STORAGE_EXCEPTION",
+      details: `İzin tercihi kaydedilemedi: ${err instanceof Error ? err.message : String(err)}`,
+    };
   }
 }
 
 /**
  * PII içermeyen taslak izin tercihini siler.
  */
-export function clearDraftConsent(storage: StorageLike, mode: "device" | "session"): void {
+export function clearDraftConsent(
+  storage: StorageLike,
+  mode: "device" | "session"
+): { ok: true } | { ok: false; error: DraftStorageErrorCode; details: string } {
   const key = getConsentKeyForMode(mode);
   try {
     storage.removeItem(key);
-  } catch {
-    // Sessiz hata yönetimi
+    return { ok: true };
+  } catch (err) {
+    return {
+      ok: false,
+      error: "STORAGE_EXCEPTION",
+      details: `İzin tercihi temizlenemedi: ${err instanceof Error ? err.message : String(err)}`,
+    };
   }
 }

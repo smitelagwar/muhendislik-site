@@ -7,7 +7,7 @@ import { AlertCircle, Edit3, Loader2, RefreshCw } from "lucide-react";
 import { PDFJS_CMAPS, PDFJS_FONTS, PDFJS_ICCS, PDFJS_WASM } from "@/lib/pdfjs-paths";
 import { getSharedBrowserPdfWorker, loadBrowserPdfJs, type BrowserPdfJs } from "@/lib/pdfjs-client";
 import { BelgeStudioPreviewToolbar, type BelgeStudioPdfFocusApi } from "@/components/belge-studio-preview-toolbar";
-import type { BelgeStudioFormViewApi } from "@/hooks/use-belge-studio-form-view";
+import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
 import { BELGE_STUDIO_PREVIEW_CANVAS_CLASS, BELGE_STUDIO_PREVIEW_PANEL_CLASS } from "@/lib/belge-studio-layout";
 import { clampBelgeZoom, getBelgePreviewRasterScale, getBelgeZoomAnchorScroll } from "@/lib/belge-studio-zoom";
 import {
@@ -62,7 +62,7 @@ export type BelgeStudioPdfPreviewProps = {
   onRetry: () => void;
   editing?: BelgeStudioInlineEditingConfig;
   activeTabMobile?: "form" | "preview";
-  formView?: BelgeStudioFormViewApi;
+  formView?: BelgeStudioFormViewControls;
   fieldFocus?: FieldFocusSelection;
   onClearFieldFocus?: () => void;
   pdfFocus?: BelgeStudioPdfFocusApi;
@@ -1014,7 +1014,8 @@ export function BelgeStudioPdfPreview({
 
   const handleFit = () => {
     if (!isMobileMode) setInlineSelectedField(null);
-    setRenderedToken(null);
+    // Zaten %100 ise zoom effect'i tekrar çalışmaz; geçerli token'ı silme.
+    if (zoomRef.current !== 100) setRenderedToken(null);
     pendingAnchorRef.current = null;
     const container = containerRef.current;
     const canvas = canvasRef.current;
@@ -1170,6 +1171,8 @@ export function BelgeStudioPdfPreview({
       !generationPending &&
       !visibleError &&
       activeFocusRect &&
+      isOverlayTokenValid &&
+      localStatus === "ready" &&
       displayedPage !== null &&
       activeFocusRect.pageNumber === displayedPage &&
       !pinchingRef.current &&
@@ -1359,6 +1362,7 @@ export function BelgeStudioPdfPreview({
       // Hedef sayfa çizilmiş, localStatus 'ready' olmuş, generation veya render yüklemesi bitmiş
       // ve tuval kullanıcıya görünür olduğunda 2500ms sayacını başlat
       const isCanvasReadyAndVisible =
+        isOverlayTokenValid &&
         displayedPage === targetRect.pageNumber &&
         localStatus === "ready" &&
         !showLoading &&
@@ -1390,6 +1394,7 @@ export function BelgeStudioPdfPreview({
     showLoading,
     visibleError,
     performReveal,
+    isOverlayTokenValid,
   ]);
 
   useEffect(() => {

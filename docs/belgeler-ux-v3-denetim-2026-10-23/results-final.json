@@ -1,0 +1,115 @@
+[
+  {
+    "id": "R01_corrupt_draft",
+    "result": "FAIL",
+    "preserved": false,
+    "errorVisible": false
+  },
+  {
+    "id": "R02_session_to_device_leak",
+    "result": "FAIL",
+    "sessionOnlyDataWrittenToDevice": true,
+    "badge": "Taslak (Cihaz)"
+  },
+  {
+    "id": "R03_remote_delete_resurrection",
+    "result": "FAIL",
+    "draftRecreated": true
+  },
+  {
+    "id": "R04_restore_then_edit",
+    "result": "FAIL",
+    "falseOtherTabConflict": true,
+    "savedValue": "AUDIT synthetic saved"
+  },
+  {
+    "id": "R05_clear_confirmation",
+    "result": "FAIL",
+    "dialogs": 0,
+    "emptiedWithoutApproval": true,
+    "storedTitle": ""
+  },
+  {
+    "id": "R06_decline_cannot_enable",
+    "result": "FAIL",
+    "availableDraftSettings": 0
+  },
+  {
+    "id": "R07_hidden_settings_and_pause_label",
+    "result": "FAIL",
+    "focusVisible": false,
+    "mobileVisible": false,
+    "pausedBadge": "Taslak (Cihaz)"
+  },
+  {
+    "id": "R08_accordion_contract",
+    "result": "FAIL",
+    "openCount": 0,
+    "heights": [
+      31.5,
+      31.5,
+      31.5,
+      31.5
+    ]
+  },
+  {
+    "id": "R09_quota_no_visible_error",
+    "result": "FAIL",
+    "errorVisible": false,
+    "stored": null,
+    "badge": "Taslak"
+  },
+  {
+    "id": "R10_delete_failure_false_success",
+    "result": "FAIL",
+    "recordStillPresent": true,
+    "errorVisible": false
+  },
+  {
+    "id": "R11_pause_reload",
+    "result": "FAIL",
+    "action": "Otomatik Kaydı Duraklat",
+    "consentStillDevice": "device"
+  },
+  {
+    "id": "R12_read_error_overwrites_existing",
+    "result": "FAIL",
+    "originalPreserved": false,
+    "errorVisible": true
+  },
+  {
+    "id": "R13_session_corrupt_restore_decision",
+    "result": "FAIL",
+    "dialogs": 0,
+    "oldDraftPreserved": false
+  },
+  {
+    "id": "R14_remote_load_no_confirmation",
+    "result": "FAIL",
+    "dialogs": 0,
+    "currentValue": "AUDIT synthetic saved"
+  },
+  {
+    "id": "R15_pdf_failure_exit_locked",
+    "result": "FAIL",
+    "disabled": true,
+    "formHidden": true
+  },
+  {
+    "id": "R16_spa_navigation_pending_edit",
+    "result": "FAIL",
+    "elapsedMs": 102,
+    "savedValue": "AUDIT synthetic saved"
+  },
+  {
+    "id": "R17_focus_restore_scroll",
+    "result": "PASS",
+    "before": 181,
+    "after": 181
+  },
+  {
+    "id": "R18_session_ignore_without_edit",
+    "result": "FAIL",
+    "overwrittenWithoutSecondConfirmation": true
+  }
+]

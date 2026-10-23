@@ -79,3 +79,11 @@ export function buildPublicShareUrl(rawToken: string): string {
 
   return new URL(`/p/${rawToken}`, getPublicSiteOrigin()).toString();
 }
+
+export function buildBelgeShareUrl(rawToken: string): string {
+  if (!/^[A-Za-z0-9_-]{32,}$/.test(rawToken)) {
+    throw new PublicSiteOriginError("Belge share token is not URL-safe.");
+  }
+
+  return new URL(`/b/${rawToken}`, getPublicSiteOrigin()).toString();
+}

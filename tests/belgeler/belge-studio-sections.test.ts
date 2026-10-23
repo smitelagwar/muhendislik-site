@@ -158,11 +158,11 @@ describe("ASAMA_05: Akordeon Bölüm Eşleştirme ve Tercih Birim Testleri", () 
     const res2 = loadCollapsedSections(storage, docId);
     assert.equal(res2.size, 0);
 
-    // Sayı dizisi veya geçersiz tipler filtrelenmeli
-    storage.setItem(key, JSON.stringify([123, null, "gecerli-bolum", ""]));
+    // Sayı dizisi veya geçersiz tipler filtrelenmeli (geçerli bölüm korunmalı)
+    storage.setItem(key, JSON.stringify([123, null, "belge-kayit", ""]));
     const res3 = loadCollapsedSections(storage, docId);
     assert.equal(res3.size, 1);
-    assert.ok(res3.has("gecerli-bolum"));
+    assert.ok(res3.has("belge-kayit"));
   });
 
   it("6. ASAMA_06: 5 belgenin 56 düzenlenebilir alanının tamamı eksiksiz ve çakışmasız haritalanmalıdır", () => {

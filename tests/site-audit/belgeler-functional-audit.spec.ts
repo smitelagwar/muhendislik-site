@@ -7,11 +7,11 @@ import { DOCUMENT_EDITABLE_FIELDS } from "../../src/lib/document-field-contracts
 const documentIds = Object.keys(DOCUMENT_EDITABLE_FIELDS) as Array<keyof typeof DOCUMENT_EDITABLE_FIELDS>;
 
 const expectedPrefixes: Record<keyof typeof DOCUMENT_EDITABLE_FIELDS, string> = {
-  "beton-dokum-tutanagi": "BETON_DOKUM_TUTANAGI",
-  "insaat-ruhsati-dilekcesi": "INSAAT_RUHSATI_DILEKCESI",
-  "santiye-sefi-istifa-dilekcesi": "SANTIYE_SEFI_ISTIFA_DILEKCESI",
-  "santiye-sefi-sozlesmesi": "SANTIYE_SEFI_SOZLESMESI",
-  "santiye-sefi-taahhutnamesi": "SANTIYE_SEFI_TAAHHUTNAMESI",
+  "beton-dokum-tutanagi": "Beton-Tutanagi",
+  "insaat-ruhsati-dilekcesi": "Ruhsat-Dilekcesi",
+  "santiye-sefi-istifa-dilekcesi": "Istifa-Dilekcesi",
+  "santiye-sefi-sozlesmesi": "Hizmet-Sozlesmesi",
+  "santiye-sefi-taahhutnamesi": "Taahhutname",
 };
 
 async function openStudio(page: Page, id: string) {
@@ -24,7 +24,8 @@ async function openStudio(page: Page, id: string) {
   return studio;
 }
 
-test.beforeEach(async ({}, testInfo) => {
+test.beforeEach(async ({ page }, testInfo) => {
+  page.on("dialog", (dialog) => void dialog.accept());
   const mobileAccessibility = testInfo.project.name === "chromium-mobile-390" && testInfo.title.includes("ciddi erişilebilirlik");
   test.skip(testInfo.project.name !== "chromium-desktop-1920" && !mobileAccessibility,
     "İşlev denetimi masaüstünde, erişilebilirlik denetimi masaüstü ve mobilde çalışır.");

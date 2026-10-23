@@ -321,7 +321,7 @@ Olası bir regresyon veya geri alma durumunda:
 ## 11. Form Alanı Odak Vurgusu ↔ Canlı PDF Önizleme Eşleşmesi (Field Focus Highlight)
 
 - **Temel Mimari:** Kullanıcı soldaki stüdyo formundaki bir alana (input, textarea, select) odaklandığında (`focusin`), sağdaki canlı PDF önizleme tuvali üzerinde ilgili AcroForm alanının koordinatlarına `BelgeStudioFieldFocusLayer` üzerinden saf bir DOM overlay çerçevesi yerleşir. Odak değişimi PDF üretmez; aynı sayfadaki alan değişimi canvas çizimi de üretmez. Başka sayfadaki alan seçilirse hedef sayfanın çizilmesi normaldir.
-- **56/56 Alan Sözleşmesi:** Beş stüdyonun tamamında (`beton-dokum-tutanagi`, `insaat-ruhsati-dilekcesi`, `santiye-sefi-istifa-dilekcesi`, `santiye-sefi-sozlesmesi`, `santiye-sefi-taahhutnamesi`) `DOCUMENT_EDITABLE_FIELDS` allowlist'indeki 56 alan birebir `src/lib/belge-field-focus.ts` içinde DOM ID'leri ile eşlenmiştir. İstifa dilekçesindeki salt okunur (PDF-only) alanlar (`sayi_deger`, `ekler_deger`, `hitap_ek_deger`) dışlanmıştır ve asla sahte vurgu üretmez.
+- **56/56 Alan Sözleşmesi:** Beş stüdyonun tamamında (`beton-dokum-tutanagi`, `insaat-ruhsati-dilekcesi`, `santiye-sefi-istifa-dilekcesi`, `santiye-sefi-sozlesmesi`, `santiye-sefi-taahhutnamesi`) `DOCUMENT_EDITABLE_FIELDS` allowlist'indeki 56 alan birebir `src/lib/belge-field-focus.ts` içinde DOM ID'leri ile eşlenmiştir. İstifa dilekçesindeki salt okunur (PDF-only) etiket alanları (`adres_etiket`, `tc_etiket`, `iletisim_etiket`) dışlanmıştır ve asla sahte vurgu üretmez.
 - **Geometri Çıkarma, Hata Kurtarma ve Önbellekleme:** `extractFieldFocusRects`, widget koordinatlarını normalize eder ve sayfa sınırlarıyla gerçek kesişimini alır; belirsiz duplicate alanlar elenir. Önbellek stüdyo oturumuna aittir; belge ID'si değişince temizlenir. Yalnız allowlist'in tamamı bulunursa sonuç kalıcı başarıdır; kısmi sonuçta doğrulanmış alanlar gösterilebilir. Geçici hatada hemen bir ek deneme yapılır (toplam en fazla iki başarısız çıkarım); sonraki veri revizyonları bu bütçeyi yenilemez. Yeni PDF eski, iptal edilmiş annotation isteğini beklemez; stale sonuç güncel state/cache'i değiştiremez. Beş belgenin kısa/uzun içerikle ayrı üretilmiş PDF'leri sabit widget geometrisini test eder. Sağlam cache yolunda zoom, resize ve veri yazımı annotation taraması tekrarlamaz.
 - **Klavye, İptal ve Temizleme Protokolü:** `Escape` tuşuna basıldığında, form sıfırlandığında veya temizlendiğinde `CLEAR_SELECTION` eylemi tetiklenir ve benzersiz bir `clearEventId` üretilir. `BelgeStudioPdfPreview` bileşenine aktarılan `onClearFieldFocus={clearFieldFocus}` prop kontratı ile önizleme katmanındaki aktif mobil vurgu, 2.5 sn zamanlayıcısı ve tüm bekleyen reveal işleri anında iptal edilir; gecikmiş render'ların vurguyu yeniden parlatması engellenir.
 - **Çok Sayfalı Gezinti ve Kullanıcı Tercihi:** Sayfa 2'de yer alan bir form alanına odaklanıldığında önizleme otomatik ve kontrollü olarak 2. sayfaya geçer (`handlePageChange`) ve alan görünür değilse `getInlineFieldRevealDelta` ile minimal pürüzsüz kaydırma (`smooth reveal`) uygular. Kullanıcı önizlemede elle sayfa değiştirdiğinde (`userManualPageChoiceRef`) bu tercih aynı odak kapsamında korunur; formda yeni bir alana odaklanıldığında hedef sayfa tercihi otomatik olarak güncellenir.
@@ -343,40 +343,50 @@ Olası bir regresyon veya geri alma durumunda:
 
 ## 12. Belge Stüdyosu UX v3: Akıllı Bölümler, İzinli Otomatik Taslak ve PDF Odak Modu (23 Ekim 2026)
 
-2026-10-23 tarihinde beş stüdyoya (`beton-dokum-tutanagi`, `insaat-ruhsati-dilekcesi`, `santiye-sefi-istifa-dilekcesi`, `santiye-sefi-sozlesmesi`, `santiye-sefi-taahhutnamesi`) entegre edilen üç temel kullanıcı deneyimi geliştirmesi ve mimari sözleşmesi:
+2026-10-23 tarihinde beş stüdyoya (`beton-dokum-tutanagi`, `insaat-ruhsati-dilekcesi`, `santiye-sefi-istifa-dilekcesi`, `santiye-sefi-sozlesmesi`, `santiye-sefi-taahhutnamesi`) entegre edilen ve F01–F20 denetim düzeltmeleriyle sağlamlaştırılan üç temel kullanıcı deneyimi geliştirmesi ve mimari sözleşmesi:
 
 ### 12.1. Akıllı Bölümler (Smart Accordion & Dolu Sayaçları)
-- **56/56 Alan Eşleştirmesi:** `DOCUMENT_EDITABLE_FIELDS` sözleşmesindeki 56 alanın tamamı `src/lib/belge-studio-sections.ts` içinde tam olarak tek bir bölüme haritalanmıştır. İstifa Dilekçesi'ndeki salt okunur PDF-only etiket alanları (`sayi_deger`, `ekler_deger`, `hitap_ek_deger`) bölümlere sızdırılmaz.
-- **Erişilebilir WAI-ARIA Başlıklar:** Tüm bölüm başlıkları `<h3><button>` yapısında, `aria-expanded` ve `aria-controls` özniteliklerine sahiptir. Kapalı bölümler CSS `hidden` (`display: none`) ile gizlenir; form imleci (caret) veya Tab gezintisi gizli alanlara girmez.
-- **Dolu Alan Sayaçları:** Her bölümde `${filledCount}/${totalCount} dolu` formatında anlık sayaç gösterilir. Sayım salt `value.trim().length > 0` kuralına dayanır; validasyon iddiası taşımaz.
-- **Tümünü Aç / Tümünü Kapat:** `BelgeStudioSectionMasterControls` ile tek tıkla tüm bölümler açılabilir veya kapatılabilir.
-- **Bağımsız Kullanıcı Tercihleri:** Kapalı bölüm ID'leri `belgeler:ux:section-collapsed:v1:${documentId}` anahtarıyla `localStorage`'da saklanır. İlk ziyarette tüm bölümler açıktır. Kullanıcı tercihi taslak verisinden tamamen izoledir (tercih değişimi taslak kaydını veya revizyonunu tetiklemez).
-- **PDF Alan Odağında Otomatik Bölüm Açma (`revealField`):** Kullanıcı PDF önizleme üzerinden veya klavyeyle kapalı bir bölüme ait alana odaklandığında, ilgili bölüm otomatik olarak genişletilir ve alan görünür kılınır.
+- **56/56 Alan Eşleştirmesi:** `DOCUMENT_EDITABLE_FIELDS` sözleşmesindeki 56 alanın tamamı `src/lib/belge-studio-sections.ts` içinde (`BELGE_STUDIO_SECTIONS`) tam olarak tek bir bölüme haritalanmıştır. İstifa Dilekçesi'ndeki salt okunur PDF-only etiket alanları (`adres_etiket`, `tc_etiket`, `iletisim_etiket`) bölümlere sızdırılmaz.
+- **Erişilebilir WAI-ARIA Başlıklar:** Tüm bölüm başlıkları `<h3><button>` yapısında, `aria-expanded` ve `aria-controls` özniteliklerine sahiptir. Başlıklar minimum 44px dokunma alanına (`min-h-[44px]`), belirgin `focus-visible:ring-2` halkasına ve animasyonsuz ikon yönüne sahiptir. Kapalı bölümler CSS `hidden` (`display: none`) ile gizlenir; form imleci (caret) veya Tab gezintisi gizli alanlara girmez.
+- **Dolu Alan Sayaçları:** Her bölümde `${filledCount}/${totalCount} dolu` formatında ve ekran okuyucu uyumlu (`${filledCount} / ${totalCount} alan dolu`) anlık sayaç gösterilir. Sayım salt `value.trim().length > 0` kuralına dayanır; validasyon iddiası taşımaz.
+- **Tümünü Aç / Diğerlerini Kapat (`closeOthers` Sözleşmesi):** `BelgeStudioSectionMasterControls` ile tek tıkla tüm bölümler açılabilir (`openAll`) veya aktif/seçilen bölüm açık tutularak diğerleri kapatılabilir (`closeOthers`). Bu ana eylem en az bir bölümü açık bırakır; başlıktan tek tek kapatma serbesttir.
+- **Kalıcı Bölüm Tercihleri ve Şema Güvenliği:** Kapalı bölüm ID'leri `belgeler:ux:sections:v1:${documentId}` anahtarıyla `{ version: 1, closedSectionIds: [...] }` zarfı içinde `localStorage`'da saklanır. Tanımsız veya başka belgenin ID'leri allowlist ile ayıklanır; eski dizi formatındaki kayıtlar güvenle versiyon 1'e migrate edilir.
+- **PDF Alan Odağında Geçici Bölüm Açma (`revealField`):** Programatik alan erişimi gerektiğinde `revealField` ilgili bölümü açar; PDF üzerinden ters navigasyon varsayılmaz. Bu yolda ilgili bölüm geçici olarak açılır; ancak kullanıcının kalıcı `localStorage` tercihleri asla ezilmez.
+- **İnşaat Ruhsatı Başlık Numaralandırması:** Bölüm başlıkları 1, 2, 3, 4 olarak tutarlı ve hiyerarşik yapılandırılmıştır.
 
 ### 12.2. İzinli ve Dayanıklı Otomatik Taslak Kaydetme (Auto-Draft)
-- **Sıfır PII Başlangıç İlkesi:** Kullanıcı açıkça onay vermeden (`storageMode === 'none'`), tarayıcı depolamasına hiçbir kullanıcı verisi yazılmaz. İlk form düzenlemesinde nazik izin şeridi (`BelgeStudioDraftConsentBanner`) belirir.
+- **Sıfır PII Başlangıç İlkesi:** Kullanıcı açıkça onay vermeden (aktif kayıt izni olmadan), tarayıcı depolamasına hiçbir kullanıcı verisi yazılmaz. İlk form düzenlemesinde nazik izin şeridi (`BelgeStudioDraftControls`) belirir.
 - **Cihaz ve Sekme İzolasyonu:**
   - `device`: `localStorage` üzerinde `belgeler:ux:draft:device:v1:${documentId}` anahtarıyla kalıcı saklama.
   - `session`: `sessionStorage` üzerinde `belgeler:ux:draft:session:v1:${documentId}` anahtarıyla yalnız mevcut sekmede saklama.
-  - `none`: İzin verilmediğinde `belgeler:ux:draft-consent:device:v1 = 'none'` yazılarak kullanıcının tercihi hatırlanır ve tekrar şerit açılmaz.
+  - `none`: Ret/kapama `dismissed` kararıyla tutulur. Sekme tercihi `belgeler:ux:draft-consent:session:v1`, cihaz tercihi `belgeler:ux:draft-consent:device:v1` kullanır. Açık sekme seçimi önceliklidir; bir başka sekme izin vererek bunu değiştiremez.
+  - Cihaz ve sekme storage/broadcast kanalları ayrıştırılmıştır; harici olaylar sekme modunu ezemez.
 - **800ms Debounce & Tek Snapshot:** Kullanıcı tuş vuruşları 800ms duraksadıktan sonra tek bir atomik snapshot olarak kaydedilir; gereksiz disk I/O ve PDF derlemesi engellenir.
-- **Güvenlik ve Bütünlük:**
-  - 64 KiB tavan boyut sınırı (büyük veri enjeksiyonu önlenir).
-  - Şema parmak izi (`schemaFingerprint`) ile alan sayısı ve şema uyuşmazlığında bozuk taslak reddi.
+- **Fail-Closed Güvenlik ve Boyut Sınırları:**
+  - 64 KiB tavan boyut sınırı (JSON ayrıştırma öncesi UTF-8 bayt kontrolü ile büyük veri enjeksiyonu ve çökme engellenir; aşırı büyük veya bozuk kayıtlar sessizce silinmez, fail-closed korunur).
+  - Şema parmak izi (`fieldSchemaFingerprint`) ile alan sayısı ve şema uyuşmazlığında bozuk taslak reddi.
   - 30 gün yaş uyarısı (kullanıcıya eski taslak uyarısı verir fakat veriyi asla sessizce silmez).
-  - `__proto__`, `constructor` kirliliği koruması.
-- **Kontrollü Geri Yükleme (Restore):** Sayfa yenilendiğinde taslak sessizce forma yazılmaz. Kullanıcıya `BelgeStudioDraftRestoreBanner` sunulur:
-  - "Taslağı Yükle": Tek snapshot olarak forma aktarır ve PDF'yi günceller.
-  - "Şimdilik Kapat": Mevcut taslağı silmeden korur, otomatik kaydı duraklatır.
-  - "Taslağı Sil": Depodaki taslağı siler ve formu temiz bırakır.
-- **Çoklu Sekme ve Yaşam Döngüsü Yarışları:**
-  - `BroadcastChannel` ve `storage` event'leri ile sekmeler arası çakışma tespiti (`BelgeStudioDraftConflictBanner`).
-  - "Bu Sekmedekiyle Devam Et" (Takeover) ile revizyon sahipliğini devralma.
-  - Taslak silindiğinde veya izin kapatıldığında `pagehide`, `visibilitychange` veya pending debounce zamanlayıcılarının silinmiş taslağı diriltmesini engelleyen **resurrection guard**.
-- **Temizle ve Geri Al (Undo):** "Temizle" işlemi onaylandığında boş snapshot kaydedilir (reload'da eski dolu taslak hortlamaz); "Geri Al" (Undo) tıklandığında önceki snapshot yeniden yüklenir ve taslağa kaydedilir.
+  - Prototip zinciri ve `__proto__`, `constructor` kirliliği koruması.
+- **Kontrollü Geri Yükleme (Restore) ve Sahte Çakışma Önleme:**
+  - Sayfa yenilendiğinde taslak sessizce forma yazılmaz. Kullanıcıya `BelgeStudioDraftControls` sunulur:
+    - "Taslağı Yükle": Tek snapshot olarak forma aktarır, kabul edilmiş ham kayıt sürümünü izleyerek reload sonrası sahte çakışmayı engeller ve PDF'yi günceller.
+    - "Şimdilik Kapat": Kararı saklar, kaydı duraklatır; menüden karar tekrar açılabilir. "Bu Formla Devam Et": Açık ikinci onayla güncel kayıt sürümü kontrol edilir ve mevcut form kaydedilir. Onay iptal edilirse değerler değişmez.
+    - "Taslağı Sil": Depodaki taslağı doğrulamalı siler, dirilme bayrağını kilitler ve form değerlerini değiştirmez.
+- **Onay Kapıları (Confirmation Guards):** Beş stüdyonun tamamında "Temizle", "Sıfırla" ve Ruhsat "Rastgele Doldur" eylemleri `window.confirm` onay kapısıyla korunur. Kullanıcı iptal ettiğinde form verileri, undo geçmişi ve odak durumu eksiksiz korunur.
+- **Tekil ve Kalıcı Durum Rozeti (`belge-studio-top-header`):**
+  - Çift rozet yerleşimi kaldırılmış; beş stüdyoda formun ve PDF'in üstündeki ortak `data-testid="belge-studio-top-header"` şeridine taşınmıştır.
+  - Rozet masaüstü, mobil (320px/390px) ve PDF odak modunda tekil, görünür ve tam erişilebilirdir.
+  - Kapalı modda (none) 'Taslak (Kapalı)' gösterir; açılır menüden cihaz/sekme açma, duraklatma, kalıcı kapatma ve taslak silme yönetilir.
+  - Kayıt duraklatıldığında (`isPaused === true`), kaydedildi durumunun önünde öncelikli olarak 'Kayıt Duraklatıldı' gösterilir.
+- **Çoklu Sekme ve Yaşam Döngüsü:**
+  - `BroadcastChannel` ve `storage` event'leri ile sekmeler arası çakışma tespiti (`BelgeStudioDraftControls`).
+  - "Bu Sekmedekiyle Devam Et" açık onayından sonra güncel kayıt yeniden karşılaştırılır. Device modunda Web Locks read-check-write ve silmeyi aynı belge anahtarında sıralar. Kilit desteği yoksa yeniden okuma/conflict durdurması vardır; mutlak atomiklik iddiası yoktur.
+  - Taslak silindiğinde dirty/generation kapısı sıfırlanarak silinmiş taslağın dirilmesi (`resurrection`) engellenir.
+  - SPA unmount anında (`next/link` geçişleri) yalnız izinli, kararı çözülmüş ve çakışmasız dirty form için best-effort flush denenir; tarayıcı kapanışında kalıcılık garantisi verilmez.
 
 ### 12.3. Masaüstü PDF Odak Modu (Desktop PDF Focus Mode)
 - **Masaüstü Özel (`lg >= 1024px`):** `useSyncExternalStore` ile SSR-safe masaüstü algılama. `< 1024px` mobilde buton görünmez.
+- **Hata Kurtarma (Error Recovery - F11):** PDF üretim hatasında (`visibleError`), yükleme durumunda (`generationPending`) veya eksik snapshot durumunda layout toggle butonu ("Formu Göster" / "PDF Odak Modu") **asla kilitlenmez**. Kullanıcı hatalı PDF durumunda bile güvenle form görünümüne geri dönebilir.
 - **CSS Tabanlı Sıfır Unmount:** Form paneli unmount edilmez; `pdfFocus.isPdfFocus ? 'hidden' : ...` ile CSS görünürlüğü yönetilir. Sağ PDF paneli `w-full` tam genişlik alır.
 - **State ve Odak Restorasyonu:**
   - Odak moduna geçerken formun `scrollTop` değeri ve `document focusin` ile izlenen aktif girdi ID'si saklanır.
@@ -384,17 +394,24 @@ Olası bir regresyon veya geri alma durumunda:
 - **1280 → 900 → 1280 Sıfırlanma Güvencesi:** Ekran boyutu 1024px altına çekildiğinde odak modu otomatik sıfırlanır; ekran tekrar 1024px üzerine çıktığında kullanıcı tıklamadan odak modu otomatik açılmaz.
 - **Sıfır PDF Yeniden Derlemesi:** Odak modu geçişi sırasında yeni `formData` mutasyonu veya PDF byte üretimi yapılmaz; mevcut `blobUrl` stabil kalır.
 
-### 12.4. Yeni Belge Eklerken Entegrasyon Protokolü
+### 12.4. Feature Flag Mimarisi ve Geri Alma Güvencesi
+- `src/lib/belge-ux-config.ts` altındaki `BELGE_UX_FLAGS` (`ACCORDION`, `DRAFT`, `FOCUS_MODE`) üretim davranışına bağlanmıştır:
+  - `FOCUS_MODE: false`: Odak butonu gizlenir, `isPdfFocus` daima false kalır; form daima erişilebilirdir.
+  - `ACCORDION: false`: Tüm bölümler daima açık tutulur (`isSectionOpen === true`), ana kontroller ve oklar gizlenir; form klasik düz form olarak çalışır.
+  - `DRAFT: false`: Dinleyiciler, debounce zamanlayıcıları ve izin şeridi devre dışı kalır; depoya yazma yapılmaz ve **depodaki mevcut taslaklar ASLA silinmez**.
+
+### 12.5. Yeni Belge Eklerken Entegrasyon Protokolü
 Yeni bir resmi evrak stüdyosu sisteme eklenirken şu sıra izlenmelidir:
-1. `src/lib/belge-studio-sections.ts`: Belge kimliğini `DOCUMENT_SECTION_MAP` içerisine ekleyin ve tüm alanları gruplayın.
+1. `src/lib/belge-studio-sections.ts`: Belge kimliğini `BELGE_STUDIO_SECTIONS` içerisine ekleyin ve tüm 56 alan sözleşmesini eksiksiz gruplayın.
 2. `src/components/[belge]-studio.tsx`:
    - `const sectionsApi = useBelgeStudioSections({ documentId, formData });`
    - `const draft = useBelgeAutoDraft({ documentId, formData, setFormData, initialData, setUndoData });`
    - `const pdfFocus = useBelgeStudioPdfFocus({ scrollContainerRef: formView.scrollContainerRef, isModal });`
 3. JSX Katmanı:
+   - Üst şerit: `<div data-testid="belge-studio-top-header">...<BelgeStudioDraftStatusBadge draftApi={draft} />...</div>`
    - Form konteynerine: `className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${pdfFocus.isPdfFocus ? "hidden" : activeTabMobile === "form" ? "block" : "hidden lg:block"}`}`
    - Önizleme paneline: `pdfFocus={pdfFocus}` aktarın.
-   - Form içine: `<BelgeStudioDraftControls draftApi={draft} />` ve `<BelgeStudioSectionMasterControls sectionsApi={sectionsApi} />` ekleyin.
+   - Karar şeridini panel dışına `<BelgeStudioDraftControls draftApi={draft} />`, bölüm kontrollerini form içine `<BelgeStudioSectionMasterControls sectionsApi={sectionsApi} />` ekleyin.
 
 ### 12.5. Test ve Doğrulama Komutları
 - **Birim ve Depolama Çekirdeği:** `npx tsx --test tests/belgeler/*.test.ts`
@@ -406,3 +423,44 @@ Yeni bir resmi evrak stüdyosu sisteme eklenirken şu sıra izlenmelidir:
 - **Entegre UX ve Stres Paketi:** `npx playwright test tests/site-audit/belgeler-studio-ux.spec.ts --config=playwright.site.config.ts --project=chromium-desktop-1366`
 - **Next.js Tip Denetimi:** `npx tsc -p tsconfig.next.json --noEmit --incremental false`
 - **Üretim Derlemesi:** `npm run build`
+
+
+### 12.6. Son bağımsız kabul
+
+23 Ekim 2026 yerel kapanış kaydı: `docs/belgeler-ux-v3-duzeltme-2026-10-23/FINAL_AUDIT.md`. Gerçek hook lifecycle kabulü `belgeler-draft-final-regressions.spec.ts`; beş belgenin 56 alanı için storage/restore/preview/indirilen PDF zinciri `belgeler-draft-pdf-roundtrip.spec.ts` ile sınanır. Önceki D02–D05 simülasyon testleri gerçek hook kabulü yerine kullanılmaz. Form görünümünün sunum API'si (`BelgeStudioFormViewControls`) DOM ref'lerinden ayrıdır. Form gizliyken son geçerli fit state korunur.
+
+Cihaz kaydı aynı tarayıcı profiline açıktır, şifreli değildir ve bulut senkronizasyonu yapmaz. Session kaydının kapanış/yeniden açılışta devamı tarayıcı davranışına bağlıdır; sekme klonlama güvenlik sınırı değildir. Build-time feature flag değişikliği yeni testli derleme gerektirir.
+
+---
+
+## 13. Akıllı Dosya Adı ve 90 Günlük Güvenli Paylaşım Mimarisi (V2)
+
+### 13.1. Standart Akıllı Dosya Adı Sözleşmesi
+İndirilen PDF'lerin dosya adları `src/lib/belge-filename.ts` modülü tarafından üretilir:
+- **Beton Döküm Tutanağı:** `Beton-Tutanagi_YIBF-1234567_2026-10-23.pdf`
+- **Şantiye Şefi Taahhütnamesi:** `Taahhutname_Ad-Soyad_2026-10-23.pdf`
+- **Şantiye Şefliği İstifa Dilekçesi:** `Istifa-Dilekcesi_Ad-Soyad_2026-10-23.pdf`
+- **İnşaat Ruhsatı Başvuru Dilekçesi:** `Ruhsat-Dilekcesi_Ad-Soyad_2026-10-23.pdf`
+- **Şantiye Şefliği Hizmet Sözleşmesi:** `Hizmet-Sozlesmesi_Santiye-Sefi_Muteahhit_2026-10-23.pdf`
+- **Özellikler:** Türkçe karakterler ASCII eşdeğerlerine normalize edilir (`İ/ı → I/i`), path traversal ve geçersiz karakterler temizlenir, tarih formdan alınır (geçersizse güncel tarih kullanılır).
+
+### 13.2. 90 Günlük Salt-Okunur Paylaşım Bağlantısı (`/b/[token]`)
+- **Tek Eylem:** Stüdyolardaki `Paylaş` düğmesi modal açar. `Bağlantı oluştur` dendiğinde o anki form verileri dondurulur (frozen snapshot) ve sunucuya gönderilir.
+- **Kapsam Dışı (Strict Exclusion):** WhatsApp, `wa.me`, `navigator.share`, QR kod veya e-posta paylaşım düğmeleri **KESİNLİKLE YOKTUR**. Yalnızca bağlantı üretilir ve panoya kopyalanır (`Bağlantıyı Kopyala`).
+- **Görüntüleyici Ekranı (`/b/[token]`):**
+  - Next.js root layout'undaki genel Navbar, Footer ve GlobalOverlays bileşenleri middleware üzerinden tespit edilen `x-pathname` başlığı ile DOM'dan tamamen çıkarılır (`isIsolatedViewer = true`).
+  - Sayfa salt-okunur PDF.js canvas'ı ile render edilir.
+  - İndir, yazdır ve form düzenleme kontrolleri bulunmaz; `Ctrl+P` ve `Ctrl+S` engellenir.
+  - Meta etiketleri `noindex, nofollow, nocache`; OpenGraph başlığı anonimdir (kişisel veri içermez).
+
+### 13.3. Güvenlik, Kota ve İptal Mekanizması
+- **Sunucu Taraflı PDF Üretimi:** Anonim keyfî PDF byte upload'u yoktur. Sunucu yalnızca allowlist'te bulunan 56 form alanını içeren küçük JSON (azami 64 KiB) kabul eder ve `flatten: true` ile AcroForm alanları sıfırlanmış PDF üretir.
+- **Kriptografik Token:** `BELGE_SHARE_SECRET` kullanılarak `HMAC-SHA256` ile 256-bit entropili `viewToken` ve `manageToken` üretilir. DB'de yalnızca SHA-256 hash'leri saklanır.
+- **Kota Sınırları:** IP başına 15 dakikada 3 bağlantı, 24 saatte 10 bağlantı, en fazla 20 aktif bağlantı; küresel günde 200 bağlantı ve 1 GiB depolama sınırı.
+- **İptal (Revocation):** Oluşturan cihazın tarayıcısında saklanan `manageToken` ile `DELETE /api/belgeler/paylasim/[token]` rotası üzerinden bağlantı anında iptal edilebilir. İptal anında veritabanında `status = 'revoked'` yapılır ve `/b/[token]` derhal HTTP 410 döndürür.
+
+### 13.4. Depolama İzolasyonu ve Otomatik Temizlik (Cron)
+- **Özel Blob Depolama:** `belge_paylasim/` önekiyle Vercel Private Blob üzerinde tutulur. Doğrudan genel URL verilmez; stream yalnız `/api/belgeler/paylasim/[token]/pdf` üzerinden sunulur.
+- **Günlük Cron (`0 3 * * *`):** `/api/cron/belge-paylasim-temizlik` rotası Vercel tarafından günlük tetiklenir. Yalnızca `Authorization: Bearer <CRON_SECRET>` başlığıyla yetkilendirilir.
+- **Purge ve GC:** Süresi dolan veya iptal edilen Blob'lar fiziksel olarak silinir; 24 saatten eski yetim (orphan) nesneler ve 30 günlük mezar taşları temizlenir. Dokümantasyon (`dok_storage/`) veya CAD nesnelerine asla dokunulmaz.
+

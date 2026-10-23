@@ -42,7 +42,7 @@ async function fit(page:import("@playwright/test").Page){
 for(const doc of docs){
  test("D05 no clickable overlaps at 1023–1366: "+doc,async({page},info)=>{
   test.setTimeout(125000);
-  const observations=[];
+  const observations: any[] = [];
   await page.setViewportSize({width:1366,height:768});
   await page.goto("/belgeler/"+doc,{waitUntil:"domcontentloaded",timeout:30000});
   await expect(page.locator('[data-studio-locked="true"]:visible').getByRole("status").first())
@@ -50,7 +50,7 @@ for(const doc of docs){
   for(const width of [1023,1024,1025,1093,1366,1920]){
    await page.setViewportSize({width,height:768});
    const m=await geometry(page);
-   observations.push({width,...m});
+   observations.push({requestedWidth:width,...m});
    expect(m.overlaps,doc+"@"+width+" "+JSON.stringify(m)).toEqual([]);
    if(width===1024)expect(m.height).toBeLessThan(99);
   }
@@ -62,7 +62,7 @@ for(const doc of docs){
   await page.goto("/belgeler/"+doc,{waitUntil:"domcontentloaded",timeout:30000});
   await expect(page.locator('[data-studio-locked="true"]:visible').getByRole("status").first())
     .toHaveText("PDF önizlemesi hazır.",{timeout:45000});
-  const observations=[];
+  const observations: any[] = [];
   for(const vp of [{width:1920,height:1080},{width:1024,height:768},{width:1280,height:720}]){
    await page.setViewportSize(vp);
    const result=await fit(page);

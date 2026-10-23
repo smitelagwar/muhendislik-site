@@ -4,9 +4,9 @@
 plan_id: BELGELER_UX_SECTION_DRAFT_FOCUS_2026_10_V3
 plan_revision: 3
 planning_status: PLAN_HAZIR
-execution_status: YEREL_KABUL_GECTI
+execution_status: TAMAMLANDI
 active_stage: null
-next_stage: ASAMA_10
+next_stage: null
 completed_stages:
   - ASAMA_00
   - ASAMA_01
@@ -18,6 +18,7 @@ completed_stages:
   - ASAMA_07
   - ASAMA_08
   - ASAMA_09
+  - ASAMA_10
 evidence:
   - stage: ASAMA_00
     command_or_case: "npm run check:belgeler-pdf"
@@ -259,14 +260,24 @@ evidence:
     result: PASS
     tested_head_or_worktree: "9cf0a95e819e1b545791c8ac7184a051758d1835 (dirty worktree)"
     summary: "Bölüm 12 yaşayan mimari dokümanına 3 yeni özellik, depolama anahtarları, PII uyarıları ve test matrisi işlendi; git diff --check temiz çıkış koduyla (0) geçti."
+  - stage: ASAMA_10
+    command_or_case: "git push origin main & Vercel Production Release"
+    result: PASS
+    tested_head_or_worktree: "323b064960bbdc9cbab0b4fbc55f74ca7f6fdf47"
+    summary: "Tek atomik release commiti (323b064) origin/main'e pushlandı; Vercel deployment dpl_5mjKyBBVXLvhRHjzJtMcTbPL3xx4 3 dakikada ● Ready durumuna geçti."
+  - stage: ASAMA_10
+    command_or_case: "Canlı Production Smoke Testi (https://muhendislik-site.vercel.app)"
+    result: PASS
+    tested_head_or_worktree: "323b064960bbdc9cbab0b4fbc55f74ca7f6fdf47 (canlı Vercel)"
+    summary: "3 canlı senaryo eksiksiz PASS: 1. Beton Döküm (akordeon aç/kapat, 'Bu Cihazda Hatırla' izinli taslak, PDF Odak Modu aç/kapat ve tam genişleme, depolama temizliği); 2. Sözleşme (4 akordeon bölümü, 2 sayfa PDF navigasyonu ve tuval); 3. Mobil 390x844 (PDF odak butonu gizli, sıfır yatay taşma, Form/Önizleme geçişleri); sıfır konsol hatası."
 blockers: []
 base_remote_head: 9cf0a95e819e1b545791c8ac7184a051758d1835
-base_local_head: 9cf0a95e819e1b545791c8ac7184a051758d1835
-tested_worktree: "main (with local working tree preserved)"
-release_commit: null
-deployment_url: null
-verified_at: "2026-10-23T10:00:00+03:00"
-updated_at: "2026-10-23T10:00:00+03:00"
+base_local_head: 323b064960bbdc9cbab0b4fbc55f74ca7f6fdf47
+tested_worktree: "main"
+release_commit: 323b064960bbdc9cbab0b4fbc55f74ca7f6fdf47
+deployment_url: "https://muhendislik-site.vercel.app (dpl_5mjKyBBVXLvhRHjzJtMcTbPL3xx4)"
+verified_at: "2026-10-23T10:15:00+03:00"
+updated_at: "2026-10-23T10:15:00+03:00"
 ```
 
 ---
@@ -285,4 +296,4 @@ updated_at: "2026-10-23T10:00:00+03:00"
 | `ASAMA_07` | PDF odak modu, desktop toolbar ve state koruma | **TAMAMLANDI** | 6/6 E2E PASS (Desktop aç/kapat, state/scroll/focus koruma, 1280->900->1280 sıfırlama, sıfır PDF byte derleme, 2 sayfalı Sözleşme uyumu, 390px mobil gizlilik), check:belgeler-pdf (167/167 PASS), ESLint temiz, TS temiz |
 | `ASAMA_08` | Entegre senaryolar, erişilebilirlik, mobil ve stres | **TAMAMLANDI** | 8/8 E2E PASS (Tam döngü, varsayılan/Temizle/Undo, gizlilik/bozuk veri toleransı, çoklu sekme takeover, özel alan senkronları, klavye/WAI-ARIA/44px, 7 viewport sıfır taşma, stres sıfır PDF derlemesi), check:belgeler-pdf (167/167 PASS), ESLint temiz, TS temiz |
 | `ASAMA_09` | Tam yerel kabul, production build ve mimari kayıt | **TAMAMLANDI** | check:belgeler-pdf (167 PASS), check:belgeler-inline-mobile (9 PASS), tsc temiz, production build PASS, production server 4 E2E suite (24 PASS), BELGELER_SISTEMI.md Bölüm 12 güncel |
-| `ASAMA_10` | Tek kontrollü Production release ve canlı smoke | BEKLIYOR | - |
+| `ASAMA_10` | Tek kontrollü Production release ve canlı smoke | **TAMAMLANDI** | Tek atomic commit 323b064 origin/main'e pushlandı; Vercel Ready (dpl_5mjKyBBVXLvhRHjzJtMcTbPL3xx4); canlı smoke 3/3 PASS (Beton, Sözleşme, Mobil 390px) |

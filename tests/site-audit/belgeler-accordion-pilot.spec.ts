@@ -84,19 +84,22 @@ test.describe("Belgeler Akordeon Pilot — ASAMA_05 Beton Döküm Tutanağı", (
     await expect(badge).toHaveText("3/3 dolu");
   });
 
-  test("4. Tümünü Kapat / Tümünü Aç ana kontrolleri", async ({ page }) => {
+  test("4. Diğerlerini Kapat / Tümünü Aç ana kontrolleri (closeOthers sözleşmesi)", async ({ page }) => {
     await page.goto("/belgeler/beton-dokum-tutanagi");
     await page.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
 
     const masterToggle = page.locator('[data-testid="belge-sections-toggle-all"]');
-    await expect(masterToggle).toContainText("Tümünü Kapat");
+    await expect(masterToggle).toContainText("Diğerlerini Kapat");
 
-    // Tümünü kapat
+    // Diğerlerini kapat (closeOthers aktif bölümü veya ilk bölümü açık tutar, 0 açık bölüm üretmez)
     await masterToggle.click();
     await expect(masterToggle).toContainText("Tümünü Aç");
 
-    const sectionIds = ["belge-kayit", "santiye-yeri", "olay-gozlem", "imzaci-taraflar"];
-    for (const id of sectionIds) {
+    const firstToggle = page.locator('[data-testid="belge-section-toggle-belge-kayit"]');
+    await expect(firstToggle).toHaveAttribute("aria-expanded", "true");
+
+    const otherIds = ["santiye-yeri", "olay-gozlem", "imzaci-taraflar"];
+    for (const id of otherIds) {
       const toggleBtn = page.locator(`[data-testid="belge-section-toggle-${id}"]`);
       await expect(toggleBtn).toHaveAttribute("aria-expanded", "false");
       const content = page.locator(`[data-testid="belge-section-content-${id}"]`);
@@ -105,8 +108,9 @@ test.describe("Belgeler Akordeon Pilot — ASAMA_05 Beton Döküm Tutanağı", (
 
     // Tümünü aç
     await masterToggle.click();
-    await expect(masterToggle).toContainText("Tümünü Kapat");
+    await expect(masterToggle).toContainText("Diğerlerini Kapat");
 
+    const sectionIds = ["belge-kayit", "santiye-yeri", "olay-gozlem", "imzaci-taraflar"];
     for (const id of sectionIds) {
       const toggleBtn = page.locator(`[data-testid="belge-section-toggle-${id}"]`);
       await expect(toggleBtn).toHaveAttribute("aria-expanded", "true");
@@ -129,8 +133,9 @@ test.describe("Belgeler Akordeon Pilot — ASAMA_05 Beton Döküm Tutanağı", (
     });
     expect(stored).not.toBeNull();
     const parsed = JSON.parse(stored!);
-    expect(parsed).toContain("santiye-yeri");
-    expect(parsed).toContain("imzaci-taraflar");
+    const ids = Array.isArray(parsed) ? parsed : parsed.closedSectionIds;
+    expect(ids).toContain("santiye-yeri");
+    expect(ids).toContain("imzaci-taraflar");
 
     // Sayfayı yenile
     await page.reload();
@@ -188,5 +193,11 @@ test.describe("Belgeler Akordeon Pilot — ASAMA_05 Beton Döküm Tutanağı", (
     // 2. bölümün otomatik açıldığını doğrula
     await expect(toggleBtn).toHaveAttribute("aria-expanded", "true");
     await expect(content).not.toHaveClass(/hidden/);
+
+    // F13: revealField geçici açma yapmalıdır; localStorage tercihlerini ezmemelidir
+    const storedPrefs = await page.evaluate(() => {
+      return window.localStorage.getItem("belgeler:ux:sections:v1:beton-dokum-tutanagi");
+    });
+    expect(storedPrefs).toContain("santiye-yeri");
   });
 });

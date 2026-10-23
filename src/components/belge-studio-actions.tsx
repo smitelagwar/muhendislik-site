@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FORM_SCALE_PRESETS } from "@/lib/belge-studio-form-view";
-import type { BelgeStudioFormViewApi } from "@/hooks/use-belge-studio-form-view";
+import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
 import {
   BelgeBackIcon,
   BelgeBlankFormIcon,
@@ -30,6 +30,7 @@ import {
   BelgePreviewEyeIcon,
   BelgePrintIcon,
   BelgeResetIcon,
+  BelgeShareIcon,
   BelgeSunIcon,
   BelgeUndoIcon,
 } from "@/components/belge-studio-icons";
@@ -42,12 +43,13 @@ type BelgeStudioActionsProps = {
   onUndo: () => void;
   canUndo: boolean;
   onPrint: () => void;
+  onShare?: () => void;
   onDownload: () => void;
   ready: boolean;
   downloading: boolean;
   documentId: BelgeDocumentId;
   templateFilename: string;
-  formView?: BelgeStudioFormViewApi;
+  formView?: BelgeStudioFormViewControls;
 };
 
 export function BelgeStudioActions(props: BelgeStudioActionsProps) {
@@ -198,6 +200,17 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
               </>
             )}
             <DropdownMenuSeparator />
+            {props.onShare && (
+              <DropdownMenuItem
+                className="min-h-11 rounded-xl"
+                disabled={!ready}
+                onSelect={props.onShare}
+                data-testid="belge-mobile-menu-share-btn"
+              >
+                <BelgeShareIcon className="size-4 text-amber-500" />
+                Paylaş
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem className="min-h-11 rounded-xl" disabled={!ready} onSelect={props.onPrint}><BelgePrintIcon className="size-4" />Yazdır</DropdownMenuItem>
             <DropdownMenuItem className="min-h-11 rounded-xl" disabled={blankDownloading} onSelect={() => void downloadBlank()}><BelgeBlankFormIcon className="size-4" />Boş form indir</DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -206,6 +219,20 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
             <DropdownMenuItem className="min-h-11 rounded-xl" disabled={!props.canUndo} onSelect={props.onUndo}><BelgeUndoIcon className="size-4" />Son işlemi geri al</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        {props.onShare && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={props.onShare}
+            disabled={!ready}
+            className="hidden min-[380px]:inline-flex min-h-[44px] w-[44px] shrink-0 self-stretch rounded-xl border-border/80 bg-card/90 p-0 hover:border-amber-500/50 dark:bg-zinc-900"
+            aria-label="PDF görüntüleme bağlantısı paylaş"
+            title="PDF görüntüleme bağlantısı oluştur ve paylaş"
+            data-testid="belge-mobile-share-btn"
+          >
+            <BelgeShareIcon className="h-[20px] w-[20px] text-amber-500" />
+          </Button>
+        )}
         <Button type="button" variant="outline" onClick={props.onToggleTab} className={`min-h-[44px] min-w-0 flex-1 gap-[6px] whitespace-normal rounded-xl border-border/80 bg-card/90 px-[8px] py-[8px] text-xs font-bold leading-tight hover:border-amber-500/50 dark:bg-zinc-900 ${props.activeTab === "preview" ? "belge-form-edit-glow" : ""}`} aria-label={props.activeTab === "form" ? "Canlı PDF Önizle" : "Formu Düzenle"}>
           {props.activeTab === "form" ? <BelgePreviewEyeIcon className="h-[16px] w-[16px] shrink-0 text-amber-500" /> : <BelgeFormEditIcon className="h-[16px] w-[16px] shrink-0 text-amber-500" />}
           <span className="min-w-0 wrap-anywhere">{props.activeTab === "form" ? "PDF Önizle" : "Formu Düzenle"}</span>
@@ -223,6 +250,19 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
         <div className="flex items-center gap-2">
           <Button type="button" variant="outline" disabled={blankDownloading} onClick={() => void downloadBlank()} className="min-h-11 gap-2 text-xs"><BelgeBlankFormIcon className="size-4" />Boş form indir</Button>
           <Button type="button" variant="outline" onClick={props.onPrint} disabled={!ready} className="min-h-11 gap-2 text-xs"><BelgePrintIcon className="size-4" />Yazdır</Button>
+          {props.onShare && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={props.onShare}
+              disabled={!ready}
+              className="min-h-11 gap-2 text-xs"
+              data-testid="belge-desktop-share-btn"
+            >
+              <BelgeShareIcon className="size-4 text-amber-500" />
+              Paylaş
+            </Button>
+          )}
           <Button type="button" onClick={props.onDownload} disabled={!ready || downloading} className={downloadClass}>{downloadIcon}PDF İndir</Button>
         </div>
       </div>

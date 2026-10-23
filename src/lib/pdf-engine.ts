@@ -2,6 +2,8 @@ import { componentsToColor, CustomFontEmbedder, defaultTextFieldAppearanceProvid
 import fontkit from "@pdf-lib/fontkit";
 import { getDocumentPdfProfiles, getBlankDocumentData, normalizePdfFieldValue, type BelgeDocumentId } from "./belgeler-pdf-profiles";
 import { measurePdfAppearance, type BelgePdfResult, type PdfFieldLayout, type PdfFieldLayouts, type PdfWidgetLayout } from "./belgeler-pdf-layout";
+import { buildBelgeFilename } from "./belge-filename";
+export { buildBelgeFilename };
 
 // ==========================================
 // 1. BETON DÖKÜM TUTANAĞI
@@ -703,25 +705,6 @@ async function populateForm<T extends object>(
 
 
 // ==========================================
-function sanitizePdfFilenamePart(value: string | undefined): string {
-  return (value ?? "")
-    .replace(/[çÇ]/g, (character) => character === "Ç" ? "C" : "c")
-    .replace(/[ğĞ]/g, (character) => character === "Ğ" ? "G" : "g")
-    .replace(/[ıİ]/g, (character) => character === "İ" ? "I" : "i")
-    .replace(/[öÖ]/g, (character) => character === "Ö" ? "O" : "o")
-    .replace(/[şŞ]/g, (character) => character === "Ş" ? "S" : "s")
-    .replace(/[üÜ]/g, (character) => character === "Ü" ? "U" : "u")
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .replace(/[^a-zA-Z0-9._-]+/g, "_")
-    .replace(/^[_ .-]+|[_ .-]+$/g, "")
-    .slice(0, 64);
-}
-
-function buildPdfFilename(prefix: string, ...parts: string[]): string {
-  const suffix = parts.filter(Boolean).join("_");
-  return `${prefix}${suffix ? `_${suffix}` : ""}.pdf`;
-}
 
 function readAppearanceFontSize(appearance: string | undefined, fallback: number): number {
   const match = appearance?.match(/(?:^|\s)(\d+(?:\.\d+)?)\s+Tf\b/);
@@ -754,9 +737,7 @@ export async function downloadFilledBetonDokumPdf(
   const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
 
-  const cleanYibf = sanitizePdfFilenamePart(data.yibf);
-  const cleanDate = sanitizePdfFilenamePart(data.tarih);
-  const finalFileName = fileName || buildPdfFilename("BETON_DOKUM_TUTANAGI", cleanYibf, cleanDate);
+  const finalFileName = fileName || buildBelgeFilename("beton-dokum-tutanagi", data);
 
   const link = document.createElement("a");
   link.href = url;
@@ -786,9 +767,7 @@ export async function downloadFilledTaahhutnamePdf(
   const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
 
-  const cleanName = sanitizePdfFilenamePart(data.santiye_sefi_ad_soyad);
-  const cleanDate = sanitizePdfFilenamePart(data.tarih);
-  const finalFileName = fileName || buildPdfFilename("SANTIYE_SEFI_TAAHHUTNAMESI", cleanName, cleanDate);
+  const finalFileName = fileName || buildBelgeFilename("santiye-sefi-taahhutnamesi", data);
 
   const link = document.createElement("a");
   link.href = url;
@@ -818,9 +797,7 @@ export async function downloadFilledIstifaDilekcesiPdf(
   const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
 
-  const cleanName = sanitizePdfFilenamePart(data.ad_soyad);
-  const cleanDate = sanitizePdfFilenamePart(data.tarih);
-  const finalFileName = fileName || buildPdfFilename("SANTIYE_SEFI_ISTIFA_DILEKCESI", cleanName, cleanDate);
+  const finalFileName = fileName || buildBelgeFilename("santiye-sefi-istifa-dilekcesi", data);
 
   const link = document.createElement("a");
   link.href = url;
@@ -850,9 +827,7 @@ export async function downloadFilledInsaatRuhsatiPdf(
   const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
 
-  const cleanName = sanitizePdfFilenamePart(data.ad_soyad);
-  const cleanDate = sanitizePdfFilenamePart(data.tarih);
-  const finalFileName = fileName || buildPdfFilename("INSAAT_RUHSATI_DILEKCESI", cleanName, cleanDate);
+  const finalFileName = fileName || buildBelgeFilename("insaat-ruhsati-dilekcesi", data);
 
   const link = document.createElement("a");
   link.href = url;
@@ -882,9 +857,7 @@ export async function downloadFilledSozlesmePdf(
   const blob = new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
 
-  const cleanName = sanitizePdfFilenamePart(data.santiye_sefi_ad);
-  const cleanDate = sanitizePdfFilenamePart(data.sozlesme_tarihi);
-  const finalFileName = fileName || buildPdfFilename("SANTIYE_SEFI_SOZLESMESI", cleanName, cleanDate);
+  const finalFileName = fileName || buildBelgeFilename("santiye-sefi-sozlesmesi", data);
 
   const link = document.createElement("a");
   link.href = url;

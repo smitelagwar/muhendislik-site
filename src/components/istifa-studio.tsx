@@ -18,10 +18,11 @@ import { useBelgeFieldFocus } from "@/hooks/use-belge-field-focus";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
+import { useBelgeShare } from "@/hooks/use-belge-share";
+import { BelgeShareDialog } from "@/components/belge-paylasim/belge-share-dialog";
 import { BelgePdfLayoutWarnings } from "@/components/belge-pdf-layout-warnings";
 import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belge-field-guidance";
 import {
-  BelgeFormEditIcon,
   BelgeResetIcon,
 } from "@/components/belge-studio-icons";
 import { useBelgeAutoDraft } from "@/hooks/use-belge-auto-draft";
@@ -85,9 +86,10 @@ export function IstifaStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
-  const formView = useBelgeStudioFormView({ isModal });
+  const { scrollContainerRef, contentWrapperRef, contentWrapperProps, ...formView } = useBelgeStudioFormView({ isModal });
+  void contentWrapperRef;
   const pdfFocus = useBelgeStudioPdfFocus({
-    scrollContainerRef: formView.scrollContainerRef,
+    scrollContainerRef: scrollContainerRef,
     isModal,
   });
   const {
@@ -100,8 +102,14 @@ export function IstifaStudio({
   });
 
   const sectionsApi = useBelgeStudioSections({
+    studioRootRef,
     documentId: "santiye-sefi-istifa-dilekcesi",
     formData: formData as unknown as Record<string, unknown>,
+  });
+
+  const shareApi = useBelgeShare({
+    documentId: "santiye-sefi-istifa-dilekcesi",
+    getSnapshotValues: () => formData as unknown as Record<string, string>,
   });
 
   // Odaklanan alan kapalı bir bölüme aitse o bölümü otomatik genişlet (yalnızca yeni odak event'inde tetiklenir)
@@ -147,16 +155,34 @@ export function IstifaStudio({
     handleFieldChange(key, ISTIFA_DILEKCESI_DEFAULT_DATA[key] ?? "");
   };
 
-  // Global reset to original PDF default values (Sıfırla)
+  // Global reset to original PDF default values (Sıfırla - F06 onay korumalı)
   const handleResetToPdfDefaults = () => {
+    const isDifferent = Object.keys(ISTIFA_DILEKCESI_DEFAULT_DATA).some(
+      (k) => formData[k as keyof IstifaDilekcesiData] !== ISTIFA_DILEKCESI_DEFAULT_DATA[k as keyof IstifaDilekcesiData]
+    );
+    if (
+      isDifferent &&
+      typeof window !== "undefined" &&
+      !window.confirm("Form değerleri varsayılan örneğe sıfırlanacaktır. Bu işlemi onaylıyor musunuz?")
+    ) {
+      return;
+    }
     clearFieldFocusSelection();
     draft.markFormMutated();
     setUndoData({ ...formData });
     setFormData({ ...ISTIFA_DILEKCESI_DEFAULT_DATA });
   };
 
-  // Clear all fields (Temizle)
+  // Clear all fields (Temizle - F06 onay korumalı)
   const handleClearAll = () => {
+    const hasValues = Object.values(formData).some((v) => typeof v === "string" && v.trim() !== "");
+    if (
+      hasValues &&
+      typeof window !== "undefined" &&
+      !window.confirm("Tüm form alanları temizlenecektir. Bu işlemi onaylıyor musunuz?")
+    ) {
+      return;
+    }
     clearFieldFocusSelection();
     draft.markFormMutated();
     setUndoData({ ...formData });
@@ -267,50 +293,51 @@ export function IstifaStudio({
         {previewStatusMessage}
       </span>
 
-      {/* Modal Top Header (Visible in quick preview modal) */}
-      {isModal && (
-        <div className="flex items-center justify-between border-b border-border bg-background/90 px-3.5 py-2 shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <FilePenLine className="h-4 w-4" />
-            </span>
-            <div>
-              <h2 className="text-xs sm:text-sm font-bold text-foreground leading-tight">
-                Şantiye Şefi İstifa Dilekçesi
-              </h2>
-              <p className="text-[10px] text-muted-foreground hidden sm:block">
-                Resmî Görevden Ayrılma & İdareye Bildirim Dilekçesi
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <BelgeStudioDraftStatusBadge draftApi={draft} />
-            {syncStatus === "updating" && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                <span className="hidden sm:inline">Derleniyor...</span>
-              </span>
-            )}
-            {syncStatus === "synced" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full animate-pulse bg-emerald-500" />
-                <span>Canlı Önizleme Hazır</span>
-              </span>
-            )}
-            {onClose && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-                aria-label="Pencereyi Kapat"
-                title="Kapat"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
+      {/* Top Header Bar: Unified across modal and standard page views, desktop and mobile (F10) */}
+      <div
+        data-testid="belge-studio-top-header"
+        className="shrink-0 flex items-center justify-between border-b border-border/80 bg-background/95 px-3.5 py-1.5 min-h-[44px]"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+            <FilePenLine className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate">
+              Şantiye Şefi İstifa Dilekçesi
+            </h2>
+            <p className="text-[10px] text-muted-foreground hidden sm:block truncate">
+              Resmî Görevden Ayrılma & İdareye Bildirim Dilekçesi
+            </p>
           </div>
         </div>
-      )}
+        <div className="flex items-center gap-2 shrink-0">
+          <BelgeStudioDraftStatusBadge draftApi={draft} />
+          {syncStatus === "updating" && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span className="hidden sm:inline">Derleniyor...</span>
+            </span>
+          )}
+          {syncStatus === "synced" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full animate-pulse bg-emerald-500" />
+              <span className="hidden sm:inline">Canlı Önizleme Hazır</span>
+            </span>
+          )}
+          {isModal && onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+              aria-label="Pencereyi Kapat"
+              title="Kapat"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
       {/* Draft Notification Banner (Consent / Recovery / Conflict / Error) */}
       <BelgeStudioDraftControls draftApi={draft} />
 
@@ -318,7 +345,7 @@ export function IstifaStudio({
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons (Independent vertical scroll inside form) */}
         <div
-          ref={formView.scrollContainerRef}
+          ref={scrollContainerRef}
           id="istifa-mobile-panel-form"
           role="region"
           aria-label="Belge form alanları"
@@ -332,32 +359,8 @@ export function IstifaStudio({
           }`}
           {...formFocusContainerProps}
         >
-          <div {...formView.contentWrapperProps}>
+          <div {...contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-istifa-dilekcesi" layouts={layouts} excludedFields={["tarih", "tc_deger", "iletisim_deger", "adres_deger"]} />
-          {/* Top Title & Sync Status (Desktop compact inline) */}
-          <div className="hidden lg:flex items-center justify-between pb-1 border-b border-border/60">
-            <div className="flex items-center gap-1.5">
-              <BelgeFormEditIcon className="h-3.5 w-3.5 text-amber-500" />
-              <h2 className="text-xs font-bold text-foreground">
-                Şantiye Şefi İstifa Dilekçesi
-              </h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <BelgeStudioDraftStatusBadge draftApi={draft} />
-              {syncStatus === "updating" && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
-                <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                <span>Derleniyor</span>
-              </span>
-            )}
-            {syncStatus === "synced" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
-                <span className="h-1 w-1 rounded-full animate-pulse bg-emerald-500" />
-                <span>Canlı Senkron</span>
-              </span>
-            )}
-          </div>
-        </div>
 
           <BelgeStudioSectionMasterControls sectionsApi={sectionsApi} />
 
@@ -601,6 +604,7 @@ export function IstifaStudio({
         onUndo={handleUndo}
         canUndo={Boolean(undoData)}
         onPrint={handlePrint}
+        onShare={shareApi.openShareDialog}
         onDownload={handleDownload}
         ready={document.status === "ready"}
         downloading={isDownloading}
@@ -608,6 +612,7 @@ export function IstifaStudio({
         templateFilename="SANTIYE_SEFI_ISTIFA_DILEKCESI_BOS.pdf"
         formView={formView}
       />
+      <BelgeShareDialog share={shareApi} documentTitle="Şantiye Şefi İstifa Dilekçesi" />
     </div>
   );
 }
