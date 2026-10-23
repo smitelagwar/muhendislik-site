@@ -2,11 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Building2,
   FileCheck2,
-  FileText,
   Loader2,
-  UserCheck,
   X,
 } from "lucide-react";
 import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
@@ -17,6 +14,7 @@ import {
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
+import { useBelgeStudioPdfFocus } from "@/hooks/use-belge-studio-pdf-focus";
 import { useBelgeFieldFocus } from "@/hooks/use-belge-field-focus";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
 import { BelgeStudioActions } from "@/components/belge-studio-actions";
@@ -25,6 +23,16 @@ import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belg
 import {
   BelgeResetIcon,
 } from "@/components/belge-studio-icons";
+import { useBelgeAutoDraft } from "@/hooks/use-belge-auto-draft";
+import {
+  BelgeStudioDraftControls,
+  BelgeStudioDraftStatusBadge,
+} from "@/components/belge-studio-draft-controls";
+import { useBelgeStudioSections } from "@/hooks/use-belge-studio-sections";
+import {
+  BelgeStudioSection,
+  BelgeStudioSectionMasterControls,
+} from "@/components/belge-studio-section";
 import {
   SOZLESME_DEFAULT_DATA,
   SozlesmeData,
@@ -77,6 +85,10 @@ export function SozlesmeStudio({
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const formView = useBelgeStudioFormView({ isModal });
+  const pdfFocus = useBelgeStudioPdfFocus({
+    scrollContainerRef: formView.scrollContainerRef,
+    isModal,
+  });
   const {
     selection: fieldFocus,
     containerProps: formFocusContainerProps,
@@ -84,6 +96,33 @@ export function SozlesmeStudio({
   } = useBelgeFieldFocus({
     documentId: "santiye-sefi-sozlesmesi",
     studioRootRef,
+  });
+
+  const sectionsApi = useBelgeStudioSections({
+    documentId: "santiye-sefi-sozlesmesi",
+    formData: formData as unknown as Record<string, unknown>,
+  });
+
+  // Odaklanan alan kapalı bir bölüme aitse o bölümü otomatik genişlet (yalnızca yeni odak event'inde tetiklenir)
+  const lastRevealedFocusEventIdRef = useRef<number>(0);
+  const { revealField } = sectionsApi;
+  useEffect(() => {
+    if (
+      fieldFocus?.focusEventId &&
+      fieldFocus.focusEventId !== lastRevealedFocusEventIdRef.current &&
+      fieldFocus.fieldKey
+    ) {
+      lastRevealedFocusEventIdRef.current = fieldFocus.focusEventId;
+      revealField(fieldFocus.fieldKey);
+    }
+  }, [fieldFocus?.focusEventId, fieldFocus?.fieldKey, revealField]);
+
+  const draft = useBelgeAutoDraft({
+    documentId: "santiye-sefi-sozlesmesi",
+    formData,
+    setFormData,
+    initialData: initialData ?? SOZLESME_DEFAULT_DATA,
+    setUndoData,
   });
 
   useEffect(() => {
@@ -98,6 +137,7 @@ export function SozlesmeStudio({
 
   const handleFieldChange = useCallback(
     (field: keyof SozlesmeData, value: string) => {
+      draft.markFormMutated();
       setUndoData(null);
       setFormData((prev) => {
         const next = { ...prev, [field]: value };
@@ -117,7 +157,7 @@ export function SozlesmeStudio({
         return next;
       });
     },
-    []
+    [draft]
   );
 
   // Local per-field reset handler
@@ -128,23 +168,26 @@ export function SozlesmeStudio({
   // Global reset to original PDF default values (Sıfırla)
   const handleResetToPdfDefaults = useCallback(() => {
     clearFieldFocusSelection();
+    draft.markFormMutated();
     setUndoData({ ...formData });
     setFormData({ ...SOZLESME_DEFAULT_DATA });
-  }, [formData, clearFieldFocusSelection]);
+  }, [clearFieldFocusSelection, draft, formData]);
 
   // Clear all fields (Temizle)
   const handleClearAll = useCallback(() => {
     clearFieldFocusSelection();
+    draft.markFormMutated();
     setUndoData({ ...formData });
     setFormData(
       Object.fromEntries(
         Object.keys(SOZLESME_DEFAULT_DATA).map((k) => [k, ""])
       ) as SozlesmeData
     );
-  }, [formData, clearFieldFocusSelection]);
+  }, [clearFieldFocusSelection, draft, formData]);
 
   const handleUndo = () => {
     if (!undoData) return;
+    draft.markFormMutated();
     setFormData(undoData);
     setUndoData(null);
   };
@@ -255,6 +298,7 @@ export function SozlesmeStudio({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <BelgeStudioDraftStatusBadge draftApi={draft} />
             {syncStatus === "updating" && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -282,6 +326,9 @@ export function SozlesmeStudio({
         </div>
       )}
 
+      {/* Draft Notification Banner (Consent / Recovery / Conflict / Error) */}
+      <BelgeStudioDraftControls draftApi={draft} />
+
       {/* Main Split Layout: Left Form & Right Live PDF */}
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons */}
@@ -292,7 +339,11 @@ export function SozlesmeStudio({
           aria-label="Belge form alanları"
           data-testid="belge-studio-form-scroll"
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
-            activeTabMobile === "form" ? "block" : "hidden lg:block"
+            pdfFocus.isPdfFocus
+              ? "hidden"
+              : activeTabMobile === "form"
+                ? "block"
+                : "hidden lg:block"
           }`}
           {...formFocusContainerProps}
         >
@@ -306,32 +357,37 @@ export function SozlesmeStudio({
                 Şantiye Şefi Hizmet Sözleşmesi
               </h2>
             </div>
-            {syncStatus === "updating" && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
-                <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                <span>Derleniyor</span>
-              </span>
-            )}
-            {syncStatus === "synced" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
-                <span className="h-1 w-1 rounded-full animate-pulse bg-emerald-500" />
-                <span>Canlı Senkron</span>
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              <BelgeStudioDraftStatusBadge draftApi={draft} />
+              {syncStatus === "updating" && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                  <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                  <span>Derleniyor</span>
+                </span>
+              )}
+              {syncStatus === "synced" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  <span className="h-1 w-1 rounded-full animate-pulse bg-emerald-500" />
+                  <span>Canlı Senkron</span>
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Section 1: Taraflar */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <UserCheck className="h-3 w-3 text-amber-500" />
-              1. Taraflar
-            </h3>
+          <BelgeStudioSectionMasterControls sectionsApi={sectionsApi} />
 
+          {/* Section 1: Taraflar */}
+          <BelgeStudioSection
+            section={sectionsApi.sections[0]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[0].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[0].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[0].id)}
+          >
             <div>
               {renderFieldHeader("Yapı Müteahhidi Unvanı", "muteahhit_unvan")}
               <input
                 type="text"
-                                id={getFieldId("muteahhit_unvan")}
+                id={getFieldId("muteahhit_unvan")}
                 value={formData.muteahhit_unvan || ""}
                 onChange={(e) => handleFieldChange("muteahhit_unvan", e.target.value)}
                 placeholder="ABC İNŞAAT"
@@ -343,7 +399,7 @@ export function SozlesmeStudio({
               {renderFieldHeader("Şantiye Şefi Adı Soyadı", "santiye_sefi_ad")}
               <input
                 type="text"
-                                id={getFieldId("santiye_sefi_ad")}
+                id={getFieldId("santiye_sefi_ad")}
                 autoComplete="name"
                 value={formData.santiye_sefi_ad || ""}
                 onChange={(e) => handleFieldChange("santiye_sefi_ad", e.target.value)}
@@ -351,21 +407,21 @@ export function SozlesmeStudio({
                 className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
               />
             </div>
-          </div>
+          </BelgeStudioSection>
 
           {/* Section 2: İşyeri Bilgileri */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <Building2 className="h-3 w-3 text-amber-500" />
-              2. İşyeri Bilgileri (Madde 2)
-            </h3>
-
+          <BelgeStudioSection
+            section={sectionsApi.sections[1]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[1].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[1].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[1].id)}
+          >
             <div className="grid grid-cols-2 gap-2">
               <div className="min-w-0">
                 {renderFieldHeader("İl", "il")}
                 <input
                   type="text"
-                                    id={getFieldId("il")}
+                  id={getFieldId("il")}
                   value={formData.il || ""}
                   onChange={(e) => handleFieldChange("il", e.target.value)}
                   placeholder="YOZGAT"
@@ -376,7 +432,7 @@ export function SozlesmeStudio({
                 {renderFieldHeader("İlçe", "ilce")}
                 <input
                   type="text"
-                                    id={getFieldId("ilce")}
+                  id={getFieldId("ilce")}
                   value={formData.ilce || ""}
                   onChange={(e) => handleFieldChange("ilce", e.target.value)}
                   placeholder="AKDAĞMADENİ"
@@ -411,7 +467,7 @@ export function SozlesmeStudio({
                 {renderFieldHeader("Mahalle", "mahalle")}
                 <input
                   type="text"
-                                    id={getFieldId("mahalle")}
+                  id={getFieldId("mahalle")}
                   value={formData.mahalle || ""}
                   onChange={(e) => handleFieldChange("mahalle", e.target.value)}
                   placeholder="EMEK MAHALLESİ"
@@ -422,7 +478,7 @@ export function SozlesmeStudio({
                 {renderFieldHeader("Ada", "ada")}
                 <input
                   type="text"
-                                    id={getFieldId("ada")}
+                  id={getFieldId("ada")}
                   inputMode="numeric"
                   value={formData.ada || ""}
                   onChange={(e) => handleFieldChange("ada", e.target.value)}
@@ -434,7 +490,7 @@ export function SozlesmeStudio({
                 {renderFieldHeader("Parsel", "parsel")}
                 <input
                   type="text"
-                                    id={getFieldId("parsel")}
+                  id={getFieldId("parsel")}
                   inputMode="numeric"
                   value={formData.parsel || ""}
                   onChange={(e) => handleFieldChange("parsel", e.target.value)}
@@ -490,7 +546,7 @@ export function SozlesmeStudio({
                 </div>
                 <input
                   type="text"
-                                    id={getFieldId("yibf")}
+                  id={getFieldId("yibf")}
                   inputMode="numeric"
                   aria-describedby="sozlesme-yibf-help"
                   value={formData.yibf || ""}
@@ -508,7 +564,7 @@ export function SozlesmeStudio({
                 {renderFieldHeader("Pafta", "pafta")}
                 <input
                   type="text"
-                                    id={getFieldId("pafta")}
+                  id={getFieldId("pafta")}
                   value={formData.pafta || ""}
                   onChange={(e) => handleFieldChange("pafta", e.target.value)}
                   placeholder="-"
@@ -516,15 +572,15 @@ export function SozlesmeStudio({
                 />
               </div>
             </div>
-          </div>
+          </BelgeStudioSection>
 
           {/* Section 3: Ücret ve Sözleşme */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <FileText className="h-3 w-3 text-amber-500" />
-              3. Ücret ve Sözleşme Tarihi
-            </h3>
-
+          <BelgeStudioSection
+            section={sectionsApi.sections[2]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[2].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[2].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[2].id)}
+          >
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="min-w-0">
                 {renderFieldHeader("Aylık Brüt Ücret", "ucret", "(Madde 5)")}
@@ -568,21 +624,21 @@ export function SozlesmeStudio({
                 />
               </div>
             </div>
-          </div>
+          </BelgeStudioSection>
 
           {/* Section 4: İmza Alanları */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <UserCheck className="h-3 w-3 text-amber-500" />
-              4. İmza Alanları
-            </h3>
-
+          <BelgeStudioSection
+            section={sectionsApi.sections[3]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[3].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[3].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[3].id)}
+          >
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="min-w-0">
                 {renderFieldHeader("Şantiye Şefi (İmza)", "santiye_sefi_imza_adi")}
                 <input
                   type="text"
-                                    id={getFieldId("santiye_sefi_imza_adi")}
+                  id={getFieldId("santiye_sefi_imza_adi")}
                   value={formData.santiye_sefi_imza_adi || ""}
                   onChange={(e) => handleFieldChange("santiye_sefi_imza_adi", e.target.value)}
                   placeholder="Hüseyin GÜNAYDIN"
@@ -593,7 +649,7 @@ export function SozlesmeStudio({
                 {renderFieldHeader("Müteahhit (İmza)", "muteahhit_imza_unvan")}
                 <input
                   type="text"
-                                    id={getFieldId("muteahhit_imza_unvan")}
+                  id={getFieldId("muteahhit_imza_unvan")}
                   value={formData.muteahhit_imza_unvan || ""}
                   onChange={(e) => handleFieldChange("muteahhit_imza_unvan", e.target.value)}
                   placeholder="ABC İNŞAAT"
@@ -601,7 +657,7 @@ export function SozlesmeStudio({
                 />
               </div>
             </div>
-          </div>
+          </BelgeStudioSection>
 
           </div>
         </div>
@@ -610,7 +666,13 @@ export function SozlesmeStudio({
           id="sozlesme-mobile-panel-preview"
           role="region"
           aria-label="PDF önizleme paneli"
-          className={`flex flex-1 min-h-0 min-w-0 ${activeTabMobile === "preview" ? "" : "absolute inset-0 invisible pointer-events-none lg:static lg:visible lg:pointer-events-auto"}`}
+          className={`flex flex-1 min-h-0 min-w-0 ${
+            pdfFocus.isPdfFocus
+              ? "w-full"
+              : activeTabMobile === "preview"
+                ? ""
+                : "absolute inset-0 invisible pointer-events-none lg:static lg:visible lg:pointer-events-auto"
+          }`}
         >
           <BelgeStudioPdfPreview
             snapshot={snapshot}
@@ -620,12 +682,14 @@ export function SozlesmeStudio({
             onRetry={document.retry}
             activeTabMobile={activeTabMobile}
             fieldFocus={fieldFocus}
+            onClearFieldFocus={clearFieldFocusSelection}
             editing={{
               documentId: "santiye-sefi-sozlesmesi",
               values: formData as unknown as Record<string, string>,
               onCommit: (field, value) => handleFieldChange(field as keyof SozlesmeData, value),
             }}
             formView={formView}
+            pdfFocus={pdfFocus}
           />
         </div>
       </div>

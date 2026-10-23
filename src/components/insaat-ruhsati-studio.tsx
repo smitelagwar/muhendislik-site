@@ -5,8 +5,6 @@ import {
   Building2,
   Dice5,
   Loader2,
-  MapPin,
-  User,
   X,
 } from "lucide-react";
 import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
@@ -16,6 +14,7 @@ import {
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
+import { useBelgeStudioPdfFocus } from "@/hooks/use-belge-studio-pdf-focus";
 import { useBelgeFieldFocus } from "@/hooks/use-belge-field-focus";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
@@ -25,6 +24,16 @@ import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belg
 import {
   BelgeResetIcon,
 } from "@/components/belge-studio-icons";
+import { useBelgeAutoDraft } from "@/hooks/use-belge-auto-draft";
+import {
+  BelgeStudioDraftControls,
+  BelgeStudioDraftStatusBadge,
+} from "@/components/belge-studio-draft-controls";
+import { useBelgeStudioSections } from "@/hooks/use-belge-studio-sections";
+import {
+  BelgeStudioSection,
+  BelgeStudioSectionMasterControls,
+} from "@/components/belge-studio-section";
 import {
   INSAAT_RUHSATI_DEFAULT_DATA,
   InsaatRuhsatiData,
@@ -125,6 +134,10 @@ export function InsaatRuhsatiStudio({
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const formView = useBelgeStudioFormView({ isModal });
+  const pdfFocus = useBelgeStudioPdfFocus({
+    scrollContainerRef: formView.scrollContainerRef,
+    isModal,
+  });
   const {
     selection: fieldFocus,
     containerProps: formFocusContainerProps,
@@ -132,6 +145,33 @@ export function InsaatRuhsatiStudio({
   } = useBelgeFieldFocus({
     documentId: "insaat-ruhsati-dilekcesi",
     studioRootRef,
+  });
+
+  const sectionsApi = useBelgeStudioSections({
+    documentId: "insaat-ruhsati-dilekcesi",
+    formData: formData as unknown as Record<string, unknown>,
+  });
+
+  // Odaklanan alan kapalı bir bölüme aitse o bölümü otomatik genişlet (yalnızca yeni odak event'inde tetiklenir)
+  const lastRevealedFocusEventIdRef = useRef<number>(0);
+  const { revealField } = sectionsApi;
+  useEffect(() => {
+    if (
+      fieldFocus?.focusEventId &&
+      fieldFocus.focusEventId !== lastRevealedFocusEventIdRef.current &&
+      fieldFocus.fieldKey
+    ) {
+      lastRevealedFocusEventIdRef.current = fieldFocus.focusEventId;
+      revealField(fieldFocus.fieldKey);
+    }
+  }, [fieldFocus?.focusEventId, fieldFocus?.fieldKey, revealField]);
+
+  const draft = useBelgeAutoDraft({
+    documentId: "insaat-ruhsati-dilekcesi",
+    formData,
+    setFormData,
+    initialData: initialData ?? INSAAT_RUHSATI_DEFAULT_DATA,
+    setUndoData,
   });
 
   useEffect(() => {
@@ -145,6 +185,7 @@ export function InsaatRuhsatiStudio({
   };
 
   const handleFieldChange = (key: keyof InsaatRuhsatiData, value: string) => {
+    draft.markFormMutated();
     setUndoData(null);
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
@@ -157,6 +198,7 @@ export function InsaatRuhsatiStudio({
   // Global reset to original PDF default values (Sıfırla)
   const handleResetToPdfDefaults = () => {
     clearFieldFocusSelection();
+    draft.markFormMutated();
     setUndoData({ ...formData });
     setFormData({ ...INSAAT_RUHSATI_DEFAULT_DATA });
   };
@@ -164,6 +206,7 @@ export function InsaatRuhsatiStudio({
   // Randomize button handler
   const handleRandomize = () => {
     clearFieldFocusSelection();
+    draft.markFormMutated();
     setUndoData(null);
     const randomIndex = Math.floor(Math.random() * RANDOM_SAMPLES.length);
     const sample = RANDOM_SAMPLES[randomIndex];
@@ -173,6 +216,7 @@ export function InsaatRuhsatiStudio({
   // Clear all fields (Temizle)
   const handleClearAll = () => {
     clearFieldFocusSelection();
+    draft.markFormMutated();
     setUndoData({ ...formData });
     setFormData({
       tarih: "",
@@ -188,6 +232,7 @@ export function InsaatRuhsatiStudio({
 
   const handleUndo = () => {
     if (!undoData) return;
+    draft.markFormMutated();
     setFormData(undoData);
     setUndoData(null);
   };
@@ -291,6 +336,7 @@ export function InsaatRuhsatiStudio({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <BelgeStudioDraftStatusBadge draftApi={draft} />
             {syncStatus === "updating" && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -318,6 +364,9 @@ export function InsaatRuhsatiStudio({
         </div>
       )}
 
+      {/* Draft Notification Banner (Consent / Recovery / Conflict / Error) */}
+      <BelgeStudioDraftControls draftApi={draft} />
+
       {/* Main Split Layout: Left Form & Right Live PDF */}
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons */}
@@ -328,7 +377,11 @@ export function InsaatRuhsatiStudio({
           aria-label="Belge form alanları"
           data-testid="belge-studio-form-scroll"
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
-            activeTabMobile === "form" ? "block" : "hidden lg:block"
+            pdfFocus.isPdfFocus
+              ? "hidden"
+              : activeTabMobile === "form"
+                ? "block"
+                : "hidden lg:block"
           }`}
           {...formFocusContainerProps}
         >
@@ -343,6 +396,7 @@ export function InsaatRuhsatiStudio({
               </h2>
             </div>
             <div className="flex items-center gap-2">
+              <BelgeStudioDraftStatusBadge draftApi={draft} />
               <button
                 type="button"
                 onClick={handleRandomize}
@@ -367,13 +421,15 @@ export function InsaatRuhsatiStudio({
             </div>
           </div>
 
-          {/* 1. Tarih & İlgili İdare */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <Building2 className="h-3 w-3 text-amber-500" />
-              1. İdare ve Tarih Bilgisi
-            </h3>
+          <BelgeStudioSectionMasterControls sectionsApi={sectionsApi} />
 
+          {/* 1. Tarih & İlgili İdare */}
+          <BelgeStudioSection
+            section={sectionsApi.sections[0]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[0].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[0].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[0].id)}
+          >
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
                 {renderFieldHeader("Dilekçe Tarihi", "tarih")}
@@ -420,10 +476,15 @@ export function InsaatRuhsatiStudio({
                 className="h-8 w-full rounded-md border border-border bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20"
               />
             </div>
-          </div>
+          </BelgeStudioSection>
 
           {/* 2. Talep ve Parsel Bilgileri Metni */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2">
+          <BelgeStudioSection
+            section={sectionsApi.sections[1]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[1].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[1].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[1].id)}
+          >
             {renderFieldHeader("Talep ve Parsel Bilgileri Metni", "ana_metin")}
             <textarea
               rows={3}
@@ -433,15 +494,15 @@ export function InsaatRuhsatiStudio({
               placeholder="İlçenin Örnek Mahallesi 1234 ada, 56 numaralı parselime yeni inşaat yapmak istiyorum..."
               className="w-full rounded-md border border-border bg-background p-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
             />
-          </div>
+          </BelgeStudioSection>
 
           {/* 3. Dilekçe Sahibi */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <User className="h-3 w-3 text-amber-500" />
-              2. Dilekçe Sahibi
-            </h3>
-
+          <BelgeStudioSection
+            section={sectionsApi.sections[2]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[2].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[2].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[2].id)}
+          >
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
                 {renderFieldHeader("Adı Soyadı", "ad_soyad")}
@@ -468,15 +529,15 @@ export function InsaatRuhsatiStudio({
                 />
               </div>
             </div>
-          </div>
+          </BelgeStudioSection>
 
           {/* 4. İletişim ve Adres */}
-          <div className="rounded-lg border border-border/80 bg-card/60 p-2 space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-              <MapPin className="h-3 w-3 text-amber-500" />
-              3. İletişim ve Tebligat Adresi
-            </h3>
-
+          <BelgeStudioSection
+            section={sectionsApi.sections[3]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[3].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[3].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[3].id)}
+          >
             <div>
               {renderFieldHeader("Adres Bilgisi", "adres")}
               <textarea
@@ -521,7 +582,7 @@ export function InsaatRuhsatiStudio({
                 })}
               />
             </div>
-          </div>
+          </BelgeStudioSection>
 
           </div>
         </div>
@@ -530,7 +591,13 @@ export function InsaatRuhsatiStudio({
           id="insaat-ruhsati-mobile-panel-preview"
           role="region"
           aria-label="PDF önizleme paneli"
-          className={`flex flex-1 min-h-0 min-w-0 ${activeTabMobile === "preview" ? "" : "absolute inset-0 invisible pointer-events-none lg:static lg:visible lg:pointer-events-auto"}`}
+          className={`flex flex-1 min-h-0 min-w-0 ${
+            pdfFocus.isPdfFocus
+              ? "w-full"
+              : activeTabMobile === "preview"
+                ? ""
+                : "absolute inset-0 invisible pointer-events-none lg:static lg:visible lg:pointer-events-auto"
+          }`}
         >
           <BelgeStudioPdfPreview
             snapshot={snapshot}
@@ -540,12 +607,14 @@ export function InsaatRuhsatiStudio({
             onRetry={document.retry}
             activeTabMobile={activeTabMobile}
             fieldFocus={fieldFocus}
+            onClearFieldFocus={clearFieldFocusSelection}
             editing={{
               documentId: "insaat-ruhsati-dilekcesi",
               values: formData as unknown as Record<string, string>,
               onCommit: (field, value) => handleFieldChange(field as keyof InsaatRuhsatiData, value),
             }}
             formView={formView}
+            pdfFocus={pdfFocus}
           />
         </div>
       </div>

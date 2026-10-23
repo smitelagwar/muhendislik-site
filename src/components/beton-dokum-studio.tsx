@@ -12,6 +12,7 @@ import {
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
+import { useBelgeStudioPdfFocus } from "@/hooks/use-belge-studio-pdf-focus";
 import { useBelgeFieldFocus } from "@/hooks/use-belge-field-focus";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
@@ -22,6 +23,16 @@ import {
   BelgeFormEditIcon,
   BelgeResetIcon,
 } from "@/components/belge-studio-icons";
+import { useBelgeAutoDraft } from "@/hooks/use-belge-auto-draft";
+import {
+  BelgeStudioDraftControls,
+  BelgeStudioDraftStatusBadge,
+} from "@/components/belge-studio-draft-controls";
+import { useBelgeStudioSections } from "@/hooks/use-belge-studio-sections";
+import {
+  BelgeStudioSection,
+  BelgeStudioSectionMasterControls,
+} from "@/components/belge-studio-section";
 import {
   BETON_DOKUM_DEFAULT_DATA,
   BetonDokumData,
@@ -74,6 +85,10 @@ export function BetonDokumStudio({
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const formView = useBelgeStudioFormView({ isModal });
+  const pdfFocus = useBelgeStudioPdfFocus({
+    scrollContainerRef: formView.scrollContainerRef,
+    isModal,
+  });
   const {
     selection: fieldFocus,
     containerProps: formFocusContainerProps,
@@ -83,9 +98,36 @@ export function BetonDokumStudio({
     studioRootRef,
   });
 
+  const sectionsApi = useBelgeStudioSections({
+    documentId: "beton-dokum-tutanagi",
+    formData: formData as unknown as Record<string, unknown>,
+  });
+
+  // Odaklanan alan kapalı bir bölüme aitse o bölümü otomatik genişlet (yalnızca yeni odak event'inde tetiklenir)
+  const lastRevealedFocusEventIdRef = useRef<number>(0);
+  const { revealField } = sectionsApi;
+  useEffect(() => {
+    if (
+      fieldFocus?.focusEventId &&
+      fieldFocus.focusEventId !== lastRevealedFocusEventIdRef.current &&
+      fieldFocus.fieldKey
+    ) {
+      lastRevealedFocusEventIdRef.current = fieldFocus.focusEventId;
+      revealField(fieldFocus.fieldKey);
+    }
+  }, [fieldFocus?.focusEventId, fieldFocus?.fieldKey, revealField]);
+
   useEffect(() => {
     prewarmBelgeDocument("beton-dokum-tutanagi");
   }, []);
+
+  const draft = useBelgeAutoDraft({
+    documentId: "beton-dokum-tutanagi",
+    formData,
+    setFormData,
+    initialData: BETON_DOKUM_DEFAULT_DATA,
+    setUndoData,
+  });
 
   // Field change handler
   const [touchedFields, setTouchedFields] = useState<Partial<Record<keyof BetonDokumData, boolean>>>({});
@@ -94,6 +136,7 @@ export function BetonDokumStudio({
   };
 
   const handleFieldChange = (key: keyof BetonDokumData, value: string) => {
+    draft.markFormMutated();
     setUndoData(null);
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
@@ -106,6 +149,7 @@ export function BetonDokumStudio({
   // Global reset to original PDF default values (Sıfırla)
   const handleResetToPdfDefaults = () => {
     clearFieldFocusSelection();
+    draft.markFormMutated();
     setUndoData({ ...formData });
     setFormData({ ...BETON_DOKUM_DEFAULT_DATA });
   };
@@ -113,6 +157,7 @@ export function BetonDokumStudio({
   // Clear all fields (Temizle)
   const handleClearAll = () => {
     clearFieldFocusSelection();
+    draft.markFormMutated();
     setUndoData({ ...formData });
     setFormData({
       tutanak_alt_baslik: "",
@@ -130,6 +175,7 @@ export function BetonDokumStudio({
 
   const handleUndo = () => {
     if (!undoData) return;
+    draft.markFormMutated();
     setFormData(undoData);
     setUndoData(null);
   };
@@ -233,6 +279,7 @@ export function BetonDokumStudio({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <BelgeStudioDraftStatusBadge draftApi={draft} />
             {syncStatus === "updating" && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -259,6 +306,9 @@ export function BetonDokumStudio({
           </div>
         </div>
       )}
+      {/* Draft Notification Banner (Consent / Recovery / Conflict / Error) */}
+      <BelgeStudioDraftControls draftApi={draft} />
+
       {/* Main Split Layout: Left Form & Right Live PDF (Maximized height, zero outer scroll) */}
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons (Independent vertical scroll inside form) */}
@@ -268,8 +318,13 @@ export function BetonDokumStudio({
           role="region"
           aria-label="Belge form alanları"
           data-testid="belge-studio-form-scroll"
-          className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${activeTabMobile === "form" ? "block" : "hidden lg:block"
-            }`}
+          className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
+            pdfFocus.isPdfFocus
+              ? "hidden"
+              : activeTabMobile === "form"
+                ? "block"
+                : "hidden lg:block"
+          }`}
           {...formFocusContainerProps}
         >
           <div {...formView.contentWrapperProps}>
@@ -280,7 +335,9 @@ export function BetonDokumStudio({
               <BelgeFormEditIcon className="h-3.5 w-3.5 text-amber-500" />
               <h2 className="text-xs font-bold text-foreground">Beton Döküm Tutanağı</h2>
             </div>
-            {syncStatus === "updating" && (
+            <div className="flex items-center gap-2">
+              <BelgeStudioDraftStatusBadge draftApi={draft} />
+              {syncStatus === "updating" && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
                 <Loader2 className="h-2.5 w-2.5 animate-spin" />
                 <span>Derleniyor</span>
@@ -292,13 +349,18 @@ export function BetonDokumStudio({
                 <span>Canlı Senkron</span>
               </span>
             )}
+            </div>
           </div>
 
+          <BelgeStudioSectionMasterControls sectionsApi={sectionsApi} />
+
           {/* 1. Belge & Kayıt (Tutanak Alt Başlığı, Tarih & YİBF) */}
-          <div className="rounded-xl lg:rounded-lg border border-border/80 bg-card/60 p-2.5 lg:p-2 space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 lg:text-muted-foreground">
-              1. Belge & Kayıt
-            </h3>
+          <BelgeStudioSection
+            section={sectionsApi.sections[0]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[0].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[0].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[0].id)}
+          >
             <div>
               {renderFieldHeader("Tutanak Alt Başlığı", "tutanak_alt_baslik")}
               <input
@@ -392,13 +454,15 @@ export function BetonDokumStudio({
                 />
               </div>
             </div>
-          </div>
+          </BelgeStudioSection>
 
           {/* 2. Şantiye Yeri */}
-          <div className="rounded-xl lg:rounded-lg border border-border/80 bg-card/60 p-2.5 lg:p-2 space-y-1.5">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 lg:text-muted-foreground">
-              2. Şantiye Yeri
-            </h3>
+          <BelgeStudioSection
+            section={sectionsApi.sections[1]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[1].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[1].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[1].id)}
+          >
             {renderFieldHeader("Şantiye Yeri", "yer", "(İl/İlçe/Mahalle/Ada/Parsel)")}
             <textarea
               rows={2}
@@ -417,13 +481,15 @@ export function BetonDokumStudio({
                 isTouched: true,
               })}
             />
-          </div>
+          </BelgeStudioSection>
 
           {/* 3. Olay Açıklaması & Gözlem */}
-          <div className="rounded-xl lg:rounded-lg border border-border/80 bg-card/60 p-2.5 lg:p-2 space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 lg:text-muted-foreground">
-              3. Olay Açıklaması & Gözlem
-            </h3>
+          <BelgeStudioSection
+            section={sectionsApi.sections[2]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[2].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[2].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[2].id)}
+          >
             <div>
               {renderFieldHeader("Olay Açıklaması", "olay_aciklamasi")}
               <textarea
@@ -447,14 +513,15 @@ export function BetonDokumStudio({
                 className="w-full rounded-md border border-border bg-background p-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/20 resize-none"
               />
             </div>
-          </div>
+          </BelgeStudioSection>
 
           {/* 4. İmzacı Taraflar (4 Taraf) */}
-          <div className="rounded-xl lg:rounded-lg border border-border/80 bg-card/60 p-2.5 lg:p-2 space-y-2">
-            <h3 className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 lg:text-muted-foreground">
-              4. İmzacı Taraflar
-            </h3>
-
+          <BelgeStudioSection
+            section={sectionsApi.sections[3]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[3].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[3].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[3].id)}
+          >
             <div className="grid gap-2 sm:grid-cols-2">
               <div>
                 {renderFieldHeader("1. Laboratuvar", "laboratuvar")}
@@ -504,7 +571,7 @@ export function BetonDokumStudio({
                 />
               </div>
             </div>
-          </div>
+          </BelgeStudioSection>
 
           </div>
         </div>
@@ -513,7 +580,13 @@ export function BetonDokumStudio({
           id="beton-dokum-mobile-panel-preview"
           role="region"
           aria-label="PDF önizleme paneli"
-          className={`flex flex-1 min-h-0 min-w-0 ${activeTabMobile === "preview" ? "" : "absolute inset-0 invisible pointer-events-none lg:static lg:visible lg:pointer-events-auto"}`}
+          className={`flex flex-1 min-h-0 min-w-0 ${
+            pdfFocus.isPdfFocus
+              ? "w-full"
+              : activeTabMobile === "preview"
+                ? ""
+                : "absolute inset-0 invisible pointer-events-none lg:static lg:visible lg:pointer-events-auto"
+          }`}
         >
           <BelgeStudioPdfPreview
             snapshot={snapshot}
@@ -529,6 +602,8 @@ export function BetonDokumStudio({
             }}
             formView={formView}
             fieldFocus={fieldFocus}
+            onClearFieldFocus={clearFieldFocusSelection}
+            pdfFocus={pdfFocus}
           />
         </div>
       </div>

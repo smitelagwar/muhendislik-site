@@ -111,6 +111,7 @@ export function useBelgeFieldFocus({
 
       // If focus moved to preview controls (zoom, fit, page navigation, canvas), keep highlight visible
       if (isBelgePreviewControl(event.relatedTarget)) {
+        dispatch({ type: "FORM_BLUR" });
         return;
       }
 
@@ -119,11 +120,15 @@ export function useBelgeFieldFocus({
       if (
         related &&
         (related.getAttribute("data-testid")?.includes("reset") ||
+          related.getAttribute("data-testid")?.includes("clear") ||
           related.getAttribute("data-belge-reset") === "true")
       ) {
         clearSelection();
         return;
       }
+
+      // Mark form as blurred
+      dispatch({ type: "FORM_BLUR" });
 
       // Standard blur: start 120ms debounce window to prevent Tab A->B flicker
       blurTimerRef.current = setTimeout(() => {
@@ -143,22 +148,90 @@ export function useBelgeFieldFocus({
     [clearSelection]
   );
 
-  // Catch Escape globally within studio root if provided
+  // Catch Escape globally within studio root and monitor focus shifts between preview toolbar and outside actions
   useEffect(() => {
     const root = studioRootRef?.current;
     if (!root) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (
+          root &&
+          document.activeElement &&
+          document.activeElement !== document.body &&
+          !root.contains(document.activeElement)
+        ) {
+          return;
+        }
         clearSelection();
       }
     };
 
-    root.addEventListener("keydown", handleKeyDown);
-    return () => {
-      root.removeEventListener("keydown", handleKeyDown);
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+
+      // If target is a form input, handleFocusCapture handles it; cancel blur timer
+      const resolvedKey = resolveFocusedFieldKey(idMap, target);
+      if (resolvedKey) {
+        cancelBlurTimer();
+        return;
+      }
+
+      // If target is inside preview controls (toolbar, canvas), retain highlight and cancel blur timer
+      if (isBelgePreviewControl(target)) {
+        cancelBlurTimer();
+        return;
+      }
+
+      // If target is a reset or clear action, clear selection immediately
+      const testId = target.getAttribute("data-testid") ?? "";
+      if (
+        testId.includes("reset") ||
+        testId.includes("clear") ||
+        target.getAttribute("data-belge-reset") === "true"
+      ) {
+        clearSelection();
+        return;
+      }
+
+      // Focus moved to an unrelated studio button (e.g. Yazdır, İndir, header buttons):
+      // Schedule 120ms blur debounce window so highlight is cleared without instant flicker
+      cancelBlurTimer();
+      blurTimerRef.current = setTimeout(() => {
+        dispatch({ type: "BLUR_TIMEOUT" });
+        blurTimerRef.current = null;
+      }, 120);
     };
-  }, [studioRootRef, clearSelection]);
+
+    const handleFocusOut = (event: FocusEvent) => {
+      const nextTarget = event.relatedTarget as HTMLElement | null;
+      // Zoom sınırında odaklı düğmenin disabled olması odağı body'ye düşürür.
+      // Kullanıcının PDF aracı seçimi sürerken rehberi bu teknik blur ile silme.
+      if (!nextTarget && event.target instanceof HTMLButtonElement &&
+        event.target.disabled && isBelgePreviewControl(event.target)) {
+        return;
+      }
+      // If focus is leaving the studio root entirely (or browser window blur):
+      if (!nextTarget || !root.contains(nextTarget)) {
+        cancelBlurTimer();
+        blurTimerRef.current = setTimeout(() => {
+          dispatch({ type: "BLUR_TIMEOUT" });
+          blurTimerRef.current = null;
+        }, 120);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    root.addEventListener("focusin", handleFocusIn);
+    root.addEventListener("focusout", handleFocusOut);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      root.removeEventListener("focusin", handleFocusIn);
+      root.removeEventListener("focusout", handleFocusOut);
+    };
+  }, [studioRootRef, idMap, cancelBlurTimer, clearSelection]);
 
   const selection: FieldFocusSelection = useMemo(
     () => ({
@@ -166,8 +239,9 @@ export function useBelgeFieldFocus({
       fieldKey: state.fieldKey,
       lastFocusedFieldKey: state.lastFocusedFieldKey,
       focusEventId: state.focusEventId,
+      clearEventId: state.clearEventId ?? 0,
     }),
-    [documentId, state.fieldKey, state.lastFocusedFieldKey, state.focusEventId]
+    [documentId, state.fieldKey, state.lastFocusedFieldKey, state.focusEventId, state.clearEventId]
   );
 
   const containerProps = useMemo(

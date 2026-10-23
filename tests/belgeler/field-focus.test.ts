@@ -1,4 +1,5 @@
 import { describe, it } from "node:test";
+import { generateBelgeDocument } from "../../src/lib/pdf-engine";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
@@ -503,6 +504,16 @@ describe("ASAMA_01: Belge Form ↔ PDF Odak Vurgusu Saf Fonksiyon ve Şablon Kon
       assert.equal(isBelgePreviewControl(mockFormReset), false);
     });
 
+    it("Genel [role='toolbar'] seçicisi olan harici butonlar önizleme kontrolü sayılmamalıdır (B01)", () => {
+      const mockGenericToolbar = {
+        closest: (selector: string) => {
+          if (selector.includes('[role="toolbar"]')) return {};
+          return null;
+        },
+      };
+      assert.equal(isBelgePreviewControl(mockGenericToolbar), false);
+    });
+
     it("Tanımsız veya null hedefler için false dönmelidir", () => {
       assert.equal(isBelgePreviewControl(null), false);
       assert.equal(isBelgePreviewControl(undefined), false);
@@ -581,6 +592,145 @@ describe("ASAMA_01: Belge Form ↔ PDF Odak Vurgusu Saf Fonksiyon ve Şablon Kon
       // Timer kurulmadığı için durum 'yer' olarak korunur
       assert.equal(state.fieldKey, "yer");
       assert.equal(state.lastFocusedFieldKey, "yer");
+    });
+
+    it("B01: Form -> Toolbar -> Aynı alana dönüşte focusEventId artmalıdır", () => {
+      let state = reduceFieldFocus(INITIAL_FOCUS_STATE, { type: "FOCUS", fieldKey: "yer" });
+      assert.equal(state.focusEventId, 1);
+      assert.equal(state.isFormFocused, true);
+
+      // Toolbar'a geçildi (FORM_BLUR)
+      state = reduceFieldFocus(state, { type: "FORM_BLUR" });
+      assert.equal(state.fieldKey, "yer", "Toolbar'a geçildiğinde vurgu korunmalıdır");
+      assert.equal(state.isFormFocused, false);
+
+      // Tekrar aynı alana tıklandı
+      state = reduceFieldFocus(state, { type: "FOCUS", fieldKey: "yer" });
+      assert.equal(state.fieldKey, "yer");
+      assert.equal(state.isFormFocused, true);
+      assert.equal(state.focusEventId, 2, "Yeni odak olayı için focusEventId artmalıdır");
+    });
+
+    it("B01: Toolbar -> Yazdır butonuna geçişte 120ms debounce sonrası seçim temizlenmelidir", async () => {
+      let state = reduceFieldFocus(INITIAL_FOCUS_STATE, { type: "FOCUS", fieldKey: "yer" });
+      state = reduceFieldFocus(state, { type: "FORM_BLUR" });
+      assert.equal(state.fieldKey, "yer");
+
+      // Toolbar'dan Yazdır'a geçildiğinde hook 120ms debounce başlatır:
+      const timer = setTimeout(() => {
+        state = reduceFieldFocus(state, { type: "BLUR_TIMEOUT" });
+      }, 120);
+
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      clearTimeout(timer);
+
+      assert.equal(state.fieldKey, null, "120ms sonra Yazdır odağında vurgu temizlenmelidir");
+      assert.equal(state.lastFocusedFieldKey, "yer", "lastFocusedFieldKey korunmalıdır");
+    });
+  });
+
+  describe("9. D03: Geometri Çıkarımı, Cache Kurtarma, Tekrar Deneme ve Sınır Kontratı Testleri (B05, B06)", () => {
+    it("B06: Aynı sayfada yinelenen widget alanı rects haritasından tamamen elenmeli ve tanı üretilmelidir", async () => {
+      const mockPdf: PdfDocumentLike = {
+        numPages: 1,
+        getPage: async () => ({
+          getViewport: () => ({
+            width: 600,
+            height: 800,
+            convertToViewportRectangle: (r: number[]) => r,
+          }),
+          getAnnotations: async () => [
+            {
+              id: "ann-1",
+              fieldName: "yer",
+              subtype: "Widget",
+              fieldType: "Tx",
+              rect: [100, 200, 300, 250],
+            },
+            {
+              id: "ann-2",
+              fieldName: "yer",
+              subtype: "Widget",
+              fieldType: "Tx",
+              rect: [150, 250, 350, 300],
+            },
+            {
+              id: "ann-3",
+              fieldName: "tarih",
+              subtype: "Widget",
+              fieldType: "Tx",
+              rect: [400, 200, 500, 250],
+            },
+          ],
+        }),
+      };
+
+      const res = await extractFieldFocusRects(mockPdf, "beton-dokum-tutanagi");
+      assert.equal(res.rects["yer"], undefined, "Çakışan 'yer' alanı rects içinde olmamalıdır");
+      assert.ok(res.rects["tarih"] !== undefined, "Çakışmayan 'tarih' alanı başarıyla çıkarılmalıdır");
+      assert.ok(
+        res.diagnostics.some((d) => d.includes("Çakışan alan: 'yer'")),
+        "Çakışma için tanı kaydı üretilmelidir"
+      );
+    });
+
+    it("B06: Normalize koordinatlarda left + width <= 1 ve top + height <= 1 kesişimle güvenceye alınmalıdır", async () => {
+      const mockPdf: PdfDocumentLike = {
+        numPages: 1,
+        getPage: async () => ({
+          getViewport: () => ({
+            width: 1000,
+            height: 1000,
+            convertToViewportRectangle: (r: number[]) => r,
+          }),
+          getAnnotations: async () => [
+            {
+              id: "ann-overflow",
+              fieldName: "yer",
+              subtype: "Widget",
+              fieldType: "Tx",
+              rect: [990, 100, 1010, 120], // left=0.99, width=0.02 -> sağ kenar 1.01
+            },
+          ],
+        }),
+      };
+
+      const res = await extractFieldFocusRects(mockPdf, "beton-dokum-tutanagi");
+      const rect = res.rects["yer"];
+      assert.ok(rect !== undefined);
+      assert.ok(rect.left + rect.width <= 1.0, `left + width (${rect.left + rect.width}) <= 1.0 olmalıdır`);
+      assert.ok(rect.top + rect.height <= 1.0, `top + height (${rect.top + rect.height}) <= 1.0 olmalıdır`);
+    });
+
+    it("B05: Farklı form verileriyle üretilen PDF'lerde widget geometrisinin sabit kaldığı kanıtlanmalıdır", async () => {
+      // 5 şablonun tamamında aynı şablonun farklı içerikli PDF'lerinde geometri sabit kalır
+      const docIds: BelgeDocumentId[] = [
+        "beton-dokum-tutanagi",
+        "insaat-ruhsati-dilekcesi",
+        "santiye-sefi-istifa-dilekcesi",
+        "santiye-sefi-sozlesmesi",
+        "santiye-sefi-taahhutnamesi",
+      ];
+
+      for (const docId of docIds) {
+        const fields = DOCUMENT_EDITABLE_FIELDS[docId];
+        const shortData = Object.fromEntries(fields.map((key) => [key, "Kısa veri"]));
+        const longData = Object.fromEntries(fields.map((key) => [key, "Türkçe uzun veri ğüşiöç ".repeat(8)]));
+        const first = await generateBelgeDocument(docId, shortData);
+        const second = await generateBelgeDocument(docId, longData);
+        const tasks = [first, second].map(({ bytes }) => pdfjsLib.getDocument({
+          data: bytes.slice(), useSystemFonts: true, disableFontFace: true,
+        }));
+        try {
+          const [pdf1, pdf2] = await Promise.all(tasks.map((task) => task.promise));
+          const geo1 = await extractFieldFocusRects(pdf1, docId);
+          const geo2 = await extractFieldFocusRects(pdf2, docId);
+          assert.equal(Object.keys(geo1.rects).length, fields.length);
+          assert.deepEqual(geo1.rects, geo2.rects, `${docId}: içerik değişimi widget geometrisini değiştirmemelidir`);
+        } finally {
+          await Promise.all(tasks.map((task) => task.destroy()));
+        }
+      }
     });
   });
 });

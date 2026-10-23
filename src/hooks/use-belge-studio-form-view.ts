@@ -7,7 +7,6 @@ import {
   Density,
   FIT_MAX_SCALE,
   FIT_MIN_SCALE,
-  FIT_TOLERANCE_PX,
   FitStatus,
   FormMode,
   ManualScale,
@@ -50,6 +49,7 @@ export function useBelgeStudioFormView(
   options: UseBelgeStudioFormViewOptions = {}
 ): BelgeStudioFormViewApi {
   const { isModal = false } = options;
+  void isModal;
 
   // SSR / İlk yükleme için her zaman varsayılan güvenli %100 ve normal yoğunluk
   const [mode, setMode] = useState<FormMode>(DEFAULT_FORM_VIEW_STATE.mode);
@@ -138,9 +138,13 @@ export function useBelgeStudioFormView(
         const scrollW = scrollEl.scrollWidth;
         const scrollH = scrollEl.scrollHeight;
 
-        // İlk ve son kart sınırları
-        const cards = Array.from(contentEl.children).filter(
-          (c) => c.classList.contains("rounded-lg") || c.tagName === "DIV"
+        // İlk ve son kart sınırları (yalnızca görünür kartları hesaba kat)
+        const cards = (Array.from(contentEl.children) as HTMLElement[]).filter(
+          (c) =>
+            c instanceof HTMLElement &&
+            c.offsetParent !== null &&
+            c.getBoundingClientRect().height > 0 &&
+            (c.classList.contains("rounded-lg") || c.tagName === "DIV")
         );
         const firstCard = cards[0];
         const lastCard = cards[cards.length - 1];
@@ -170,8 +174,8 @@ export function useBelgeStudioFormView(
         resolvedDensity = "normal";
         resolvedStatus = "fitted";
 
-        // Alan elveriyorsa 1.00 - 1.15 arasında sığan en büyük ölçeği ara
-        const scaleCandidates = [1.15, 1.10, 1.05];
+        // Alan elveriyorsa 1.00 - FIT_MAX_SCALE arasında sığan en büyük ölçeği ara
+        const scaleCandidates = [FIT_MAX_SCALE, 1.10, 1.05];
         for (const candidate of scaleCandidates) {
           if (testCandidate(candidate, "normal")) {
             resolvedScale = candidate;
@@ -185,9 +189,9 @@ export function useBelgeStudioFormView(
         resolvedDensity = "compact";
         resolvedStatus = "fitted";
       }
-      // 3. Adım: Kompakt 1.00 sığmıyorsa, 0.90..0.98 arası kompakt adaylar
+      // 3. Adım: Kompakt 1.00 sığmıyorsa, FIT_MIN_SCALE..0.98 arası kompakt adaylar
       else {
-        const compactCandidates = [0.98, 0.95, 0.92, 0.90];
+        const compactCandidates = [0.98, 0.95, 0.92, FIT_MIN_SCALE];
         let foundFit = false;
 
         for (const candidate of compactCandidates) {
@@ -217,6 +221,10 @@ export function useBelgeStudioFormView(
       // Orijinal scroll pozisyonunu geri yükle
       scrollEl.scrollTop = originalScrollTop;
 
+      // DOM stillerini çözülen kesin değerlerle doğrudan senkronize et
+      contentEl.style.zoom = resolvedScale !== 1 ? String(resolvedScale) : "";
+      contentEl.className = resolvedDensity === "compact" ? "space-y-1.5" : "space-y-2.5";
+
       // Stale revizyon değilse state güncelle
       if (currentRev === revisionRef.current) {
         setFitScale(resolvedScale);
@@ -235,15 +243,14 @@ export function useBelgeStudioFormView(
     setFitStatus("idle");
   }, []);
 
-  // Kompakt görünüm aç/kapat
+  // Kompakt görünüm aç/kapat (kullanıcının o an gördüğü aktif yoğunluğu tersine çevirir)
   const onToggleCompact = useCallback(() => {
-    setManualDensity((prev) => {
-      const next: Density = prev === "compact" ? "normal" : "compact";
-      setMode("manual");
-      setFitStatus("idle");
-      return next;
-    });
-  }, []);
+    const current = mode === "fit" ? fitDensity : manualDensity;
+    const next: Density = current === "compact" ? "normal" : "compact";
+    setManualDensity(next);
+    setMode("manual");
+    setFitStatus("idle");
+  }, [mode, fitDensity, manualDensity]);
 
   // Fit modunu başlat
   const onFit = useCallback(() => {

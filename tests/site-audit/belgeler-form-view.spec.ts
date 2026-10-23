@@ -125,7 +125,54 @@ test.describe("Belgeler Form View & UX Regresyon Paketi", () => {
 
     // Form görünümü alt menüsü
     await formTrigger.click();
-    await expect(page.locator('[data-testid="belge-mobile-form-view-fit"]')).toBeVisible({ timeout: 5_000 });
+    const mobileFitBtn = page.locator('[data-testid="belge-mobile-form-view-fit"]');
+    await expect(mobileFitBtn).toBeVisible({ timeout: 5_000 });
     await expect(page.locator('[data-testid="belge-mobile-form-scale-90"]')).toBeVisible({ timeout: 5_000 });
+
+    // Mobil sığdır eylemini çalıştır
+    await mobileFitBtn.click();
+    await page.waitForTimeout(300);
+
+    const content = page.locator('[data-belge-form-content="true"]');
+    await expect(content).toHaveAttribute("data-mode", "fit");
+    const mobileFitStatus = await content.getAttribute("data-fit-status");
+    expect(["fitted", "limited"]).toContain(mobileFitStatus);
+  });
+
+  test("Tablet görünümü (iPad / 768x1024) form görünümü ve fit doğrulaması", async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await page.goto("/belgeler/santiye-sefi-sozlesmesi", { waitUntil: "networkidle", timeout: 30_000 });
+
+    // Tablette (< 1024px) varsayılan sekme canlı önizlemedir; form sekmesine geç
+    const editFormBtn = page.locator('button[aria-label="Formu Düzenle"]');
+    await expect(editFormBtn).toBeVisible({ timeout: 10_000 });
+    await editFormBtn.click();
+    await page.waitForTimeout(300);
+
+    const formScroll = page.locator('[data-testid="belge-studio-form-scroll"]');
+    const content = page.locator('[data-belge-form-content="true"]');
+    await expect(formScroll).toBeVisible({ timeout: 10_000 });
+    await expect(content).toBeVisible({ timeout: 5_000 });
+
+    // Tablette alt menüden Fit tetikle (gizli lg:flex başlık elemanı fit ölçümünü bozmamalıdır)
+    const moreBtn = page.locator('button[aria-label="Diğer belge işlemleri"]');
+    await moreBtn.click();
+    const formTrigger = page.locator('[data-testid="belge-mobile-form-view-trigger"]');
+    await expect(formTrigger).toBeVisible({ timeout: 5_000 });
+    await formTrigger.click();
+
+    const fitBtn = page.locator('[data-testid="belge-mobile-form-view-fit"]');
+    await expect(fitBtn).toBeVisible({ timeout: 5_000 });
+    await fitBtn.click();
+    await page.waitForTimeout(300);
+
+    await expect(content).toHaveAttribute("data-mode", "fit");
+    const fitStatus = await content.getAttribute("data-fit-status");
+    expect(["fitted", "limited"]).toContain(fitStatus);
+
+    // Uygulanan ölçeğin geçerli bir sayı olduğunu ve NaN olmadığını doğrula
+    const appliedScale = await content.getAttribute("data-scale");
+    expect(Number(appliedScale)).toBeGreaterThanOrEqual(0.90);
+    expect(Number(appliedScale)).toBeLessThanOrEqual(1.15);
   });
 });

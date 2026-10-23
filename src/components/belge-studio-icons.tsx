@@ -64,7 +64,6 @@ export function BelgeZoomOutIcon({ className = "h-4 w-4", ...props }: IconProps)
     </svg>
   );
 }
-
 /**
  * Yakınlaştır (Zoom In) — Kalibrasyon çentikli optik mercek ve artı hedef odaklama
  */
@@ -119,7 +118,6 @@ export function BelgeZoomInIcon({ className = "h-4 w-4", ...props }: IconProps) 
     </svg>
   );
 }
-
 /**
  * Sığdır (Fit to Page) — Dört köşe pafta vizör kadrajı içinde A4 belge sayfası
  */
@@ -169,7 +167,6 @@ export function BelgeFitPageIcon({ className = "h-4 w-4", ...props }: IconProps)
     </svg>
   );
 }
-
 /**
  * PDF'yi Yeni Sekmede Aç — A4 teknik pafta içinden çıkan diyagonal portal oku
  */
@@ -217,7 +214,6 @@ export function BelgeOpenExternalIcon({ className = "h-4 w-4", ...props }: IconP
     </svg>
   );
 }
-
 /**
  * Önceki Sayfa — Sayfa durdurma kenarı ve çift katmanlı teknik şevron
  */
@@ -255,7 +251,6 @@ export function BelgePrevPageIcon({ className = "h-4 w-4", ...props }: IconProps
     </svg>
   );
 }
-
 /**
  * Sonraki Sayfa — Sayfa durdurma kenarı ve çift katmanlı teknik şevron
  */
@@ -293,7 +288,6 @@ export function BelgeNextPageIcon({ className = "h-4 w-4", ...props }: IconProps
     </svg>
   );
 }
-
 /**
  * Aydınlık Mod (Sun / Helios) — Çift halkalı güneş çekirdeği ve kalibrasyon ışınları
  */
@@ -334,7 +328,6 @@ export function BelgeSunIcon({ className = "h-4 w-4", ...props }: IconProps) {
     </svg>
   );
 }
-
 /**
  * Koyu Mod (Moon / Polaris) — Geometrik hilal, krater yayı ve Kutup yıldızı
  */
@@ -366,7 +359,6 @@ export function BelgeMoonIcon({ className = "h-4 w-4", ...props }: IconProps) {
     </svg>
   );
 }
-
 /**
  * Belgelere Dön — Pafta çerçevesinden çıkan hassas geri dönüş oku
  */
@@ -403,7 +395,6 @@ export function BelgeBackIcon({ className = "h-4 w-4", ...props }: IconProps) {
     </svg>
   );
 }
-
 /**
  * Sıfırla — Örnek verilere geri döndürme döngüsü ve merkez kalibrasyon noktası
  */
@@ -441,7 +432,6 @@ export function BelgeResetIcon({ className = "h-4 w-4", ...props }: IconProps) {
     </svg>
   );
 }
-
 /**
  * Temizle — Teknik silgi / alan temizleme ikonu
  */
@@ -480,7 +470,6 @@ export function BelgeClearIcon({ className = "h-4 w-4", ...props }: IconProps) {
     </svg>
   );
 }
-
 /**
  * Geri Al — Zaman çizgisi düğümlü geri dönüş yayı
  */
@@ -510,7 +499,6 @@ export function BelgeUndoIcon({ className = "h-4 w-4", ...props }: IconProps) {
     </svg>
   );
 }
-
 /**
  * Boş Form İndir — Noktalı şablon satırlı A4 sayfası
  */
@@ -549,7 +537,6 @@ export function BelgeBlankFormIcon({ className = "h-4 w-4", ...props }: IconProp
     </svg>
   );
 }
-
 /**
  * Yazdır — Teknik plotter / yazıcı ve çıkan belge sayfası
  */
@@ -589,7 +576,6 @@ export function BelgePrintIcon({ className = "h-4 w-4", ...props }: IconProps) {
     </svg>
   );
 }
-
 /**
  * PDF İndir — Mühürlü A4 belge ve hassas indirme vektörü
  */
@@ -628,7 +614,6 @@ export function BelgeDownloadPdfIcon({ className = "h-4 w-4", ...props }: IconPr
     </svg>
   );
 }
-
 /**
  * Diğer İşlemler — Üçlü elmas kalibrasyon düğümü
  */
@@ -671,7 +656,6 @@ export function BelgeMoreIcon({ className = "h-5 w-5", ...props }: IconProps) {
     </svg>
   );
 }
-
 /**
  * Canlı PDF Önizle — Optik vizör göz ikonu
  */
@@ -704,7 +688,6 @@ export function BelgePreviewEyeIcon({ className = "h-4 w-4", ...props }: IconPro
     </svg>
   );
 }
-
 /**
  * Formu Düzenle — Teknik kalem ve form cetveli
  */
@@ -730,6 +713,77 @@ export function BelgeFormEditIcon({ className = "h-4 w-4", ...props }: IconProps
         stroke="currentColor"
         strokeWidth="1.75"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+/**
+ * PDF'ye Odaklan (Focus PDF) — Dört köşe genleşme kadrajı ve merkez PDF sayfası
+ */
+export function BelgePdfFocusEnterIcon({ className = "h-4 w-4", ...props }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+      {...props}
+    >
+      <path
+        d="M3.75 8.25V4.5a.75.75 0 0 1 .75-.75h3.75M15.75 3.75h3.75a.75.75 0 0 1 .75.75v3.75M20.25 15.75v3.75a.75.75 0 0 1-.75.75h-3.75M8.25 20.25H4.5a.75.75 0 0 1-.75-.75v-3.75"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <rect
+        x="8"
+        y="8"
+        width="8"
+        height="8"
+        rx="1"
+        fill="currentColor"
+        fillOpacity="0.15"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+/**
+ * Formu Göster (Exit PDF Focus / Split View) — İki sütunlu panel ve sol panel vurgusu
+ */
+export function BelgePdfFocusExitIcon({ className = "h-4 w-4", ...props }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+      {...props}
+    >
+      <rect
+        x="3.75"
+        y="4.5"
+        width="16.5"
+        height="15"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.75"
+      />
+      <path
+        d="M10.5 4.5v15"
+        stroke="currentColor"
+        strokeWidth="1.75"
+      />
+      <rect
+        x="4.75"
+        y="5.5"
+        width="4.75"
+        height="13"
+        rx="1"
+        fill="currentColor"
+        fillOpacity="0.25"
       />
     </svg>
   );

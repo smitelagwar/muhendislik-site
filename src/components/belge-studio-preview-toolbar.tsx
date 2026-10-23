@@ -20,11 +20,18 @@ import {
   BelgeMoreIcon,
   BelgeNextPageIcon,
   BelgeOpenExternalIcon,
+  BelgePdfFocusEnterIcon,
+  BelgePdfFocusExitIcon,
   BelgePrevPageIcon,
   BelgeSunIcon,
   BelgeZoomInIcon,
   BelgeZoomOutIcon,
 } from "@/components/belge-studio-icons";
+
+export type BelgeStudioPdfFocusApi = {
+  isPdfFocus: boolean;
+  onTogglePdfFocus: () => void;
+};
 
 type BelgeStudioPreviewToolbarProps = {
   zoomLevel: number;
@@ -34,6 +41,7 @@ type BelgeStudioPreviewToolbarProps = {
   page?: { current: number; total: number; onChange: (page: number) => void };
   disabled?: boolean;
   formView?: BelgeStudioFormViewApi;
+  pdfFocus?: BelgeStudioPdfFocusApi;
 };
 
 export function BelgeStudioPreviewToolbar({
@@ -44,6 +52,7 @@ export function BelgeStudioPreviewToolbar({
   page,
   disabled = false,
   formView,
+  pdfFocus,
 }: BelgeStudioPreviewToolbarProps) {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -218,6 +227,27 @@ export function BelgeStudioPreviewToolbar({
       )}
 
       <div className="belge-preview-utilities hidden items-center justify-end gap-[4px] lg:flex" role="group" aria-label="Form görünümü ve tema">
+        {pdfFocus && (
+          <button
+            type="button"
+            data-testid="belge-pdf-focus-toggle"
+            aria-pressed={pdfFocus.isPdfFocus}
+            aria-label={pdfFocus.isPdfFocus ? "Formu Göster" : "PDF'ye Odaklan"}
+            title={pdfFocus.isPdfFocus ? "Formu Göster" : "PDF'ye Odaklan"}
+            onClick={pdfFocus.onTogglePdfFocus}
+            disabled={disabled}
+            className={`preview-tool-button ${pdfFocus.isPdfFocus ? "preview-tool-button-active" : ""}`}
+          >
+            {pdfFocus.isPdfFocus ? (
+              <BelgePdfFocusExitIcon className="h-[17px] w-[17px]" />
+            ) : (
+              <BelgePdfFocusEnterIcon className="h-[17px] w-[17px]" />
+            )}
+            <span className="hidden sm:inline">
+              {pdfFocus.isPdfFocus ? "Formu Göster" : "PDF'ye Odaklan"}
+            </span>
+          </button>
+        )}
         {formView && (
           <BelgeStudioFormViewMenu
             mode={formView.mode}

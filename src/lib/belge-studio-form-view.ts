@@ -5,9 +5,9 @@
  * veya PDF bytes üretimine kesinlikle etki etmez.
  */
 
-export type ManualScale = 0.90 | 1.00 | 1.10 | 1.25;
+export type ManualScale = 1.00 | 0.90 | 1.10 | 1.25;
 
-export const FORM_SCALE_PRESETS: readonly ManualScale[] = [0.90, 1.00, 1.10, 1.25] as const;
+export const FORM_SCALE_PRESETS: readonly ManualScale[] = [1.00, 0.90, 1.10, 1.25] as const;
 
 export const DEFAULT_FORM_SCALE: ManualScale = 1.00;
 

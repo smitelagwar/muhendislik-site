@@ -120,16 +120,20 @@ export type FieldFocusSelection = {
   fieldKey: string | null;
   lastFocusedFieldKey: string | null;
   focusEventId: number;
+  clearEventId?: number;
 };
 
 export type FocusState = {
   fieldKey: string | null;
   lastFocusedFieldKey: string | null;
   focusEventId: number;
+  clearEventId?: number;
+  isFormFocused?: boolean;
 };
 
 export type FocusAction =
   | { type: "FOCUS"; fieldKey: string }
+  | { type: "FORM_BLUR" }
   | { type: "BLUR_TIMEOUT" }
   | { type: "CLEAR_SELECTION" }
   | { type: "SET_FIELD"; fieldKey: string | null }
@@ -144,8 +148,9 @@ export const INITIAL_FOCUS_STATE: FocusState = {
 /**
  * Pure reducer function for field focus state management.
  * Enforces strict transition rules:
- * - Monotonic `focusEventId` increments ONLY when focus shifts to a new/different fieldKey.
- * - Repeated keystrokes or re-clicks in the same field do NOT increment `focusEventId`.
+ * - Monotonic `focusEventId` increments when focus shifts to a new fieldKey OR returns after real blur.
+ * - Repeated keystrokes or re-clicks in the same focused field do NOT increment `focusEventId`.
+ * - `FORM_BLUR` marks the form as no longer having DOM focus while retaining contextual highlight.
  * - `BLUR_TIMEOUT` clears `fieldKey` but preserves `lastFocusedFieldKey` for mobile preview tab flash.
  * - `CLEAR_SELECTION` (Esc, Reset, Clear) wipes both `fieldKey` and `lastFocusedFieldKey`.
  * - `DOCUMENT_CHANGE` resets state to clean baseline.
@@ -153,56 +158,68 @@ export const INITIAL_FOCUS_STATE: FocusState = {
 export function reduceFieldFocus(state: FocusState, action: FocusAction): FocusState {
   switch (action.type) {
     case "FOCUS": {
-      if (action.fieldKey === state.fieldKey) {
+      const isNewField = action.fieldKey !== state.fieldKey;
+      const isReturningToField = !state.isFormFocused;
+      if (!isNewField && !isReturningToField) {
         return state;
       }
       return {
+        ...state,
         fieldKey: action.fieldKey,
         lastFocusedFieldKey: action.fieldKey,
         focusEventId: state.focusEventId + 1,
+        isFormFocused: true,
+      };
+    }
+    case "FORM_BLUR": {
+      if (!state.isFormFocused) {
+        return state;
+      }
+      return {
+        ...state,
+        isFormFocused: false,
       };
     }
     case "SET_FIELD": {
-      if (action.fieldKey === state.fieldKey) {
+      if (action.fieldKey === state.fieldKey && state.isFormFocused) {
         return state;
       }
       if (!action.fieldKey) {
         return {
           ...state,
           fieldKey: null,
+          isFormFocused: false,
         };
       }
       return {
+        ...state,
         fieldKey: action.fieldKey,
         lastFocusedFieldKey: action.fieldKey,
         focusEventId: state.focusEventId + 1,
+        isFormFocused: true,
       };
     }
     case "BLUR_TIMEOUT": {
-      if (state.fieldKey === null) {
+      if (state.fieldKey === null && !state.isFormFocused) {
         return state;
       }
       return {
         ...state,
         fieldKey: null,
+        isFormFocused: false,
       };
     }
     case "CLEAR_SELECTION": {
-      if (state.fieldKey === null && state.lastFocusedFieldKey === null) {
-        return state;
-      }
       return {
         ...state,
         fieldKey: null,
         lastFocusedFieldKey: null,
+        clearEventId: (state.clearEventId ?? 0) + 1,
+        isFormFocused: false,
       };
     }
     case "DOCUMENT_CHANGE": {
-      return {
-        fieldKey: null,
-        lastFocusedFieldKey: null,
-        focusEventId: 0,
-      };
+      return INITIAL_FOCUS_STATE;
     }
     default:
       return state;
@@ -223,7 +240,7 @@ export function isBelgePreviewControl(target: unknown): boolean {
 
   return Boolean(
     el.closest(
-      '[data-testid="belge-studio-preview-toolbar"], [data-testid="belge-studio-preview-canvas"], [role="toolbar"], .belge-preview-navigation, .belge-preview-toolbar, [data-belge-preview-control="true"]'
+      '[data-testid="belge-studio-preview-toolbar"], [data-testid="belge-studio-preview-canvas"], .belge-preview-navigation, .belge-preview-toolbar, [data-belge-preview-control="true"]'
     )
   );
 }
@@ -299,6 +316,25 @@ export async function extractFieldFocusRects(
       continue;
     }
 
+    // Aynı sayfada yinelenen alan adlarını tespit et ve belirsizlik olarak işaretle
+    const pageFieldCounts = new Map<string, number>();
+    for (const ann of rawAnnotations) {
+      if (ann && typeof ann === "object") {
+        const name = (ann as { fieldName?: unknown }).fieldName;
+        if (typeof name === "string" && (editableList as readonly string[]).includes(name)) {
+          pageFieldCounts.set(name, (pageFieldCounts.get(name) ?? 0) + 1);
+        }
+      }
+    }
+    for (const [name, count] of pageFieldCounts) {
+      if (count > 1) {
+        duplicateKeys.add(name);
+        diagnostics.push(
+          `[extractFieldFocusRects] Çakışan alan: '${name}' Sayfa ${pageNumber} üzerinde ${count} kez tanımlanmış`
+        );
+      }
+    }
+
     const mapResult = mapPdfAnnotationsToInlineFields({
       documentId,
       pageNumber,
@@ -310,6 +346,9 @@ export async function extractFieldFocusRects(
       diagnostics.push(
         `[mapPdfAnnotations:${diag.code}] Sayfa ${diag.pageNumber}: ${diag.reason}`
       );
+      if (diag.code === "DUPLICATE_FIELD" && diag.fieldName) {
+        duplicateKeys.add(diag.fieldName);
+      }
     }
 
     for (const field of mapResult.fields) {
@@ -335,12 +374,14 @@ export async function extractFieldFocusRects(
         Number.isFinite(height);
 
       const isPositive = width > 0 && height > 0;
-      // Allow slight 2% tolerance for sub-pixel boundary rounding
+      // Sınır dışı toleransı: sub-pixel yuvarlaması için %2 tolerans
       const isInBounds =
         left >= -0.02 &&
         top >= -0.02 &&
-        left + width <= 1.02 &&
-        top + height <= 1.02;
+        left <= 1.02 &&
+        top <= 1.02 &&
+        left + width >= -0.02 &&
+        top + height >= -0.02;
 
       if (!isFiniteCoord || !isPositive || !isInBounds) {
         diagnostics.push(
@@ -349,13 +390,36 @@ export async function extractFieldFocusRects(
         continue;
       }
 
+      // [0, 0, 1, 1] sayfa sınırları ile gerçek kesişim dikdörtgeni hesapla
+      const x0 = Math.max(0, left);
+      const y0 = Math.max(0, top);
+      const x1 = Math.min(1, left + width);
+      const y1 = Math.min(1, top + height);
+
+      if (x1 <= x0 || y1 <= y0) {
+        diagnostics.push(
+          `[extractFieldFocusRects] Alan '${fieldKey}' sayfa sınırları dışında kalıyor: [${left}, ${top}, ${width}, ${height}]`
+        );
+        continue;
+      }
+
+      const cl = Number(x0.toFixed(6));
+      const ct = Number(y0.toFixed(6));
+      // floating point yuvarlamasında left + width <= 1.0 ve top + height <= 1.0 garantisi
+      const cw = Number(Math.min(x1 - x0, 1 - cl).toFixed(6));
+      const ch = Number(Math.min(y1 - y0, 1 - ct).toFixed(6));
+
+      if (cw <= 0 || ch <= 0) {
+        continue;
+      }
+
       const normalizedRect: FieldFocusRect = {
         fieldKey,
         pageNumber,
-        left: Number(Math.max(0, Math.min(1, left)).toFixed(6)),
-        top: Number(Math.max(0, Math.min(1, top)).toFixed(6)),
-        width: Number(Math.max(0, Math.min(1, width)).toFixed(6)),
-        height: Number(Math.max(0, Math.min(1, height)).toFixed(6)),
+        left: cl,
+        top: ct,
+        width: cw,
+        height: ch,
       };
 
       seenFields.set(fieldKey, normalizedRect);

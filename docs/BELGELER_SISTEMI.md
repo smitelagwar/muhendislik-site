@@ -320,15 +320,89 @@ Olası bir regresyon veya geri alma durumunda:
 
 ## 11. Form Alanı Odak Vurgusu ↔ Canlı PDF Önizleme Eşleşmesi (Field Focus Highlight)
 
-- **Temel Mimari:** Kullanıcı soldaki stüdyo formundaki bir alana (input, textarea, select) odaklandığında (`focusin`), sağdaki canlı PDF önizleme tuvali üzerinde ilgili AcroForm alanının koordinatlarına `BelgeStudioFieldFocusLayer` üzerinden saf bir DOM overlay çerçevesi yerleşir. Bu etkileşim PDF motoruna sıfır yük bindirir; **hiçbir odak değişimi yeni PDF derlemesi veya canvas render tetiklemez**.
+- **Temel Mimari:** Kullanıcı soldaki stüdyo formundaki bir alana (input, textarea, select) odaklandığında (`focusin`), sağdaki canlı PDF önizleme tuvali üzerinde ilgili AcroForm alanının koordinatlarına `BelgeStudioFieldFocusLayer` üzerinden saf bir DOM overlay çerçevesi yerleşir. Odak değişimi PDF üretmez; aynı sayfadaki alan değişimi canvas çizimi de üretmez. Başka sayfadaki alan seçilirse hedef sayfanın çizilmesi normaldir.
 - **56/56 Alan Sözleşmesi:** Beş stüdyonun tamamında (`beton-dokum-tutanagi`, `insaat-ruhsati-dilekcesi`, `santiye-sefi-istifa-dilekcesi`, `santiye-sefi-sozlesmesi`, `santiye-sefi-taahhutnamesi`) `DOCUMENT_EDITABLE_FIELDS` allowlist'indeki 56 alan birebir `src/lib/belge-field-focus.ts` içinde DOM ID'leri ile eşlenmiştir. İstifa dilekçesindeki salt okunur (PDF-only) alanlar (`sayi_deger`, `ekler_deger`, `hitap_ek_deger`) dışlanmıştır ve asla sahte vurgu üretmez.
-- **Geometri Çıkarma ve Önbellekleme:** `extractFieldFocusRects`, PDF belgesi yüklendiğinde AcroForm widget alanlarını bir kez normalize koordinatlara (`0..1` aralığında sol, üst, genişlik, yükseklik) dönüştürür ve belge ID'sine göre bellekte önbelleğe alır. Zoom veya pencere boyutu değiştiğinde yeni annotation araması yapılmaz; CSS piksel koordinatları anında ölçeklenir (≤2 px hata toleransı).
-- **Çok Sayfalı Gezinti (Sözleşme):** Sayfa 2'de yer alan bir form alanına odaklanıldığında önizleme otomatik ve kontrollü olarak 2. sayfaya geçer (`handlePageChange`) ve alan görünür değilse `getInlineFieldRevealDelta` ile minimal pürüzsüz kaydırma (`smooth reveal`) uygular.
-- **Mobil 2.5 sn Yaşam Döngüsü:** Mobil ekranda kullanıcı form sekmesinde bir alana veri girdikten sonra "Canlı PDF Önizle" sekmesine geçtiğinde, son odaklanan alan için 2.5 saniye süren geçici bir parlama efekti devreye girer ve ardından kendiliğinden kaybolur. Form sekmesine geri dönüldüğünde zamanlayıcı derhal iptal edilir.
+- **Geometri Çıkarma, Hata Kurtarma ve Önbellekleme:** `extractFieldFocusRects`, widget koordinatlarını normalize eder ve sayfa sınırlarıyla gerçek kesişimini alır; belirsiz duplicate alanlar elenir. Önbellek stüdyo oturumuna aittir; belge ID'si değişince temizlenir. Yalnız allowlist'in tamamı bulunursa sonuç kalıcı başarıdır; kısmi sonuçta doğrulanmış alanlar gösterilebilir. Geçici hatada hemen bir ek deneme yapılır (toplam en fazla iki başarısız çıkarım); sonraki veri revizyonları bu bütçeyi yenilemez. Yeni PDF eski, iptal edilmiş annotation isteğini beklemez; stale sonuç güncel state/cache'i değiştiremez. Beş belgenin kısa/uzun içerikle ayrı üretilmiş PDF'leri sabit widget geometrisini test eder. Sağlam cache yolunda zoom, resize ve veri yazımı annotation taraması tekrarlamaz.
+- **Klavye, İptal ve Temizleme Protokolü:** `Escape` tuşuna basıldığında, form sıfırlandığında veya temizlendiğinde `CLEAR_SELECTION` eylemi tetiklenir ve benzersiz bir `clearEventId` üretilir. `BelgeStudioPdfPreview` bileşenine aktarılan `onClearFieldFocus={clearFieldFocus}` prop kontratı ile önizleme katmanındaki aktif mobil vurgu, 2.5 sn zamanlayıcısı ve tüm bekleyen reveal işleri anında iptal edilir; gecikmiş render'ların vurguyu yeniden parlatması engellenir.
+- **Çok Sayfalı Gezinti ve Kullanıcı Tercihi:** Sayfa 2'de yer alan bir form alanına odaklanıldığında önizleme otomatik ve kontrollü olarak 2. sayfaya geçer (`handlePageChange`) ve alan görünür değilse `getInlineFieldRevealDelta` ile minimal pürüzsüz kaydırma (`smooth reveal`) uygular. Kullanıcı önizlemede elle sayfa değiştirdiğinde (`userManualPageChoiceRef`) bu tercih aynı odak kapsamında korunur; formda yeni bir alana odaklanıldığında hedef sayfa tercihi otomatik olarak güncellenir.
+- **Mobil 2.5 sn Yaşam Döngüsü ve Görünür Tuval Kontratı:** Mobil ekranda kullanıcı form sekmesinde bir alana odaklanıp "Canlı PDF Önizle" sekmesine geçtiğinde, sayaç yükleme/hata/sayfa uyuşmazlığı bittikten ve doğru tuval çizildikten sonra başlar. Vurgu 2.5 saniye sonra söner. Forma dönüş timer'ı iptal eder; yeni gerçek alan odağı olmadan tekrar önizlemeye dönmek tüketilmiş seçimi yeniden parlatmaz. İptal kimliği yeni alan seçimlerinde korunur; sonraki iptalde monoton artar.
 - **İzolasyon ve Karşılıklı Dışlama:** "PDF Üzerinde Düzenle" (inline edit) modu açıkken form rehberi tamamen gizlenir; amber düzenleme hotspot'u ile mavi form çerçevesi asla çakışmaz. Inline edit kapatıldığında eski odak otomatik açılmaz (`suppressedFocusEventIdRef`), kullanıcının yeni bir alana tıklaması gerekir.
-- **Yoğun Satır Geometrisi:** Taahhütname (9.2–9.8 pt satır aralıkları) gibi kompakt metin bloklarında komşu metin satırlarını kapatmamak için kalın gölge veya 7 px pulse yerine `1.5px` box-shadow ve `scale(1.005)` mikro animasyon kullanılır. `prefers-reduced-motion` aktifken animasyonlar ve yumuşak kaydırmalar sıfır gecikmeli statik moda geçer.
+- **Yoğun Satır Geometrisi:** Taahhütname ve Sözleşme gibi kompakt metin bloklarında `1.5px` box-shadow ve `scale(1.005)` mikro animasyon kullanılır. `prefers-reduced-motion` altında animasyon ve yumuşak kaydırma kapanır. Form rehberi yüksek DPR, %50/%100/%200/%400 zoom, tema ve forced-colors ile test edilir. Zoom sınırında odaklı düğmenin disabled olması seçimi silmez.
 - **Yeni Şablon Ekleme Kontratı:** Yeni bir belge stüdyosu eklendiğinde `DOCUMENT_EDITABLE_FIELDS` içerisine alanlar kaydedilir, form bileşeninde `useBelgeFieldFocus` hook'u başlatılır ve `BelgeStudioPdfPreview` bileşenine `fieldFocus={fieldFocus}` ve `onClearFieldFocus={clearFieldFocus}` aktarılır.
 - **Test ve Doğrulama Komutları:**
   - Saf Geometri ve State Makinesi Birim Testleri: `npx tsx --test tests/belgeler/field-focus.test.ts`
+  - Kırmızı/Yeşil Repro Doğrulama Testi: `npx tsx --test tests/belgeler/field-focus-repro.test.ts`
+  - Canlı Smoke Doğrulama Scripti: `node scripts/verify-field-focus-live-smoke.mjs`
   - Çoklu Çözünürlük ve Görsel Odak E2E Paketi: `npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-field-focus.spec.ts`
+  - Gerçek lifecycle/fault-injection/touch regresyonları: `npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-field-focus-regressions.spec.ts --project=chromium-desktop-1366`
+  - 56 alanın hizası statik koordinat kopyasıyla değil, önizlemenin üretilmiş PDF blob'undaki bağımsız PDF.js ölçümüyle dört eksende ≤2 CSS px toleransla doğrulanır. Beklenmeyen tarayıcı/HTTP hataları odak testlerini düşürür.
+  - Yerel smoke için `SMOKE_URL` kullanılabilir; `SMOKE_EVIDENCE_DIR` ile production ekran görüntülerinin üzerine yazılması önlenir. Script süre sınırı, nonzero hata çıkışı ve tarayıcı cleanup'ı uygular.
   - PDF Motoru ve Görsel Koruma Paketi: `npm run check:belgeler-pdf`
+
+---
+
+## 12. Belge Stüdyosu UX v3: Akıllı Bölümler, İzinli Otomatik Taslak ve PDF Odak Modu (23 Ekim 2026)
+
+2026-10-23 tarihinde beş stüdyoya (`beton-dokum-tutanagi`, `insaat-ruhsati-dilekcesi`, `santiye-sefi-istifa-dilekcesi`, `santiye-sefi-sozlesmesi`, `santiye-sefi-taahhutnamesi`) entegre edilen üç temel kullanıcı deneyimi geliştirmesi ve mimari sözleşmesi:
+
+### 12.1. Akıllı Bölümler (Smart Accordion & Dolu Sayaçları)
+- **56/56 Alan Eşleştirmesi:** `DOCUMENT_EDITABLE_FIELDS` sözleşmesindeki 56 alanın tamamı `src/lib/belge-studio-sections.ts` içinde tam olarak tek bir bölüme haritalanmıştır. İstifa Dilekçesi'ndeki salt okunur PDF-only etiket alanları (`sayi_deger`, `ekler_deger`, `hitap_ek_deger`) bölümlere sızdırılmaz.
+- **Erişilebilir WAI-ARIA Başlıklar:** Tüm bölüm başlıkları `<h3><button>` yapısında, `aria-expanded` ve `aria-controls` özniteliklerine sahiptir. Kapalı bölümler CSS `hidden` (`display: none`) ile gizlenir; form imleci (caret) veya Tab gezintisi gizli alanlara girmez.
+- **Dolu Alan Sayaçları:** Her bölümde `${filledCount}/${totalCount} dolu` formatında anlık sayaç gösterilir. Sayım salt `value.trim().length > 0` kuralına dayanır; validasyon iddiası taşımaz.
+- **Tümünü Aç / Tümünü Kapat:** `BelgeStudioSectionMasterControls` ile tek tıkla tüm bölümler açılabilir veya kapatılabilir.
+- **Bağımsız Kullanıcı Tercihleri:** Kapalı bölüm ID'leri `belgeler:ux:section-collapsed:v1:${documentId}` anahtarıyla `localStorage`'da saklanır. İlk ziyarette tüm bölümler açıktır. Kullanıcı tercihi taslak verisinden tamamen izoledir (tercih değişimi taslak kaydını veya revizyonunu tetiklemez).
+- **PDF Alan Odağında Otomatik Bölüm Açma (`revealField`):** Kullanıcı PDF önizleme üzerinden veya klavyeyle kapalı bir bölüme ait alana odaklandığında, ilgili bölüm otomatik olarak genişletilir ve alan görünür kılınır.
+
+### 12.2. İzinli ve Dayanıklı Otomatik Taslak Kaydetme (Auto-Draft)
+- **Sıfır PII Başlangıç İlkesi:** Kullanıcı açıkça onay vermeden (`storageMode === 'none'`), tarayıcı depolamasına hiçbir kullanıcı verisi yazılmaz. İlk form düzenlemesinde nazik izin şeridi (`BelgeStudioDraftConsentBanner`) belirir.
+- **Cihaz ve Sekme İzolasyonu:**
+  - `device`: `localStorage` üzerinde `belgeler:ux:draft:device:v1:${documentId}` anahtarıyla kalıcı saklama.
+  - `session`: `sessionStorage` üzerinde `belgeler:ux:draft:session:v1:${documentId}` anahtarıyla yalnız mevcut sekmede saklama.
+  - `none`: İzin verilmediğinde `belgeler:ux:draft-consent:device:v1 = 'none'` yazılarak kullanıcının tercihi hatırlanır ve tekrar şerit açılmaz.
+- **800ms Debounce & Tek Snapshot:** Kullanıcı tuş vuruşları 800ms duraksadıktan sonra tek bir atomik snapshot olarak kaydedilir; gereksiz disk I/O ve PDF derlemesi engellenir.
+- **Güvenlik ve Bütünlük:**
+  - 64 KiB tavan boyut sınırı (büyük veri enjeksiyonu önlenir).
+  - Şema parmak izi (`schemaFingerprint`) ile alan sayısı ve şema uyuşmazlığında bozuk taslak reddi.
+  - 30 gün yaş uyarısı (kullanıcıya eski taslak uyarısı verir fakat veriyi asla sessizce silmez).
+  - `__proto__`, `constructor` kirliliği koruması.
+- **Kontrollü Geri Yükleme (Restore):** Sayfa yenilendiğinde taslak sessizce forma yazılmaz. Kullanıcıya `BelgeStudioDraftRestoreBanner` sunulur:
+  - "Taslağı Yükle": Tek snapshot olarak forma aktarır ve PDF'yi günceller.
+  - "Şimdilik Kapat": Mevcut taslağı silmeden korur, otomatik kaydı duraklatır.
+  - "Taslağı Sil": Depodaki taslağı siler ve formu temiz bırakır.
+- **Çoklu Sekme ve Yaşam Döngüsü Yarışları:**
+  - `BroadcastChannel` ve `storage` event'leri ile sekmeler arası çakışma tespiti (`BelgeStudioDraftConflictBanner`).
+  - "Bu Sekmedekiyle Devam Et" (Takeover) ile revizyon sahipliğini devralma.
+  - Taslak silindiğinde veya izin kapatıldığında `pagehide`, `visibilitychange` veya pending debounce zamanlayıcılarının silinmiş taslağı diriltmesini engelleyen **resurrection guard**.
+- **Temizle ve Geri Al (Undo):** "Temizle" işlemi onaylandığında boş snapshot kaydedilir (reload'da eski dolu taslak hortlamaz); "Geri Al" (Undo) tıklandığında önceki snapshot yeniden yüklenir ve taslağa kaydedilir.
+
+### 12.3. Masaüstü PDF Odak Modu (Desktop PDF Focus Mode)
+- **Masaüstü Özel (`lg >= 1024px`):** `useSyncExternalStore` ile SSR-safe masaüstü algılama. `< 1024px` mobilde buton görünmez.
+- **CSS Tabanlı Sıfır Unmount:** Form paneli unmount edilmez; `pdfFocus.isPdfFocus ? 'hidden' : ...` ile CSS görünürlüğü yönetilir. Sağ PDF paneli `w-full` tam genişlik alır.
+- **State ve Odak Restorasyonu:**
+  - Odak moduna geçerken formun `scrollTop` değeri ve `document focusin` ile izlenen aktif girdi ID'si saklanır.
+  - Çıkış yapıldığında `scrollTop` ve aktif girdi odağı güvenle geri yüklenir.
+- **1280 → 900 → 1280 Sıfırlanma Güvencesi:** Ekran boyutu 1024px altına çekildiğinde odak modu otomatik sıfırlanır; ekran tekrar 1024px üzerine çıktığında kullanıcı tıklamadan odak modu otomatik açılmaz.
+- **Sıfır PDF Yeniden Derlemesi:** Odak modu geçişi sırasında yeni `formData` mutasyonu veya PDF byte üretimi yapılmaz; mevcut `blobUrl` stabil kalır.
+
+### 12.4. Yeni Belge Eklerken Entegrasyon Protokolü
+Yeni bir resmi evrak stüdyosu sisteme eklenirken şu sıra izlenmelidir:
+1. `src/lib/belge-studio-sections.ts`: Belge kimliğini `DOCUMENT_SECTION_MAP` içerisine ekleyin ve tüm alanları gruplayın.
+2. `src/components/[belge]-studio.tsx`:
+   - `const sectionsApi = useBelgeStudioSections({ documentId, formData });`
+   - `const draft = useBelgeAutoDraft({ documentId, formData, setFormData, initialData, setUndoData });`
+   - `const pdfFocus = useBelgeStudioPdfFocus({ scrollContainerRef: formView.scrollContainerRef, isModal });`
+3. JSX Katmanı:
+   - Form konteynerine: `className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${pdfFocus.isPdfFocus ? "hidden" : activeTabMobile === "form" ? "block" : "hidden lg:block"}`}`
+   - Önizleme paneline: `pdfFocus={pdfFocus}` aktarın.
+   - Form içine: `<BelgeStudioDraftControls draftApi={draft} />` ve `<BelgeStudioSectionMasterControls sectionsApi={sectionsApi} />` ekleyin.
+
+### 12.5. Test ve Doğrulama Komutları
+- **Birim ve Depolama Çekirdeği:** `npx tsx --test tests/belgeler/*.test.ts`
+- **PDF Motoru ve Görsel Doğrulama:** `npm run check:belgeler-pdf`
+- **Mobil Düzenleme E2E:** `npm run check:belgeler-inline-mobile`
+- **Akordeon E2E Paketi:** `npx playwright test tests/site-audit/belgeler-accordion-rollout.spec.ts --config=playwright.site.config.ts --project=chromium-desktop-1366`
+- **Otomatik Taslak E2E Paketi:** `npx playwright test tests/site-audit/belgeler-auto-draft-rollout.spec.ts --config=playwright.site.config.ts --project=chromium-desktop-1366`
+- **PDF Odak Modu E2E Paketi:** `npx playwright test tests/site-audit/belgeler-pdf-focus-mode.spec.ts --config=playwright.site.config.ts --project=chromium-desktop-1366`
+- **Entegre UX ve Stres Paketi:** `npx playwright test tests/site-audit/belgeler-studio-ux.spec.ts --config=playwright.site.config.ts --project=chromium-desktop-1366`
+- **Next.js Tip Denetimi:** `npx tsc -p tsconfig.next.json --noEmit --incremental false`
+- **Üretim Derlemesi:** `npm run build`

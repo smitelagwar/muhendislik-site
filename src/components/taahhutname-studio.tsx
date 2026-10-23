@@ -2,10 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  Building2,
   FileSignature,
   Loader2,
-  UserCheck,
   X,
 } from "lucide-react";
 import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
@@ -15,6 +13,7 @@ import {
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
+import { useBelgeStudioPdfFocus } from "@/hooks/use-belge-studio-pdf-focus";
 import { useBelgeFieldFocus } from "@/hooks/use-belge-field-focus";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
@@ -25,6 +24,16 @@ import {
   BelgeFormEditIcon,
   BelgeResetIcon,
 } from "@/components/belge-studio-icons";
+import { useBelgeAutoDraft } from "@/hooks/use-belge-auto-draft";
+import {
+  BelgeStudioDraftControls,
+  BelgeStudioDraftStatusBadge,
+} from "@/components/belge-studio-draft-controls";
+import { useBelgeStudioSections } from "@/hooks/use-belge-studio-sections";
+import {
+  BelgeStudioSection,
+  BelgeStudioSectionMasterControls,
+} from "@/components/belge-studio-section";
 import {
   TAAHHUTNAME_DEFAULT_DATA,
   TaahhutnameData,
@@ -77,6 +86,10 @@ export function TaahhutnameStudio({
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const formView = useBelgeStudioFormView({ isModal });
+  const pdfFocus = useBelgeStudioPdfFocus({
+    scrollContainerRef: formView.scrollContainerRef,
+    isModal,
+  });
   const {
     selection: fieldFocus,
     containerProps: formFocusContainerProps,
@@ -84,6 +97,33 @@ export function TaahhutnameStudio({
   } = useBelgeFieldFocus({
     documentId: "santiye-sefi-taahhutnamesi",
     studioRootRef,
+  });
+
+  const sectionsApi = useBelgeStudioSections({
+    documentId: "santiye-sefi-taahhutnamesi",
+    formData: formData as unknown as Record<string, unknown>,
+  });
+
+  // Odaklanan alan kapalı bir bölüme aitse o bölümü otomatik genişlet (yalnızca yeni odak event'inde tetiklenir)
+  const lastRevealedFocusEventIdRef = useRef<number>(0);
+  const { revealField } = sectionsApi;
+  useEffect(() => {
+    if (
+      fieldFocus?.focusEventId &&
+      fieldFocus.focusEventId !== lastRevealedFocusEventIdRef.current &&
+      fieldFocus.fieldKey
+    ) {
+      lastRevealedFocusEventIdRef.current = fieldFocus.focusEventId;
+      revealField(fieldFocus.fieldKey);
+    }
+  }, [fieldFocus?.focusEventId, fieldFocus?.fieldKey, revealField]);
+
+  const draft = useBelgeAutoDraft({
+    documentId: "santiye-sefi-taahhutnamesi",
+    formData,
+    setFormData,
+    initialData: initialData ?? TAAHHUTNAME_DEFAULT_DATA,
+    setUndoData,
   });
 
   useEffect(() => {
@@ -97,6 +137,7 @@ export function TaahhutnameStudio({
   };
 
   const handleFieldChange = (key: keyof TaahhutnameData, value: string) => {
+    draft.markFormMutated();
     setUndoData(null);
     setFormData((prev) => {
       const updated = { ...prev, [key]: value };
@@ -116,6 +157,7 @@ export function TaahhutnameStudio({
   // Global reset to original PDF default values (Sıfırla)
   const handleResetToPdfDefaults = () => {
     clearFieldFocusSelection();
+    draft.markFormMutated();
     setUndoData({ ...formData });
     setFormData({ ...TAAHHUTNAME_DEFAULT_DATA });
   };
@@ -123,6 +165,7 @@ export function TaahhutnameStudio({
   // Clear all fields (Temizle)
   const handleClearAll = () => {
     clearFieldFocusSelection();
+    draft.markFormMutated();
     setUndoData({ ...formData });
     setFormData({
       oda_sicil_no: "",
@@ -144,6 +187,7 @@ export function TaahhutnameStudio({
 
   const handleUndo = () => {
     if (!undoData) return;
+    draft.markFormMutated();
     setFormData(undoData);
     setUndoData(null);
   };
@@ -248,6 +292,7 @@ export function TaahhutnameStudio({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <BelgeStudioDraftStatusBadge draftApi={draft} />
             {syncStatus === "updating" && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -274,6 +319,9 @@ export function TaahhutnameStudio({
           </div>
         </div>
       )}
+      {/* Draft Notification Banner (Consent / Recovery / Conflict / Error) */}
+      <BelgeStudioDraftControls draftApi={draft} />
+
       {/* Main Split Layout: Left Form & Right Live PDF (Maximized height, zero outer scroll) */}
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
         {/* Left Column: Form Inputs & Action Buttons (Independent vertical scroll inside form) */}
@@ -284,7 +332,11 @@ export function TaahhutnameStudio({
           aria-label="Belge form alanları"
           data-testid="belge-studio-form-scroll"
           className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
-            activeTabMobile === "form" ? "block" : "hidden lg:block"
+            pdfFocus.isPdfFocus
+              ? "hidden"
+              : activeTabMobile === "form"
+                ? "block"
+                : "hidden lg:block"
           }`}
           {...formFocusContainerProps}
         >
@@ -298,29 +350,32 @@ export function TaahhutnameStudio({
                 Şantiye Şefi Taahhütnamesi
               </h2>
             </div>
-            {syncStatus === "updating" && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
-                <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                <span>Derleniyor</span>
-              </span>
-            )}
-            {syncStatus === "synced" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
-                <span className="h-1 w-1 rounded-full animate-pulse bg-emerald-500" />
-                <span>Canlı Senkron</span>
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              <BelgeStudioDraftStatusBadge draftApi={draft} />
+              {syncStatus === "updating" && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                  <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                  <span>Derleniyor</span>
+                </span>
+              )}
+              {syncStatus === "synced" && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  <span className="h-1 w-1 rounded-full animate-pulse bg-emerald-500" />
+                  <span>Canlı Senkron</span>
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Section: Şantiye Şefi Kimlik ve Oda Bilgileri */}
-          <div className="rounded-lg border border-border/70 bg-card/60 p-2 sm:p-2.5 space-y-2">
-            <div className="flex items-center justify-between border-b border-border/40 pb-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <UserCheck className="h-3 w-3 text-amber-500" />
-                1. Şantiye Şefi Bilgileri
-              </span>
-            </div>
+          <BelgeStudioSectionMasterControls sectionsApi={sectionsApi} />
 
+          {/* Section: Şantiye Şefi Kimlik ve Oda Bilgileri */}
+          <BelgeStudioSection
+            section={sectionsApi.sections[0]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[0].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[0].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[0].id)}
+          >
             {/* Ad Soyad */}
             <div>
               {renderFieldHeader("santiye_sefi_ad_soyad", "Şantiye Şefi Adı Soyadı")}
@@ -433,17 +488,15 @@ export function TaahhutnameStudio({
                 })}
               />
             </div>
-          </div>
+          </BelgeStudioSection>
 
           {/* Section: Yapı ve Ruhsat Bilgileri */}
-          <div className="rounded-lg border border-border/70 bg-card/60 p-2 sm:p-2.5 space-y-2">
-            <div className="flex items-center justify-between border-b border-border/40 pb-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                <Building2 className="h-3 w-3 text-amber-500" />
-                2. Yapı ve İdare Bilgileri
-              </span>
-            </div>
-
+          <BelgeStudioSection
+            section={sectionsApi.sections[1]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[1].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[1].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[1].id)}
+          >
             {/* İlgili İdare & İl/İlçe */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
@@ -541,7 +594,15 @@ export function TaahhutnameStudio({
                 />
               </div>
             </div>
+          </BelgeStudioSection>
 
+          {/* Section: Tarih ve İmza */}
+          <BelgeStudioSection
+            section={sectionsApi.sections[2]}
+            isOpen={sectionsApi.isSectionOpen(sectionsApi.sections[2].id)}
+            onToggle={() => sectionsApi.toggleSection(sectionsApi.sections[2].id)}
+            filledCount={sectionsApi.getSectionFilledCount(sectionsApi.sections[2].id)}
+          >
             {/* Tarih & İmza Unvanı */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
@@ -577,7 +638,7 @@ export function TaahhutnameStudio({
                 />
               </div>
             </div>
-          </div>
+          </BelgeStudioSection>
 
           </div>
         </div>
@@ -586,7 +647,13 @@ export function TaahhutnameStudio({
           id="taahhutname-mobile-panel-preview"
           role="region"
           aria-label="PDF önizleme paneli"
-          className={`flex flex-1 min-h-0 min-w-0 ${activeTabMobile === "preview" ? "" : "absolute inset-0 invisible pointer-events-none lg:static lg:visible lg:pointer-events-auto"}`}
+          className={`flex flex-1 min-h-0 min-w-0 ${
+            pdfFocus.isPdfFocus
+              ? "w-full"
+              : activeTabMobile === "preview"
+                ? ""
+                : "absolute inset-0 invisible pointer-events-none lg:static lg:visible lg:pointer-events-auto"
+          }`}
         >
           <BelgeStudioPdfPreview
             snapshot={snapshot}
@@ -596,12 +663,14 @@ export function TaahhutnameStudio({
             onRetry={document.retry}
             activeTabMobile={activeTabMobile}
             fieldFocus={fieldFocus}
+            onClearFieldFocus={clearFieldFocusSelection}
             editing={{
               documentId: "santiye-sefi-taahhutnamesi",
               values: formData as unknown as Record<string, string>,
               onCommit: (field, value) => handleFieldChange(field as keyof TaahhutnameData, value),
             }}
             formView={formView}
+            pdfFocus={pdfFocus}
           />
         </div>
       </div>

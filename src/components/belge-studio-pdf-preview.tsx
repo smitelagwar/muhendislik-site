@@ -6,7 +6,7 @@ import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerE
 import { AlertCircle, Edit3, Loader2, RefreshCw } from "lucide-react";
 import { PDFJS_CMAPS, PDFJS_FONTS, PDFJS_ICCS, PDFJS_WASM } from "@/lib/pdfjs-paths";
 import { getSharedBrowserPdfWorker, loadBrowserPdfJs, type BrowserPdfJs } from "@/lib/pdfjs-client";
-import { BelgeStudioPreviewToolbar } from "@/components/belge-studio-preview-toolbar";
+import { BelgeStudioPreviewToolbar, type BelgeStudioPdfFocusApi } from "@/components/belge-studio-preview-toolbar";
 import type { BelgeStudioFormViewApi } from "@/hooks/use-belge-studio-form-view";
 import { BELGE_STUDIO_PREVIEW_CANVAS_CLASS, BELGE_STUDIO_PREVIEW_PANEL_CLASS } from "@/lib/belge-studio-layout";
 import { clampBelgeZoom, getBelgePreviewRasterScale, getBelgeZoomAnchorScroll } from "@/lib/belge-studio-zoom";
@@ -22,6 +22,7 @@ import {
   type FieldFocusSelection,
 } from "@/lib/belge-field-focus";
 import { BelgeStudioFieldFocusLayer } from "@/components/belge-studio-field-focus-layer";
+import { DOCUMENT_EDITABLE_FIELDS } from "@/lib/document-field-contracts";
 import { BelgeStudioInlineEditLayer } from "@/components/belge-studio-inline-edit-layer";
 import type { BelgeDocumentSnapshot } from "@/hooks/use-belge-studio-document";
 import { BelgeInlineEditSheet, type BelgeInlineSheetNavTarget } from "@/components/belge-inline-edit-sheet";
@@ -53,7 +54,7 @@ export type BelgeStudioInlineEditingConfig = {
   onCommit?: (field: string, value: string) => void;
 };
 
-type BelgeStudioPdfPreviewProps = {
+export type BelgeStudioPdfPreviewProps = {
   snapshot: BelgeDocumentSnapshot | null;
   generationPending: boolean;
   generationError?: string | null;
@@ -63,6 +64,8 @@ type BelgeStudioPdfPreviewProps = {
   activeTabMobile?: "form" | "preview";
   formView?: BelgeStudioFormViewApi;
   fieldFocus?: FieldFocusSelection;
+  onClearFieldFocus?: () => void;
+  pdfFocus?: BelgeStudioPdfFocusApi;
 };
 
 type Point = { x: number; y: number };
@@ -86,6 +89,8 @@ export function BelgeStudioPdfPreview({
   activeTabMobile,
   formView,
   fieldFocus,
+  onClearFieldFocus,
+  pdfFocus,
 }: BelgeStudioPdfPreviewProps) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
@@ -112,17 +117,17 @@ export function BelgeStudioPdfPreview({
   const mobileTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastMobileFlashedEventIdRef = useRef<number>(0);
   const suppressedFocusEventIdRef = useRef<number>(0);
-  const pendingMobileFlashRef = useRef<{
-    key: string;
-    eventId: number;
-    rect: FieldFocusRect;
-  } | null>(null);
   const geometryCacheRef = useRef<Record<string, FieldFocusRect> | null>(null);
-  const geometryInFlightRef = useRef<Promise<Record<string, FieldFocusRect> | null> | null>(null);
+  const geometryInFlightRef = useRef<{ pdf: PdfDocument; promise: Promise<void> } | null>(null);
   const fieldFocusDocIdRef = useRef<string | null>(null);
   const fieldFocusRef = useRef(fieldFocus);
   fieldFocusRef.current = fieldFocus;
-  const pendingRevealRectRef = useRef<FieldFocusRect | null>(null);
+  const pendingRevealRectRef = useRef<{
+    rect: FieldFocusRect;
+    documentId: BelgeDocumentId;
+    focusEventId: number;
+    clearEventId: number;
+  } | null>(null);
   const lastRevealedEventIdRef = useRef<number>(0);
   const performRevealRef = useRef<(rect: FieldFocusRect) => void>(() => {});
 
@@ -178,28 +183,65 @@ export function BelgeStudioPdfPreview({
   zoomRef.current = zoomLevel;
   pageRef.current = currentPage;
 
-  const extractGeometry = useCallback(async (pdf: PdfDocument, docId: BelgeDocumentId) => {
-    if (geometryCacheRef.current && fieldFocusDocIdRef.current === docId) {
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const geometryFailureCountRef = useRef(0);
+
+  const extractGeometry = useCallback(async (pdf: PdfDocument, docId: BelgeDocumentId): Promise<void> => {
+    const isCurrent = () => isMountedRef.current && documentRef.current === pdf &&
+      (fieldFocusRef.current?.documentId ?? editingRef.current?.documentId) === docId;
+    if (!isCurrent()) return;
+
+    // Belge kimliğini başarısız ilk denemede de kaydet; deneme bütçesi revizyonla yenilenmez.
+    if (fieldFocusDocIdRef.current !== docId) {
+      fieldFocusDocIdRef.current = docId;
+      geometryCacheRef.current = null;
+      geometryFailureCountRef.current = 0;
+      setFieldFocusRects(null);
+    }
+    if (geometryCacheRef.current) {
       setFieldFocusRects(geometryCacheRef.current);
       return;
     }
-    if (geometryInFlightRef.current) {
-      await geometryInFlightRef.current;
+
+    const pending = geometryInFlightRef.current;
+    if (pending?.pdf === pdf) {
+      await pending.promise;
       return;
     }
-    try {
-      geometryInFlightRef.current = extractFieldFocusRects(pdf, docId).then((geo) => {
-        geometryCacheRef.current = geo.rects;
-        fieldFocusDocIdRef.current = docId;
-        setFieldFocusRects(geo.rects);
-        return geo.rects;
-      });
-      await geometryInFlightRef.current;
-    } catch (err) {
-      console.warn("PDF alan odak geometrisi çıkarılamadı:", err);
-    } finally {
-      geometryInFlightRef.current = null;
-    }
+    // Yeni PDF eski ve iptal edilmiş bir annotation isteğinin bitmesini beklemez.
+    // Eski işlemin isCurrent/finally kontrolleri güncel sonucu korur.
+    if (geometryFailureCountRef.current >= 2) return;
+
+    const promise = (async () => {
+      // İlk geçici hatada kullanıcıdan yeniden yazmasını beklemeden bir kez daha dene.
+      while (isCurrent() && geometryFailureCountRef.current < 2) {
+        try {
+          const geo = await extractFieldFocusRects(pdf, docId);
+          if (!isCurrent()) return;
+          const complete = DOCUMENT_EDITABLE_FIELDS[docId].every((key) => Boolean(geo.rects[key]));
+          setFieldFocusRects(Object.keys(geo.rects).length ? geo.rects : null);
+          if (complete) {
+            geometryCacheRef.current = geo.rects;
+            return;
+          }
+        } catch (error) {
+          if (!isCurrent()) return;
+          console.warn("PDF alan odak geometrisi çıkarılamadı:", error);
+        }
+        geometryFailureCountRef.current += 1;
+      }
+    })().finally(() => {
+      if (geometryInFlightRef.current?.promise === promise) geometryInFlightRef.current = null;
+    });
+    geometryInFlightRef.current = { pdf, promise };
+    await promise;
   }, []);
 
   const extractGeometryRef = useRef(extractGeometry);
@@ -208,6 +250,10 @@ export function BelgeStudioPdfPreview({
   useEffect(() => {
     const pdf = documentRef.current;
     const docId = fieldFocus?.documentId;
+    if (fieldFocusDocIdRef.current && fieldFocusDocIdRef.current !== docId) {
+      geometryCacheRef.current = null;
+      setFieldFocusRects(null);
+    }
     if (pdf && docId) {
       void extractGeometry(pdf, docId);
     }
@@ -430,31 +476,15 @@ export function BelgeStudioPdfPreview({
 
       if (
         pendingRevealRectRef.current &&
-        pendingRevealRectRef.current.pageNumber === renderPageNumber
+        pendingRevealRectRef.current.rect.pageNumber === renderPageNumber
       ) {
-        const rectToReveal = pendingRevealRectRef.current;
+        const pending = pendingRevealRectRef.current;
         pendingRevealRectRef.current = null;
         requestAnimationFrame(() => {
-          if (requestId !== renderRequestRef.current) return;
-          performRevealRef.current(rectToReveal);
-        });
-      }
-
-      if (
-        pendingMobileFlashRef.current &&
-        pendingMobileFlashRef.current.rect.pageNumber === renderPageNumber
-      ) {
-        const pending = pendingMobileFlashRef.current;
-        pendingMobileFlashRef.current = null;
-        lastMobileFlashedEventIdRef.current = pending.eventId;
-        setMobileHighlightKey(pending.key);
-        if (mobileTimerRef.current) clearTimeout(mobileTimerRef.current);
-        mobileTimerRef.current = setTimeout(() => {
-          setMobileHighlightKey(null);
-          mobileTimerRef.current = null;
-        }, 2500);
-        requestAnimationFrame(() => {
-          if (requestId !== renderRequestRef.current) return;
+          const selection = fieldFocusRef.current;
+          if (requestId !== renderRequestRef.current || isInlineEditingActiveRef.current ||
+            selection?.documentId !== pending.documentId || selection.focusEventId !== pending.focusEventId ||
+            (selection.clearEventId ?? 0) !== pending.clearEventId || selection.fieldKey !== pending.rect.fieldKey) return;
           performRevealRef.current(pending.rect);
         });
       }
@@ -1017,11 +1047,15 @@ export function BelgeStudioPdfPreview({
     });
   };
 
-  const userManualPageChoiceRef = useRef<number | null>(null);
+  const userManualPageChoiceRef = useRef<{ page: number; eventId: number } | null>(null);
 
   const handlePageChange = (page: number, isUserInteraction = true) => {
     if (isUserInteraction) {
-      userManualPageChoiceRef.current = page;
+      pendingRevealRectRef.current = null;
+      userManualPageChoiceRef.current = {
+        page,
+        eventId: fieldFocus?.focusEventId ?? 0,
+      };
     }
     if (isMobileMode && inlineSelectedField !== null && sheetDirtyRef.current) {
       setSheetAttention((count) => count + 1);
@@ -1115,7 +1149,8 @@ export function BelgeStudioPdfPreview({
     if (isFocusSuppressed) return null;
     if (isMobileMode) {
       if (activeTabMobile === "form") return null;
-      return fieldFocus?.fieldKey ?? mobileHighlightKey ?? null;
+      if (!fieldFocus?.fieldKey && !fieldFocus?.lastFocusedFieldKey) return null;
+      return mobileHighlightKey;
     }
     return fieldFocus?.fieldKey ?? null;
   }, [
@@ -1123,6 +1158,7 @@ export function BelgeStudioPdfPreview({
     isMobileMode,
     activeTabMobile,
     fieldFocus?.fieldKey,
+    fieldFocus?.lastFocusedFieldKey,
     mobileHighlightKey,
   ]);
 
@@ -1175,11 +1211,13 @@ export function BelgeStudioPdfPreview({
   }, []);
 
   performRevealRef.current = performReveal;
+  const focusDocumentId = fieldFocus?.documentId;
 
   useEffect(() => {
     if (isMobileMode) return;
     const focusEventId = fieldFocus?.focusEventId;
-    if (!focusEventId || !activeFocusRect || isFocusSuppressed) {
+    if (!focusEventId || !focusDocumentId || !activeFocusRect || isFocusSuppressed) {
+      pendingRevealRectRef.current = null;
       return;
     }
     if (focusEventId === lastRevealedEventIdRef.current) {
@@ -1187,9 +1225,15 @@ export function BelgeStudioPdfPreview({
     }
 
     const targetPage = activeFocusRect.pageNumber;
+    const pending = {
+      rect: activeFocusRect,
+      documentId: focusDocumentId,
+      focusEventId,
+      clearEventId: fieldFocus?.clearEventId ?? 0,
+    };
     if (targetPage !== pageRef.current) {
       lastRevealedEventIdRef.current = focusEventId;
-      pendingRevealRectRef.current = activeFocusRect;
+      pendingRevealRectRef.current = pending;
       handlePageChangeRef.current(targetPage, false);
       return;
     }
@@ -1200,10 +1244,12 @@ export function BelgeStudioPdfPreview({
       performReveal(activeFocusRect);
     } else {
       lastRevealedEventIdRef.current = focusEventId;
-      pendingRevealRectRef.current = activeFocusRect;
+      pendingRevealRectRef.current = pending;
     }
   }, [
     fieldFocus?.focusEventId,
+    focusDocumentId,
+    fieldFocus?.clearEventId,
     activeFocusRect,
     isFocusSuppressed,
     displayedPage,
@@ -1211,6 +1257,44 @@ export function BelgeStudioPdfPreview({
     performReveal,
     isMobileMode,
   ]);
+
+  const lastClearedEventIdRef = useRef<number>(0);
+  const currentClearEventId = fieldFocus?.clearEventId ?? 0;
+  const isSelectionCleared = Boolean(
+    fieldFocus &&
+    fieldFocus.fieldKey === null &&
+    fieldFocus.lastFocusedFieldKey === null
+  );
+
+  useEffect(() => {
+    if (currentClearEventId > lastClearedEventIdRef.current || isSelectionCleared) {
+      lastClearedEventIdRef.current = currentClearEventId;
+      if (mobileTimerRef.current) {
+        clearTimeout(mobileTimerRef.current);
+        mobileTimerRef.current = null;
+      }
+      setMobileHighlightKey(null);
+      pendingRevealRectRef.current = null;
+      lastMobileFlashedEventIdRef.current = 0;
+      userManualPageChoiceRef.current = null;
+    }
+  }, [currentClearEventId, isSelectionCleared]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !onClearFieldFocus) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClearFieldFocus();
+      }
+    };
+
+    container.addEventListener("keydown", handleKeyDown);
+    return () => {
+      container.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClearFieldFocus]);
 
   // Mobil sekme geçişi: Kullanıcı önizleme sekmesine geçtiğinde son odaklanan alan için 2.5s vurgu ve reveal
   useEffect(() => {
@@ -1222,7 +1306,6 @@ export function BelgeStudioPdfPreview({
         mobileTimerRef.current = null;
       }
       setMobileHighlightKey(null);
-      pendingMobileFlashRef.current = null;
       return;
     }
 
@@ -1233,6 +1316,11 @@ export function BelgeStudioPdfPreview({
         focusEventId <= suppressedFocusEventIdRef.current ||
         focusEventId === lastMobileFlashedEventIdRef.current
       ) {
+        return;
+      }
+
+      // If selection was explicitly cleared (e.g. Esc, Reset), do not start flash
+      if (!fieldFocus?.fieldKey && !fieldFocus?.lastFocusedFieldKey) {
         return;
       }
 
@@ -1247,28 +1335,37 @@ export function BelgeStudioPdfPreview({
       }
 
       // Kullanıcı önizleme araç çubuğundan belirli bir sayfayı manuel seçmişse
-      // ve o sayfadaysa, formdaki alan başka sayfada olsa bile kullanıcının seçtiği önizleme sayfasını zorla değiştirme
+      // ve o seçim geçerli odak olayı sırasında yapılmışsa, kullanıcının seçtiği sayfayı koru
+      const manualChoice = userManualPageChoiceRef.current;
       if (
-        userManualPageChoiceRef.current !== null &&
-        userManualPageChoiceRef.current === pageRef.current &&
+        manualChoice !== null &&
+        manualChoice.eventId === focusEventId &&
+        manualChoice.page === pageRef.current &&
         targetRect.pageNumber !== pageRef.current
       ) {
         return;
       }
+      // Yeni bir odak olayı gelmişse eski manuel sayfa tercihini geçersiz kıl
+      if (manualChoice !== null && manualChoice.eventId !== focusEventId) {
+        userManualPageChoiceRef.current = null;
+      }
 
       if (targetRect.pageNumber !== pageRef.current) {
-        pendingMobileFlashRef.current = {
-          key: targetKey,
-          eventId: focusEventId,
-          rect: targetRect,
-        };
         handlePageChangeRef.current(targetRect.pageNumber, false);
         return;
       }
 
-      if (displayedPage === targetRect.pageNumber && localStatus === "ready") {
+      // Güvenli ve tek başlangıç yolu:
+      // Hedef sayfa çizilmiş, localStatus 'ready' olmuş, generation veya render yüklemesi bitmiş
+      // ve tuval kullanıcıya görünür olduğunda 2500ms sayacını başlat
+      const isCanvasReadyAndVisible =
+        displayedPage === targetRect.pageNumber &&
+        localStatus === "ready" &&
+        !showLoading &&
+        !visibleError;
+
+      if (isCanvasReadyAndVisible) {
         lastMobileFlashedEventIdRef.current = focusEventId;
-        pendingMobileFlashRef.current = null;
         performReveal(targetRect);
         setMobileHighlightKey(targetKey);
         if (mobileTimerRef.current) {
@@ -1278,12 +1375,6 @@ export function BelgeStudioPdfPreview({
           setMobileHighlightKey(null);
           mobileTimerRef.current = null;
         }, 2500);
-      } else {
-        pendingMobileFlashRef.current = {
-          key: targetKey,
-          eventId: focusEventId,
-          rect: targetRect,
-        };
       }
     }
   }, [
@@ -1292,9 +1383,12 @@ export function BelgeStudioPdfPreview({
     fieldFocus?.focusEventId,
     fieldFocus?.lastFocusedFieldKey,
     fieldFocus?.fieldKey,
+    fieldFocus?.clearEventId,
     fieldFocusRects,
     displayedPage,
     localStatus,
+    showLoading,
+    visibleError,
     performReveal,
   ]);
 
@@ -1306,7 +1400,6 @@ export function BelgeStudioPdfPreview({
         clearTimeout(mobileTimerRef.current);
         mobileTimerRef.current = null;
       }
-      pendingMobileFlashRef.current = null;
       lastMobileFlashedEventIdRef.current = 0;
       suppressedFocusEventIdRef.current = 0;
       userManualPageChoiceRef.current = null;
@@ -1364,7 +1457,7 @@ export function BelgeStudioPdfPreview({
       clearTimeout(mobileTimerRef.current);
       mobileTimerRef.current = null;
     }
-    pendingMobileFlashRef.current = null;
+    pendingRevealRectRef.current = null;
     if (!next) {
       sheetDirtyRef.current = false;
       setInlineSelectedField(null);
@@ -1420,6 +1513,7 @@ export function BelgeStudioPdfPreview({
         page={{ current: currentPage, total: pageCount, onChange: handlePageChange }}
         disabled={!snapshot || generationPending || visibleError}
         formView={formView}
+        pdfFocus={pdfFocus}
       />
       {editing && !isMobileSheetOpen && (
         <div className="absolute bottom-3 right-3 z-20 pointer-events-auto">

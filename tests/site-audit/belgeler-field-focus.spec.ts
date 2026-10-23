@@ -2,18 +2,21 @@ import { expect, test, type Page } from "@playwright/test";
 import { DOCUMENT_EDITABLE_FIELDS } from "../../src/lib/document-field-contracts";
 import { DOCUMENT_STUDIO_PREFIXES } from "../../src/lib/belge-field-focus";
 
-const BETON_CANONICAL_RECTS: Record<string, { left: number; top: number; width: number; height: number }> = {
-  tutanak_alt_baslik: { left: 0.2201, top: 0.0842, width: 0.5599, height: 0.0238 },
-  tarih: { left: 0.3007, top: 0.14, width: 0.5918, height: 0.0238 },
-  yer: { left: 0.3007, top: 0.1757, width: 0.5918, height: 0.0428 },
-  yibf: { left: 0.3007, top: 0.2303, width: 0.5918, height: 0.0238 },
-  olay_aciklamasi: { left: 0.0941, top: 0.2921, width: 0.8119, height: 0.0784 },
-  gozlem_notlar: { left: 0.1058, top: 0.4619, width: 0.7883, height: 0.0594 },
-  laboratuvar: { left: 0.1126, top: 0.6152, width: 0.369, height: 0.0404 },
-  muteahhit: { left: 0.5185, top: 0.6152, width: 0.369, height: 0.0404 },
-  santiye_sefi: { left: 0.1126, top: 0.7719, width: 0.369, height: 0.0404 },
-  yapi_denetim: { left: 0.5185, top: 0.7719, width: 0.369, height: 0.0404 },
-};
+import { expectFocusRect, readGeneratedFocusRects } from "./helpers/belgeler-field-focus";
+
+const runtimeErrors = new WeakMap<Page, string[]>();
+test.beforeEach(async ({ page }) => {
+  const errors: string[] = [];
+  runtimeErrors.set(page, errors);
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error" || /hydration|did not match/i.test(message.text())) errors.push(message.text());
+  });
+  page.on("response", (response) => {
+    if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`);
+  });
+});
+test.afterEach(async ({ page }) => { expect(runtimeErrors.get(page)).toEqual([]); });
 
 async function openStudio(page: Page, id: string) {
   await page.goto(`/belgeler/${id}`, { waitUntil: "domcontentloaded", timeout: 30_000 });
@@ -31,7 +34,8 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
     const frame = studio.locator(".belge-preview-frame").first();
     const highlight = studio.locator('[data-testid="belge-field-focus-highlight"]');
 
-    for (const [key, expected] of Object.entries(BETON_CANONICAL_RECTS)) {
+    const rects = await readGeneratedFocusRects(page, DOCUMENT_EDITABLE_FIELDS["beton-dokum-tutanagi"]);
+    for (const [key, expected] of Object.entries(rects)) {
       const input = studio.locator(`#beton-dokum-${key}`);
       await input.focus();
 
@@ -61,11 +65,18 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
 
       const actualLeft = highlightBox!.x - frameBox!.x;
       const actualTop = highlightBox!.y - frameBox!.y;
+      const actualWidth = highlightBox!.width;
+      const actualHeight = highlightBox!.height;
+
       const expectedLeftPx = frameBox!.width * expected.left;
       const expectedTopPx = frameBox!.height * expected.top;
+      const expectedWidthPx = frameBox!.width * expected.width;
+      const expectedHeightPx = frameBox!.height * expected.height;
 
-      expect(Math.abs(actualLeft - expectedLeftPx)).toBeLessThanOrEqual(2.5);
-      expect(Math.abs(actualTop - expectedTopPx)).toBeLessThanOrEqual(2.5);
+      expect(Math.abs(actualLeft - expectedLeftPx)).toBeLessThanOrEqual(2.0);
+      expect(Math.abs(actualTop - expectedTopPx)).toBeLessThanOrEqual(2.0);
+      expect(Math.abs(actualWidth - expectedWidthPx)).toBeLessThanOrEqual(2.0);
+      expect(Math.abs(actualHeight - expectedHeightPx)).toBeLessThanOrEqual(2.0);
     }
   });
 
@@ -73,7 +84,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
     const studio = await openStudio(page, "beton-dokum-tutanagi");
     const frame = studio.locator(".belge-preview-frame").first();
     const highlight = studio.locator('[data-testid="belge-field-focus-highlight"]');
-    const yerExpected = BETON_CANONICAL_RECTS["yer"];
+    const yerExpected = (await readGeneratedFocusRects(page, ["yer"])).yer;
 
     await studio.locator("#beton-dokum-yer").focus();
     await expect(highlight).toBeVisible();
@@ -93,7 +104,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
     await expect(highlight).toHaveAttribute("data-field-key", "yer");
     let frameBox = await frame.boundingBox();
     let highlightBox = await highlight.boundingBox();
-    expect(Math.abs((highlightBox!.x - frameBox!.x) - frameBox!.width * yerExpected.left)).toBeLessThanOrEqual(2.5);
+    expect(Math.abs((highlightBox!.x - frameBox!.x) - frameBox!.width * yerExpected.left)).toBeLessThanOrEqual(2.0);
 
     // 2. Bir kez daha yakınlaştır (%150)
     await zoomInBtn.click();
@@ -103,7 +114,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
     await expect(highlight).toBeVisible();
     frameBox = await frame.boundingBox();
     highlightBox = await highlight.boundingBox();
-    expect(Math.abs((highlightBox!.x - frameBox!.x) - frameBox!.width * yerExpected.left)).toBeLessThanOrEqual(2.5);
+    expect(Math.abs((highlightBox!.x - frameBox!.x) - frameBox!.width * yerExpected.left)).toBeLessThanOrEqual(2.0);
 
     // 3. Uzaklaştır (%125 -> %100)
     await zoomOutBtn.click();
@@ -117,10 +128,11 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
     await expect(highlight).toBeVisible();
     frameBox = await frame.boundingBox();
     highlightBox = await highlight.boundingBox();
-    expect(Math.abs((highlightBox!.x - frameBox!.x) - frameBox!.width * yerExpected.left)).toBeLessThanOrEqual(2.5);
+    expect(Math.abs((highlightBox!.x - frameBox!.x) - frameBox!.width * yerExpected.left)).toBeLessThanOrEqual(2.0);
   });
 
   test("Toolbar veya görünüm araçlarına odaklanıldığında form odak vurgusu korunmalı", async ({ page }) => {
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
     const highlight = studio.locator('[data-testid="belge-field-focus-highlight"]');
 
@@ -137,6 +149,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
   });
 
   test("Ctrl+wheel veya geçici transform sırasında vurgu gizlenmeli, çizim tamamlandığında geri dönmeli", async ({ page }) => {
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
     const highlight = studio.locator('[data-testid="belge-field-focus-highlight"]');
 
@@ -154,6 +167,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
   });
 
   test("Uzun metin yazılırken ve yeni PDF derlenirken vurgu hedef alanda sabit kalmalı", async ({ page }) => {
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
     const highlight = studio.locator('[data-testid="belge-field-focus-highlight"]');
     const yerInput = studio.locator("#beton-dokum-yer");
@@ -188,18 +202,19 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
         getAnnotationsCount: number;
       }
 
+      interface CustomPage {
+        getAnnotations: (...annArgs: unknown[]) => Promise<unknown>;
+      }
+      interface CustomDoc {
+        getPage: (...pageArgs: unknown[]) => Promise<CustomPage>;
+      }
+      interface CustomTask {
+        promise: Promise<CustomDoc>;
+      }
+
       type CustomWindow = typeof window & {
         __metrics: CustomMetrics;
-        pdfjsLib?: {
-          __instrumented?: boolean;
-          getDocument: (...args: unknown[]) => {
-            promise: Promise<{
-              getPage: (...pageArgs: unknown[]) => Promise<{
-                getAnnotations: (...annArgs: unknown[]) => Promise<unknown>;
-              }>;
-            }>;
-          };
-        };
+        pdfjsLib?: unknown;
       };
 
       const customWin = window as unknown as CustomWindow;
@@ -216,43 +231,72 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
       };
 
       const origDrawImage = CanvasRenderingContext2D.prototype.drawImage;
-      CanvasRenderingContext2D.prototype.drawImage = function (...args) {
+      CanvasRenderingContext2D.prototype.drawImage = function (...args: unknown[]) {
         customWin.__metrics.drawImageCount++;
-        return origDrawImage.apply(this, args as Parameters<typeof origDrawImage>);
+        Reflect.apply(origDrawImage, this, args);
       };
 
-      let _pdfjsLib: CustomWindow["pdfjsLib"] = undefined;
+      let _pdfjsLib: unknown = undefined;
       Object.defineProperty(window, "pdfjsLib", {
         configurable: true,
         enumerable: true,
         get() {
           return _pdfjsLib;
         },
-        set(val: CustomWindow["pdfjsLib"]) {
-          _pdfjsLib = val;
-          if (val && !val.__instrumented) {
-            val.__instrumented = true;
-            const origGetDocument = val.getDocument;
-            val.getDocument = function (...args: unknown[]) {
-              const task = origGetDocument.apply(this, args);
-              const origPromise = task.promise;
-              task.promise = origPromise.then((pdf) => {
-                const origGetPage = pdf.getPage;
-                pdf.getPage = function (...pageArgs: unknown[]) {
-                  return origGetPage.apply(this, pageArgs).then((p) => {
-                    const origGetAnnotations = p.getAnnotations;
-                    p.getAnnotations = function (...annArgs: unknown[]) {
-                      customWin.__metrics.getAnnotationsCount++;
-                      return origGetAnnotations.apply(this, annArgs);
-                    };
-                    return p;
+        set(val: unknown) {
+          if (!val || typeof val !== "object") {
+            _pdfjsLib = val;
+            return;
+          }
+          _pdfjsLib = new Proxy(val as object, {
+            get(target, prop) {
+              if (prop === "getDocument") {
+                const origGetDoc = Reflect.get(target, prop) as (...args: unknown[]) => CustomTask;
+                return function (...args: unknown[]) {
+                  const task = origGetDoc.apply(target, args);
+                  return new Proxy(task as object, {
+                    get(tTarget, tProp) {
+                      if (tProp === "promise") {
+                        const origPromise = Reflect.get(tTarget, tProp) as Promise<CustomDoc>;
+                        return origPromise.then((pdf) => {
+                          return new Proxy(pdf as object, {
+                            get(pTarget, pProp) {
+                              if (pProp === "getPage") {
+                                const origGetPage = Reflect.get(pTarget, pProp) as (...pageArgs: unknown[]) => Promise<CustomPage>;
+                                return function (...pageArgs: unknown[]) {
+                                  return origGetPage.apply(pTarget, pageArgs).then((p) => {
+                                    return new Proxy(p as object, {
+                                      get(pageTarget, pageProp) {
+                                        if (pageProp === "getAnnotations") {
+                                          const origGetAnnotations = Reflect.get(pageTarget, pageProp) as (...annArgs: unknown[]) => Promise<unknown>;
+                                          return function (...annArgs: unknown[]) {
+                                            customWin.__metrics.getAnnotationsCount++;
+                                            return origGetAnnotations.apply(pageTarget, annArgs);
+                                          };
+                                        }
+                                        const v = Reflect.get(pageTarget, pageProp);
+                                        return typeof v === "function" ? (v as (...args: unknown[]) => unknown).bind(pageTarget) : v;
+                                      },
+                                    });
+                                  });
+                                };
+                              }
+                              const v = Reflect.get(pTarget, pProp);
+                              return typeof v === "function" ? (v as (...args: unknown[]) => unknown).bind(pTarget) : v;
+                            },
+                          });
+                        });
+                      }
+                      const v = Reflect.get(tTarget, tProp);
+                      return typeof v === "function" ? (v as (...args: unknown[]) => unknown).bind(tTarget) : v;
+                    },
                   });
                 };
-                return pdf;
-              });
-              return task;
-            };
-          }
+              }
+              const v = Reflect.get(target, prop);
+              return typeof v === "function" ? (v as (...args: unknown[]) => unknown).bind(target) : v;
+            },
+          });
         },
       });
     });
@@ -269,6 +313,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
     });
     expect(initialMetrics.createObjectURLCount).toBeGreaterThan(0);
     expect(initialMetrics.drawImageCount).toBeGreaterThan(0);
+    expect(initialMetrics.getAnnotationsCount).toBeGreaterThan(0);
 
     const fieldsToFocus = ["yer", "tarih", "yibf", "laboratuvar", "muteahhit"];
     for (const field of fieldsToFocus) {
@@ -299,6 +344,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
   });
 
   test("Tab, Shift+Tab, Escape, Reset ve dışarı tıklama senaryoları titremesiz çalışmalı", async ({ page }) => {
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
     const highlight = studio.locator('[data-testid="belge-field-focus-highlight"]');
 
@@ -335,6 +381,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
   });
 
   test("PDF üzerinde düzenle açıldığında form odak vurgusu gizlenmeli, kapanınca geri dönebilmeli", async ({ page }) => {
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
     const highlight = studio.locator('[data-testid="belge-field-focus-highlight"]');
     const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
@@ -358,6 +405,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
 
   test("prefers-reduced-motion etkinleştirildiğinde animasyon ve geçişler devre dışı kalmalı", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
     const highlight = studio.locator('[data-testid="belge-field-focus-highlight"]');
 
@@ -511,13 +559,18 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_05 Çok Sayfa & 56 
       const prefix = DOCUMENT_STUDIO_PREFIXES[docId as keyof typeof DOCUMENT_STUDIO_PREFIXES];
       const studio = await openStudio(page, docId);
       const highlight = studio.locator('[data-testid="belge-field-focus-highlight"]');
+      const docRects = await readGeneratedFocusRects(page, fields);
 
       for (const fieldKey of fields) {
+        const expected = docRects[fieldKey];
         const input = studio.locator(`#${prefix}${fieldKey}`);
         await input.focus();
         await expect(highlight).toBeVisible({ timeout: 10_000 });
         await expect(highlight).toHaveCount(1);
         await expect(highlight).toHaveAttribute("data-field-key", fieldKey);
+        await expect(highlight).toHaveAttribute("data-page", String(expected.pageNumber));
+
+        await expectFocusRect(studio, fieldKey, expected);
       }
     }
   });
@@ -526,6 +579,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_05 Çok Sayfa & 56 
 test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_06 Mobil & Görsel Yoğunluk", () => {
   test("Mobil: Form sekmesinde odaklanılan alan, önizleme sekmesine geçildiğinde 2.5s boyunca vurgulanmalı ve sonra kendiliğinden kapanmalı", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
     const highlight = studio.locator('[data-testid="belge-field-focus-highlight"]');
 
@@ -594,6 +648,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_06 Mobil & Görsel 
   });
 
   test("Inline edit açıldığında form vurgusu gizlenmeli, kapatıldığında eski vurgu otomatik açılmamalı", async ({ page }) => {
+
     const studio = await openStudio(page, "beton-dokum-tutanagi");
     const highlight = studio.locator('[data-testid="belge-field-focus-highlight"]');
     const inlineToggle = studio.locator('[data-testid="belge-inline-edit-toggle"]');

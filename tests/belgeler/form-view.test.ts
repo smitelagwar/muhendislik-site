@@ -1,4 +1,4 @@
-import test, { describe, it } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_FORM_SCALE,
@@ -11,8 +11,8 @@ import {
 } from "../../src/lib/belge-studio-form-view";
 
 describe("ASAMA_03: Belge Stüdyosu Form Görünümü Saf Politika Testleri", () => {
-  it("1. FORM_SCALE_PRESETS yalnız 0.90, 1.00, 1.10, 1.25 değerlerini içermelidir", () => {
-    assert.deepEqual(FORM_SCALE_PRESETS, [0.90, 1.00, 1.10, 1.25]);
+  it("1. FORM_SCALE_PRESETS yalnız 1.00, 0.90, 1.10, 1.25 değerlerini içermelidir", () => {
+    assert.deepEqual(FORM_SCALE_PRESETS, [1.00, 0.90, 1.10, 1.25]);
     assert.equal(DEFAULT_FORM_SCALE, 1.00);
   });
 
@@ -89,8 +89,9 @@ describe("ASAMA_03: Belge Stüdyosu Form Görünümü Saf Politika Testleri", ()
       manualScale: 0.90,
       manualDensity: "normal",
     });
-    assert.equal((cleaned as any).tc_kimlik, undefined);
-    assert.equal((cleaned as any).pdf_bytes, undefined);
+    const dirtyCleaned = cleaned as Record<string, unknown> | null;
+    assert.equal(dirtyCleaned?.tc_kimlik, undefined);
+    assert.equal(dirtyCleaned?.pdf_bytes, undefined);
   });
 
   it("4. formatScaleLabel doğru yüzde metinleri üretmelidir", () => {
