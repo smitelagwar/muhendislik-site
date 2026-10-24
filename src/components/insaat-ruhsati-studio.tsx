@@ -31,6 +31,7 @@ import {
   BelgeStudioDraftControls,
 } from "@/components/belge-studio-draft-controls";
 import { BelgeStudioUnifiedHeader } from "@/components/belge-studio-unified-header";
+import { BelgeStudioMobileProvider } from "@/components/belge-studio-mobile-context";
 import { useBelgeStudioSections } from "@/hooks/use-belge-studio-sections";
 import {
   BelgeStudioSection,
@@ -328,42 +329,45 @@ export function InsaatRuhsatiStudio({
   };
 
 
-  return (
-    <div
-      ref={studioRootRef}
-      data-studio-locked={isModal ? undefined : "true"}
-      className={`flex flex-col bg-background text-foreground w-full max-w-full min-w-0 h-full overflow-hidden ${
-        isModal
-          ? "max-h-[96vh] rounded-2xl border border-border shadow-2xl"
-          : "rounded-none border-0 bg-transparent shadow-none backdrop-blur-none"
-      }`}
+  const extraActionNode = (
+    <button
+      type="button"
+      onClick={handleRandomize}
+      className="inline-flex min-h-[44px] sm:min-h-[32px] items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300 transition-all cursor-pointer"
+      title="Rastgele örnek bilgileri doldur"
     >
-      <span role="status" aria-live="polite" className="sr-only">
-        {previewStatusMessage}
-      </span>
+      <Dice5 className="h-3.5 w-3.5" />
+      <span className="hidden sm:inline">Örnek Veri</span>
+    </button>
+  );
 
-      {/* Top Header Bar: Unified across modal and standard page views, desktop and mobile */}
-      <BelgeStudioUnifiedHeader
-        title="İnşaat Ruhsatı Dilekçesi"
-        subtitle="Yapı Ruhsatı Başvuru & İdareye Talep Dilekçesi"
-        icon={<Building2 className="h-4 w-4" />}
-        isModal={isModal}
-        onClose={onClose}
-        draftApi={draft}
-        syncStatus={syncStatus}
-        toolbarSlotRef={setToolbarTarget}
-        extraActions={
-          <button
-            type="button"
-            onClick={handleRandomize}
-            className="inline-flex min-h-[44px] sm:min-h-[32px] items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300 transition-all cursor-pointer"
-            title="Rastgele örnek bilgileri doldur"
-          >
-            <Dice5 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Örnek Veri</span>
-          </button>
-        }
-      />
+  return (
+    <BelgeStudioMobileProvider initialExtraActions={extraActionNode}>
+      <div
+        ref={studioRootRef}
+        data-studio-locked={isModal ? undefined : "true"}
+        className={`flex flex-col bg-background text-foreground w-full max-w-full min-w-0 h-full overflow-hidden ${
+          isModal
+            ? "max-h-[96vh] rounded-2xl border border-border shadow-2xl"
+            : "rounded-none border-0 bg-transparent shadow-none backdrop-blur-none"
+        }`}
+      >
+        <span role="status" aria-live="polite" className="sr-only">
+          {previewStatusMessage}
+        </span>
+
+        {/* Top Header Bar: Unified across modal and standard page views, desktop and mobile */}
+        <BelgeStudioUnifiedHeader
+          title="İnşaat Ruhsatı Dilekçesi"
+          subtitle="Yapı Ruhsatı Başvuru & İdareye Talep Dilekçesi"
+          icon={<Building2 className="h-4 w-4" />}
+          isModal={isModal}
+          onClose={onClose}
+          draftApi={draft}
+          syncStatus={syncStatus}
+          toolbarSlotRef={setToolbarTarget}
+          extraActions={extraActionNode}
+        />
 
       {/* Draft Notification Banner (Consent / Recovery / Conflict / Error) */}
       <BelgeStudioDraftControls draftApi={draft} />
@@ -606,5 +610,6 @@ export function InsaatRuhsatiStudio({
       />
       <BelgeShareDialog share={shareApi} documentTitle="İnşaat Ruhsatı Dilekçesi" />
     </div>
+    </BelgeStudioMobileProvider>
   );
 }

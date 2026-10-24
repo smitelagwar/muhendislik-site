@@ -129,7 +129,7 @@ describe("ASAMA_05: Belge Stüdyosu V3 — Zoom Geometrik Merkez ve Footer Form 
     assert.ok(!betweenFormAndBlank.includes("PDF İndir"), "Form Görünümü ile Boş form arasına PDF İndir giremez");
   });
 
-  it("5. BelgeStudioActions (Mobil): Tek satırda [⋯] [Form Görünümü 44px] [Boş form 44px] [Düzenle/Önizle] [PDF İndir] yer alır", () => {
+  it("5. BelgeStudioActions (Mobil): Tek satırda [⋯] [Paylaş 44px] [Düzenle/Önizle] [PDF İndir] yer alır", () => {
     const html = renderToStaticMarkup(
       React.createElement(BelgeStudioActions, {
         activeTab: "preview",
@@ -153,24 +153,21 @@ describe("ASAMA_05: Belge Stüdyosu V3 — Zoom Geometrik Merkez ve Footer Form 
     assert.ok(mobileMatch, "belge-studio-mobile-actions elementi bulunmalı");
     const mobileHtml = mobileMatch[0];
 
-    // Mobil barda 44x44px iki ikonun varlığı
+    // Mobil barda 4'lü düzen: ⋯ | Paylaş | Formu Düzenle | PDF İndir
     assert.ok(mobileHtml.includes('aria-label="Diğer belge işlemleri"'), "Mobil ⋯ butonu mevcut olmalı");
-    assert.ok(mobileHtml.includes('aria-label="Form görünüm seçenekleri"'), "Mobil Form Görünümü ikonu mevcut olmalı");
-    assert.ok(mobileHtml.includes('data-testid="belge-mobile-blank-download-btn"'), "Mobil Boş form indir ikonu mevcut olmalı");
-    assert.ok(mobileHtml.includes('aria-label="Boş form indir"'), "Mobil Boş form indir ikonu aria-label taşımalı");
+    assert.ok(mobileHtml.includes('data-testid="belge-mobile-action-share-btn"'), "Mobil Paylaş ikonu mevcut olmalı");
+    assert.ok(mobileHtml.includes('aria-label="Belgeyi Paylaş"'), "Mobil Paylaş ikonu aria-label taşımalı");
     assert.ok(mobileHtml.includes("Formu Düzenle"), "Mobilde önizlemede iken 'Formu Düzenle' butonu olmalı");
     assert.ok(mobileHtml.includes("PDF İndir"), "Mobilde 'PDF İndir' butonu olmalı");
 
     // Sıralama doğrulaması
     const moreIdx = mobileHtml.indexOf('aria-label="Diğer belge işlemleri"');
-    const formViewIdx = mobileHtml.indexOf('aria-label="Form görünüm seçenekleri"');
-    const blankIdx = mobileHtml.indexOf('data-testid="belge-mobile-blank-download-btn"');
+    const shareIdx = mobileHtml.indexOf('data-testid="belge-mobile-action-share-btn"');
     const toggleIdx = mobileHtml.indexOf("Formu Düzenle");
     const downloadIdx = mobileHtml.indexOf("PDF İndir");
 
-    assert.ok(moreIdx < formViewIdx, "⋯, Form Görünümü'nden önce gelmeli");
-    assert.ok(formViewIdx < blankIdx, "Form Görünümü, Boş form indir'den önce gelmeli");
-    assert.ok(blankIdx < toggleIdx, "Boş form indir, Tab geçişinden önce gelmeli");
+    assert.ok(moreIdx < shareIdx, "⋯, Paylaş'tan önce gelmeli");
+    assert.ok(shareIdx < toggleIdx, "Paylaş, Tab geçişinden önce gelmeli");
     assert.ok(toggleIdx < downloadIdx, "Tab geçişi, PDF İndir'den önce gelmeli");
   });
 

@@ -16,8 +16,19 @@ async function openMobileEditing(page: Page) {
   await expect(studio.getByRole("tablist")).toHaveCount(0);
   await expect(studio.getByRole("region", { name: "PDF önizleme paneli" })).toBeVisible();
   await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.", { timeout: 30_000 });
+  const directToggle = studio.locator('[data-testid="belge-inline-edit-toggle"]');
+  if (await directToggle.isVisible()) {
+    await directToggle.click();
+  } else {
+    // Mobil v1 arayüzü: Çekmece üzerinden PDF üzerinde düzenleme modunu aç
+    const menuBtn = studio.locator('[data-testid="belge-mobile-header-menu-btn"]');
+    await menuBtn.click();
+    const drawerBtn = page.locator('[data-testid="belge-drawer-inline-edit-btn"]');
+    await expect(drawerBtn).toBeVisible({ timeout: 5_000 });
+    await drawerBtn.click();
+  }
   const toggle = studio.locator('[data-testid="belge-inline-edit-toggle"]');
-  await toggle.click();
+  await expect(toggle).toBeVisible({ timeout: 10_000 });
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
   const layer = studio.locator('[data-testid="belge-inline-edit-layer"]');
   await expect(layer.locator('[data-testid^="belge-inline-hotspot-"]').first()).toBeVisible({ timeout: 12_000 });

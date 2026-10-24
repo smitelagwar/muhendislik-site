@@ -3,20 +3,13 @@
 import { useRef, useState } from "react";
 import { generateBlankBelgePdf } from "@/lib/pdf-engine";
 import type { BelgeDocumentId } from "@/lib/belgeler-pdf-profiles";
-import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { BelgeStudioFormViewMenu } from "@/components/belge-studio-form-view-menu";
 import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
+import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-context";
+import { BelgeStudioMobileActionsSheet } from "@/components/belge-studio-mobile-actions-sheet";
 import {
-  BelgeBackIcon,
   BelgeBlankFormIcon,
   BelgeClearIcon,
   BelgeDownloadPdfIcon,
@@ -60,6 +53,7 @@ type BelgeStudioActionsProps = {
  */
 export function BelgeStudioActions(props: BelgeStudioActionsProps) {
   const { ready, downloading } = props;
+  const { openDrawer, drawerOpen } = useBelgeStudioMobileContext();
   const [blankDownloading, setBlankDownloading] = useState(false);
   const blankInFlight = useRef(false);
 
@@ -99,130 +93,38 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
         data-testid="belge-studio-mobile-actions"
         className="belge-studio-mobile-actions flex min-w-0 items-center gap-1.5 sm:gap-2 lg:hidden"
       >
-        {/* 1. Diğer Belge İşlemleri (⋯) */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-[44px] w-[44px] shrink-0 self-stretch rounded-xl border-border/80 bg-card/90 p-0 hover:border-amber-500/50 dark:bg-zinc-900 cursor-pointer"
-              aria-label="Diğer belge işlemleri"
-              title="Belgelere dön, yazdır, sıfırla ve temizle"
-            >
-              <BelgeMoreIcon className="h-[20px] w-[20px]" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            side="top"
-            align="start"
-            sideOffset={10}
-            className="w-60 max-w-[calc(100vw-1rem)] rounded-2xl border-border/80 bg-popover/95 p-1.5 shadow-2xl backdrop-blur-xl z-50"
-          >
-            <DropdownMenuItem asChild className="min-h-11 rounded-xl font-semibold">
-              <Link href="/belgeler" aria-label="Tüm belgelere dön">
-                <BelgeBackIcon className="size-4" />
-                Belgelere dön
-              </Link>
-            </DropdownMenuItem>
-
-            <DropdownMenuSeparator />
-
-            {props.onShare && (
-              <DropdownMenuItem
-                className="min-h-11 rounded-xl cursor-pointer"
-                disabled={!ready}
-                onSelect={props.onShare}
-                data-testid="belge-mobile-menu-share-btn"
-              >
-                <BelgeShareIcon className="size-4 text-amber-500" />
-                Paylaş
-              </DropdownMenuItem>
-            )}
-
-            <DropdownMenuItem
-              className="min-h-11 rounded-xl cursor-pointer"
-              disabled={!ready}
-              onSelect={props.onPrint}
-            >
-              <BelgePrintIcon className="size-4" />
-              Yazdır
-            </DropdownMenuItem>
-
-            <DropdownMenuItem
-              className="min-h-11 rounded-xl cursor-pointer"
-              disabled={blankDownloading}
-              onSelect={() => void downloadBlank()}
-            >
-              <BelgeBlankFormIcon className="size-4" />
-              Boş form indir
-            </DropdownMenuItem>
-
-            <DropdownMenuSeparator />
-
-            <DropdownMenuItem
-              className="min-h-11 rounded-xl cursor-pointer"
-              onSelect={props.onReset}
-            >
-              <BelgeResetIcon className="size-4" />
-              Örnek verilere sıfırla
-            </DropdownMenuItem>
-
-            <DropdownMenuItem
-              className="min-h-11 rounded-xl cursor-pointer text-rose-600 focus:bg-rose-500/10 focus:text-rose-600 dark:text-rose-400 dark:focus:text-rose-400"
-              onSelect={props.onClear}
-            >
-              <BelgeClearIcon className="size-4 text-current" />
-              Tüm alanları temizle
-            </DropdownMenuItem>
-
-            <DropdownMenuItem
-              className="min-h-11 rounded-xl cursor-pointer"
-              disabled={!props.canUndo}
-              onSelect={props.onUndo}
-            >
-              <BelgeUndoIcon className="size-4" />
-              Son işlemi geri al
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* 2. Form Görünümü (44x44px İkon) */}
-        {props.formView && (
-          <BelgeStudioFormViewMenu
-            mode={props.formView.mode}
-            manualScale={props.formView.manualScale}
-            density={props.formView.density}
-            appliedScale={props.formView.appliedScale}
-            fitStatus={props.formView.fitStatus}
-            onChooseScale={props.formView.onChooseScale}
-            onToggleCompact={props.formView.onToggleCompact}
-            onFit={props.formView.onFit}
-            onReset={props.formView.onReset}
-            side="top"
-            align="start"
-            iconOnly={true}
-          />
-        )}
-
-        {/* 3. Boş Form İndir (44x44px İkon) */}
+        {/* 1. Belge İşlemleri Çekmecesi (⋯) */}
         <Button
           type="button"
           variant="outline"
-          disabled={blankDownloading}
-          onClick={() => void downloadBlank()}
+          onClick={(e) => openDrawer(e.currentTarget)}
           className="min-h-[44px] w-[44px] shrink-0 self-stretch rounded-xl border-border/80 bg-card/90 p-0 hover:border-amber-500/50 dark:bg-zinc-900 cursor-pointer"
-          aria-label="Boş form indir"
-          title="Boş form şablonu indir"
-          data-testid="belge-mobile-blank-download-btn"
+          aria-label="Diğer belge işlemleri"
+          title="Belge İşlemleri"
+          data-testid="belge-mobile-more-btn"
+          aria-haspopup="dialog"
+          aria-expanded={drawerOpen}
         >
-          {blankDownloading ? (
-            <Loader2 className="h-[20px] w-[20px] animate-spin text-amber-500" />
-          ) : (
-            <BelgeBlankFormIcon className="h-[20px] w-[20px] text-amber-500" />
-          )}
+          <BelgeMoreIcon className="h-[20px] w-[20px]" />
         </Button>
 
-        {/* 4. Formu Düzenle / Canlı PDF Önizle Geçişi */}
+        {/* 2. Paylaş (44x44px İkon) */}
+        {props.onShare && (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!ready}
+            onClick={props.onShare}
+            className="min-h-[44px] w-[44px] shrink-0 self-stretch rounded-xl border-border/80 bg-card/90 p-0 hover:border-amber-500/50 dark:bg-zinc-900 cursor-pointer"
+            aria-label="Belgeyi Paylaş"
+            title="Paylaş"
+            data-testid="belge-mobile-action-share-btn"
+          >
+            <BelgeShareIcon className="h-[20px] w-[20px] text-amber-500" />
+          </Button>
+        )}
+
+        {/* 3. Formu Düzenle / Canlı PDF Önizle Geçişi */}
         <Button
           type="button"
           variant="outline"
@@ -242,7 +144,7 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
           </span>
         </Button>
 
-        {/* 5. PDF İndir (Birincil Aksiyon) */}
+        {/* 4. PDF İndir (Birincil Aksiyon) */}
         <Button
           type="button"
           onClick={props.onDownload}
@@ -366,6 +268,23 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
           </Button>
         </div>
       </div>
+
+      <BelgeStudioMobileActionsSheet
+        activeTab={props.activeTab}
+        onToggleTab={props.onToggleTab}
+        onReset={props.onReset}
+        onClear={props.onClear}
+        onUndo={props.onUndo}
+        canUndo={props.canUndo}
+        onPrint={props.onPrint}
+        onShare={props.onShare}
+        onDownload={props.onDownload}
+        ready={ready}
+        downloading={downloading}
+        downloadBlank={downloadBlank}
+        blankDownloading={blankDownloading}
+        formView={props.formView}
+      />
     </footer>
   );
 }

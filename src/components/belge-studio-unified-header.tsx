@@ -2,10 +2,11 @@
 
 import type { ReactNode, Ref } from "react";
 import Link from "next/link";
-import { AlertCircle, Loader2, X } from "lucide-react";
+import { AlertCircle, Loader2, MoreVertical, X } from "lucide-react";
 import { BelgeBackIcon } from "@/components/belge-studio-icons";
 import { BelgeStudioDraftStatusBadge } from "@/components/belge-studio-draft-controls";
 import { BelgeStudioThemeToggle } from "@/components/belge-studio-theme-toggle";
+import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-context";
 import type { UseBelgeAutoDraftReturn } from "@/hooks/use-belge-auto-draft";
 
 export type BelgeStudioUnifiedHeaderProps = {
@@ -22,15 +23,15 @@ export type BelgeStudioUnifiedHeaderProps = {
 };
 
 /**
- * Belge Stüdyosu — Tek Ortak Üst Bar (V3 Sözleşmesi)
+ * Belge Stüdyosu — Tek Ortak Üst Bar (V3 / Mobil Çekmece v1 Sözleşmesi)
  *
- * Yerleşim Sırası (Görsel ve DOM):
+ * Masaüstü (>= 1024px):
  * [Geri/Başlık/İkon] [Orta Slot: PDF Zoom & Navigasyon] [Ek Aksiyonlar] [✓ Kaydedildi] [gerekliyse Modal X] [TEMA ANAHTARI]
  *
- * Kurallar:
- * - Tema anahtarı üst barın EN SAĞINDA yer alır.
- * - Modal X varsa tema anahtarının SOLUNDA kalır.
- * - "Canlı Önizleme Hazır" yazısı ve yeşil nabız rozeti tamamen kaldırılmıştır.
+ * Mobil (< 1024px):
+ * [Geri/Başlık/İkon] [Minik Durum / Taslak Noktası] [gerekliyse Modal X] [⋮ Belge İşlemleri Çekmece Butonu]
+ * - Toolbar slot, extraActions ve tema mobilde üst barda yer almaz; çekmeceye taşınmıştır.
+ * - Başlık tek satırda genişler ve esnek şekilde truncate olur.
  */
 export function BelgeStudioUnifiedHeader({
   title,
@@ -44,6 +45,8 @@ export function BelgeStudioUnifiedHeader({
   extraActions,
   className,
 }: BelgeStudioUnifiedHeaderProps) {
+  const { openDrawer, drawerOpen } = useBelgeStudioMobileContext();
+
   return (
     <header
       data-testid="belge-studio-top-header"
@@ -52,7 +55,7 @@ export function BelgeStudioUnifiedHeader({
       }`}
     >
       {/* Sol Bölge: Gezinme / Kapatma + Belge Kimliği (İkon, Başlık, Alt Başlık) */}
-      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink">
+      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1 lg:flex-initial lg:shrink">
         {!isModal && (
           <nav aria-label="Belge stüdyosu gezinme" className="flex items-center shrink-0">
             <Link
@@ -75,17 +78,17 @@ export function BelgeStudioUnifiedHeader({
           </span>
         )}
 
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           {isModal ? (
             <h2
-              className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate max-w-[90px] min-[400px]:max-w-[140px] sm:max-w-none"
+              className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate lg:max-w-none"
               title={title}
             >
               {title}
             </h2>
           ) : (
             <h1
-              className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate max-w-[90px] min-[400px]:max-w-[140px] sm:max-w-none"
+              className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate lg:max-w-none"
               title={title}
             >
               {title}
@@ -102,16 +105,16 @@ export function BelgeStudioUnifiedHeader({
         </div>
       </div>
 
-      {/* Orta Bölge: PDF Toolbar Portal Slotu (PreviewToolbar buraya createPortal ile yansıtılır) */}
+      {/* Orta Bölge: PDF Toolbar Portal Slotu (Masaüstünde createPortal ile yansıtılır, mobilde gizli) */}
       <div
         ref={toolbarSlotRef}
         data-testid="belge-unified-toolbar-slot"
-        className="flex min-w-0 flex-1 items-center justify-center shrink"
+        className="hidden lg:flex min-w-0 flex-1 items-center justify-center shrink"
       />
 
-      {/* Sağ Bölge: Ek Aksiyonlar + Taslak Minimal Durum + Süreç İndikatörü + Modal Kapatma + TEMA ANAHTARI */}
+      {/* Sağ Bölge: Ek Aksiyonlar + Taslak Minimal Durum + Süreç İndikatörü + Modal Kapatma + TEMA / MOBİL ÇEKMECE */}
       <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-        {extraActions}
+        {extraActions && <div className="hidden lg:flex items-center">{extraActions}</div>}
         <BelgeStudioDraftStatusBadge draftApi={draftApi} />
 
         {syncStatus === "updating" && (
@@ -147,8 +150,22 @@ export function BelgeStudioUnifiedHeader({
           </button>
         )}
 
-        {/* TEMA SWITCH — V3: ÜST BARIN GÖRSEL VE DOM OLARAK EN SAĞINDA */}
-        <BelgeStudioThemeToggle />
+        {/* TEMA SWITCH — Masaüstünde üst barın görsel ve DOM olarak en sağında */}
+        <BelgeStudioThemeToggle className="hidden lg:inline-flex" />
+
+        {/* MOBİL ÇEKMECE BUTONU (⋮) — < 1024px ekranlarda üst barın en sağında */}
+        <button
+          type="button"
+          onClick={(e) => openDrawer(e.currentTarget)}
+          className="flex lg:hidden min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-border/70 bg-secondary/40 text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
+          aria-label="Belge işlemleri"
+          data-testid="belge-mobile-header-menu-btn"
+          aria-haspopup="dialog"
+          aria-expanded={drawerOpen}
+          title="Belge İşlemleri"
+        >
+          <MoreVertical className="h-5 w-5" />
+        </button>
       </div>
     </header>
   );

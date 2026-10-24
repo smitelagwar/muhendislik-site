@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
-import { AlertCircle, Edit3, Loader2, RefreshCw } from "lucide-react";
+import { AlertCircle, Check, Edit3, Loader2, RefreshCw } from "lucide-react";
 import { PDFJS_CMAPS, PDFJS_FONTS, PDFJS_ICCS, PDFJS_WASM } from "@/lib/pdfjs-paths";
 import { getSharedBrowserPdfWorker, loadBrowserPdfJs, type BrowserPdfJs } from "@/lib/pdfjs-client";
 import { BelgeStudioPreviewToolbar, type BelgeStudioPdfFocusApi } from "@/components/belge-studio-preview-toolbar";
@@ -27,6 +27,8 @@ import { BelgeStudioInlineEditLayer } from "@/components/belge-studio-inline-edi
 import type { BelgeDocumentSnapshot } from "@/hooks/use-belge-studio-document";
 import { BelgeInlineEditSheet, type BelgeInlineSheetNavTarget } from "@/components/belge-inline-edit-sheet";
 import { useBelgeInlineMobileMode } from "@/hooks/use-belge-inline-mobile-mode";
+import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-context";
+import { BelgeStudioMobileZoomPill } from "@/components/belge-studio-mobile-zoom-pill";
 import {
   BELGE_INLINE_TAP_MAX_MOVE,
   BELGE_INLINE_TAP_MAX_MS,
@@ -1455,8 +1457,7 @@ export function BelgeStudioPdfPreview({
     setInlineSelectedField(field);
   };
 
-  const handleToggleInlineEditing = () => {
-    const next = !isInlineEditingActive;
+  const setInlineEditing = useCallback((next: boolean) => {
     setIsInlineEditingActive(next);
     suppressedFocusEventIdRef.current = fieldFocusRef.current?.focusEventId ?? 0;
     setMobileHighlightKey(null);
@@ -1475,7 +1476,32 @@ export function BelgeStudioPdfPreview({
       return;
     }
     if (isMobileMode) setCoach("Turuncu çerçeveli alanlara dokunarak düzenleyin.");
-  };
+  }, [isMobileMode]);
+
+  const handleToggleInlineEditing = useCallback(() => {
+    setInlineEditing(!isInlineEditingActive);
+  }, [isInlineEditingActive, setInlineEditing]);
+
+  const { registerPreviewBridge } = useBelgeStudioMobileContext();
+
+  useEffect(() => {
+    registerPreviewBridge({
+      pdfUrl: generationPending ? null : snapshot?.blobUrl ?? null,
+      pdfReady: Boolean(snapshot && !generationPending && !visibleError),
+      inlineEdit: {
+        active: isInlineEditingActive,
+        setActive: setInlineEditing,
+      },
+    });
+  }, [
+    registerPreviewBridge,
+    generationPending,
+    snapshot?.blobUrl,
+    snapshot,
+    visibleError,
+    isInlineEditingActive,
+    setInlineEditing,
+  ]);
 
   useEffect(() => {
     if (!isMobileSheetOpen || sheetTop === null || selectedTop === null || selectedBottom === null || selectedLeft === null || selectedRight === null) {
@@ -1525,24 +1551,52 @@ export function BelgeStudioPdfPreview({
 
   return (
     <section className={`${BELGE_STUDIO_PREVIEW_PANEL_CLASS} relative`} aria-label="PDF canlı önizlemesi">
-      {toolbarTarget ? createPortal(toolbar, toolbarTarget) : toolbarTarget === undefined ? toolbar : null}
+      {isMobileMode ? (
+        <BelgeStudioMobileZoomPill
+          zoomLevel={zoomLevel}
+          onZoomChange={handleToolbarZoom}
+          onFit={handleFit}
+          page={{ current: currentPage, total: pageCount, onChange: handlePageChange }}
+          disabled={!snapshot || generationPending || visibleError}
+          isInteracting={isInteracting}
+        />
+      ) : toolbarTarget ? (
+        createPortal(toolbar, toolbarTarget)
+      ) : toolbarTarget === undefined ? (
+        toolbar
+      ) : null}
       {editing && !isMobileSheetOpen && (
-        <div className="absolute bottom-3 right-3 z-20 pointer-events-auto">
-          <button
-            type="button"
-            onClick={handleToggleInlineEditing}
-            data-testid="belge-inline-edit-toggle"
-            aria-pressed={isInlineEditingActive}
-            className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold shadow-md backdrop-blur transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer ${
-              isInlineEditingActive
-                ? "border-amber-500 bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 ring-1 ring-amber-500/40"
-                : "border-border bg-background/95 text-foreground hover:bg-accent/80"
-            }`}
-          >
-            <Edit3 className="h-4 w-4 text-amber-500" />
-            <span>{isInlineEditingActive ? "PDF Düzenlemeyi Kapat" : "PDF Üzerinde Düzenle"}</span>
-          </button>
-        </div>
+        !isMobileMode ? (
+          <div className="absolute bottom-3 right-3 z-20 pointer-events-auto">
+            <button
+              type="button"
+              onClick={handleToggleInlineEditing}
+              data-testid="belge-inline-edit-toggle"
+              aria-pressed={isInlineEditingActive}
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold shadow-md backdrop-blur transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer ${
+                isInlineEditingActive
+                  ? "border-amber-500 bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 ring-1 ring-amber-500/40"
+                  : "border-border bg-background/95 text-foreground hover:bg-accent/80"
+              }`}
+            >
+              <Edit3 className="h-4 w-4 text-amber-500" />
+              <span>{isInlineEditingActive ? "PDF Düzenlemeyi Kapat" : "PDF Üzerinde Düzenle"}</span>
+            </button>
+          </div>
+        ) : isInlineEditingActive ? (
+          <div className="absolute bottom-3 right-3 z-20 pointer-events-auto">
+            <button
+              type="button"
+              onClick={handleToggleInlineEditing}
+              data-testid="belge-inline-edit-toggle"
+              aria-pressed={true}
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-amber-500 bg-amber-500/20 px-3.5 py-2 text-xs font-semibold text-amber-500 shadow-md backdrop-blur ring-1 ring-amber-500/40 hover:bg-amber-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
+            >
+              <Check className="h-4 w-4 text-amber-500" />
+              <span>Düzenlemeyi Bitir</span>
+            </button>
+          </div>
+        ) : null
       )}
       <div
         ref={containerRef}

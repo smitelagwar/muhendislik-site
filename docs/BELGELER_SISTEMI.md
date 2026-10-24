@@ -108,8 +108,8 @@ Tüm belge stüdyoları (`*-studio.tsx`) standart bir kullanıcı deneyimi sunma
 
 ### 3.1. Bağımsız Stüdyo Navigasyonu ve Başlığı
 * `/belgeler` belge kataloğudur; arama/kartlar, genel site başlığı ve uygun ekranlarda ana navigasyon burada görünür.
-* Beş belge stüdyosu katalogdan kendi rotasına açılır: `/belgeler/beton-dokum-tutanagi`, `/belgeler/insaat-ruhsati-dilekcesi`, `/belgeler/santiye-sefi-istifa-dilekcesi`, `/belgeler/santiye-sefi-sozlesmesi` ve `/belgeler/santiye-sefi-taahhutnamesi`. Bu rotalarda genel site header'ı gizlenir; masaüstünde (`lg+`) `BelgeStudioPageShell` tek satırlı belge başlığını ve `/belgeler` hedefine dönen erişilebilir bağlantıyı gösterir, mobilde (`< lg`) ise ekran alanını maksimum kullanmak için üst bar gizlenip `Belgelere dön` eylemi alt çubuktaki `⋯` (`Diğer belge işlemleri`) menüsü içine taşınır (`h1` başlığı ekran okuyucular ve SEO için `sr-only` olarak korunur). Rota eşlemesi `src/lib/belge-studio-routes.ts` içinde tutulur.
-* Mobil görünümde form ve PDF önizlemesi tek ekranda üst üste bindirilmez. Eski üst `Form Alanları / Canlı PDF Önizle` sekmeleri kaldırılmıştır; stüdyo ilk açılışta **PDF önizlemesi** gösterir. Form ile PDF arasında yalnız alt belge eylemleri çubuğundaki **Formu Düzenle / Canlı PDF Önizle** düğmesiyle geçilir. Stüdyo içinde genel hamburger ve gereksiz yer kaplayan "Başlangıç alanları örnek veridir..." üst uyarı bandı bulunmaz. `Ctrl+K` komut paleti davranışı korunur.
+* Beş belge stüdyosu katalogdan kendi rotasına açılır: `/belgeler/beton-dokum-tutanagi`, `/belgeler/insaat-ruhsati-dilekcesi`, `/belgeler/santiye-sefi-istifa-dilekcesi`, `/belgeler/santiye-sefi-sozlesmesi` ve `/belgeler/santiye-sefi-taahhutnamesi`. Bu rotalarda genel site header'ı gizlenir; masaüstünde (`lg+`) `BelgeStudioPageShell` tek satırlı belge başlığını, toolbar alanını, opsiyonel aksiyonları ve tema anahtarını gösterir. Mobilde (`< lg`) ise `BelgeStudioUnifiedHeader` sadeleştirilmiş tek satır düzenindedir: sol tarafta `← Belgelere Dön` bağlantısı ve belge başlığı (dar ekranda esnek küçülme), sağ tarafta ise `⋮` çekmece açma düğmesi (`data-testid="belge-mobile-header-menu-btn"`) yer alır. Masaüstü toolbar, tema anahtarı ve stüdyoya özel butonlar üst barda mobilde gizlenir. Rota eşlemesi `src/lib/belge-studio-routes.ts` içinde tutulur.
+* Mobil görünümde form ve PDF önizlemesi tek ekranda üst üste bindirilmez. Eski üst `Form Alanları / Canlı PDF Önizle` sekmeleri kaldırılmıştır; stüdyo ilk açılışta **PDF önizlemesi** gösterir. Form ile PDF arasında hem alt belge eylemleri çubuğundaki **Formu Düzenle / Canlı PDF Önizle** düğmesiyle hem de "Belge İşlemleri" çekmecesinin alt sabit barıyla geçilir. Stüdyo içinde genel hamburger ve gereksiz yer kaplayan "Başlangıç alanları örnek veridir..." üst uyarı bandı bulunmaz. `Ctrl+K` komut paleti davranışı korunur.
 * Belgeler kataloğu şu anda `StudioPreview` modalı kullanmaz. Kartlardaki stüdyo eylemleri bağımsız belge rotasına gider; yeni belge eklerken olmayan bir modalı `belgeler-hub.tsx` içine bağlamayın.
 
 ### 3.2. Dış Sayfa Kaydırmasız Düzen (Zero Outer Scroll / 100vh Fit)
@@ -117,8 +117,8 @@ Tüm belge stüdyoları (`*-studio.tsx`) standart bir kullanıcı deneyimi sunma
 * Stüdyo `h-[calc(100vh-...)]` veya tam ekran düzenine oturmalı; sol form paneli bağımsız olarak kendi içinde (`overflow-y-auto`) kaymalı, sağdaki canlı PDF önizleme paneli ise kullanılabilir alana orantılı biçimde sığmalıdır.
 
 ### 3.3. PDF Üretimi, Canlı Önizleme ve Yakınlaştırma
-* Ortak `BelgeStudioPreviewToolbar`, **masaüstünde** yakınlaştırma grubunu önizleme panelinin yatay merkezinde tutar. **1023 px ve altı mobil/tablet ekranlarda** çok sayfalı PDF'nin sayfa gezinmesi ve zoom ± düğmeleri **44 px yüksekliğinde tek satırda** kalır. Mobilde **Sığdır** ve **PDF'yi yeni sekmede aç** eylemleri erişilebilir `Diğer PDF görünüm seçenekleri` menüsündedir; dar konteynerde gizlenen zoom yüzdesi menü başlığında okunur. Mobil tek sayfalı belgeler mevcut doğrudan Sığdır/dış bağlantı eylemlerini korur. **Masaüstünde** özel dar önizleme panelleri 560 px ve altında iki satıra geçebilir; normal masaüstünde merkez hizası korunur. Görünür araç hedefleri en az 44×44 px, menü öğeleri en az 48 px'tir. Çok sayfalı 320–414 px karşılaştırmasında toolbar 91 → 44 px ölçülmüştür (**47 CSS px** kazanım).
-* Önizlemedeki `Koyu tema` switch'i yalnız masaüstünde (`lg+`) görünür. Mobil/tablette (`< lg`) tema geçişi mevcut `Diğer belge işlemleri` menüsündedir; form ve PDF görünümünde erişilebilir kalır. İki eylem ortak `next-themes` durumunu değiştirir; uygulama teması ve `aria-checked` birlikte güncellenir. Tema ve zoom PDF'i yeniden üretmez.
+* Ortak `BelgeStudioPreviewToolbar`, **masaüstünde** yakınlaştırma grubunu önizleme panelinin yatay merkezinde tutar. **1023 px ve altı mobil/tablet ekranlarda** masaüstü toolbar tamamen gizlenir; yerine PDF önizleme yüzeyinin üstünde yüzen kompakt `BelgeStudioMobileZoomPill` devreye girer (`− %100 + ⤢` ve çok sayfalı belgelerde `‹ 1/2 ›`). Zoom pill etkileşim anında yarı saydamlaşır (%35) ve hareketsizlikte tekrar opaklaşır.
+* Önizlemedeki `Koyu tema` switch'i masaüstünde (`lg+`) header'ın sağ üstünde görünür. Mobil/tablette (`< lg`) tema geçişi "Belge İşlemleri" çekmecesindeki `Görünüm` kartından yönetilir; form ve PDF görünümünde erişilebilir kalır. İki eylem ortak `next-themes` durumunu değiştirir; uygulama teması ve `aria-checked` birlikte güncellenir. Tema ve zoom PDF'i yeniden üretmez.
 * Belge araçlarının özel SVG seti `src/components/belge-studio-icons.tsx` içinde tutulur; `currentColor` ile her iki temaya uyar, dekoratif SVG'ler `aria-hidden` kullanır. Eylemin Türkçe erişilebilir adı düğme/bağlantı üzerinde kalır.
 * Beş stüdyo da `useBelgeStudioDocument` ortak hook'unu kullanır. Alan değişikliklerinden sonra üretim 150 ms geciktirilir; en yeni istek geçerli kalır, 20 saniyelik zaman aşımı uygulanır ve çıktı PDF imzası açısından doğrulanır. Önizleme, yazdırma ve indirme aynı güncel byte snapshot'ını kullanır. Yeni çıktı oluşana kadar eski PDF'in indirilmesi/yazdırılması engellenir; kullanılmayan blob URL'leri temizlenir.
 * PDF.js belgesini yeniden kullanarak sayfa çizilir. Yakınlaştırma PDF'i yeniden üretmez; zoom değişince yalnızca önizleme sayfası tekrar çizilir. Sayfa numarası ve toplam sayfa sayısı PDF'den okunur, önceki/sonraki sayfa ve sığdırma kontrolleri gerçek sayfayı yönetir.
@@ -565,4 +565,38 @@ V3 mimarisinde yer alan `/b/[token]` salt-okunur görüntüleyicisi (`belge-shar
 2. **Kart Parlatma & Arama İndeksi:** `belgeler-hub.tsx` bileşeninde kart mousemove efektleri tek `requestAnimationFrame` altında koaleslendi; arama terimleri `PRECOMPUTED_DOCUMENTS` ile modül seviyesinde önceden normalize edilerek anlık tuş vuruşlarındaki dizi/regex tahsisleri elendi.
 3. **Masaüstü Okyanus Sahnesi:** `ambient-ocean-scene.tsx` bileşeninde scroll ve mutation gözlemcileri `scheduleMeasure` (rAF) koaleslemesine alındı; `measure()` fonksiyonu ara dizi üretmeyen sıfır-tahsisli döngüye geçirildi.
 4. **Stüdyo Kritik Yolu:** `use-belge-studio-document.ts` yüklenişinde arka plan `prewarmBrowserPdfJs()` tetiklendi ve ilk derlemedeki `setTimeout` gecikmesi kaldırılarak senkron effect'e alındı. 5 stüdyo rotasının açılış hızı ve V3 2000ms sessiz taslak sözleşmesi eksiksiz korundu.
+
+---
+
+## 16. Belgeler Mobil Stüdyo Arayüz Yenilemesi ve Belge İşlemleri Çekmecesi (V6 — 2026-10-24)
+
+Mobil ekranlarda (`< 1024px`) kullanıcı deneyimini modernleştirmek, ekran kullanımını maksimize etmek ve araç karmaşasını gidermek amacıyla üç temel mimari yenilik uygulanmıştır:
+
+1. **Sadeleştirilmiş Tek Satırlı Mobil Üst Bar:**
+   - `BelgeStudioUnifiedHeader` bileşeni mobilde tek satırlı temiz bir düzene sahiptir:
+   - Sol tarafta `← Belgelere Dön` bağlantısı ve belge başlığı (dar ekranda esnek küçülme/kesilme),
+   - Sağ tarafta `⋮` çekmece açma düğmesi (`data-testid="belge-mobile-header-menu-btn"`),
+   - Masaüstü toolbar, tema anahtarı ve stüdyoya özel butonlar mobilde üst barda gizlenir.
+
+2. **Kenardan Kenara (Edge-to-Edge) PDF ve Yüzen Zoom Pill (Floating Zoom Pill):**
+   - Mobilde PDF önizleme paneli sıfır dış boşluk (`p-0`), sıfır border ve sıfır köşe yuvarlaması ile ekrana tam oturur.
+   - Sayfa yakınlaştırma kontrolleri PDF önizleme yüzeyinin üstünde yüzen `BelgeStudioMobileZoomPill` bileşenine taşınmıştır:
+     - `− %100 + ⤢` (zoom eksi, yüzde, zoom artı, sığdır),
+     - Çok sayfalı belgelerde ek olarak `‹ 1/2 ›` sayfa geçiş kontrolleri,
+     - Kullanıcı pan/zoom yaparken pill yarı saydamlaşır (`opacity: 0.35`), etkileşim bittikten 350ms sonra opaklaşır.
+
+3. **Birleşik "Belge İşlemleri" Mobil Çekmecesi (`BelgeStudioMobileActionsSheet`):**
+   - Hem üst bardaki `⋮` menü düğmesi hem de alt bardaki `⋯` düğmesi aynı çekmeceyi açar.
+   - Radix UI Dialog primitive tabanlı erişilebilir çekmece yapısı:
+     - **Görsel tutamaç:** Sürüklenebilir/çekmece hissi veren merkez çizgi handle,
+     - **Başlık Satırı:** "Belge İşlemleri" ve kapatma (X) butonu,
+     - **PDF Üzerinde Düzenle Kartı:** Modun durumunu ve tek tıkla başlatılmasını sağlar,
+     - **4 Eşit Eylem Kartı (2×2 ızgara):** Paylaş, Yazdır, Boş Form İndir ve Görünüm (Açık/Koyu tema switch'i — anlık değişir ve çekmeceyi kapatmaz),
+     - **"Diğer işlemler" Akordeonu:** Belgelere Dön, Kısayollar ve stüdyoya özel `extraActions` (ör. İnşaat Ruhsatı "Örnek Veri ile Doldur"),
+     - **Sabit Alt CTA Barı:** Formu Düzenle (veya PDF Önizle) ve PDF İndir.
+
+4. **Mobil Alt Eylem Çubuğu:**
+   - 4 öğeli kompakt bar: `⋯` (Çekmece açar) + `Paylaş` (ikon, doğrudan paylaşım modalı) + `Formu Düzenle` (parlama efekti) + `PDF İndir` (vurgulu aksiyon).
+   - Masaüstü (>= 1024px) arayüzü ve işlevleri %100 korunmuştur.
+
 

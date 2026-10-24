@@ -30,6 +30,7 @@ import {
   BelgeStudioDraftControls,
 } from "@/components/belge-studio-draft-controls";
 import { BelgeStudioUnifiedHeader } from "@/components/belge-studio-unified-header";
+import { BelgeStudioMobileProvider } from "@/components/belge-studio-mobile-context";
 import { useBelgeStudioSections } from "@/hooks/use-belge-studio-sections";
 import {
   BelgeStudioSection,
@@ -268,8 +269,9 @@ export function IstifaStudio({
 
 
   return (
-    <div
-      ref={studioRootRef}
+    <BelgeStudioMobileProvider>
+      <div
+        ref={studioRootRef}
       data-studio-locked={isModal ? undefined : "true"}
       className={`flex flex-col bg-background text-foreground w-full max-w-full min-w-0 h-full overflow-hidden ${
         isModal
@@ -569,5 +571,6 @@ export function IstifaStudio({
       />
       <BelgeShareDialog share={shareApi} documentTitle="Şantiye Şefi İstifa Dilekçesi" />
     </div>
+    </BelgeStudioMobileProvider>
   );
 }

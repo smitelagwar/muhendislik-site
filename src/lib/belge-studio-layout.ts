@@ -17,10 +17,10 @@ export const BELGE_STUDIO_MOBILE_TAB_CLASS =
   "flex h-10 min-w-0 flex-1 items-center justify-center gap-1 whitespace-nowrap rounded-xl px-1.5 text-center text-[11px] font-bold leading-none transition-all sm:gap-1.5 sm:px-2 sm:text-xs";
 
 export const BELGE_STUDIO_PREVIEW_PANEL_CLASS =
-  "belge-preview-panel flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden bg-muted/20 p-1 sm:p-1.5 lg:p-2";
+  "belge-preview-panel flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden bg-muted/20 p-0 sm:p-1.5 lg:p-2";
 
 export const BELGE_STUDIO_PREVIEW_TOOLBAR_CLASS =
   "belge-preview-controls grid w-full items-center min-w-0 shrink-0";
 
 export const BELGE_STUDIO_PREVIEW_CANVAS_CLASS =
-  "relative flex-1 min-h-0 min-w-0 w-full overflow-auto overscroll-contain rounded-lg bg-zinc-200 p-0 shadow-inner dark:bg-zinc-900";
+  "relative flex-1 min-h-0 min-w-0 w-full overflow-auto overscroll-contain rounded-none sm:rounded-lg bg-zinc-200 p-0 shadow-inner dark:bg-zinc-900";
