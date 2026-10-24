@@ -1,0 +1,17 @@
+{
+  "id": "dpl_7bp9YK6ppxjUwtciN4P8qgG1oiJo",
+  "state": "READY",
+  "target": "production",
+  "url": "https://muhendislik-site-5da69lg4f-huseying5713-2819s-projects.vercel.app",
+  "sourceCommit": "39e801a6cb85fe1594e44ce11e496120f17d1594",
+  "sourceBranch": "internal-belgeler-paylasim-v3-20261023",
+  "canonicalUrl": "https://muhendislik-site.vercel.app",
+  "aliases": [
+    "muhendislik-site.vercel.app",
+    "muhendislik-site-huseying5713-2819s-projects.vercel.app"
+  ],
+  "promotedSameProductionArtifact": true,
+  "productionDeploymentsThisRelease": 1,
+  "mainBranchUpdated": false
+}
+

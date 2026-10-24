@@ -11,12 +11,12 @@ state_file: C:\Users\hsyn\Desktop\muhendis-mimar-portali\PLAN\BELGELER_PAYLASIM_
 audit_file: C:\Users\hsyn\Desktop\muhendis-mimar-portali\docs\belgeler-paylasim-bagimsiz-denetim-2026-10-23\DENETIM_VE_KARSILASTIRMA.md
 evidence_root: C:\Users\hsyn\Desktop\muhendis-mimar-portali\docs\belgeler-paylasim-v3-uygulama
 planning_status: PLAN_HAZIR
-execution_status: YAYINLANIYOR
+execution_status: YAYINLANDI
 source_branch_at_audit: main
 source_commit_at_audit: 04048e50fd02e50c1c9ea783acec2d7383f516b4
 remote_head_fetched: false
-active_stage: ASAMA_15
-next_stage: ASAMA_15
+active_stage: null
+next_stage: null
 completed_stages:
   - ASAMA_01
   - ASAMA_02
@@ -32,10 +32,24 @@ completed_stages:
   - ASAMA_12
   - ASAMA_13
   - ASAMA_14
+  - ASAMA_15
 release_authorized: true
 release_authorization_note: User explicitly requested completion and publication with available resources after prior blocker/device disclosure; no paid upgrade is authorized or performed.
 release_command: yayinla
-deployment: null
+deployment:
+  id: dpl_7bp9YK6ppxjUwtciN4P8qgG1oiJo
+  state: READY
+  target: production
+  url: https://muhendislik-site-5da69lg4f-huseying5713-2819s-projects.vercel.app
+  sourceCommit: 39e801a6cb85fe1594e44ce11e496120f17d1594
+  sourceBranch: internal-belgeler-paylasim-v3-20261023
+  canonicalUrl: https://muhendislik-site.vercel.app
+  aliases:
+    - muhendislik-site.vercel.app
+    - muhendislik-site-huseying5713-2819s-projects.vercel.app
+  promotedSameProductionArtifact: true
+  productionDeploymentsThisRelease: 1
+  mainBranchUpdated: false
 decisions_locked:
   - 50 basarili benzersiz yeni link / anonim tarayici / Istanbul takvim gunu
   - 'Gorseldeki ilk linkten sonra engel: K01/K02 zorunlu kabul'
@@ -113,7 +127,7 @@ stages:
     status: PASS
   ASAMA_15:
     title: Acik yayin komutuyla tek production release
-    status: IN_PROGRESS
+    status: PASS
 external_gates_to_verify:
   - 'Physical Android/iOS NOT_RUN: disclosed manual risk under the user''s available-resources completion/publication direction'
   - Future real cron invocation NOT_YET_OBSERVED; no Production load or bulk cleanup test
@@ -2171,14 +2185,19 @@ implementation_evidence:
     external_gate: YAYINA_HAZIR for the selected measured-use Hobby/Neon Free tier and available-resources release scope. Production DB read-only access resolved through dashboard; Preview resource isolation configured; no physical-device or high-volume throughput PASS claim.
     next_stage: ASAMA_15
   - stage: ASAMA_15
-    status: IN_PROGRESS
+    status: PASS
     date: 2026-10-24 Europe/Istanbul
-    head: 04048e50fd02e50c1c9ea783acec2d7383f516b4
-    worktree_digest: 2f584eae88ca922678aeae1183ffa7f3899a1d45cd39a22b9eaa0ee5261dc5c6
+    head: 39e801a6cb85fe1594e44ce11e496120f17d1594
+    worktree_digest: a4865b64325a04876f1b8fb888a0e921f9a8a1fdfffe2b87c06e86c2f177cf1d
     changed_files:
       - docs/belgeler-paylasim-v3-uygulama/ASAMA_15.md
+      - docs/belgeler-paylasim-v3-uygulama/ASAMA_15_deployment.json
       - docs/belgeler-paylasim-v3-uygulama/ASAMA_15_migration_inputs.json
       - docs/belgeler-paylasim-v3-uygulama/ASAMA_15_migration_verified.jpg
+      - docs/belgeler-paylasim-v3-uygulama/ASAMA_15_production_smoke.json
+      - docs/belgeler-paylasim-v3-uygulama/ASAMA_15_production_smoke.log
+      - docs/belgeler-paylasim-v3-uygulama/ASAMA_15_production_viewer.jpg
+      - docs/belgeler-paylasim-v3-uygulama/FINAL_AUDIT.md
       - docs/belgeler-paylasim-v3-uygulama/playwright.stage15-production.config.ts
       - docs/belgeler-paylasim-v3-uygulama/prepare-stage15-migration.mjs
       - docs/belgeler-paylasim-v3-uygulama/record-stage15-release.mjs
@@ -2186,9 +2205,12 @@ implementation_evidence:
       - tests/site-audit/belgeler-stage15-production-smoke.spec.ts
       - docs/belgeler-paylasim-v3-uygulama/ASAMA_15_changes.json
     manifest: docs/belgeler-paylasim-v3-uygulama/ASAMA_15_changes.json
-    manifest_file_sha256: 652518196dde40fad90bb7d7e033799ba60efd5cddd571d6247f587bc47ff5d9
+    manifest_file_sha256: 3b231326a600b594f479675c8e864d4d4dfb4a9b2337b07b69545bfb2f9c2737
     report: docs/belgeler-paylasim-v3-uygulama/ASAMA_15.md
-    acceptance_ids: []
+    acceptance_ids:
+      - K01
+      - K02
+      - bounded production contract/revoke smoke
     not_run:
       - Physical Android/iOS
       - Production load/bulk cron test

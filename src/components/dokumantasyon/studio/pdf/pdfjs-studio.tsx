@@ -78,9 +78,14 @@ import {
   pushNavigationHistory,
 } from "@/lib/dokumantasyon/studio/pdf/pdf-navigation";
 
-interface PdfJsStudioProps {
+export type PdfViewerVariant = "default" | "public-share";
+
+export interface PdfJsStudioProps {
   accessUrl: string;
   displayName: string;
+  variant?: PdfViewerVariant;
+  expiresAt?: string;
+  statusBadge?: string;
   onAccessExpired?: () => Promise<unknown>;
   fileId?: string;
   versionNo?: number;
@@ -129,6 +134,9 @@ async function readPageSizes(
 function PdfJsStudioInternal({
   accessUrl,
   displayName,
+  variant = "default",
+  expiresAt,
+  statusBadge,
   onAccessExpired,
   fileId,
   versionNo,
@@ -143,7 +151,9 @@ function PdfJsStudioInternal({
   onRename,
   onDelete,
 }: PdfJsStudioProps) {
-  const debugHud = usePdfDebugFlag();
+  const isPublicShare = variant === "public-share";
+  const debugFlag = usePdfDebugFlag();
+  const debugHud = isPublicShare ? false : debugFlag;
   const viewerRootRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -403,7 +413,7 @@ function PdfJsStudioInternal({
   }, [settings.reduceMotion]);
 
   const performSave = useCallback(() => {
-    if (!fileId || !pdfDocRef.current) return;
+    if (isPublicShare || !fileId || !pdfDocRef.current) return;
     let activePage = currentPageRef.current;
     let offsetRatio = 0;
     if (engineFlag === "v4" && engineRef.current) {
@@ -799,7 +809,7 @@ function PdfJsStudioInternal({
     setErrorType(null);
     setLoadProgress(null);
 
-    const initialSaved = fileId ? getPdfReadingPosition(fileId, currentFileVersion) : null;
+    const initialSaved = !isPublicShare && fileId ? getPdfReadingPosition(fileId, currentFileVersion) : null;
     setIsSidebarOpen(initialSaved?.sidebarOpen ?? false);
     setSidebarTab(initialSaved?.sidebarTab ?? "thumbnails");
 
@@ -958,6 +968,33 @@ function PdfJsStudioInternal({
           : (err instanceof PdfSourceError && typeof err.status === "number")
           ? err.status
           : undefined;
+
+        if (isPublicShare) {
+          if (httpStatus === 410) {
+            setErrorType("expired");
+            setError("Bu paylaşım bağlantısının süresi dolmuş veya bağlantı iptal edilmiş.");
+            setLoading(false);
+            return;
+          }
+          if (httpStatus === 404 || (err as { name?: string })?.name === "MissingPDFException") {
+            setErrorType("missing");
+            setError("Bu belge bağlantısı bulunamadı veya silinmiş.");
+            setLoading(false);
+            return;
+          }
+          if (httpStatus === 425) {
+            setErrorType("network");
+            setError("Belge hazırlanıyor, lütfen birazdan tekrar deneyin.");
+            setLoading(false);
+            return;
+          }
+          if (httpStatus === 502) {
+            setErrorType("network");
+            setError("Belge dosyası şu anda alınamıyor. Lütfen tekrar deneyin.");
+            setLoading(false);
+            return;
+          }
+        }
 
         const kind = classifyPdfError(err, httpStatus);
         recordPdfError(kind, err);
@@ -1799,6 +1836,18 @@ function PdfJsStudioInternal({
 
 
   const defaultDownload = useCallback(() => {
+    if (isPublicShare && !onDownload) {
+      const sep = accessUrl.includes("?") ? "&" : "?";
+      const downloadUrl = accessUrl.includes("download=1") ? accessUrl : `${accessUrl}${sep}download=1`;
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      const name = displayName || "paylasilan-belge.pdf";
+      a.download = name.toLowerCase().endsWith(".pdf") ? name : `${name}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
     const a = document.createElement("a");
     a.href = accessUrl;
     const name = displayName || "dokuman.pdf";
@@ -1806,7 +1855,7 @@ function PdfJsStudioInternal({
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-  }, [accessUrl, displayName]);
+  }, [accessUrl, displayName, isPublicShare, onDownload]);
 
   const handleDownloadAction = onDownload || defaultDownload;
 
@@ -1854,9 +1903,11 @@ function PdfJsStudioInternal({
     } catch (err) {
       console.error("Yazdırma hatası:", err);
       recordPdfError("print", err);
-      window.open(accessUrlRef.current, "_blank", "noopener");
+      if (!isPublicShare) {
+        window.open(accessUrlRef.current, "_blank", "noopener");
+      }
     }
-  }, []);
+  }, [isPublicShare]);
 
   // Tanılama Bilgisini Kopyala (Plan 05 W6)
   const handleCopyDiagnostics = useCallback(async () => {
@@ -2179,6 +2230,9 @@ function PdfJsStudioInternal({
         isMobileLayout && isChromeHidden ? "-translate-y-full pointer-events-none" : "pointer-events-auto"
       )}>
       <PdfViewerToolbar
+        variant={variant}
+        statusBadge={statusBadge || (isPublicShare ? "Salt Okunur" : undefined)}
+        expiresAt={expiresAt}
         numPages={numPages}
         currentPage={currentPage}
         scale={scale}
@@ -2217,28 +2271,28 @@ function PdfJsStudioInternal({
         reduceMotion={settings.reduceMotion}
         onChangeReduceMotion={handleChangeReduceMotion}
         rememberPosition={settings.rememberPosition}
-        onToggleRememberPosition={handleToggleRememberPosition}
+        onToggleRememberPosition={isPublicShare ? undefined : handleToggleRememberPosition}
         isTextRepaired={autoRepairText && textRepairRules.length > 0}
         autoRepairText={autoRepairText}
         onToggleAutoRepairText={handleToggleAutoRepairText}
         displayName={displayName}
         sizeBytes={sizeBytes}
         extension={extension}
-        versionNo={versionNo}
-        createdAt={createdAt}
+        versionNo={isPublicShare ? undefined : versionNo}
+        createdAt={isPublicShare ? undefined : createdAt}
         isFullscreen={isFullscreen || pseudoFullscreen || nativeFullscreen}
         onToggleFullscreen={handleToggleViewerFullscreen}
-        onBack={onBack}
-        onShare={onShare}
+        onBack={isPublicShare ? undefined : onBack}
+        onShare={isPublicShare ? undefined : onShare}
         onDownload={handleDownloadAction}
-        onRename={onRename}
-        onDelete={onDelete}
-        onCopyDiagnostics={handleCopyDiagnostics}
+        onRename={isPublicShare ? undefined : onRename}
+        onDelete={isPublicShare ? undefined : onDelete}
+        onCopyDiagnostics={isPublicShare ? undefined : handleCopyDiagnostics}
       />
       </div>
 
       {/* W4: Kaldığın Yerden Devam Bildirimi */}
-      {showResumeBanner && resumedPage && (
+      {showResumeBanner && resumedPage && !isPublicShare && (
         <div
           role="status"
           data-testid="pdf-resume-banner"
@@ -2391,7 +2445,9 @@ function PdfJsStudioInternal({
                 {errorType === "corrupt"
                   ? pdfViewerStrings.corruptTitle
                   : errorType === "missing"
-                  ? pdfViewerStrings.missingTitle
+                  ? (isPublicShare ? "Belge Bulunamadı" : pdfViewerStrings.missingTitle)
+                  : errorType === "expired"
+                  ? (isPublicShare ? "Bağlantı Geçerli Değil" : "Oturum süresi doldu")
                   : errorType === "password"
                   ? pdfViewerStrings.passwordProtectedTitle
                   : errorType === "unsupported"
@@ -2413,14 +2469,16 @@ function PdfJsStudioInternal({
                         {pdfViewerStrings.downloadFile}
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => window.open(accessUrl, "_blank", "noopener")}
-                      data-testid="pdf-open-new-tab-btn"
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-semibold text-zinc-950 hover:bg-amber-400 transition-colors"
-                    >
-                      {pdfViewerStrings.openNewTab}
-                    </button>
+                    {!isPublicShare && (
+                      <button
+                        type="button"
+                        onClick={() => window.open(accessUrl, "_blank", "noopener")}
+                        data-testid="pdf-open-new-tab-btn"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-semibold text-zinc-950 hover:bg-amber-400 transition-colors"
+                      >
+                        {pdfViewerStrings.openNewTab}
+                      </button>
+                    )}
                   </>
                 )}
                 {errorType === "corrupt" && onDownload && (
@@ -2665,7 +2723,7 @@ export function PdfJsStudio(props: PdfJsStudioProps) {
   return (
     <PdfViewerErrorBoundary
       key={resetKey}
-      fileId={props.fileId}
+      fileId={props.variant === "public-share" ? undefined : props.fileId}
       onReset={() => setResetKey((k) => k + 1)}
       onDownload={props.onDownload}
     >

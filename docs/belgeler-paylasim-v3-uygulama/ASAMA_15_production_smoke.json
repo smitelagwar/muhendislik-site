@@ -1,0 +1,28 @@
+{
+  "result": "PASS",
+  "scope": "canonical Production; two own synthetic contract PDFs only",
+  "sharesCreated": 2,
+  "sharesRevoked": 2,
+  "cleanupStatuses": [],
+  "measurements": {
+    "firstPdf": {
+      "status": 200,
+      "type": "application/pdf",
+      "size": 1282079,
+      "sha256": "c8a07402b36e7917c0a2c10b0b5cf1e21124e5548713898f69cac54e7f656f89"
+    },
+    "secondPdf": {
+      "status": 200,
+      "type": "application/pdf",
+      "size": 1282091,
+      "sha256": "76be1b77409e25590e0354caee02de8b46ec286a407dcfdcfac782a9acf93f5f"
+    },
+    "quota": {
+      "used": 2,
+      "reserved": 0,
+      "remaining": 48
+    }
+  },
+  "tokenValuesRecorded": false,
+  "productionLoadTest": false
+}

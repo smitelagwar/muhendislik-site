@@ -3,16 +3,9 @@ import { isValidShareToken } from "@/lib/belge-paylasim/tokens";
 import { createRequestCorrelationId, logShareRequestFailure } from "@/lib/belge-paylasim/http";
 import { BelgeShareViewer } from "@/components/belge-paylasim/belge-share-viewer";
 import { ShareAccessState } from "@/components/belge-paylasim/share-access-state";
+import { getBelgeDocumentTitle } from "@/lib/belge-paylasim/document-labels";
 
 export const dynamic = "force-dynamic";
-
-const DOCUMENT_TITLES: Record<string, string> = {
-  "beton-dokum-tutanagi": "Beton Döküm Tutanağı",
-  "santiye-sefi-taahhutnamesi": "Şantiye Şefi İşe Başlama Taahhütnamesi",
-  "santiye-sefi-istifa-dilekcesi": "Şantiye Şefliği İstifa Dilekçesi",
-  "insaat-ruhsati-dilekcesi": "İnşaat Ruhsatı Başvuru Dilekçesi",
-  "santiye-sefi-sozlesmesi": "Şantiye Şefliği Hizmet Sözleşmesi",
-};
 
 async function readShareState(token: string) {
   const startedAt = performance.now();
@@ -32,9 +25,11 @@ export default async function BelgeViewerPage({ params }: { params: Promise<{ to
   if (!result) return <ShareAccessState state="unavailable" />;
   if (result.status !== "ok") return <ShareAccessState state={result.status} />;
 
-  return <BelgeShareViewer
-    viewToken={token}
-    documentTitle={DOCUMENT_TITLES[result.record.documentId] || "Paylaşılan PDF Belgesi"}
-    initialExpiresAt={result.record.expiresAt.toISOString()}
-  />;
+  return (
+    <BelgeShareViewer
+      viewToken={token}
+      documentTitle={getBelgeDocumentTitle(result.record.documentId)}
+      initialExpiresAt={result.record.expiresAt.toISOString()}
+    />
+  );
 }

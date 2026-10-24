@@ -1,0 +1,122 @@
+{
+  "date": "2026-10-24T15:06:36",
+  "deleted": [
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next",
+      "bytes": 2891487097,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next-playwright",
+      "bytes": 409563985,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next-stage07",
+      "bytes": 159509595,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next-stage06\\build",
+      "bytes": 882223,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next-stage06\\cache",
+      "bytes": 439233782,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next-stage06\\diagnostics",
+      "bytes": 55845,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next-stage06\\server",
+      "bytes": 256945274,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next-stage06\\static",
+      "bytes": 16285823,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next-stage06\\types",
+      "bytes": 98961,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next-stage12",
+      "bytes": 247613702,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next-stage13",
+      "bytes": 1747200756,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next-stage13-isolated",
+      "bytes": 1912784212,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\playwright-report",
+      "bytes": 1048718,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\test-results\\site-audit",
+      "bytes": 45,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\test-results\\stage14-cross-browser",
+      "bytes": 45,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\test-results\\stage14-preview",
+      "bytes": 45,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\test-results\\stage15-production",
+      "bytes": 45,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.test-data\\stage13-pdf-viewer-9Y6dIF",
+      "bytes": 0,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.test-data\\stage13-pdf-viewer-yQW1WD",
+      "bytes": 205605,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.test-data\\stage13-shell-1792809018989-n9vmze",
+      "bytes": 147,
+      "directory": true
+    },
+    {
+      "path": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.tmp\\stage15-production-migration.sql",
+      "bytes": 64545,
+      "directory": false
+    },
+    {
+      "path": "C:\\Users\\hsyn\\AppData\\Local\\Temp\\belgeler-stage13-20261024",
+      "bytes": 116376,
+      "directory": true
+    }
+  ],
+  "failures": [],
+  "deletedLogicalBytes": 8083096826,
+  "freeBytesBefore": 55756627968,
+  "freeBytesAfter": 63885213696,
+  "sourceAndEnvironmentPreserved": true,
+  "productionDeploymentAffected": false,
+  "preservedJunctionDirectory": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next-stage06\\node_modules"
+}

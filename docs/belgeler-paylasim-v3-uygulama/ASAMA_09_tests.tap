@@ -1,0 +1,318 @@
+▶ ASAMA_02: Belge Akıllı Dosya Adı Çekirdeği Birim Testleri
+  ▶ 1. Türkçe Karakter ve ASCII Dönüşümü
+    ✔ Türkçe İ/ı, ğ/Ğ, ü/Ü, ş/Ş, ö/Ö, ç/Ç karakterlerini doğru dönüştürmelidir (1.2495ms)
+  ✔ 1. Türkçe Karakter ve ASCII Dönüşümü (1.8825ms)
+  ▶ 2. Takvim ve Tarih Ayrıştırma (parseBelgeDateToIso)
+    ✔ Geçerli GG.AA.YYYY, GG/AA/YYYY, GG-AA-YYYY ve YYYY-AA-GG formatlarını ISO'ya çevirmelidir (1.3638ms)
+    ✔ Artık yıllarda 29 Şubat'ı geçerli kabul etmelidir (0.1574ms)
+    ✔ Takvimde olmayan tarihleri (31.02.2026, 31.04.2026) geçersiz sayıp now gününe düşmelidir (16.662ms)
+    ✔ Boş, tanımsız veya geçersiz metinlerde Europe/Istanbul now tarihini kullanmalıdır (0.6527ms)
+  ✔ 2. Takvim ve Tarih Ayrıştırma (parseBelgeDateToIso) (19.1406ms)
+  ▶ 3. Güvenlik, Temizlik ve Uzunluk Sınırları
+    ✔ Dizin geçişi (../../etc/passwd) ve yol ayırıcıları temizlemelidir (0.4146ms)
+    ✔ Emoji ve özel karakterleri temizlemelidir (0.4521ms)
+    ✔ 200 karakterlik aşırı uzun ismi 40 karaktere güvenle sınırlamalıdır (0.1759ms)
+    ✔ Çift .pdf uzantısını engellemelidir (0.3591ms)
+    ✔ Toplam dosya adı azami 100 karakteri (.pdf dahil) aşmamalıdır (0.3389ms)
+  ✔ 3. Güvenlik, Temizlik ve Uzunluk Sınırları (2.0991ms)
+  ▶ 4. Beton Döküm YİBF Formatlama
+    ✔ YİBF numarasını doğru formatlamalıdır (0.298ms)
+    ✔ Boş veya geçersiz YİBF değerinde boş string dönmelidir (0.1228ms)
+  ✔ 4. Beton Döküm YİBF Formatlama (0.5325ms)
+  ▶ 5. 5 Belge x Varsayılan Veriler ve Örnek Kişi Adı Atlaması
+    ✔ Taahhütname: varsayılan verideki örnek kişi adı (Hüseyin GÜNAYDIN) atlanmalı, belge tarihi korunmalıdır (0.2277ms)
+    ✔ Taahhütname: kullanıcı özel ad girdiğinde isim eklenmelidir (0.1618ms)
+    ✔ İstifa Dilekçesi: varsayılan örnek kişi adı atlanmalı, özel adda dosya adına eklenmelidir (0.1606ms)
+    ✔ İnşaat Ruhsatı: varsayılan örnek kişi adı atlanmalı, özel adda dosya adına eklenmelidir (0.1303ms)
+    ✔ Hizmet Sözleşmesi: varsayılan örnek adı atlanmalı, sozlesme_tarihi ISO formatlanmalıdır (0.1312ms)
+    ✔ Beton Döküm Tutanağı: YİBF numarası ve tarih doğru bağlanmalıdır (0.1381ms)
+  ✔ 5. 5 Belge x Varsayılan Veriler ve Örnek Kişi Adı Atlaması (1.113ms)
+✔ ASAMA_02: Belge Akıllı Dosya Adı Çekirdeği Birim Testleri (25.3943ms)
+▶ ASAMA_06: Belge Paylaşım HTTP API ve Sunucu PDF Testleri
+  ▶ 1. Her 5 Belge Türü İçin Başarılı POST ve Sunucu Flatten PDF
+    ✔ 1.1 beton-dokum-tutanagi için PDF üretip 201 Created dönmelidir (317.9258ms)
+    ✔ 1.2 santiye-sefi-taahhutnamesi için PDF üretip 201 Created dönmelidir (117.5333ms)
+    ✔ 1.3 santiye-sefi-istifa-dilekcesi için PDF üretip 201 Created dönmelidir (43.3232ms)
+    ✔ 1.4 insaat-ruhsati-dilekcesi için PDF üretip 201 Created dönmelidir (31.3537ms)
+    ✔ 1.5 santiye-sefi-sozlesmesi için PDF üretip 201 Created dönmelidir (49.7856ms)
+  ✔ 1. Her 5 Belge Türü İçin Başarılı POST ve Sunucu Flatten PDF (561.4048ms)
+  ▶ 2. Idempotency ve Çakışma Denetimi
+    ✔ 2.1 Aynı clientRequestId ve aynı verilerle ikinci POST 200 OK ve aynı bağlantıyı dönmelidir (18.7789ms)
+    ✔ 2.2 Aynı clientRequestId ile farklı form verisi gönderilirse 409 IDEMPOTENCY_CONFLICT vermelidir (24.7601ms)
+  ✔ 2. Idempotency ve Çakışma Denetimi (43.7789ms)
+  ▶ 3. İstek Doğrulama ve Güvenlik Filtresi
+    ✔ 3.1 Cross-Site istekleri 403 CROSS_SITE_FORBIDDEN ile engellenmelidir (1.0707ms)
+    ✔ 3.2 Uyuşmayan Origin başlığı 403 INVALID_ORIGIN ile engellenmelidir (0.8656ms)
+    ✔ 3.3 Yanlış Content-Type 415 UNSUPPORTED_MEDIA_TYPE dönmelidir (0.9243ms)
+    ✔ 3.4 64 KiB tavanını aşan gövde 413 PAYLOAD_TOO_LARGE dönmelidir (1.677ms)
+    ✔ 3.5 Geçersiz JSON sözdizimi 400 INVALID_JSON dönmelidir (1.747ms)
+    ✔ 3.6 Geçersiz veya kısa clientRequestId 400 dönmelidir (1.0791ms)
+    ✔ 3.7 Desteklenmeyen belge türü 400 UNSUPPORTED_DOCUMENT dönmelidir (1.0563ms)
+    ✔ 3.8 Form allowlist dışı alanlar 400 UNKNOWN_FIELD dönmelidir (0.789ms)
+    ✔ 3.9 2000 karakteri aşan form alanı 400 FIELD_TOO_LONG dönmelidir (0.941ms)
+  ✔ 3. İstek Doğrulama ve Güvenlik Filtresi (10.5198ms)
+  ▶ 4. Günlük tarayıcı kotası ve eski IP engelleri
+    ✔ 4.1 aynı IP'den dördüncü başarılı yeni link IP preflight'i olmadan oluşturulmalıdır (78.1871ms)
+    ✔ 4.2 dolu günlük kota 429 Retry-After değerini sunucu resetAt/serverNow farkından üretmelidir (3.5768ms)
+  ✔ 4. Günlük tarayıcı kotası ve eski IP engelleri (81.9076ms)
+  ▶ 5. DELETE /api/belgeler/paylasim/[token] İptal Rotaları
+    ✔ 5.1 Başarılı iptal: DB revoke edilir, Blob silinir ve anında 200 revoked döner (29.1077ms)
+    ✔ 5.2 x-manage-token başlığı eksikse 400 MISSING_MANAGE_TOKEN dönmelidir (6.1926ms)
+    ✔ 5.3 Bilinmeyen token 404 NOT_FOUND dönmelidir (1.0293ms)
+    ✔ 5.4 Başka bağlantının yönetim anahtarı ile silme denemesi 403 FORBIDDEN dönmelidir (35.4422ms)
+    ✔ 5.5 Bozuk veya aşırı uzun view/manage token DB lookup yapılmadan reddedilmelidir (1.0316ms)
+  ✔ 5. DELETE /api/belgeler/paylasim/[token] İptal Rotaları (73.0952ms)
+  ▶ 6. İzin Verilmeyen Yöntemler (405)
+    ✔ 6.1 GET /api/belgeler/paylasim 405 Method Not Allowed dönmelidir (0.6311ms)
+    ✔ 6.2 GET /api/belgeler/paylasim/[token] 405 Method Not Allowed dönmelidir (0.4641ms)
+  ✔ 6. İzin Verilmeyen Yöntemler (405) (1.1829ms)
+✔ ASAMA_06: Belge Paylaşım HTTP API ve Sunucu PDF Testleri (772.899ms)
+▶ Belge Paylaşım — Retention, Cron ve Purge Mekanizması
+  ▶ 1. Cron Rota Yetkilendirme ve Güvenlik
+    ✔ CRON_SECRET ortam değişkeni yoksa fail-closed 401 dönmelidir (5.708ms)
+    ✔ Authorization başlığı eksikse 401 dönmelidir (1.1004ms)
+    ✔ Yanlış veya sahte Bearer token ile istek 401 dönmelidir (1.0096ms)
+    ✔ GET dışındaki HTTP yöntemleri (POST, PUT, DELETE) 405 dönmelidir (0.5186ms)
+    ✔ Doğru Bearer token ile 200 ve JSON temizlik istatistiği dönmelidir (4.3518ms)
+  ✔ 1. Cron Rota Yetkilendirme ve Güvenlik (13.6583ms)
+  ▶ 2. Süresi Dolan (Expired) ve İptal Edilen (Revoked) Kayıtların Temizliği
+    ✔ Süresi dolmuş (expiresAt geçmişte) bir kayıt ve Blob nesnesi başarıyla silinmelidir (23.8472ms)
+    ✔ İptal edilmiş (status='revoked') bir kayıt süresi dolmamış olsa bile Blob'u silinip purged yapılmalıdır (2.8919ms)
+    ✔ Henüz süresi dolmamış ve iptal edilmemiş aktif kayıtlar asla silinmemelidir (2.4427ms)
+  ✔ 2. Süresi Dolan (Expired) ve İptal Edilen (Revoked) Kayıtların Temizliği (29.5458ms)
+  ▶ 3. Eşzamanlılık ve Lease Mekanizması
+    ✔ Aktif Blob yükümlülüğü lease'i ikinci cron'un aynı nesneyi işlemesini engeller (2.0347ms)
+    ✔ Lease süresi dolduğunda kayıt yeniden işlenebilmelidir (1.815ms)
+  ✔ 3. Eşzamanlılık ve Lease Mekanizması (4.0101ms)
+  ▶ 4. Hata Yönetimi ve Retry (Yeniden Deneme)
+    ✔ Blob silme hatasında hata kaydedilmeli ve sonraki deneme için lease serbest bırakılmalıdır (2.2968ms)
+  ✔ 4. Hata Yönetimi ve Retry (Yeniden Deneme) (2.3698ms)
+  ▶ 5. Takılı Kalan 'pending' Rezervasyonları Uzlaştırma
+    ✔ eski ve lease'i bitmiş 'pending' kayıt failed yapılır; bilinmeyen Blob byte'ı ek 24 saat korunur (1.4447ms)
+    ✔ 24 saatten yeni 'pending' kayıtları henüz finalized olmasa bile silinmemelidir (1.0065ms)
+  ✔ 5. Takılı Kalan 'pending' Rezervasyonları Uzlaştırma (2.605ms)
+  ▶ 6. Yetim (Orphan) Blob Taraması ve İzolasyon
+    ✔ belge_paylasim/ öneki altındaki ve DB kaydı olmayan 24h eski yetim Blob silinmelidir (0.4881ms)
+    ✔ Farklı bir önek altındaki (ör. dok_storage/) nesnelere KESİNLİKLE DOKUNULMAMALIDIR (0.3171ms)
+  ✔ 6. Yetim (Orphan) Blob Taraması ve İzolasyon (2.4487ms)
+  ▶ 7. Mezar Taşı (Tombstone) Temizliği
+    ✔ 30 günden eski 'purged' kayıtları veritabanından tamamen silinmelidir (0.5083ms)
+    ✔ 30 günden yeni 'purged' kayıtları mezar taşı olarak korunmalıdır (0.3568ms)
+  ✔ 7. Mezar Taşı (Tombstone) Temizliği (0.9553ms)
+  ▶ 8. Cron Henüz Çalışmasa Bile Anında 410 Expiry Davranışı
+    ✔ Süresi dolan link, cron henüz Blob'u silmemiş olsa dahi /pdf akışından anında 410 dönmelidir (1.6337ms)
+  ✔ 8. Cron Henüz Çalışmasa Bile Anında 410 Expiry Davranışı (1.6926ms)
+✔ Belge Paylaşım — Retention, Cron ve Purge Mekanizması (58.381ms)
+▶ ASAMA_07: Kullanıcı Bağlantı Geçmişi (Registry) ve Paylaşım Kancası Testleri
+  ▶ 1. Yerel Kayıt Defteri (Local Link Registry)
+    ✔ 1.1 Başlangıçta boş kayıt defteri boş dizi dönmelidir (3.021ms)
+    ✔ 1.2 addStoredShareLink yeni bağlantıyı eklemeli ve getStoredShareLinks ile okunabilmelidir (0.6571ms)
+    ✔ 1.3 Aynı viewToken tekrar eklendiğinde çoğaltılmamalı, güncellenmelidir (0.4178ms)
+    ✔ 1.4 Aktif bağlantılar sayısal sınırla atılmamalıdır (tüm 25 bağlantı korunmalıdır) (1.8329ms)
+    ✔ 1.5 markStoredLinkRevoked belirtilen bağlantıya revokedAt damgası vurmalıdır (0.7845ms)
+    ✔ 1.6 Bozuk veya geçersiz JSON durumunda çökmeden boş dizi dönmelidir (1.196ms)
+    ✔ 1.7 localStorage devre dışı olduğunda (hata fırlattığında) güvenle çalışmalıdır (0.3803ms)
+  ✔ 1. Yerel Kayıt Defteri (Local Link Registry) (9.2865ms)
+  ▶ 2. Güvenlik, URL ve Kapsam Kilitleri
+    ✔ 2.1 formatShareExpiryTr Türkiye saat dilimi (+03:00) ile formatlamalıdır (18.7587ms)
+    ✔ 2.2 validateShareLinkSecurity yetkisiz paylaşım kanallarını reddetmelidir (0.4453ms)
+  ✔ 2. Güvenlik, URL ve Kapsam Kilitleri (19.4042ms)
+✔ ASAMA_07: Kullanıcı Bağlantı Geçmişi (Registry) ve Paylaşım Kancası Testleri (29.1699ms)
+▶ ASAMA_04: Belge Paylaşım Sunucu ve Altyapı Birim Testleri
+  ▶ 1. Kriptografi ve Token Çekirdeği
+    ✔ 1.1 Deterministik token üretimi: 256-bit entropi, domain separation ve SHA-256 hash (1.6778ms)
+    ✔ 1.2 Geçersiz veya boş clientRequestId hata fırlatmalıdır (0.58ms)
+    ✔ 1.3 computePayloadDigest: Sıralı kanonik JSON ile form bütünlüğü ve değişiklik tespiti (0.4708ms)
+    ✔ 1.4 hashCreatorIp: IP takma adlandırma (pseudonymous HMAC) (0.3409ms)
+    ✔ 1.5 constantTimeCompare: Sabit süreli güvenli karşılaştırma (0.5848ms)
+  ✔ 1. Kriptografi ve Token Çekirdeği (4.6384ms)
+  ▶ 2. Yapılandırma ve Fail-Closed Güvenliği
+    ✔ 2.1 Test ortamında varsayılan güvenli test anahtarı dönmelidir (0.4829ms)
+    ✔ 2.2 Production ortamında BELGE_SHARE_SECRET tanımlı değilse fail-closed hata vermelidir (0.4426ms)
+    ✔ 2.3 Desteklenen 5 belge kimliği tanımlı olmalıdır (0.1728ms)
+    ✔ 2.4 Desteklenmeyen belge türü 400 UNSUPPORTED_DOCUMENT fırlatmalıdır (0.5658ms)
+  ✔ 2. Yapılandırma ve Fail-Closed Güvenliği (2.0408ms)
+  ▶ 3. Yaşam Döngüsü: Rezervasyon, Finalize, Sorgulama ve İptal
+    ✔ 3.1 Tam akış: pending -> finalize ready -> get 200 -> revoke 410 (21.9895ms)
+    ✔ 3.2 Bilinmeyen veya boş token durumları 'not_found' dönmelidir (0.2232ms)
+    ✔ 3.3 Süresi dolmuş kayıtlar 'expired' dönmelidir (1.5928ms)
+  ✔ 3. Yaşam Döngüsü: Rezervasyon, Finalize, Sorgulama ve İptal (23.9487ms)
+  ▶ 4. Idempotency ve Çakışma Denetimi
+    ✔ 4.1 Aynı clientRequestId ve aynı form verisi hazır ise mevcut kaydı idempotent döndürmelidir (1.7975ms)
+    ✔ 4.2 Aynı clientRequestId ile FARKLI form verisi gönderilirse 409 IDEMPOTENCY_CONFLICT vermelidir (1.0133ms)
+    ✔ 4.3 İşlem hala pending durumdayken tekrar aynı istek gelirse 409 OPERATION_IN_FLIGHT vermelidir (1.136ms)
+    ✔ 4.4 İptal edilmiş bağlantının clientRequestId'si ile tekrar bağlantı açılamaz (410 LINK_REVOKED) (2.0731ms)
+    ✔ 4.5 Eşzamanlı 20 paralel istek durumunda yarış koşulu (race condition) koruması (5.5295ms)
+  ✔ 4. Idempotency ve Çakışma Denetimi (11.8037ms)
+  ▶ 5. Kota Sınırları ve Aşım Koruması
+    ✔ 5.1 Aynı IP'den 4 istek tarayıcı günlük sınırı içinde rezerve edilir (4.8594ms)
+    ✔ 5.2 IP başına 20 aktif link, ayrı create rezervasyonunu engellemez (1.0634ms)
+    ✔ 5.3 Gerekçeli global günlük sınırı environment config ile uygulanır (4.3823ms)
+    ✔ 5.4 Storage bütçesi committed ve reserved byte yükümlülüklerini birlikte sayar (3.1431ms)
+  ✔ 5. Kota Sınırları ve Aşım Koruması (13.6853ms)
+  ▶ 6. Güvenli İptal Sırası ve Hata Durumları
+    ✔ 6.1 Blob silme başarısız olsa dahi DB revoke kalmalı ve anında 410 vermeli (2.2342ms)
+  ✔ 6. Güvenli İptal Sırası ve Hata Durumları (2.3398ms)
+  ▶ 7. Cron Temizlik Lease ve Purge Mekanizması
+    ✔ 7.1 claimExpiredForPurge: Süresi dolmuş ve iptal edilmiş kayıtları kilitler (0.7618ms)
+  ✔ 7. Cron Temizlik Lease ve Purge Mekanizması (0.8581ms)
+✔ ASAMA_04: Belge Paylaşım Sunucu ve Altyapı Birim Testleri (60.2156ms)
+✔ ASAMA_02/04: boş PostgreSQL veritabanında 001→007 kurulumu ve migration tekrar çalıştırma (1778.521ms)
+✔ ASAMA_02: legacy kaydın kimliği, token hashleri ve süresi korunur; eski okuma/iptal SQL'i çalışır (1341.8022ms)
+✔ ASAMA_02: günlük quota UNIQUE ve tüm sayaçların negatif olmayan kısıtları uygulanır (1282.7662ms)
+belge_share_request_failed {
+  category: 'runtime',
+  durationMs: 6,
+  requestCorrelationId: 'cb314212-2596-492b-a58e-1f7da3b5ce50'
+}
+belge_share_request_failed {
+  category: 'runtime',
+  durationMs: 0,
+  requestCorrelationId: '59cc7171-067b-4c0c-9cfd-1d17bf1a6f0a'
+}
+belge_share_request_failed {
+  category: 'runtime',
+  durationMs: 1,
+  requestCorrelationId: '9f93380c-21d4-41a5-83cf-6498128c7b8d'
+}
+✔ ASAMA_02: silinmemiş Blob byte borcu tombstone silinince ilişkisiz kalır ve korunur (1289.465ms)
+✔ ASAMA_02: schema readiness yalnız SELECT yapar ve eksik/eski sürümü güvenli 503'e çevirir (1.2439ms)
+✔ ASAMA_02: Neon public token GET önce salt-okunur readiness sorgusu yapar, runtime DDL çalıştırmaz (0.9859ms)
+✔ ASAMA_02: production modunda Vercel dışında otomatik Memory fallback yok; explicit test adaptörü production'da reddedilir (1.9258ms)
+✔ ASAMA_02: share POST/DELETE/PDF GET eksik DB veya Blob konfigürasyonunda ayrıntısız 503 döndürür (17.993ms)
+✔ ASAMA_03: bootstrap 256-bit imzalı HttpOnly cookie verir; host-only/path/SameSite ve local Secure istisnası doğrudur (12.1214ms)
+✔ ASAMA_03: imza, versiyon, expiry ve kimlik aynı kalırken cookie yenilemesi doğrulanır (1.9879ms)
+✔ ASAMA_03: Istanbul kota günü 00.00'da değişir; host, ortam ve gün ayrımları doğru uygulanır (18.7733ms)
+✔ ASAMA_03: create POST kimlik yok veya bozuksa 428 döndürür, cookie üretmez ve kayıt açmaz (2.5678ms)
+✔ ASAMA_03: kota GET cookie echo yapar, aynı tarayıcı sekmelerini birleştirir ve aynı IP'deki ayrı browser'ları ayırır (5.8865ms)
+✔ ASAMA_03: bozuk cookie bootstrap ile değiştirilir; eksik echo 428 verir (1.0323ms)
+✔ ASAMA_03: PGlite repository kota sayacını doğru env/owner/day satırından SELECT eder ve boş satırı ayırt eder (1747.395ms)
+✔ ASAMA_03: Web Locks olmayan iki sekmede BroadcastChannel tek ilk cookie mint eder ve ikisi de cookie echo ile kotayı okur (78.6748ms)
+✔ ASAMA_03: lider bootstrap hata verirse bekleyen sekmeler ikinci paralel mint başlatmaz (77.7926ms)
+✔ ASAMA_03: cookie reddi en çok iki bootstrap/echo denemesinde açıklanır; sonsuz döngü yoktur (1.2134ms)
+✔ ASAMA_03: GET cookie echo sonrası kota aggregate'ini döndürür; endpoint POST bootstrap yanıtı kimliği açığa çıkarmaz (2.7066ms)
+✔ ASAMA_03: DB yokken kota GET 503 verir; eksik tabloyu bellekten boş quota diye uydurmaz (1.7503ms)
+▶ ASAMA_04: replay proof, V2 token ve attempt fencing
+  ✔ V2 tokens are stable for the stored nonce and change after tombstone GC (26.6535ms)
+  ✔ only the same owner, proof and payload can recover a ready reservation (2.7831ms)
+  ✔ legacy requestId-only records never regenerate a manage token (0.5793ms)
+  ✔ a failed operation retries as a new fenced attempt while preserving its logical tokens (2.0506ms)
+  ✔ expired lease takeover fences late finalize and revoke cannot be undone (2.8108ms)
+  ✔ 20 simultaneous replays create one logical reservation without UNIQUE failures (2.7694ms)
+  ✔ isolated PostgreSQL retries the same request id and keeps one row (1794.6836ms)
+  ✔ status GET requires cookie and proof, returns ready tokens without any form fields and is no-store (18.959ms)
+belge_share_request_failed {
+  category: 'unexpected',
+  durationMs: 215,
+  requestCorrelationId: '35319e41-43f7-4170-a0ee-72f194cc5140'
+}
+  ✔ Blob PUT sonrası finalize hatası failed olur; aynı payload yeni path ile retry edilir (237.8314ms)
+  ✔ finalize commit yanıtı kaybolursa genel hata hazır kaydı failed yapmaz (17.6124ms)
+  ✔ unavailable stored key version fails closed rather than changing old token hashes (1.8264ms)
+✔ ASAMA_04: replay proof, V2 token ve attempt fencing (2110.3436ms)
+▶ ASAMA_05: atomik 50/gün ve fiziksel Blob byte muhasebesi
+  ✔ 1, 49 ve 50 başarılı link hakkını verir; 51. başarı 429 günlük kotasıdır (74.8132ms)
+  ✔ 49 used + 1 reserved geçişini ayırır ve başarıdan sonra kalan hakkı sıfırlar (45.5056ms)
+  ✔ 100 farklı ID paralelinde tam 50 rezervasyon alır; aynı ID tekrarları yeni hak tüketmez (84.9232ms)
+  ✔ başarısız iş hakkı bir kez iade eder; aynı proof ile retry tekrar rezervasyon alır (3.2855ms)
+  ✔ İstanbul gece yarısını aşan rezervasyon yeni güne atomik taşınır; dolu yeni gün başarı sayılmaz (4.3557ms)
+  ✔ bir byte boşluk bırakan iki PUT rezervasyonundan yalnız ilkini alır (3.4795ms)
+  ✔ iptal ve Blob silme hatası kapasiteyi boşaltmaz; fiziksel silme onayında boşaltır (4.4477ms)
+  ✔ PGlite SQL fonksiyonu iki repository örneğinde 100 ID'yi 50 rezervasyonda keser (1951.3108ms)
+  ✔ PGlite SQL refund idempotenttir; silme yükümlülüğü ancak onayda kapasiteden düşer (1330.6775ms)
+✔ ASAMA_05: atomik 50/gün ve fiziksel Blob byte muhasebesi (3504.8856ms)
+▶ ASAMA_06: sınırlı HTTP body, strict schema ve canonical share origin
+  ✔ UTF-8 gövde tam 64 KiB iken kabul edilir (25.5771ms)
+  ✔ küçük yalan Content-Length'e rağmen 64 KiB+1'de akışı iptal eder (1.7418ms)
+  ✔ doğru Content-Length olsa bile gerçek stream baytlarını sınırlar (0.7826ms)
+  ✔ Origin ve Host eksik, null, şema/port/host farklı ise DB öncesi reddeder (1.9731ms)
+  ✔ body/values allowlist'ini, düz nesneyi ve string değerleri uygular (2.6954ms)
+  ✔ yavaş gövdeyi zaman aşımında iptal eder (33.2667ms)
+  ✔ WAF HTML 403/429, Retry-After, malformed JSON ve 503'ü ayrı gösterir (1.9029ms)
+  ✔ abort ve offline hatalarını kullanıcıya sınırlı, anlaşılır metinle ayırır (0.2659ms)
+  ✔ production canonical hostunu kullanır; Preview yalnız tam allowlist origin'i kabul eder (1.062ms)
+✔ ASAMA_06: sınırlı HTTP body, strict schema ve canonical share origin (70.7585ms)
+▶ ASAMA_06: generator sabit PDF etiketlerini korur
+  ✔ istifa PDF'sinde istemcinin taklit ettiği sabit alanlar yerine onaylı etiketleri yazar (280.0326ms)
+✔ ASAMA_06: generator sabit PDF etiketlerini korur (280.2358ms)
+▶ ASAMA_07 share snapshot and recovery contract
+  ✔ shares only fields defined by the selected document contract (1.402ms)
+  ✔ binds a one-way fingerprint to the exact form content across reloads without exposing form text (8.3824ms)
+  ✔ recovers only request proof and a digest, never the personal form payload (0.9744ms)
+  ✔ keeps WAF HTML 429 distinct from the server's daily quota response (20.0277ms)
+  ✔ formats the reset time using the server's Türkiye date and time (17.8756ms)
+✔ ASAMA_07 share snapshot and recovery contract (49.8416ms)
+▶ ASAMA_08: Kalıcı Yönetim Geçmişi, IndexedDB ve Eski Depolama Geçişi
+  ▶ 1. N06: Depolama Getter Hata Yönetimi
+    ✔ 1.1 window.localStorage getter SecurityError fırlattığında uygulama çökmemelidir (3.0002ms)
+    ✔ 1.2 getSafeLocalStorage getter hatasını yakalayarak güvenle null dönmelidir (0.4379ms)
+  ✔ 1. N06: Depolama Getter Hata Yönetimi (4.1579ms)
+  ▶ 2. F31: 4.500 Aktif Kayıt ve Sayfalı Erişim
+    ✔ 2.1 4.500 aktif bağlantı eklendiğinde hiçbir anahtar sessizce atılmamalıdır (159.9048ms)
+    ✔ 2.2 getStoredShareLinksPaged sayfalı sorgu doğru offset ve limit dönmelidir (2.8445ms)
+  ✔ 2. F31: 4.500 Aktif Kayıt ve Sayfalı Erişim (162.9398ms)
+  ▶ 3. Eski Depolama Geçişi (Legacy Migration)
+    ✔ 3.1 Eski localStorage'daki 20 kayıt IndexedDB'ye aktarılmalı ve işlem tamamlanınca silinmelidir (1.0656ms)
+    ✔ 3.2 Kalıcı yazma başarısız olursa veya kesilirse eski localStorage verisi SİLİNMEMELİDİR (0.4909ms)
+    ✔ 3.3 Bozuk JSON içeren legacy veri çökmeye neden olmadan temizlenmelidir (0.3625ms)
+  ✔ 3. Eski Depolama Geçişi (Legacy Migration) (2.169ms)
+  ▶ 4. İki Sekme Yarışı ve Stale Event Koruması
+    ✔ 4.1 İptal edilmiş bir kayıt, gelen eski bir upsert veya stale event ile tekrar aktifleşemez (0.9143ms)
+    ✔ 4.2 Kayıt verisinde hiçbir ham form verisi veya PDF baytı bulunmamalıdır (0.6544ms)
+  ✔ 4. İki Sekme Yarışı ve Stale Event Koruması (1.7948ms)
+  ▶ 5. Depolama Durumu ve Ön Bilgilendirme
+    ✔ 5.1 IndexedDB mevcut olduğunda persistent ve available dönmelidir (0.4704ms)
+    ✔ 5.2 Depolama tamamen kapalı olduğunda kullanıcıyı önceden uyaran bildirim üretmelidir (3.0119ms)
+  ✔ 5. Depolama Durumu ve Ön Bilgilendirme (5.9647ms)
+✔ ASAMA_08: Kalıcı Yönetim Geçmişi, IndexedDB ve Eski Depolama Geçişi (177.7286ms)
+▶ ASAMA_09: kalıcı cleanup checkpoint, fencing, pagination ve byte borcu
+  ✔ ilk sayfa sürekli kayıtlı olsa da 120/500/1000 yetimi bütün sayfalarda tarar ve temizler (93.9645ms)
+  ✔ deadline sonrası cursor ve byte borcunu saklar; sonraki cron kaldığı sayfadan tamamlar (69.8109ms)
+  ✔ bozuk SDK cursor'ı baştan tarayarak düzeltir ve aynı yetim yükümlülüğünü çoğaltmaz (0.7709ms)
+  ✔ iki eşzamanlı cron'dan yalnız biri lease alır (0.7072ms)
+  ✔ silme hatası ham SDK mesajını açığa çıkarmaz ve byte borcu retry backoff'a kadar korunur (0.7782ms)
+  ✔ başarısız ilk kayıt retry backoff'a alınır; batch=1 iken sonraki iş aç kalmaz (0.5852ms)
+  ✔ cleanup hatası cron HTTP sözleşmesinde 503 olur ve SDK URL/secret dışarı çıkmaz (5.3493ms)
+  ✔ yanlış prefix'li Blob listesini yok sayar (0.3926ms)
+  ✔ PGlite adapter: global lease fencing eski cron'un checkpoint ve bitişini reddeder (1861.3235ms)
+  ✔ PGlite adapter: 1.000 orphan'ı checkpoint'li sayfalarda temizler ve ilk aktif sayfayı korur (2501.9475ms)
+  ℹ PGlite + Memory Blob adapter: 1,000 orphan / 51 pages / 1105ms; limit=30,000ms.
+  ✔ PGlite adapter: expired link physical delete sonucu byte borcunu atomik kapatır (1322.9273ms)
+  ✔ PGlite adapter: delete queue lease kalıntısını partial raporlar, eski owner'ı fence eder ve lease bitince sürdürür (1419.2271ms)
+  ✔ PGlite adapter: failed PUT byte borcu cleanup kuyruğunda silinir ve finalize ile dirilmez (1423.3126ms)
+  ✔ PGlite adapter: silme hatası retry zamanı ve byte yükümlülüğünü korur (1418.3557ms)
+  ✔ PGlite adapter: expired attempt failed olur ve eski Blob borcu 24 saat bekletilir (1458.6853ms)
+✔ ASAMA_09: kalıcı cleanup checkpoint, fencing, pagination ve byte borcu (11580.9639ms)
+▶ ASAMA_03: Paylaş Arayüzü ve Kanca Sözleşmesi Birim Testleri
+  ✔ 1. Başlangıç durumları varsayılan olarak kapalı, boş ve offline olmalıdır (0.6907ms)
+  ✔ 2. formatShareExpiryTr geçerli ISO tarihini Türkiye saatine çevirmelidir (17.6856ms)
+  ✔ 3. validateShareLinkSecurity HTTPS bağlantılarını onaylamalı, yetkisiz kanalları reddetmelidir (0.3771ms)
+  ✔ 4. ActiveShareLink nesnesi ve 90 günlük sözleşme alanları eksiksiz olmalıdır (0.1878ms)
+  ✔ 5. Kesin Kapsam Sözleşmesi: WhatsApp, wa.me veya navigator.share arayüzde yer almamalıdır (0.1165ms)
+✔ ASAMA_03: Paylaş Arayüzü ve Kanca Sözleşmesi Birim Testleri (20.07ms)
+▶ ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri
+  ▶ 1. GET /api/belgeler/paylasim/[token]/pdf Akış Rotaları
+    ✔ 1.1 Hazır ve geçerli token için 200 OK, inline PDF başlığı ve stream dönmelidir (6.6272ms)
+    ✔ 1.2 HEAD isteği 200 OK ve başlıkları dönmeli, gövde boş olmalıdır (0.9725ms)
+    ✔ 1.3 İptal edilmiş (revoked) bağlantı için anında 410 Gone dönmelidir (1.2922ms)
+    ✔ 1.4 Süresi dolmuş (expired) bağlantı için 410 Gone dönmelidir (0.8149ms)
+    ✔ 1.5 Bilinmeyen token için DB sorgusundan sonra 404 Not Found dönmelidir (0.6932ms)
+    ✔ 1.6 İzin verilmeyen yöntemler (POST, DELETE) 405 Method Not Allowed dönmelidir (0.788ms)
+  ✔ 1. GET /api/belgeler/paylasim/[token]/pdf Akış Rotaları (12.0431ms)
+  ▶ 2. /b/[token] Sunucu Sayfası ve Güvenlik Meta Verileri
+    ✔ 2.1 metadata index: false, follow: false ve noarchive içermelidir (0.8773ms)
+    ✔ 2.2 robots.ts dosyasında /b/ yolu disallow allowlist'inde yer almalıdır (0.2743ms)
+    ✔ 2.3 BelgeViewerPage bilinmeyen token için 'Belge Bulunamadı' ekranı render etmelidir (0.8092ms)
+    ✔ 2.4 BelgeViewerPage iptal edilmiş token için 'Bağlantı İptal Edildi' ekranı render etmelidir (0.4787ms)
+    ✔ 2.5 BelgeViewerPage süresi dolmuş token için 'Süre Doldu' ekranı render etmelidir (0.3611ms)
+    ✔ 2.6 BelgeViewerPage geçerli token için BelgeShareViewer bileşenini döndürmelidir (1.3366ms)
+  ✔ 2. /b/[token] Sunucu Sayfası ve Güvenlik Meta Verileri (4.4543ms)
+✔ ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri (16.9489ms)
+ℹ tests 191
+ℹ suites 49
+ℹ pass 191
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 37928.919

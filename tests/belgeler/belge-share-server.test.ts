@@ -1,6 +1,8 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "crypto";
+
+process.env.NODE_ENV = "test";
 import { BELGE_SHARE_CONFIG, getBelgeShareSecret } from "../../src/lib/belge-paylasim/config";
 import {
   generateDeterministicTokens,

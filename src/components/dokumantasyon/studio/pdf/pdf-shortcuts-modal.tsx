@@ -51,6 +51,8 @@ const SHORTCUT_CATEGORIES: ShortcutCategory[] = [
     category: pdfViewerStrings.shortcutsToolsCategory,
     items: [
       { keys: ["Ctrl", "F"], description: pdfViewerStrings.shortcutFind },
+      { keys: ["Ctrl", "P"], description: "Yazdır" },
+      { keys: ["Ctrl", "S"], description: "PDF İndir" },
       { keys: ["H"], description: pdfViewerStrings.shortcutHandTool },
       { keys: ["V"], description: pdfViewerStrings.shortcutTextSelection },
       { keys: ["F4"], description: pdfViewerStrings.shortcutSidebar },

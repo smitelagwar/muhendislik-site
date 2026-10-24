@@ -1,11 +1,15 @@
 {
-  "sourceHead": "04048e50fd02e50c1c9ea783acec2d7383f516b4",
-  "worktreeDigest": "2f584eae88ca922678aeae1183ffa7f3899a1d45cd39a22b9eaa0ee5261dc5c6",
-  "fileCount": 8,
+  "sourceHead": "39e801a6cb85fe1594e44ce11e496120f17d1594",
+  "worktreeDigest": "a4865b64325a04876f1b8fb888a0e921f9a8a1fdfffe2b87c06e86c2f177cf1d",
+  "fileCount": 13,
   "files": [
     {
       "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_15.md",
-      "sha256": "0518c1b04a2e6adb21e11883fe1cdaaf370571473ef08e20ae1a2e25a2110519"
+      "sha256": "b945f51b656e9e0127d07cc98baa9bcbd8b9266d86fff86d15863d68cd43254b"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_15_deployment.json",
+      "sha256": "b2b547ed2440bdec20e40d3bf68168e1c245998ebf646f7f6f3308545d894ec6"
     },
     {
       "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_15_migration_inputs.json",
@@ -14,6 +18,22 @@
     {
       "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_15_migration_verified.jpg",
       "sha256": "cb2b8584de19b8cfa20466ee28ef23e02b6f44ad111a2233aab3d685bf62e775"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_15_production_smoke.json",
+      "sha256": "a56b4d037a13c1ba9d6e22ee93f0edd66448db60471a0754602cb205f4dd6965"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_15_production_smoke.log",
+      "sha256": "161ded07a302d87266e7651187baf92ae0a73917e41a31aafa37e77f9d68206f"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_15_production_viewer.jpg",
+      "sha256": "640d170b008a9061ad870b973a672929d5875cb9079960d46828ef11bf50809c"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/FINAL_AUDIT.md",
+      "sha256": "c1b8d10f24f76ef8db59e2a44776c5c4533c27a5dd0ad51d068838c85aed4403"
     },
     {
       "file": "docs/belgeler-paylasim-v3-uygulama/playwright.stage15-production.config.ts",

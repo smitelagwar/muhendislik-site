@@ -1,0 +1,39 @@
+▶ ASAMA_10: gerçek sayfa geometrisi ve sahipli PDF oturumu
+  ✔ 320/390/768/1366 ve DPR1/2/3'te portrait/landscape fit doğru kalır (1.3375ms)
+  ✔ yüksek zoom'da CSS boyutunu korur; backing 8M piksel/32MB sınırını aşmaz (0.1745ms)
+  ✔ fit manuel minimumun altına inebilir; geçersiz geometri reddedilir (0.3167ms)
+  ✔ gerçek expiry tarihini İstanbul saatinde gösterir; eksik/bozuk tarihi uydurmaz (21.0429ms)
+  ✔ 20 hızlı zoom/sayfa isteğinde iptal promise'i settle olmadan aynı canvas'a render başlatmaz (44.074ms)
+  ✔ async getPage sonrası eski generation çizmez (15.5537ms)
+  ✔ unmount fetch'i abort eder ve PDF task başlatmaz (1.3537ms)
+  ✔ pending loadingTask destroy edilir; geç yükleme sonucu oturuma geri yazılmaz (1.4838ms)
+  ✔ render hatası görünür retry için dışarı çıkar; aynı document ile retry başarılı olur (28.7739ms)
+  ✔ 30 mount/unmount sonrası task/render kalmaz ve paylaşılan worker kapanmaz (471.3875ms)
+  ✔ HTTP hata sınıflaması yapılandırılmış kod kullanır ve raw URL/secret göstermez (2.1866ms)
+✔ ASAMA_10: gerçek sayfa geometrisi ve sahipli PDF oturumu (589.439ms)
+▶ ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri
+  ▶ 1. GET /api/belgeler/paylasim/[token]/pdf Akış Rotaları
+    ✔ 1.1 Hazır ve geçerli token için 200 OK, inline PDF başlığı ve stream dönmelidir (9.1535ms)
+    ✔ 1.2 HEAD isteği 200 OK ve başlıkları dönmeli, gövde boş olmalıdır (1.1875ms)
+    ✔ 1.3 İptal edilmiş (revoked) bağlantı için anında 410 Gone dönmelidir (2.0343ms)
+    ✔ 1.4 Süresi dolmuş (expired) bağlantı için 410 Gone dönmelidir (1.1768ms)
+    ✔ 1.5 Bilinmeyen token için DB sorgusundan sonra 404 Not Found dönmelidir (1.1032ms)
+    ✔ 1.6 İzin verilmeyen yöntemler (POST, DELETE) 405 Method Not Allowed dönmelidir (1.584ms)
+  ✔ 1. GET /api/belgeler/paylasim/[token]/pdf Akış Rotaları (17.4167ms)
+  ▶ 2. /b/[token] Sunucu Sayfası ve Güvenlik Meta Verileri
+    ✔ 2.1 metadata index: false, follow: false ve noarchive içermelidir (3.21ms)
+    ✔ 2.2 robots.ts dosyasında /b/ yolu disallow allowlist'inde yer almalıdır (0.4663ms)
+    ✔ 2.3 BelgeViewerPage bilinmeyen token için 'Belge Bulunamadı' ekranı render etmelidir (1.1229ms)
+    ✔ 2.4 BelgeViewerPage iptal edilmiş token için 'Bağlantı İptal Edildi' ekranı render etmelidir (0.7813ms)
+    ✔ 2.5 BelgeViewerPage süresi dolmuş token için 'Süre Doldu' ekranı render etmelidir (0.4905ms)
+    ✔ 2.6 BelgeViewerPage geçerli token için BelgeShareViewer bileşenini döndürmelidir (1.9892ms)
+  ✔ 2. /b/[token] Sunucu Sayfası ve Güvenlik Meta Verileri (8.5761ms)
+✔ ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri (26.849ms)
+ℹ tests 23
+ℹ suites 4
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1829.1252

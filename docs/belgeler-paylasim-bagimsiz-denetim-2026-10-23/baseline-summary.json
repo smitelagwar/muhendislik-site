@@ -1,0 +1,14 @@
+{
+  "files": [
+    "tests/belgeler/belge-filename.test.ts",
+    "tests/belgeler/belge-share-api.test.ts",
+    "tests/belgeler/belge-share-cleanup.test.ts",
+    "tests/belgeler/belge-share-client.test.ts",
+    "tests/belgeler/belge-share-server.test.ts",
+    "tests/belgeler/belge-share-ui.test.ts",
+    "tests/belgeler/belge-share-viewer.test.ts"
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationMs": 1989
+}

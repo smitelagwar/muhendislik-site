@@ -4,7 +4,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Sidebar,
   ChevronsLeft,
@@ -54,7 +54,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+export type PdfToolbarVariant = "default" | "public-share";
+
 interface PdfViewerToolbarProps {
+  variant?: PdfToolbarVariant;
+  statusBadge?: string;
+  expiresAt?: string;
+  statusSlot?: React.ReactNode;
   numPages: number;
   currentPage: number;
   scale: number;
@@ -113,6 +119,10 @@ interface PdfViewerToolbarProps {
 }
 
 export function PdfViewerToolbar({
+  variant = "default",
+  statusBadge,
+  expiresAt,
+  statusSlot,
   numPages,
   currentPage,
   scale,
@@ -167,20 +177,29 @@ export function PdfViewerToolbar({
 }: PdfViewerToolbarProps) {
   const zoomPercent = Math.round(pdfScaleToZoom(scale) * 100);
   const [pageInputVal, setPageInputVal] = useState(String(currentPage));
-  const [internalRememberPosition, setInternalRememberPosition] = useState<boolean>(true);
+  const [internalRememberPosition, setInternalRememberPosition] = useState<boolean>(() => getPdfRememberSettings());
   const [isCoarsePointer, setIsCoarsePointer] = useState(false);
   const maxZoomPercent = Math.round(pdfScaleToZoom(getMaxPdfScale(isCoarsePointer)) * 100);
 
   const effectiveRememberPosition =
     typeof rememberPositionProp === "boolean" ? rememberPositionProp : internalRememberPosition;
 
+  const [copiedLink, setCopiedLink] = useState(false);
+  const handleCopyLink = useCallback(async () => {
+    try {
+      if (typeof window !== "undefined") {
+        await navigator.clipboard.writeText(window.location.href);
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 2000);
+      }
+    } catch {
+      // sessizce geç
+    }
+  }, []);
+
   const currentLabel =
     pageLabels && pageLabels[currentPage - 1] ? pageLabels[currentPage - 1] : null;
   const showLabelBadge = Boolean(currentLabel && currentLabel !== String(currentPage));
-
-  useEffect(() => {
-    setInternalRememberPosition(getPdfRememberSettings());
-  }, []);
 
   useEffect(() => {
     const query = window.matchMedia("(pointer: coarse)");
@@ -190,9 +209,11 @@ export function PdfViewerToolbar({
     return () => query.removeEventListener?.("change", update);
   }, []);
 
-  useEffect(() => {
+  const [prevCurrentPage, setPrevCurrentPage] = useState(currentPage);
+  if (prevCurrentPage !== currentPage) {
+    setPrevCurrentPage(currentPage);
     setPageInputVal(String(currentPage));
-  }, [currentPage]);
+  }
 
   const commitPageInput = () => {
     // 1. Sayfa etiketleri arasında tam/büyük-küçük harf eşleşmesi kontrol et (örn: "iv", "A-3")
@@ -238,29 +259,41 @@ export function PdfViewerToolbar({
         )}
 
         {/* Dosya Kimlik Bloğu — Mobilde (< 480px) taşmayı önlemek için '⋮' menüsünde gösterilir */}
-        {displayName && (
+        {statusSlot ? (
+          <div className="flex items-center min-w-0 pr-1">{statusSlot}</div>
+        ) : displayName ? (
           <div className="hidden min-[480px]:flex flex-col min-w-0 pr-1">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="font-semibold text-xs sm:text-sm tracking-tight text-foreground/90 truncate max-w-[110px] min-[380px]:max-w-[160px] sm:max-w-[220px] md:max-w-[320px]" title={displayName}>
                 {displayName}
               </span>
-              {versionNo != null && (
+              {statusBadge ? (
+                <span className="shrink-0 rounded-md bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 font-semibold text-[10px] text-amber-500">
+                  {statusBadge}
+                </span>
+              ) : versionNo != null ? (
                 <span className="shrink-0 rounded-md bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 font-mono text-[10px] font-bold text-amber-500">
                   v{versionNo}
                 </span>
-              )}
+              ) : null}
             </div>
             <div className="hidden sm:flex items-center gap-1 text-[10px] text-muted-foreground">
-              {sizeBytes != null && <span className="font-mono">{formatBytes(sizeBytes)}</span>}
-              {sizeBytes != null && <span>•</span>}
-              <span className="uppercase font-bold text-rose-500/90 font-mono">
-                {extension ? extension.replace(".", "") : "PDF"}
-              </span>
-              {numPages > 0 && <span>•</span>}
-              {numPages > 0 && <span className="font-mono">{pdfViewerStrings.pageCount(numPages)}</span>}
+              {expiresAt ? (
+                <span className="truncate">Son geçerlilik: {expiresAt}</span>
+              ) : (
+                <>
+                  {sizeBytes != null && <span className="font-mono">{formatBytes(sizeBytes)}</span>}
+                  {sizeBytes != null && <span>•</span>}
+                  <span className="uppercase font-bold text-rose-500/90 font-mono">
+                    {extension ? extension.replace(".", "") : "PDF"}
+                  </span>
+                  {numPages > 0 && <span>•</span>}
+                  {numPages > 0 && <span className="font-mono">{pdfViewerStrings.pageCount(numPages)}</span>}
+                </>
+              )}
             </div>
           </div>
-        )}
+        ) : null}
 
         <div className="hidden h-5 w-px bg-border/60 sm:block" />
 
@@ -737,7 +770,7 @@ export function PdfViewerToolbar({
               </DropdownMenuItem>
             )}
 
-            {onShare && (
+            {onShare && variant !== "public-share" && (
               <DropdownMenuItem
                 onClick={onShare}
                 data-command-id="studio.share"
@@ -748,7 +781,23 @@ export function PdfViewerToolbar({
               </DropdownMenuItem>
             )}
 
-            {onRename && (
+            {variant === "public-share" && (
+              <DropdownMenuItem
+                onClick={() => void handleCopyLink()}
+                data-command-id="public.copyLink"
+                data-testid="public-share-copy-link-btn"
+                className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
+              >
+                <span>{copiedLink ? "Bağlantı Kopyalandı" : "Bağlantıyı kopyala"}</span>
+                {copiedLink ? (
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                ) : (
+                  <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+              </DropdownMenuItem>
+            )}
+
+            {onRename && variant !== "public-share" && (
               <>
                 <DropdownMenuSeparator className="bg-border/60 my-1" />
                 <DropdownMenuItem
@@ -769,40 +818,51 @@ export function PdfViewerToolbar({
                   <div className="flex items-center gap-1.5 font-medium text-foreground truncate">
                     <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
                     <span className="truncate">{displayName}</span>
+                    {statusBadge && (
+                      <span className="shrink-0 rounded bg-amber-500/15 border border-amber-500/30 px-1 py-0.2 text-[9px] font-semibold text-amber-500">
+                        {statusBadge}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 text-[10px]">
-                    {sizeBytes != null && <span className="font-mono">{formatBytes(sizeBytes)}</span>}
-                    <span className="uppercase font-bold text-rose-500/90 font-mono">PDF</span>
-                    {numPages > 0 && <span>{pdfViewerStrings.pageCount(numPages)}</span>}
-                  </div>
+                  {expiresAt ? (
+                    <div className="text-[10px] text-muted-foreground truncate">Son geçerlilik: {expiresAt}</div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-[10px]">
+                      {sizeBytes != null && <span className="font-mono">{formatBytes(sizeBytes)}</span>}
+                      <span className="uppercase font-bold text-rose-500/90 font-mono">PDF</span>
+                      {numPages > 0 && <span>{pdfViewerStrings.pageCount(numPages)}</span>}
+                    </div>
+                  )}
                   {createdAt && <div className="text-[10px] text-muted-foreground/80">{formatDate(createdAt)}</div>}
                 </div>
               </>
             )}
             <DropdownMenuSeparator className="bg-border/60 my-1" />
             
-            {/* 1. Son okunan konumu hatırla */}
-            <DropdownMenuItem
-              onClick={() => {
-                if (onToggleRememberPosition) {
-                  onToggleRememberPosition();
-                } else {
-                  const next = !internalRememberPosition;
-                  setInternalRememberPosition(next);
-                  setPdfRememberSettings(next);
-                }
-              }}
-              data-command-id="pdf.settings.rememberPosition"
-              data-testid="pdf-remember-position-toggle"
-              className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
-            >
-              <span>{pdfViewerStrings.rememberPosition}</span>
-              {effectiveRememberPosition ? (
-                <Check className="h-3.5 w-3.5 text-amber-500" />
-              ) : (
-                <span className="text-[10px] text-muted-foreground">{pdfViewerStrings.off}</span>
-              )}
-            </DropdownMenuItem>
+            {/* 1. Son okunan konumu hatırla (Public modda kapalı) */}
+            {variant !== "public-share" && (
+              <DropdownMenuItem
+                onClick={() => {
+                  if (onToggleRememberPosition) {
+                    onToggleRememberPosition();
+                  } else {
+                    const next = !internalRememberPosition;
+                    setInternalRememberPosition(next);
+                    setPdfRememberSettings(next);
+                  }
+                }}
+                data-command-id="pdf.settings.rememberPosition"
+                data-testid="pdf-remember-position-toggle"
+                className="flex items-center justify-between cursor-pointer text-xs rounded-lg py-1.5"
+              >
+                <span>{pdfViewerStrings.rememberPosition}</span>
+                {effectiveRememberPosition ? (
+                  <Check className="h-3.5 w-3.5 text-amber-500" />
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">{pdfViewerStrings.off}</span>
+                )}
+              </DropdownMenuItem>
+            )}
 
             {/* 2. Gece modu */}
             <DropdownMenuItem
@@ -876,7 +936,7 @@ export function PdfViewerToolbar({
               {autoRepairText && <Check className="h-3.5 w-3.5 text-amber-500" />}
             </DropdownMenuItem>
 
-            {onCopyDiagnostics && (
+            {onCopyDiagnostics && variant !== "public-share" && (
               <DropdownMenuItem
                 onClick={onCopyDiagnostics}
                 data-command-id="pdf.diagnostics.copy"
@@ -908,7 +968,7 @@ export function PdfViewerToolbar({
               </>
             )}
 
-            {onDelete && (
+            {onDelete && variant !== "public-share" && (
               <>
                 <DropdownMenuSeparator className="bg-border/60 my-1" />
                 <DropdownMenuItem
@@ -927,7 +987,7 @@ export function PdfViewerToolbar({
         <div className="hidden h-5 w-px bg-border/60 sm:block" />
 
         {/* Paylaşım Butonu */}
-        {onShare && (
+        {onShare && variant !== "public-share" && (
           <StudioCommandButton
             commandId="studio.share"
             onClick={onShare}

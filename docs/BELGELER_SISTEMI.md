@@ -542,3 +542,17 @@ Cihaz kaydı aynı tarayıcı profiline açıktır, şifreli değildir ve bulut 
 - Hobby'de 1 GB Blob depolama, 10 GB Blob Data Transfer ve 2,000 Blob advanced operation sınırı, 50/gün tek tarayıcı varsayımında bile tahmini 5.60 GB 90-gün ortalama depolama ve 2,850 ileri operasyona karşı yetersizdir. 200/gün senaryosu 22.40 GB/90 gün ve yaklaşık 11,400 PUT+list operation/ay üretir. Pro için resmi fiyatla 200/gün + bir tam GET/link Blob tahmini yaklaşık $2.96/aydır; tüm Vercel projesi/Neon/vergiler hariçtir ve bütçe kararı değildir.
 - SSO koruması `all_except_custom_domains` görünse de eski Production deployment yazma/cron rotalarının kapatıldığı kanıtlanmadı. Günlük cleanup 100 nesnelik listelerle 18,000 kayıt için teorik 180 liste sayfası/run gerektirir; gerçek Production backlog/throughput ve cron invocation **NOT_RUN**. Log redaction kaynak incelemesi PASS; Vercel runtime/asset-trace/izole Linux RC doğrulanmadı.
 - Aşama sonucu **ENGELLI**; `YAYINA_HAZIR` değil. Üretim/Preview kaynak izolasyonu, açık kapasite ayarları, eski deployment yazma kısıtı, backlog/cleanup kanıtı ve izole RC dış kapıları sürüyor. Ayrıntı/fiyat kaynakları: `docs/belgeler-paylasim-v3-uygulama/ASAMA_14.md` ve `ASAMA_14_capacity_model.json`.
+
+---
+
+## 14. Paylaşılan Belgeler İçin Birleşik PDF Okuyucu V4 (PdfJsStudio Entegrasyonu)
+
+V3 mimarisinde yer alan `/b/[token]` salt-okunur görüntüleyicisi (`belge-share-viewer.tsx`), tek canvas üzerine çizim yaptığı için metin seçimi yapılamıyor, PDF içi arama çalışmıyor ve kısayollar global capture ile engelleniyordu. V4 sürümünde dokümantasyon modülünde kendini kanıtlamış olan ortak `PdfJsStudio` altyapısı paylaşılan belgelere de entegre edildi:
+
+### 14.1. Mimari Prensipler ve Değişmezler (Invariants)
+1. **Tek Birleşik Okuyucu Çekirdeği:** `PdfJsStudio` bileşeni `variant?: "default" | "public-share"` desteği kazandı. Public share modunda form düzenleme, kaydetme, yeniden adlandırma, silme, paylaşım linki oluşturma ve tanılama (debug HUD) bileşenleri tamamen devreden çıkarılır.
+2. **Metin Seçimi ve PDF İçi Arama:** Canvas arkasında `.textLayer` render edilerek fare ile tam metin seçme, kopyalama ve Türkçe karakter duyarlı (`İ/i`, `I/ı`) hızlı arama motoru etkinleştirildi.
+3. **Güvenli ve Yetkilendirilmiş İndirme:** `src/lib/belge-paylasim/download-client.ts` istemci kütüphanesi oluşturuldu. `/api/belgeler/paylasim/[token]/pdf?download=1` uç noktası üzerinden `Content-Disposition: attachment; filename="<canonical>.pdf"` başlığıyla sunucudan bayt bayt tam eşleşen (SHA-256 parity) PDF indirmesi sağlandı. Çift indirmeleri engelleyen in-flight kilidi ve 60 saniyelik Blob URL temizliği uygulandı.
+4. **Özgün Boyutlu Doğrudan Yazdırma:** `printPdfBytes` motoru ile tüm sayfaların vektörel/özgün boyutlarında doğrudan yazdırılması sağlandı; masaüstünde araç çubuğuna, mobilde ise `⋯` taşma menüsüne bağlandı. `Ctrl+P` ve `Ctrl+S` kısayolları `pdf-shortcuts-modal.tsx` içerisine eklendi.
+5. **Geometri ve Viewport Koruma:** WCAG 1.4.4 gereğince viewport meta etiketlerinde büyütme kısıtlaması (`maximum-scale=1`, `user-scalable=no`) bulunmaz; masaüstünde %400'e kadar keskin PDF yakınlaştırma, dokunmatik cihazlarda bellek korumalı %300 tavanı ve 44px dokunmatik hedefler korunur. Toolbar, PDF zoom container'ının dışındadır ve yakınlaştırma sırasında sabit kalır.
+6. **Salt-Okunur Rozeti ve Son Geçerlilik:** Paylaşılan ekranda sol üstte "Salt Okunur" rozeti ve linkin son geçerlilik tarihi (`formattedExpiry`) net olarak kullanıcıya gösterilir.

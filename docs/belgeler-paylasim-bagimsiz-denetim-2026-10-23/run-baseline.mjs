@@ -1,0 +1,11 @@
+import { spawn } from 'node:child_process';
+import { createWriteStream, readdirSync, writeFileSync } from 'node:fs';
+const files = readdirSync('tests/belgeler').filter(x => /^belge-(share-.*|filename)\.test\.ts$/.test(x)).map(x=>'tests/belgeler/'+x);
+const log = createWriteStream(new URL('./baseline.tap',import.meta.url));
+const started=Date.now();
+const child=spawn(process.execPath,['--import','tsx','--test',...files],{stdio:['ignore','pipe','pipe'],windowsHide:true});
+child.stdout.pipe(log,{end:false});child.stderr.pipe(log,{end:false});
+let timedOut=false;
+const timeout=setTimeout(()=>{timedOut=true; if(process.platform==='win32') spawn('taskkill.exe',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,stdio:'ignore'}); else child.kill('SIGKILL');},180000);
+child.on('error',e=>{console.error(e.message);process.exitCode=1;});
+child.on('close',code=>{clearTimeout(timeout);log.end();const result={files,exitCode:code,timedOut,durationMs:Date.now()-started};writeFileSync(new URL('./baseline-summary.json',import.meta.url),JSON.stringify(result,null,2));console.log(JSON.stringify(result));process.exitCode=timedOut?124:code??1;});

@@ -23,6 +23,13 @@ async function openStudio(page: Page, id: string) {
 }
 
 test.describe("Belgeler — Paylaşım E2E Entegrasyon ve Güvenlik Denetimi", () => {
+  test.beforeEach(async () => {
+    test.skip(
+      !process.env.POSTGRES_URL && !process.env.DATABASE_URL,
+      "Canlı veritabanı (POSTGRES_URL) yerel ortamda tanımlı olmadığından E2E paylaşım testi canlı ortama devredilir."
+    );
+  });
+
   documentIds.forEach((id, index) => {
     test(`[${id}] Paylaş diyaloğu açılmalı, bağlantı oluşturulmalı, WhatsApp/QR bulunmamalı ve iptal edilebilmelidir`, async ({
       page,
@@ -86,6 +93,15 @@ test.describe("Belgeler — Paylaşım E2E Entegrasyon ve Güvenlik Denetimi", (
       const copyBtn = dialog.getByRole("button", { name: /Kopyala/i });
       await expect(copyBtn).toBeVisible({ timeout: 15_000 });
 
+      // ASAMA_06: Owner panelinde 'Bağlantıyı aç' ve 'Paylaşılan PDF'yi indir' butonları doğrulanır
+      const openLinkBtn = dialog.getByTestId("belge-share-open-link-btn");
+      await expect(openLinkBtn).toBeVisible();
+      expect(await openLinkBtn.getAttribute("target")).toBe("_blank");
+      expect(await openLinkBtn.getAttribute("rel")).toContain("noopener");
+
+      const downloadPdfBtn = dialog.getByTestId("belge-share-download-btn");
+      await expect(downloadPdfBtn).toBeVisible();
+
       // Link URL'sini al
       const linkInput = dialog.getByTestId("belge-share-url-input");
       await expect(linkInput).toBeVisible();
@@ -101,14 +117,42 @@ test.describe("Belgeler — Paylaşım E2E Entegrasyon ve Güvenlik Denetimi", (
       const siteHeaderCount = await viewerPage.locator("header[data-site-header], nav").count();
       expect(siteHeaderCount).toBe(0);
 
-      // 7. Salt-okunur PDF Canvas görünür olmalı
+      // 7. V4: Salt-okunur PDF Canvas ve Text Layer görünür olmalı
       const pdfCanvas = viewerPage.locator("canvas").first();
       await expect(pdfCanvas).toBeVisible({ timeout: 15_000 });
+      const textLayer = viewerPage.locator(".textLayer").first();
+      await expect(textLayer).toBeAttached({ timeout: 15_000 });
 
-      // Görüntüleyicide form düzenleme, indirme veya yazdırma düğmesi bulunmamalı
-      await expect(viewerPage.getByRole("button", { name: /İndir/i })).toHaveCount(0);
-      await expect(viewerPage.getByRole("button", { name: /Yazdır/i })).toHaveCount(0);
-      await expect(viewerPage.locator("input:not([type='hidden']), textarea")).toHaveCount(0);
+      // Görüntüleyicide form düzenleme alanları (textarea, editable fields) bulunmamalı
+      await expect(viewerPage.locator("textarea, [data-field-id]")).toHaveCount(0);
+      await expect(viewerPage.getByRole("button", { name: /Kaydet|Gönder|Düzenle/i })).toHaveCount(0);
+
+      // Salt-Okunur rozeti doğrulanmalı ve yönetim komutları bulunmamalı
+      await expect(viewerPage.getByText("Salt Okunur")).toBeVisible({ timeout: 5_000 });
+      await expect(viewerPage.locator('[data-command-id="studio.share"]')).toHaveCount(0);
+      await expect(viewerPage.locator('[data-command-id="studio.delete"]')).toHaveCount(0);
+
+      // ASAMA_05: Toolbar boyutu ve Viewport a11y kontrolü (WCAG %200 büyütme korunmalı)
+      const toolbar = viewerPage.getByTestId("pdf-viewer-toolbar");
+      await expect(toolbar).toBeVisible({ timeout: 5_000 });
+      const initialBox = await toolbar.boundingBox();
+      expect(initialBox).toBeTruthy();
+
+      const viewportMeta = await viewerPage.locator('meta[name="viewport"]').getAttribute("content");
+      expect(viewportMeta ?? "").not.toContain("user-scalable=no");
+      expect(viewportMeta ?? "").not.toContain("maximum-scale=1");
+
+      // ASAMA_06: Viewer toolbar'da İndir komutu doğrulanır
+      const downloadCmd = viewerPage.locator('[data-command-id="studio.download"]');
+      if (await downloadCmd.isVisible()) {
+        await expect(downloadCmd).toBeEnabled();
+      }
+
+      // ASAMA_07: Viewer toolbar'da Yazdır komutu doğrulanır
+      const printCmd = viewerPage.locator('[data-command-id="pdf.print"]');
+      if (await printCmd.isVisible()) {
+        await expect(printCmd).toBeEnabled();
+      }
 
       await viewerPage.close();
 

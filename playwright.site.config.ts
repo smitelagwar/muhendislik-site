@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 import fs from "node:fs";
 
 const port = Number(process.env.PLAYWRIGHT_PORT || 3005);
-const host = process.env.PLAYWRIGHT_HOST === "localhost" ? "localhost" : "127.0.0.1";
+const host = process.env.PLAYWRIGHT_HOST || "localhost";
 const productionServer =
   process.env.PLAYWRIGHT_PRODUCTION_SERVER === "1" ||
   (process.env.PLAYWRIGHT_PRODUCTION_SERVER !== "0" && fs.existsSync(".next"));
@@ -76,5 +76,9 @@ export default defineConfig({
     url: `http://${host}:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      ...process.env,
+      BELGE_SHARE_SECRET: process.env.BELGE_SHARE_SECRET || "dev-local-belge-share-secret-key-32-bytes-minimum-length!",
+    },
   },
 });

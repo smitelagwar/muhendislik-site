@@ -1,0 +1,99 @@
+{
+  "scope": "memory-only, no production access",
+  "results": [
+    {
+      "id": "N01-distinct-concurrency",
+      "observation": {
+        "configured15minLimit": 3,
+        "accepted": 20,
+        "rows": 20
+      }
+    },
+    {
+      "id": "N02-failed-retry",
+      "observation": {
+        "error": "UNIQUE constraint violation: request_id_hash"
+      }
+    },
+    {
+      "id": "N03-cross-client-replay",
+      "observation": {
+        "sameManageToken": true,
+        "status": "existing_ready"
+      }
+    },
+    {
+      "id": "REV2-F32-revoked-reason",
+      "observation": {
+        "status": "revoked",
+        "rowStatus": "purged"
+      }
+    },
+    {
+      "id": "N04-tombstone-token-reuse",
+      "observation": {
+        "sameViewToken": true,
+        "oldUrlStatus": "ok"
+      }
+    },
+    {
+      "id": "N05-failed-blob-retention",
+      "observation": {
+        "blobRemains": true,
+        "cleanupErrors": 0,
+        "countedBytes": 0
+      }
+    },
+    {
+      "id": "N06-storage-getter-throws",
+      "observation": {
+        "threw": true
+      }
+    },
+    {
+      "id": "N07-cron-partial-success",
+      "observation": {
+        "http": 200,
+        "success": true,
+        "errorCount": 1
+      }
+    },
+    {
+      "id": "N08-head-fetches-blob",
+      "observation": {
+        "http": 200,
+        "getCalls": 1
+      }
+    },
+    {
+      "id": "N09-missing-origin-extra-root-fields",
+      "observation": {
+        "accepted": true,
+        "requestIdLength": 8,
+        "injectedLabelKeys": 3
+      }
+    },
+    {
+      "id": "N10-cron-backlog",
+      "observation": {
+        "expiredBefore": 120,
+        "purged": 50,
+        "expiredLeft": 70
+      }
+    },
+    {
+      "id": "N11-late-finalize-after-purge",
+      "observation": {
+        "statusAfterLateFinalize": "ok"
+      }
+    },
+    {
+      "id": "N12-stream-limit-after-read",
+      "observation": {
+        "chunksRead": 20,
+        "totalAvailable": 20,
+        "error": "RequestValidationError"
+      }
+    }
+  ]
+}

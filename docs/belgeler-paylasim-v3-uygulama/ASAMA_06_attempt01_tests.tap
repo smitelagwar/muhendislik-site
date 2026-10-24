@@ -1,0 +1,457 @@
+▶ ASAMA_02: Belge Akıllı Dosya Adı Çekirdeği Birim Testleri
+  ▶ 1. Türkçe Karakter ve ASCII Dönüşümü
+    ✔ Türkçe İ/ı, ğ/Ğ, ü/Ü, ş/Ş, ö/Ö, ç/Ç karakterlerini doğru dönüştürmelidir (1.2266ms)
+  ✔ 1. Türkçe Karakter ve ASCII Dönüşümü (1.8296ms)
+  ▶ 2. Takvim ve Tarih Ayrıştırma (parseBelgeDateToIso)
+    ✔ Geçerli GG.AA.YYYY, GG/AA/YYYY, GG-AA-YYYY ve YYYY-AA-GG formatlarını ISO'ya çevirmelidir (1.4246ms)
+    ✔ Artık yıllarda 29 Şubat'ı geçerli kabul etmelidir (0.1496ms)
+    ✔ Takvimde olmayan tarihleri (31.02.2026, 31.04.2026) geçersiz sayıp now gününe düşmelidir (16.1338ms)
+    ✔ Boş, tanımsız veya geçersiz metinlerde Europe/Istanbul now tarihini kullanmalıdır (0.64ms)
+  ✔ 2. Takvim ve Tarih Ayrıştırma (parseBelgeDateToIso) (18.6042ms)
+  ▶ 3. Güvenlik, Temizlik ve Uzunluk Sınırları
+    ✔ Dizin geçişi (../../etc/passwd) ve yol ayırıcıları temizlemelidir (0.4197ms)
+    ✔ Emoji ve özel karakterleri temizlemelidir (0.3096ms)
+    ✔ 200 karakterlik aşırı uzun ismi 40 karaktere güvenle sınırlamalıdır (0.1628ms)
+    ✔ Çift .pdf uzantısını engellemelidir (0.2901ms)
+    ✔ Toplam dosya adı azami 100 karakteri (.pdf dahil) aşmamalıdır (0.3299ms)
+  ✔ 3. Güvenlik, Temizlik ve Uzunluk Sınırları (1.8209ms)
+  ▶ 4. Beton Döküm YİBF Formatlama
+    ✔ YİBF numarasını doğru formatlamalıdır (0.3796ms)
+    ✔ Boş veya geçersiz YİBF değerinde boş string dönmelidir (0.2012ms)
+  ✔ 4. Beton Döküm YİBF Formatlama (0.7343ms)
+  ▶ 5. 5 Belge x Varsayılan Veriler ve Örnek Kişi Adı Atlaması
+    ✔ Taahhütname: varsayılan verideki örnek kişi adı (Hüseyin GÜNAYDIN) atlanmalı, belge tarihi korunmalıdır (0.2461ms)
+    ✔ Taahhütname: kullanıcı özel ad girdiğinde isim eklenmelidir (0.2033ms)
+    ✔ İstifa Dilekçesi: varsayılan örnek kişi adı atlanmalı, özel adda dosya adına eklenmelidir (0.2072ms)
+    ✔ İnşaat Ruhsatı: varsayılan örnek kişi adı atlanmalı, özel adda dosya adına eklenmelidir (0.195ms)
+    ✔ Hizmet Sözleşmesi: varsayılan örnek adı atlanmalı, sozlesme_tarihi ISO formatlanmalıdır (0.1465ms)
+    ✔ Beton Döküm Tutanağı: YİBF numarası ve tarih doğru bağlanmalıdır (0.146ms)
+  ✔ 5. 5 Belge x Varsayılan Veriler ve Örnek Kişi Adı Atlaması (1.3729ms)
+✔ ASAMA_02: Belge Akıllı Dosya Adı Çekirdeği Birim Testleri (24.9891ms)
+▶ ASAMA_06: Belge Paylaşım HTTP API ve Sunucu PDF Testleri
+  ▶ 1. Her 5 Belge Türü İçin Başarılı POST ve Sunucu Flatten PDF
+    ✖ 1.1 beton-dokum-tutanagi için PDF üretip 201 Created dönmelidir (336.2731ms)
+    ✖ 1.2 santiye-sefi-taahhutnamesi için PDF üretip 201 Created dönmelidir (56.3949ms)
+    ✖ 1.3 santiye-sefi-istifa-dilekcesi için PDF üretip 201 Created dönmelidir (29.2022ms)
+    ✖ 1.4 insaat-ruhsati-dilekcesi için PDF üretip 201 Created dönmelidir (24.7392ms)
+    ✖ 1.5 santiye-sefi-sozlesmesi için PDF üretip 201 Created dönmelidir (37.9051ms)
+  ✖ 1. Her 5 Belge Türü İçin Başarılı POST ve Sunucu Flatten PDF (485.4683ms)
+  ▶ 2. Idempotency ve Çakışma Denetimi
+    ✔ 2.1 Aynı clientRequestId ve aynı verilerle ikinci POST 200 OK ve aynı bağlantıyı dönmelidir (22.3402ms)
+    ✔ 2.2 Aynı clientRequestId ile farklı form verisi gönderilirse 409 IDEMPOTENCY_CONFLICT vermelidir (23.3462ms)
+  ✔ 2. Idempotency ve Çakışma Denetimi (45.9541ms)
+  ▶ 3. İstek Doğrulama ve Güvenlik Filtresi
+    ✔ 3.1 Cross-Site istekleri 403 CROSS_SITE_FORBIDDEN ile engellenmelidir (1.2053ms)
+    ✔ 3.2 Uyuşmayan Origin başlığı 403 INVALID_ORIGIN ile engellenmelidir (1.0691ms)
+    ✔ 3.3 Yanlış Content-Type 415 UNSUPPORTED_MEDIA_TYPE dönmelidir (0.9873ms)
+    ✔ 3.4 64 KiB tavanını aşan gövde 413 PAYLOAD_TOO_LARGE dönmelidir (1.3689ms)
+    ✔ 3.5 Geçersiz JSON sözdizimi 400 INVALID_JSON dönmelidir (0.8808ms)
+    ✔ 3.6 Geçersiz veya kısa clientRequestId 400 dönmelidir (0.8745ms)
+    ✔ 3.7 Desteklenmeyen belge türü 400 UNSUPPORTED_DOCUMENT dönmelidir (0.9029ms)
+    ✔ 3.8 Form allowlist dışı alanlar 400 UNKNOWN_FIELD dönmelidir (0.987ms)
+    ✔ 3.9 2000 karakteri aşan form alanı 400 FIELD_TOO_LONG dönmelidir (0.8614ms)
+  ✔ 3. İstek Doğrulama ve Güvenlik Filtresi (9.5514ms)
+  ▶ 4. Günlük tarayıcı kotası ve eski IP engelleri
+    ✔ 4.1 aynı IP'den dördüncü başarılı yeni link IP preflight'i olmadan oluşturulmalıdır (73.188ms)
+  ✔ 4. Günlük tarayıcı kotası ve eski IP engelleri (73.3077ms)
+  ▶ 5. DELETE /api/belgeler/paylasim/[token] İptal Rotaları
+    ✔ 5.1 Başarılı iptal: DB revoke edilir, Blob silinir ve anında 200 revoked döner (43.7128ms)
+    ✔ 5.2 x-manage-token başlığı eksikse 400 MISSING_MANAGE_TOKEN dönmelidir (0.7287ms)
+    ✔ 5.3 Bilinmeyen token 404 NOT_FOUND dönmelidir (0.7629ms)
+    ✔ 5.4 Başka bağlantının yönetim anahtarı ile silme denemesi 403 FORBIDDEN dönmelidir (29.1059ms)
+  ✔ 5. DELETE /api/belgeler/paylasim/[token] İptal Rotaları (74.5256ms)
+  ▶ 6. İzin Verilmeyen Yöntemler (405)
+    ✔ 6.1 GET /api/belgeler/paylasim 405 Method Not Allowed dönmelidir (0.7985ms)
+    ✔ 6.2 GET /api/belgeler/paylasim/[token] 405 Method Not Allowed dönmelidir (0.5185ms)
+  ✔ 6. İzin Verilmeyen Yöntemler (405) (1.4131ms)
+✖ ASAMA_06: Belge Paylaşım HTTP API ve Sunucu PDF Testleri (690.9475ms)
+▶ Belge Paylaşım — Retention, Cron ve Purge Mekanizması
+  ▶ 1. Cron Rota Yetkilendirme ve Güvenlik
+    ✔ CRON_SECRET ortam değişkeni yoksa fail-closed 401 dönmelidir (5.1376ms)
+    ✔ Authorization başlığı eksikse 401 dönmelidir (0.7817ms)
+    ✔ Yanlış veya sahte Bearer token ile istek 401 dönmelidir (0.6073ms)
+    ✔ GET dışındaki HTTP yöntemleri (POST, PUT, DELETE) 405 dönmelidir (0.4798ms)
+    ✔ Doğru Bearer token ile 200 ve JSON temizlik istatistiği dönmelidir (1.4447ms)
+  ✔ 1. Cron Rota Yetkilendirme ve Güvenlik (9.2997ms)
+  ▶ 2. Süresi Dolan (Expired) ve İptal Edilen (Revoked) Kayıtların Temizliği
+    ✔ Süresi dolmuş (expiresAt geçmişte) bir kayıt ve Blob nesnesi başarıyla silinmelidir (1.2372ms)
+    ✔ İptal edilmiş (status='revoked') bir kayıt süresi dolmamış olsa bile Blob'u silinip purged yapılmalıdır (0.6455ms)
+    ✔ Henüz süresi dolmamış ve iptal edilmemiş aktif kayıtlar asla silinmemelidir (0.508ms)
+  ✔ 2. Süresi Dolan (Expired) ve İptal Edilen (Revoked) Kayıtların Temizliği (2.6664ms)
+  ▶ 3. Eşzamanlılık ve Lease Mekanizması
+    ✔ Aktif lease süresi bulunan kayıt diğer cron tarafından işlenmemelidir (0.3726ms)
+    ✔ Lease süresi dolduğunda kayıt yeniden işlenebilmelidir (0.4328ms)
+  ✔ 3. Eşzamanlılık ve Lease Mekanizması (0.9546ms)
+  ▶ 4. Hata Yönetimi ve Retry (Yeniden Deneme)
+    ✔ Blob silme hatasında hata kaydedilmeli ve sonraki deneme için lease serbest bırakılmalıdır (0.6029ms)
+  ✔ 4. Hata Yönetimi ve Retry (Yeniden Deneme) (0.6916ms)
+  ▶ 5. Takılı Kalan 'pending' Rezervasyonları Uzlaştırma
+    ✔ 24 saatten eski 'pending' kayıtları purge edilmeli ve blob'u temizlenmelidir (0.511ms)
+    ✔ 24 saatten yeni 'pending' kayıtları henüz finalized olmasa bile silinmemelidir (0.4498ms)
+  ✔ 5. Takılı Kalan 'pending' Rezervasyonları Uzlaştırma (1.0651ms)
+  ▶ 6. Yetim (Orphan) Blob Taraması ve İzolasyon
+    ✔ belge_paylasim/ öneki altındaki ve DB kaydı olmayan 24h eski yetim Blob silinmelidir (0.3197ms)
+    ✔ Farklı bir önek altındaki (ör. dok_storage/) nesnelere KESİNLİKLE DOKUNULMAMALIDIR (0.2753ms)
+  ✔ 6. Yetim (Orphan) Blob Taraması ve İzolasyon (0.6979ms)
+  ▶ 7. Mezar Taşı (Tombstone) Temizliği
+    ✔ 30 günden eski 'purged' kayıtları veritabanından tamamen silinmelidir (0.4769ms)
+    ✔ 30 günden yeni 'purged' kayıtları mezar taşı olarak korunmalıdır (0.415ms)
+  ✔ 7. Mezar Taşı (Tombstone) Temizliği (1.0104ms)
+  ▶ 8. Cron Henüz Çalışmasa Bile Anında 410 Expiry Davranışı
+    ✖ Süresi dolan link, cron henüz Blob'u silmemiş olsa dahi /pdf akışından anında 410 dönmelidir (5.4058ms)
+  ✖ 8. Cron Henüz Çalışmasa Bile Anında 410 Expiry Davranışı (5.5569ms)
+✖ Belge Paylaşım — Retention, Cron ve Purge Mekanizması (22.8907ms)
+Yerel bağlantı geçmişi okunamadı: SyntaxError: Unexpected token 'g', "geçersiz b"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at getStoredShareLinks (C:\Users\hsyn\Desktop\muhendis-mimar-portali\src\lib\belge-paylasim\local-link-registry.ts:42:25)
+    at TestContext.<anonymous> (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-client.test.ts:154:21)
+    at Test.runInAsyncScope (node:async_hooks:227:14)
+    at Test.run (node:internal/test_runner/test:1201:25)
+    at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7)
+▶ ASAMA_07: Kullanıcı Bağlantı Geçmişi (Registry) ve Paylaşım Kancası Testleri
+  ▶ 1. Yerel Kayıt Defteri (Local Link Registry)
+    ✔ 1.1 Başlangıçta boş kayıt defteri boş dizi dönmelidir (2.1504ms)
+    ✔ 1.2 addStoredShareLink yeni bağlantıyı eklemeli ve getStoredShareLinks ile okunabilmelidir (0.5815ms)
+    ✔ 1.3 Aynı viewToken tekrar eklendiğinde çoğaltılmamalı, güncellenmelidir (0.5898ms)
+    ✔ 1.4 Azami 20 bağlantı sınırı korunmalıdır (21. bağlantı eski kaydı düşürmelidir) (2.3122ms)
+    ✔ 1.5 markStoredLinkRevoked belirtilen bağlantıya revokedAt damgası vurmalıdır (0.4459ms)
+    ✔ 1.6 Bozuk veya geçersiz JSON durumunda çökmeden boş dizi dönmelidir (2.6465ms)
+    ✔ 1.7 localStorage devre dışı olduğunda (hata fırlattığında) güvenle çalışmalıdır (0.4108ms)
+  ✔ 1. Yerel Kayıt Defteri (Local Link Registry) (11.1329ms)
+  ▶ 2. Güvenlik, URL ve Kapsam Kilitleri
+    ✔ 2.1 formatShareExpiryTr Türkiye saat dilimi (+03:00) ile formatlamalıdır (20.3984ms)
+    ✔ 2.2 validateShareLinkSecurity yetkisiz paylaşım kanallarını reddetmelidir (0.4485ms)
+  ✔ 2. Güvenlik, URL ve Kapsam Kilitleri (21.0875ms)
+✔ ASAMA_07: Kullanıcı Bağlantı Geçmişi (Registry) ve Paylaşım Kancası Testleri (32.8607ms)
+▶ ASAMA_04: Belge Paylaşım Sunucu ve Altyapı Birim Testleri
+  ▶ 1. Kriptografi ve Token Çekirdeği
+    ✔ 1.1 Deterministik token üretimi: 256-bit entropi, domain separation ve SHA-256 hash (1.5184ms)
+    ✔ 1.2 Geçersiz veya boş clientRequestId hata fırlatmalıdır (0.6023ms)
+    ✔ 1.3 computePayloadDigest: Sıralı kanonik JSON ile form bütünlüğü ve değişiklik tespiti (0.5581ms)
+    ✔ 1.4 hashCreatorIp: IP takma adlandırma (pseudonymous HMAC) (0.4866ms)
+    ✔ 1.5 constantTimeCompare: Sabit süreli güvenli karşılaştırma (0.4431ms)
+  ✔ 1. Kriptografi ve Token Çekirdeği (4.5058ms)
+  ▶ 2. Yapılandırma ve Fail-Closed Güvenliği
+    ✔ 2.1 Test ortamında varsayılan güvenli test anahtarı dönmelidir (0.3255ms)
+    ✔ 2.2 Production ortamında BELGE_SHARE_SECRET tanımlı değilse fail-closed hata vermelidir (0.3221ms)
+    ✔ 2.3 Desteklenen 5 belge kimliği tanımlı olmalıdır (0.168ms)
+    ✔ 2.4 Desteklenmeyen belge türü 400 UNSUPPORTED_DOCUMENT fırlatmalıdır (0.6294ms)
+  ✔ 2. Yapılandırma ve Fail-Closed Güvenliği (1.7584ms)
+  ▶ 3. Yaşam Döngüsü: Rezervasyon, Finalize, Sorgulama ve İptal
+    ✔ 3.1 Tam akış: pending -> finalize ready -> get 200 -> revoke 410 (21.5056ms)
+    ✔ 3.2 Bilinmeyen veya boş token durumları 'not_found' dönmelidir (0.2229ms)
+    ✔ 3.3 Süresi dolmuş kayıtlar 'expired' dönmelidir (1.5742ms)
+  ✔ 3. Yaşam Döngüsü: Rezervasyon, Finalize, Sorgulama ve İptal (23.4598ms)
+  ▶ 4. Idempotency ve Çakışma Denetimi
+    ✔ 4.1 Aynı clientRequestId ve aynı form verisi hazır ise mevcut kaydı idempotent döndürmelidir (1.7856ms)
+    ✔ 4.2 Aynı clientRequestId ile FARKLI form verisi gönderilirse 409 IDEMPOTENCY_CONFLICT vermelidir (1.0459ms)
+    ✔ 4.3 İşlem hala pending durumdayken tekrar aynı istek gelirse 409 OPERATION_IN_FLIGHT vermelidir (0.9245ms)
+    ✔ 4.4 İptal edilmiş bağlantının clientRequestId'si ile tekrar bağlantı açılamaz (410 LINK_REVOKED) (1.571ms)
+    ✔ 4.5 Eşzamanlı 20 paralel istek durumunda yarış koşulu (race condition) koruması (3.0862ms)
+  ✔ 4. Idempotency ve Çakışma Denetimi (8.6735ms)
+  ▶ 5. Kota Sınırları ve Aşım Koruması
+    ✔ 5.1 Aynı IP'den 4 istek tarayıcı günlük sınırı içinde rezerve edilir (3.7795ms)
+    ✔ 5.2 IP başına 20 aktif link, ayrı create rezervasyonunu engellemez (0.7941ms)
+    ✔ 5.3 Gerekçeli global günlük sınırı environment config ile uygulanır (2.9713ms)
+    ✔ 5.4 Storage bütçesi committed ve reserved byte yükümlülüklerini birlikte sayar (2.2978ms)
+  ✔ 5. Kota Sınırları ve Aşım Koruması (10.0188ms)
+  ▶ 6. Güvenli İptal Sırası ve Hata Durumları
+    ✔ 6.1 Blob silme başarısız olsa dahi DB revoke kalmalı ve anında 410 vermeli (1.62ms)
+  ✔ 6. Güvenli İptal Sırası ve Hata Durumları (1.6888ms)
+  ▶ 7. Cron Temizlik Lease ve Purge Mekanizması
+    ✔ 7.1 claimExpiredForPurge: Süresi dolmuş ve iptal edilmiş kayıtları kilitler (0.4839ms)
+  ✔ 7. Cron Temizlik Lease ve Purge Mekanizması (0.5552ms)
+✔ ASAMA_04: Belge Paylaşım Sunucu ve Altyapı Birim Testleri (51.5926ms)
+✔ ASAMA_02/04: boş PostgreSQL veritabanında 001→007 kurulumu ve migration tekrar çalıştırma (1825.7726ms)
+✔ ASAMA_02: legacy kaydın kimliği, token hashleri ve süresi korunur; eski okuma/iptal SQL'i çalışır (1370.7115ms)
+✔ ASAMA_02: günlük quota UNIQUE ve tüm sayaçların negatif olmayan kısıtları uygulanır (1338.9268ms)
+belge_share_request_failed {
+  category: 'runtime',
+  durationMs: 6,
+  requestCorrelationId: '39e81799-a046-41a8-9158-27eb40a402ba'
+}
+belge_share_request_failed {
+  category: 'runtime',
+  durationMs: 0,
+  requestCorrelationId: '15407de3-f58a-40a3-8d62-277f2137a8b0'
+}
+belge_share_request_failed {
+  category: 'runtime',
+  durationMs: 1,
+  requestCorrelationId: '1942baa8-d2cf-4b25-b3f0-d038aa6d60ba'
+}
+✔ ASAMA_02: silinmemiş Blob byte borcu tombstone silinince ilişkisiz kalır ve korunur (1242.0399ms)
+✔ ASAMA_02: schema readiness yalnız SELECT yapar ve eksik/eski sürümü güvenli 503'e çevirir (0.9515ms)
+✔ ASAMA_02: Neon public token GET önce salt-okunur readiness sorgusu yapar, runtime DDL çalıştırmaz (1.0607ms)
+✔ ASAMA_02: production modunda Vercel dışında otomatik Memory fallback yok; explicit test adaptörü production'da reddedilir (1.9327ms)
+✔ ASAMA_02: share POST/DELETE/PDF GET eksik DB veya Blob konfigürasyonunda ayrıntısız 503 döndürür (28.5667ms)
+✔ ASAMA_03: bootstrap 256-bit imzalı HttpOnly cookie verir; host-only/path/SameSite ve local Secure istisnası doğrudur (11.9324ms)
+✔ ASAMA_03: imza, versiyon, expiry ve kimlik aynı kalırken cookie yenilemesi doğrulanır (1.4874ms)
+✔ ASAMA_03: Istanbul kota günü 00.00'da değişir; host, ortam ve gün ayrımları doğru uygulanır (17.2647ms)
+✔ ASAMA_03: create POST kimlik yok veya bozuksa 428 döndürür, cookie üretmez ve kayıt açmaz (2.1193ms)
+✔ ASAMA_03: kota GET cookie echo yapar, aynı tarayıcı sekmelerini birleştirir ve aynı IP'deki ayrı browser'ları ayırır (4.8705ms)
+✔ ASAMA_03: bozuk cookie bootstrap ile değiştirilir; eksik echo 428 verir (0.8153ms)
+✔ ASAMA_03: PGlite repository kota sayacını doğru env/owner/day satırından SELECT eder ve boş satırı ayırt eder (1668.4565ms)
+✔ ASAMA_03: Web Locks olmayan iki sekmede BroadcastChannel tek ilk cookie mint eder ve ikisi de cookie echo ile kotayı okur (75.344ms)
+✔ ASAMA_03: lider bootstrap hata verirse bekleyen sekmeler ikinci paralel mint başlatmaz (78.7503ms)
+✔ ASAMA_03: cookie reddi en çok iki bootstrap/echo denemesinde açıklanır; sonsuz döngü yoktur (1.1922ms)
+✔ ASAMA_03: GET cookie echo sonrası kota aggregate'ini döndürür; endpoint POST bootstrap yanıtı kimliği açığa çıkarmaz (2.769ms)
+✔ ASAMA_03: DB yokken kota GET 503 verir; eksik tabloyu bellekten boş quota diye uydurmaz (1.6321ms)
+▶ ASAMA_04: replay proof, V2 token ve attempt fencing
+  ✔ V2 tokens are stable for the stored nonce and change after tombstone GC (23.1899ms)
+  ✔ only the same owner, proof and payload can recover a ready reservation (2.5004ms)
+  ✔ legacy requestId-only records never regenerate a manage token (0.5523ms)
+  ✔ a failed operation retries as a new fenced attempt while preserving its logical tokens (2.0003ms)
+  ✔ expired lease takeover fences late finalize and revoke cannot be undone (2.6956ms)
+  ✔ 20 simultaneous replays create one logical reservation without UNIQUE failures (3.0204ms)
+  ✔ isolated PostgreSQL retries the same request id and keeps one row (1678.3325ms)
+  ✔ status GET requires cookie and proof, returns ready tokens without any form fields and is no-store (17.9871ms)
+  ✖ Blob PUT sonrası finalize hatası failed olur; aynı payload yeni path ile retry edilir (2.6426ms)
+  ✖ finalize commit yanıtı kaybolursa genel hata hazır kaydı failed yapmaz (1.3044ms)
+  ✔ unavailable stored key version fails closed rather than changing old token hashes (1.5561ms)
+✖ ASAMA_04: replay proof, V2 token ve attempt fencing (1737.2452ms)
+▶ ASAMA_05: atomik 50/gün ve fiziksel Blob byte muhasebesi
+  ✔ 1, 49 ve 50 başarılı link hakkını verir; 51. başarı 429 günlük kotasıdır (68.8723ms)
+  ✔ 49 used + 1 reserved geçişini ayırır ve başarıdan sonra kalan hakkı sıfırlar (43.9614ms)
+  ✔ 100 farklı ID paralelinde tam 50 rezervasyon alır; aynı ID tekrarları yeni hak tüketmez (81.1623ms)
+  ✔ başarısız iş hakkı bir kez iade eder; aynı proof ile retry tekrar rezervasyon alır (3.0769ms)
+  ✔ İstanbul gece yarısını aşan rezervasyon yeni güne atomik taşınır; dolu yeni gün başarı sayılmaz (4.1556ms)
+  ✔ bir byte boşluk bırakan iki PUT rezervasyonundan yalnız ilkini alır (3.395ms)
+  ✔ iptal ve Blob silme hatası kapasiteyi boşaltmaz; fiziksel silme onayında boşaltır (4.2473ms)
+  ✔ PGlite SQL fonksiyonu iki repository örneğinde 100 ID'yi 50 rezervasyonda keser (1842.2955ms)
+  ✔ PGlite SQL refund idempotenttir; silme yükümlülüğü ancak onayda kapasiteden düşer (1285.7907ms)
+✔ ASAMA_05: atomik 50/gün ve fiziksel Blob byte muhasebesi (3338.5691ms)
+▶ ASAMA_06: sınırlı HTTP body, strict schema ve canonical share origin
+  ✔ UTF-8 gövde tam 64 KiB iken kabul edilir (24.5052ms)
+  ✖ küçük yalan Content-Length'e rağmen 64 KiB+1'de akışı iptal eder (2.4968ms)
+  ✔ doğru Content-Length olsa bile gerçek stream baytlarını sınırlar (0.7662ms)
+  ✔ Origin ve Host eksik, null, şema/port/host farklı ise DB öncesi reddeder (1.3887ms)
+  ✔ body/values allowlist'ini, düz nesneyi ve string değerleri uygular (2.7764ms)
+  ✖ yavaş gövdeyi zaman aşımında iptal eder (21.5748ms)
+  ✔ production canonical hostunu kullanır; Preview yalnız tam allowlist origin'i kabul eder (1.3921ms)
+✖ ASAMA_06: sınırlı HTTP body, strict schema ve canonical share origin (56.0109ms)
+▶ ASAMA_03: Paylaş Arayüzü ve Kanca Sözleşmesi Birim Testleri
+  ✔ 1. Başlangıç durumları varsayılan olarak kapalı, boş ve offline olmalıdır (0.7505ms)
+  ✔ 2. formatShareExpiryTr geçerli ISO tarihini Türkiye saatine çevirmelidir (17.6931ms)
+  ✔ 3. validateShareLinkSecurity HTTPS bağlantılarını onaylamalı, yetkisiz kanalları reddetmelidir (0.4147ms)
+  ✔ 4. ActiveShareLink nesnesi ve 90 günlük sözleşme alanları eksiksiz olmalıdır (0.1797ms)
+  ✔ 5. Kesin Kapsam Sözleşmesi: WhatsApp, wa.me veya navigator.share arayüzde yer almamalıdır (0.1166ms)
+✔ ASAMA_03: Paylaş Arayüzü ve Kanca Sözleşmesi Birim Testleri (20.1839ms)
+▶ ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri
+  ▶ 1. GET /api/belgeler/paylasim/[token]/pdf Akış Rotaları
+    ✔ 1.1 Hazır ve geçerli token için 200 OK, inline PDF başlığı ve stream dönmelidir (6.7064ms)
+    ✔ 1.2 HEAD isteği 200 OK ve başlıkları dönmeli, gövde boş olmalıdır (0.8979ms)
+    ✔ 1.3 İptal edilmiş (revoked) bağlantı için anında 410 Gone dönmelidir (1.2632ms)
+    ✔ 1.4 Süresi dolmuş (expired) bağlantı için 410 Gone dönmelidir (1.0659ms)
+    ✔ 1.5 Bilinmeyen token için DB sorgusundan sonra 404 Not Found dönmelidir (0.8908ms)
+    ✔ 1.6 İzin verilmeyen yöntemler (POST, DELETE) 405 Method Not Allowed dönmelidir (0.8542ms)
+  ✔ 1. GET /api/belgeler/paylasim/[token]/pdf Akış Rotaları (12.5457ms)
+  ▶ 2. /b/[token] Sunucu Sayfası ve Güvenlik Meta Verileri
+    ✔ 2.1 metadata index: false, follow: false ve noarchive içermelidir (0.9014ms)
+    ✔ 2.2 robots.ts dosyasında /b/ yolu disallow allowlist'inde yer almalıdır (0.3166ms)
+    ✔ 2.3 BelgeViewerPage bilinmeyen token için 'Belge Bulunamadı' ekranı render etmelidir (0.7357ms)
+    ✔ 2.4 BelgeViewerPage iptal edilmiş token için 'Bağlantı İptal Edildi' ekranı render etmelidir (0.5139ms)
+    ✔ 2.5 BelgeViewerPage süresi dolmuş token için 'Süre Doldu' ekranı render etmelidir (0.342ms)
+    ✔ 2.6 BelgeViewerPage geçerli token için BelgeShareViewer bileşenini döndürmelidir (1.2412ms)
+  ✔ 2. /b/[token] Sunucu Sayfası ve Güvenlik Meta Verileri (4.4084ms)
+✔ ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri (17.3924ms)
+ℹ tests 155
+ℹ suites 40
+ℹ pass 145
+ℹ fail 10
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 23574.2708
+
+✖ failing tests:
+
+test at tests\belgeler\belge-share-api.test.ts:2:4116
+✖ 1.1 beton-dokum-tutanagi için PDF üretip 201 Created dönmelidir (336.2731ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(data.requestCorrelationId)
+  
+      at TestContext.<anonymous> (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-api.test.ts:137:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\belgeler\belge-share-api.test.ts:2:4116
+✖ 1.2 santiye-sefi-taahhutnamesi için PDF üretip 201 Created dönmelidir (56.3949ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(data.requestCorrelationId)
+  
+      at TestContext.<anonymous> (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-api.test.ts:137:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\belgeler\belge-share-api.test.ts:2:4116
+✖ 1.3 santiye-sefi-istifa-dilekcesi için PDF üretip 201 Created dönmelidir (29.2022ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(data.requestCorrelationId)
+  
+      at TestContext.<anonymous> (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-api.test.ts:137:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\belgeler\belge-share-api.test.ts:2:4116
+✖ 1.4 insaat-ruhsati-dilekcesi için PDF üretip 201 Created dönmelidir (24.7392ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(data.requestCorrelationId)
+  
+      at TestContext.<anonymous> (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-api.test.ts:137:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\belgeler\belge-share-api.test.ts:2:4116
+✖ 1.5 santiye-sefi-sozlesmesi için PDF üretip 201 Created dönmelidir (37.9051ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(data.requestCorrelationId)
+  
+      at TestContext.<anonymous> (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-api.test.ts:137:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\belgeler\belge-share-cleanup.test.ts:2:16577
+✖ Süresi dolan link, cron henüz Blob'u silmemiş olsa dahi /pdf akışından anında 410 dönmelidir (5.4058ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  400 !== 410
+  
+      at TestContext.<anonymous> (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-cleanup.test.ts:503:14)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1619:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 410,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\belgeler\belge-share-stage04.test.ts:2:16506
+✖ Blob PUT sonrası finalize hatası failed olur; aynı payload yeni path ile retry edilir (2.6426ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  400 !== 500
+  
+      at TestContext.<anonymous> (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-stage04.test.ts:361:12)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 500,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\belgeler\belge-share-stage04.test.ts:2:18976
+✖ finalize commit yanıtı kaybolursa genel hata hazır kaydı failed yapmaz (1.3044ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  400 !== 200
+  
+      at TestContext.<anonymous> (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-stage04.test.ts:415:12)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\belgeler\belge-share-stage06.test.ts:2:2524
+✖ küçük yalan Content-Length'e rağmen 64 KiB+1'de akışı iptal eder (2.4968ms)
+  AssertionError [ERR_ASSERTION]: limit aşılınca sonraki stream chunk'ı okunmamalı
+  
+  3 !== 2
+  
+      at TestContext.<anonymous> (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-stage06.test.ts:55:12)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 3,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\belgeler\belge-share-stage06.test.ts:2:6625
+✖ yavaş gövdeyi zaman aşımında iptal eder (21.5748ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  RequestValidationError: İstek gövdesi boş olamaz.
+      at async expectValidationCode (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-stage06.test.ts:26:3)
+      at async TestContext.<anonymous> (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-stage06.test.ts:131:5)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: RequestValidationError: İstek gövdesi boş olamaz.
+        at validationError (C:\Users\hsyn\Desktop\muhendis-mimar-portali\src\lib\belge-paylasim\request-validation.ts:31:10)
+        at validateShareCreateRequest (C:\Users\hsyn\Desktop\muhendis-mimar-portali\src\lib\belge-paylasim\request-validation.ts:197:11)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async expectValidationCode (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-stage06.test.ts:26:3)
+        at async TestContext.<anonymous> (C:\Users\hsyn\Desktop\muhendis-mimar-portali\tests\belgeler\belge-share-stage06.test.ts:131:5)
+        at async Test.run (node:internal/test_runner/test:1208:7)
+        at async Suite.processPendingSubtests (node:internal/test_runner/test:831:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }

@@ -8,6 +8,7 @@ import { getBelgeBlobStore } from "@/lib/belge-paylasim/blob-store";
 import { createRequestCorrelationId, logShareRequestFailure, shareErrorResponse, shareMethodNotAllowed, shareOptionsResponse, shareResponseHeaders } from "@/lib/belge-paylasim/http";
 import { getShareByViewToken } from "@/lib/belge-paylasim/service-core";
 import { isValidShareToken } from "@/lib/belge-paylasim/tokens";
+import { getBelgeContentDisposition } from "@/lib/belge-paylasim/document-labels";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -52,18 +53,28 @@ function isErrorResponse(value: unknown): value is Response {
   return value instanceof Response;
 }
 
-function getPdfHeaders(requestCorrelationId: string, sizeBytes?: number): Headers {
-  const headers = shareResponseHeaders(requestCorrelationId, PDF_HEADERS);
+function getPdfHeaders(requestCorrelationId: string, sizeBytes?: number, contentDisposition?: string): Headers {
+  const customHeaders: Record<string, string> = {
+    ...PDF_HEADERS,
+    ...(contentDisposition ? { "Content-Disposition": contentDisposition } : {}),
+  };
+  const headers = shareResponseHeaders(requestCorrelationId, customHeaders);
   if (sizeBytes !== undefined) headers.set("Content-Length", String(sizeBytes));
   return headers;
 }
 
-export async function GET(_request: Request, params: RouteParams) {
+export async function GET(request: Request, params: RouteParams) {
   const requestCorrelationId = createRequestCorrelationId();
   const startedAt = performance.now();
   try {
     const resolved = await resolveReadyShare(params, requestCorrelationId);
     if (isErrorResponse(resolved)) return resolved;
+
+    const isDownload = new URL(request.url).searchParams.get("download") === "1";
+    const disposition = getBelgeContentDisposition(
+      resolved.record.documentId,
+      isDownload ? "attachment" : "inline"
+    );
 
     const blobResponse = await getBelgeBlobStore().get(resolved.record.blobPathname);
     if (!blobResponse?.ok || !blobResponse.body) {
@@ -72,7 +83,7 @@ export async function GET(_request: Request, params: RouteParams) {
 
     return new NextResponse(blobResponse.body, {
       status: 200,
-      headers: getPdfHeaders(requestCorrelationId, resolved.record.sizeBytes ?? undefined),
+      headers: getPdfHeaders(requestCorrelationId, resolved.record.sizeBytes ?? undefined, disposition),
     });
   } catch (error) {
     if (error instanceof BelgeShareRuntimeError) {
@@ -85,7 +96,7 @@ export async function GET(_request: Request, params: RouteParams) {
 }
 
 /** Metadata and lifecycle check only; HEAD must never open or stream the Blob. */
-export async function HEAD(_request: Request, params: RouteParams) {
+export async function HEAD(request: Request, params: RouteParams) {
   const requestCorrelationId = createRequestCorrelationId();
   const startedAt = performance.now();
   try {
@@ -96,9 +107,16 @@ export async function HEAD(_request: Request, params: RouteParams) {
         headers: resolved.headers,
       });
     }
+
+    const isDownload = new URL(request.url).searchParams.get("download") === "1";
+    const disposition = getBelgeContentDisposition(
+      resolved.record.documentId,
+      isDownload ? "attachment" : "inline"
+    );
+
     return new Response(null, {
       status: 200,
-      headers: getPdfHeaders(requestCorrelationId, resolved.record.sizeBytes ?? undefined),
+      headers: getPdfHeaders(requestCorrelationId, resolved.record.sizeBytes ?? undefined, disposition),
     });
   } catch (error) {
     if (error instanceof BelgeShareRuntimeError) {

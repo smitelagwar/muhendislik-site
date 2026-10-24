@@ -1,0 +1,83 @@
+▶ ASAMA_02: Belge Akıllı Dosya Adı Çekirdeği Birim Testleri
+  ▶ 1. Türkçe Karakter ve ASCII Dönüşümü
+    ✔ Türkçe İ/ı, ğ/Ğ, ü/Ü, ş/Ş, ö/Ö, ç/Ç karakterlerini doğru dönüştürmelidir (1.2862ms)
+  ✔ 1. Türkçe Karakter ve ASCII Dönüşümü (1.9005ms)
+  ▶ 2. Takvim ve Tarih Ayrıştırma (parseBelgeDateToIso)
+    ✔ Geçerli GG.AA.YYYY, GG/AA/YYYY, GG-AA-YYYY ve YYYY-AA-GG formatlarını ISO'ya çevirmelidir (1.4475ms)
+    ✔ Artık yıllarda 29 Şubat'ı geçerli kabul etmelidir (0.1697ms)
+    ✔ Takvimde olmayan tarihleri (31.02.2026, 31.04.2026) geçersiz sayıp now gününe düşmelidir (16.6724ms)
+    ✔ Boş, tanımsız veya geçersiz metinlerde Europe/Istanbul now tarihini kullanmalıdır (0.6537ms)
+  ✔ 2. Takvim ve Tarih Ayrıştırma (parseBelgeDateToIso) (19.2188ms)
+  ▶ 3. Güvenlik, Temizlik ve Uzunluk Sınırları
+    ✔ Dizin geçişi (../../etc/passwd) ve yol ayırıcıları temizlemelidir (0.4047ms)
+    ✔ Emoji ve özel karakterleri temizlemelidir (0.3451ms)
+    ✔ 200 karakterlik aşırı uzun ismi 40 karaktere güvenle sınırlamalıdır (0.1907ms)
+    ✔ Çift .pdf uzantısını engellemelidir (0.3093ms)
+    ✔ Toplam dosya adı azami 100 karakteri (.pdf dahil) aşmamalıdır (0.3315ms)
+  ✔ 3. Güvenlik, Temizlik ve Uzunluk Sınırları (1.8901ms)
+  ▶ 4. Beton Döküm YİBF Formatlama
+    ✔ YİBF numarasını doğru formatlamalıdır (0.3903ms)
+    ✔ Boş veya geçersiz YİBF değerinde boş string dönmelidir (0.2067ms)
+  ✔ 4. Beton Döküm YİBF Formatlama (0.7551ms)
+  ▶ 5. 5 Belge x Varsayılan Veriler ve Örnek Kişi Adı Atlaması
+    ✔ Taahhütname: varsayılan verideki örnek kişi adı (Hüseyin GÜNAYDIN) atlanmalı, belge tarihi korunmalıdır (0.3216ms)
+    ✔ Taahhütname: kullanıcı özel ad girdiğinde isim eklenmelidir (0.2503ms)
+    ✔ İstifa Dilekçesi: varsayılan örnek kişi adı atlanmalı, özel adda dosya adına eklenmelidir (0.2131ms)
+    ✔ İnşaat Ruhsatı: varsayılan örnek kişi adı atlanmalı, özel adda dosya adına eklenmelidir (0.14ms)
+    ✔ Hizmet Sözleşmesi: varsayılan örnek adı atlanmalı, sozlesme_tarihi ISO formatlanmalıdır (0.1515ms)
+    ✔ Beton Döküm Tutanağı: YİBF numarası ve tarih doğru bağlanmalıdır (0.1441ms)
+  ✔ 5. 5 Belge x Varsayılan Veriler ve Örnek Kişi Adı Atlaması (1.4329ms)
+✔ ASAMA_02: Belge Akıllı Dosya Adı Çekirdeği Birim Testleri (25.8057ms)
+▶ ASAMA_12: five documents x blank/sample/Turkish-long PDF contracts
+  ✔ beton/blank: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (263.6234ms)
+  ✔ beton/sample: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (220.8607ms)
+  ✔ beton/turkish-long: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (450.1884ms)
+  ✔ taahhutname/blank: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (114.9105ms)
+  ✔ taahhutname/sample: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (140.5172ms)
+  ✔ taahhutname/turkish-long: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (109.678ms)
+  ✔ istifa/blank: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (53.3974ms)
+  ✔ istifa/sample: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (80.4612ms)
+  ✔ istifa/turkish-long: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (180.1548ms)
+  ✔ ruhsat/blank: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (39.728ms)
+  ✔ ruhsat/sample: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (73.4888ms)
+  ✔ ruhsat/turkish-long: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (176.7381ms)
+  ✔ sozlesme/blank: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (73.3349ms)
+  ✔ sozlesme/sample: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (81.3215ms)
+  ✔ sozlesme/turkish-long: page count, canonical fields/widgets, fresh AP, no DV; flattened fields/widgets/tree=0 (82.6276ms)
+✔ ASAMA_12: five documents x blank/sample/Turkish-long PDF contracts (2142.7992ms)
+▶ ASAMA_12: malformed output is rejected before storage
+  ✔ rejects PDF-looking corrupt data, undersize and over-limit payloads (4.4068ms)
+  ✔ rejects wrong page count and editable fields even with a valid header (26.9611ms)
+  ✔ rejects orphan Widget annotations even without an AcroForm catalog entry (1.1952ms)
+  ✔ actual POST cannot upload a corrupt template in an isolated working directory (1303.3148ms)
+✔ ASAMA_12: malformed output is rejected before storage (1336.109ms)
+▶ ASAMA_12: filenames do not constrain user form values
+  ✔ accepts exactly seven ASCII digits, preserves leading zero, omits every other YIBF (18.6801ms)
+  ✔ keeps leap/invalid dates deterministic and uses Istanbul next-day fallback (0.8399ms)
+  ✔ all five empty names, sample names, unicode/path inputs and long names stay <=100 ASCII characters (2.0822ms)
+  ✔ explicit filename overrides on all five download helpers stay intact (1.8737ms)
+✔ ASAMA_12: filenames do not constrain user form values (23.6411ms)
+Belge field + gerçek PDF template contract testi başarılı.
+✔ tests\belgeler\document-field-contract.test.ts (500.1469ms)
+Belge blank + default PDF üretim regresyon testi başarılı.
+✔ tests\belgeler\pdf-generation-regression.test.ts (1123.4596ms)
+✔ beton-dokum-tutanagi: bütün alanlar nominal puntoda ve doğru tabanda çizilir; gerçek AP raporla aynıdır (333.4154ms)
+✔ beton-dokum-tutanagi: boş çıktı gerçekten boş ve doldurulabilirdir; sabit etiketler ve görünüm akışları korunur (22.6519ms)
+✔ santiye-sefi-istifa-dilekcesi: bütün alanlar nominal puntoda ve doğru tabanda çizilir; gerçek AP raporla aynıdır (41.0539ms)
+✔ santiye-sefi-istifa-dilekcesi: boş çıktı gerçekten boş ve doldurulabilirdir; sabit etiketler ve görünüm akışları korunur (25.1925ms)
+✔ insaat-ruhsati-dilekcesi: bütün alanlar nominal puntoda ve doğru tabanda çizilir; gerçek AP raporla aynıdır (43.0315ms)
+✔ insaat-ruhsati-dilekcesi: boş çıktı gerçekten boş ve doldurulabilirdir; sabit etiketler ve görünüm akışları korunur (20.2738ms)
+✔ santiye-sefi-sozlesmesi: bütün alanlar nominal puntoda ve doğru tabanda çizilir; gerçek AP raporla aynıdır (34.9572ms)
+✔ santiye-sefi-sozlesmesi: boş çıktı gerçekten boş ve doldurulabilirdir; sabit etiketler ve görünüm akışları korunur (31.1624ms)
+✔ santiye-sefi-taahhutnamesi: bütün alanlar nominal puntoda ve doğru tabanda çizilir; gerçek AP raporla aynıdır (34.4677ms)
+✔ santiye-sefi-taahhutnamesi: boş çıktı gerçekten boş ve doldurulabilirdir; sabit etiketler ve görünüm akışları korunur (32.2495ms)
+✔ Uzun metin ve Türkçe glifler bütün düzenlenebilir alanlarda kutuda kalır; kısaltılmaz (355.1566ms)
+✔ Kabul denetimi 5 pt, kaymış taban, örnek verili boş belge ve gerçek kırpılma örneklerini reddeder (33.1349ms)
+ℹ tests 55
+ℹ suites 9
+ℹ pass 55
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8051.7993
