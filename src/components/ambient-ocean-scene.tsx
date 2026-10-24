@@ -125,18 +125,41 @@ export function AmbientOceanScene({ enabled = true, className = "" }: AmbientOce
       }
     };
 
+    let measureRaf: number | null = null;
+    const scheduleMeasure = (paintIfReduced = false) => {
+      if (measureRaf !== null) return;
+      measureRaf = requestAnimationFrame(() => {
+        measureRaf = null;
+        measure();
+        if (paintIfReduced && reducedMotion && !document.hidden) {
+          paint(true);
+        }
+      });
+    };
+
     const measure = () => {
       const gutter = Math.max(width * 0.095, (width - 1312) / 2 - 24);
       const root = container.closest("section");
-      const cards = Array.from(root?.querySelectorAll("[data-whale-card]") ?? []).map(el =>
-        el.getBoundingClientRect()
-      );
-      panels = Array.from(root?.querySelectorAll("[data-whale-protect]") ?? []).map(el =>
-        el.getBoundingClientRect()
-      );
-      if (cards.length > 0) {
-        leftCorridor = Math.max(60, Math.min(...cards.map(r => r.left)) - 12);
-        rightCorridor = Math.min(width - 60, Math.max(...cards.map(r => r.right)) + 12);
+      if (!root) return;
+      const cardEls = root.querySelectorAll<HTMLElement>("[data-whale-card]");
+      const protectEls = root.querySelectorAll<HTMLElement>("[data-whale-protect]");
+
+      const newPanels: DOMRect[] = [];
+      for (let i = 0; i < protectEls.length; i++) {
+        newPanels.push(protectEls[i].getBoundingClientRect());
+      }
+      panels = newPanels;
+
+      if (cardEls.length > 0) {
+        let minLeft = Infinity;
+        let maxRight = -Infinity;
+        for (let i = 0; i < cardEls.length; i++) {
+          const r = cardEls[i].getBoundingClientRect();
+          if (r.left < minLeft) minLeft = r.left;
+          if (r.right > maxRight) maxRight = r.right;
+        }
+        leftCorridor = Math.max(60, minLeft - 12);
+        rightCorridor = Math.min(width - 60, maxRight + 12);
       } else {
         leftCorridor = Math.max(60, gutter);
         rightCorridor = Math.min(width - 60, width - gutter);
@@ -154,9 +177,8 @@ export function AmbientOceanScene({ enabled = true, className = "" }: AmbientOce
       paint(reducedMotion);
     };
 
-    const layoutChange = () => {
-      measure();
-      if (reducedMotion && !document.hidden) paint(true);
+    const onScrollOrMutation = () => {
+      scheduleMeasure(true);
     };
 
     const motionChange = (event: MediaQueryListEvent) => {
@@ -169,7 +191,7 @@ export function AmbientOceanScene({ enabled = true, className = "" }: AmbientOce
       if (!document.hidden) paint(reducedMotion);
     });
     const resizeObserver = new ResizeObserver(resize);
-    const contentObserver = new MutationObserver(layoutChange);
+    const contentObserver = new MutationObserver(onScrollOrMutation);
 
     resize();
     resizeObserver.observe(container);
@@ -182,12 +204,13 @@ export function AmbientOceanScene({ enabled = true, className = "" }: AmbientOce
     media.addEventListener("change", motionChange);
     document.addEventListener("visibilitychange", sync);
     window.addEventListener("resize", resize);
-    window.addEventListener("scroll", layoutChange, { passive: true });
+    window.addEventListener("scroll", onScrollOrMutation, { passive: true });
     syncRef.current = sync;
     sync();
 
     return () => {
       stop();
+      if (measureRaf !== null) cancelAnimationFrame(measureRaf);
       syncRef.current = () => {};
       resizeObserver.disconnect();
       themeObserver.disconnect();
@@ -195,7 +218,7 @@ export function AmbientOceanScene({ enabled = true, className = "" }: AmbientOce
       media.removeEventListener("change", motionChange);
       document.removeEventListener("visibilitychange", sync);
       window.removeEventListener("resize", resize);
-      window.removeEventListener("scroll", layoutChange);
+      window.removeEventListener("scroll", onScrollOrMutation);
     };
   }, []);
 

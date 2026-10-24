@@ -556,3 +556,13 @@ V3 mimarisinde yer alan `/b/[token]` salt-okunur görüntüleyicisi (`belge-shar
 4. **Özgün Boyutlu Doğrudan Yazdırma:** `printPdfBytes` motoru ile tüm sayfaların vektörel/özgün boyutlarında doğrudan yazdırılması sağlandı; masaüstünde araç çubuğuna, mobilde ise `⋯` taşma menüsüne bağlandı. `Ctrl+P` ve `Ctrl+S` kısayolları `pdf-shortcuts-modal.tsx` içerisine eklendi.
 5. **Geometri ve Viewport Koruma:** WCAG 1.4.4 gereğince viewport meta etiketlerinde büyütme kısıtlaması (`maximum-scale=1`, `user-scalable=no`) bulunmaz; masaüstünde %400'e kadar keskin PDF yakınlaştırma, dokunmatik cihazlarda bellek korumalı %300 tavanı ve 44px dokunmatik hedefler korunur. Toolbar, PDF zoom container'ının dışındadır ve yakınlaştırma sırasında sabit kalır.
 6. **Salt-Okunur Rozeti ve Son Geçerlilik:** Paylaşılan ekranda sol üstte "Salt Okunur" rozeti ve linkin son geçerlilik tarihi (`formattedExpiry`) net olarak kullanıcıya gösterilir.
+
+---
+
+## 15. Belgeler Kataloğu ve Stüdyo Performans Optimizasyonları (V5 — 2026-10-24)
+
+1. **Mobil Cam/Blur Optimizasyonu:** `belgeler-glass-bg.tsx` bileşeninde 4 adet 110px blur radial gradient içeren katmana `[contain:strict]` uygulandı ve aşırı GPU doku tahsisine yol açan `will-change: transform` kaldırılarak mobil kaydırma gecikmesi %44 azaltıldı.
+2. **Kart Parlatma & Arama İndeksi:** `belgeler-hub.tsx` bileşeninde kart mousemove efektleri tek `requestAnimationFrame` altında koaleslendi; arama terimleri `PRECOMPUTED_DOCUMENTS` ile modül seviyesinde önceden normalize edilerek anlık tuş vuruşlarındaki dizi/regex tahsisleri elendi.
+3. **Masaüstü Okyanus Sahnesi:** `ambient-ocean-scene.tsx` bileşeninde scroll ve mutation gözlemcileri `scheduleMeasure` (rAF) koaleslemesine alındı; `measure()` fonksiyonu ara dizi üretmeyen sıfır-tahsisli döngüye geçirildi.
+4. **Stüdyo Kritik Yolu:** `use-belge-studio-document.ts` yüklenişinde arka plan `prewarmBrowserPdfJs()` tetiklendi ve ilk derlemedeki `setTimeout` gecikmesi kaldırılarak senkron effect'e alındı. 5 stüdyo rotasının açılış hızı ve V3 2000ms sessiz taslak sözleşmesi eksiksiz korundu.
+

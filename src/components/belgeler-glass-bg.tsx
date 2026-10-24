@@ -3,9 +3,17 @@
 export function BelgelerGlassBg() {
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden [contain:strict]"
       aria-hidden="true"
     >
+      <style>{`
+        @media (prefers-reduced-motion: reduce) {
+          [data-belge-blob] {
+            animation: none !important;
+          }
+        }
+      `}</style>
+
       {/* Light Mode Subtle Warm Radial / Dark Mode Cosmic Radial Base */}
       <div
         className="absolute inset-0 transition-colors duration-500"
@@ -18,6 +26,7 @@ export function BelgelerGlassBg() {
 
       {/* Blob 1: Warm Amber Gold (Top Right / Hero) */}
       <div
+        data-belge-blob
         className="absolute -right-20 -top-20 h-[700px] w-[700px] rounded-full opacity-30 dark:opacity-45"
         style={{
           background:
@@ -25,12 +34,12 @@ export function BelgelerGlassBg() {
           filter: "blur(110px)",
           WebkitFilter: "blur(110px)",
           animation: "orb-drift-1 22s ease-in-out infinite",
-          willChange: "transform",
         }}
       />
 
       {/* Blob 2: Electric Cobalt Blue (Bottom Left Behind Cards) */}
       <div
+        data-belge-blob
         className="absolute -bottom-24 -left-24 h-[650px] w-[650px] rounded-full opacity-25 dark:opacity-40"
         style={{
           background:
@@ -38,12 +47,12 @@ export function BelgelerGlassBg() {
           filter: "blur(110px)",
           WebkitFilter: "blur(110px)",
           animation: "orb-drift-2 26s ease-in-out infinite",
-          willChange: "transform",
         }}
       />
 
       {/* Blob 3: Neon Violet / Purple (Center Hub Area) */}
       <div
+        data-belge-blob
         className="absolute left-1/3 top-1/3 h-[580px] w-[580px] rounded-full opacity-20 dark:opacity-35"
         style={{
           background:
@@ -51,12 +60,12 @@ export function BelgelerGlassBg() {
           filter: "blur(100px)",
           WebkitFilter: "blur(100px)",
           animation: "orb-drift-3 30s ease-in-out infinite",
-          willChange: "transform",
         }}
       />
 
       {/* Blob 4: Vivid Cyan & Turquoise (Right Middle Behind Cards) */}
       <div
+        data-belge-blob
         className="absolute -right-16 top-1/2 h-[540px] w-[540px] rounded-full opacity-20 dark:opacity-30"
         style={{
           background:
@@ -64,7 +73,6 @@ export function BelgelerGlassBg() {
           filter: "blur(100px)",
           WebkitFilter: "blur(100px)",
           animation: "orb-drift-4 24s ease-in-out infinite",
-          willChange: "transform",
         }}
       />
     </div>

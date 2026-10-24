@@ -1,0 +1,160 @@
+{
+  "mobile": {
+    "isMobile": true,
+    "width": 390,
+    "height": 844,
+    "loadDuration": 995,
+    "fcp": 216,
+    "totalRequests": 64,
+    "jsRequestCount": 42,
+    "totalJsBytes": 2554802,
+    "totalJsKb": 2495,
+    "pdfEngineLoadedOnCatalog": {
+      "pdfLib": false,
+      "pdfJs": false,
+      "fontkit": false,
+      "wasm": false
+    },
+    "prefetchRequests": [
+      {
+        "url": "/_next/static/chunks/app/belgeler/page-a7d3fe1df73922c0.js",
+        "size": 16860,
+        "type": "script"
+      },
+      {
+        "url": "/belgeler/beton-dokum-tutanagi?_rsc=jNinacQtPvo6Yyt_",
+        "size": 386,
+        "type": "fetch"
+      },
+      {
+        "url": "/belgeler/santiye-sefi-taahhutnamesi?_rsc=jNinacQtPvo6Yyt_",
+        "size": 392,
+        "type": "fetch"
+      },
+      {
+        "url": "/belgeler/beton-dokum-tutanagi?_rsc=6f5ovS-Df9zUFyE3",
+        "size": 13715,
+        "type": "fetch"
+      },
+      {
+        "url": "/belgeler/beton-dokum-tutanagi?_rsc=vJ8krBNL04MfCuHZ",
+        "size": 5028,
+        "type": "fetch"
+      },
+      {
+        "url": "/belgeler/santiye-sefi-taahhutnamesi?_rsc=A_eEOOCmRRfyC92H",
+        "size": 5083,
+        "type": "fetch"
+      },
+      {
+        "url": "/_next/static/chunks/app/belgeler/beton-dokum-tutanagi/page-44660fa77a8952ba.js",
+        "size": 13624,
+        "type": "script"
+      },
+      {
+        "url": "/_next/static/chunks/app/belgeler/santiye-sefi-taahhutnamesi/page-bb45652e0a6f9b3e.js",
+        "size": 15864,
+        "type": "script"
+      }
+    ]
+  },
+  "desktop": {
+    "isMobile": false,
+    "width": 1366,
+    "height": 768,
+    "loadDuration": 954,
+    "fcp": 312,
+    "totalRequests": 78,
+    "jsRequestCount": 45,
+    "totalJsBytes": 2571828,
+    "totalJsKb": 2512,
+    "pdfEngineLoadedOnCatalog": {
+      "pdfLib": false,
+      "pdfJs": false,
+      "fontkit": false,
+      "wasm": false
+    },
+    "prefetchRequests": [
+      {
+        "url": "/_next/static/chunks/app/belgeler/page-a7d3fe1df73922c0.js",
+        "size": 16860,
+        "type": "script"
+      },
+      {
+        "url": "/belgeler/beton-dokum-tutanagi?_rsc=jNinacQtPvo6Yyt_",
+        "size": 386,
+        "type": "fetch"
+      },
+      {
+        "url": "/belgeler/santiye-sefi-taahhutnamesi?_rsc=jNinacQtPvo6Yyt_",
+        "size": 392,
+        "type": "fetch"
+      },
+      {
+        "url": "/belgeler/santiye-sefi-istifa-dilekcesi?_rsc=jNinacQtPvo6Yyt_",
+        "size": 395,
+        "type": "fetch"
+      },
+      {
+        "url": "/belgeler/insaat-ruhsati-dilekcesi?_rsc=jNinacQtPvo6Yyt_",
+        "size": 390,
+        "type": "fetch"
+      },
+      {
+        "url": "/belgeler/santiye-sefi-sozlesmesi?_rsc=jNinacQtPvo6Yyt_",
+        "size": 389,
+        "type": "fetch"
+      },
+      {
+        "url": "/belgeler/beton-dokum-tutanagi?_rsc=vJ8krBNL04MfCuHZ",
+        "size": 5028,
+        "type": "fetch"
+      },
+      {
+        "url": "/belgeler/santiye-sefi-taahhutnamesi?_rsc=A_eEOOCmRRfyC92H",
+        "size": 5083,
+        "type": "fetch"
+      },
+      {
+        "url": "/belgeler/santiye-sefi-istifa-dilekcesi?_rsc=mXl3sP7w063cA6Zn",
+        "size": 5153,
+        "type": "fetch"
+      },
+      {
+        "url": "/belgeler/insaat-ruhsati-dilekcesi?_rsc=IuJ2FXBWVpQRHnx6",
+        "size": 5098,
+        "type": "fetch"
+      },
+      {
+        "url": "/belgeler/santiye-sefi-sozlesmesi?_rsc=O1B3L_AGkzoxIOFh",
+        "size": 5264,
+        "type": "fetch"
+      },
+      {
+        "url": "/_next/static/chunks/app/belgeler/beton-dokum-tutanagi/page-44660fa77a8952ba.js",
+        "size": 13624,
+        "type": "script"
+      },
+      {
+        "url": "/_next/static/chunks/app/belgeler/santiye-sefi-taahhutnamesi/page-bb45652e0a6f9b3e.js",
+        "size": 15864,
+        "type": "script"
+      },
+      {
+        "url": "/_next/static/chunks/app/belgeler/santiye-sefi-istifa-dilekcesi/page-079d2106cb15f314.js",
+        "size": 13602,
+        "type": "script"
+      },
+      {
+        "url": "/_next/static/chunks/app/belgeler/insaat-ruhsati-dilekcesi/page-6164e14a0da0542c.js",
+        "size": 14942,
+        "type": "script"
+      },
+      {
+        "url": "/_next/static/chunks/app/belgeler/santiye-sefi-sozlesmesi/page-f05526c827a7e685.js",
+        "size": 16453,
+        "type": "script"
+      }
+    ]
+  }
+}

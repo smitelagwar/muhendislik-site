@@ -23,6 +23,10 @@ interface BelgeDocumentState<T> {
 const GENERATION_DEBOUNCE_MS = 250;
 const GENERATION_TIMEOUT_MS = 45_000;
 
+if (typeof window !== "undefined") {
+  prewarmBrowserPdfJs();
+}
+
 /** Keeps the newest generated PDF bytes and owns their temporary object URL. */
 export function useBelgeStudioDocument<T>(
   data: T,
@@ -55,9 +59,8 @@ export function useBelgeStudioDocument<T>(
     let generationTimeout: ReturnType<typeof setTimeout> | null = null;
     const isInitialOrRetry = !hasGeneratedRef.current || lastRetryVersionRef.current !== retryVersion;
     lastRetryVersionRef.current = retryVersion;
-    const delayMs = isInitialOrRetry ? 0 : GENERATION_DEBOUNCE_MS;
 
-    timer = setTimeout(() => {
+    const execute = () => {
       hasGeneratedRef.current = true;
       setState((current) => ({ ...current, status: "generating", error: null, sourceData: data }));
       const timeout = new Promise<never>((_, reject) => {
@@ -112,7 +115,13 @@ export function useBelgeStudioDocument<T>(
             generationTimeout = null;
           }
         });
-    }, delayMs);
+    };
+
+    if (isInitialOrRetry) {
+      execute();
+    } else {
+      timer = setTimeout(execute, GENERATION_DEBOUNCE_MS);
+    }
 
     return () => {
       requestRef.current += 1;

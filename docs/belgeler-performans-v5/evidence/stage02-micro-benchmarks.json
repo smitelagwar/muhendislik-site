@@ -1,0 +1,30 @@
+{
+  "baseline": {
+    "min": 526,
+    "max": 605,
+    "median": 562.5,
+    "p75": 584,
+    "mean": 566
+  },
+  "variant1": {
+    "min": 345,
+    "max": 398,
+    "median": 371.5,
+    "p75": 380,
+    "mean": 373
+  },
+  "variant2": {
+    "min": 331,
+    "max": 394,
+    "median": 364.5,
+    "p75": 379,
+    "mean": 366
+  },
+  "variant3": {
+    "min": 329,
+    "max": 398,
+    "median": 365,
+    "p75": 380,
+    "mean": 367
+  }
+}

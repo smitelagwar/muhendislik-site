@@ -1,0 +1,727 @@
+{
+  "timestamp": "2026-10-24T17:50:22.425Z",
+  "commit": "fa17d8c570d70f6d8a0de058a5208258992af39c",
+  "worktree": "clean",
+  "environment": {
+    "nodeVersion": "v24.15.0",
+    "platform": "win32",
+    "serverUrl": "http://127.0.0.1:3005"
+  },
+  "catalogValidation": {},
+  "networkValidation": {
+    "mobile390": {
+      "canvasCount": 0,
+      "hasOceanSceneChunk": false,
+      "pass": true
+    },
+    "desktop1366": {
+      "canvasCount": 1,
+      "toggleVisible": true,
+      "pass": true
+    }
+  },
+  "searchValidation": {
+    "cases": [
+      {
+        "query": "şantiye",
+        "cardCount": 4,
+        "hasNoResultBox": false,
+        "pass": true
+      },
+      {
+        "query": "TAAHHÜTNAME",
+        "cardCount": 1,
+        "hasNoResultBox": false,
+        "pass": true
+      },
+      {
+        "query": "dilekçe",
+        "cardCount": 2,
+        "hasNoResultBox": false,
+        "pass": true
+      },
+      {
+        "query": "İSTİFA",
+        "cardCount": 1,
+        "hasNoResultBox": false,
+        "pass": true
+      },
+      {
+        "query": "ı",
+        "cardCount": 5,
+        "hasNoResultBox": false,
+        "pass": true
+      },
+      {
+        "query": "i",
+        "cardCount": 5,
+        "hasNoResultBox": false,
+        "pass": true
+      },
+      {
+        "query": "kesinlikleyok999",
+        "cardCount": 0,
+        "hasNoResultBox": true,
+        "pass": true
+      }
+    ],
+    "resetCardCount": 5,
+    "allPassed": true
+  },
+  "screenshots": [
+    {
+      "viewport": "mobile-320",
+      "theme": "dark",
+      "file": "baseline-mobile-320-dark.png"
+    },
+    {
+      "viewport": "mobile-320",
+      "theme": "light",
+      "file": "baseline-mobile-320-light.png"
+    },
+    {
+      "viewport": "mobile-360",
+      "theme": "dark",
+      "file": "baseline-mobile-360-dark.png"
+    },
+    {
+      "viewport": "mobile-360",
+      "theme": "light",
+      "file": "baseline-mobile-360-light.png"
+    },
+    {
+      "viewport": "mobile-390",
+      "theme": "dark",
+      "file": "baseline-mobile-390-dark.png"
+    },
+    {
+      "viewport": "mobile-390",
+      "theme": "light",
+      "file": "baseline-mobile-390-light.png"
+    },
+    {
+      "viewport": "tablet-768",
+      "theme": "dark",
+      "file": "baseline-tablet-768-dark.png"
+    },
+    {
+      "viewport": "tablet-768",
+      "theme": "light",
+      "file": "baseline-tablet-768-light.png"
+    },
+    {
+      "viewport": "desktop-1024",
+      "theme": "dark",
+      "file": "baseline-desktop-1024-dark.png"
+    },
+    {
+      "viewport": "desktop-1024",
+      "theme": "light",
+      "file": "baseline-desktop-1024-light.png"
+    },
+    {
+      "viewport": "desktop-1366",
+      "theme": "dark",
+      "file": "baseline-desktop-1366-dark.png"
+    },
+    {
+      "viewport": "desktop-1366",
+      "theme": "light",
+      "file": "baseline-desktop-1366-light.png"
+    },
+    {
+      "viewport": "desktop-1920",
+      "theme": "dark",
+      "file": "baseline-desktop-1920-dark.png"
+    },
+    {
+      "viewport": "desktop-1920",
+      "theme": "light",
+      "file": "baseline-desktop-1920-light.png"
+    }
+  ],
+  "studioBenchmarks": {
+    "beton-dokum-tutanagi": {
+      "name": "Beton Döküm Tutanağı",
+      "path": "/belgeler/beton-dokum-tutanagi",
+      "cold": {
+        "stuShell": {
+          "min": 299,
+          "max": 360,
+          "median": 343,
+          "p75": 349,
+          "mean": 339
+        },
+        "stuPdf": {
+          "min": 610,
+          "max": 673,
+          "median": 646,
+          "p75": 661,
+          "mean": 645
+        },
+        "stuEdit": {
+          "min": 669,
+          "max": 744,
+          "median": 710,
+          "p75": 731,
+          "mean": 711
+        },
+        "raw": {
+          "stuShell": [
+            346,
+            343,
+            334,
+            340,
+            360,
+            349,
+            299
+          ],
+          "stuPdf": [
+            673,
+            650,
+            638,
+            639,
+            661,
+            646,
+            610
+          ],
+          "stuEdit": [
+            744,
+            713,
+            704,
+            705,
+            731,
+            710,
+            669
+          ]
+        }
+      },
+      "warm": {
+        "stuShell": {
+          "min": 245,
+          "max": 330,
+          "median": 314,
+          "p75": 329,
+          "mean": 291
+        },
+        "stuPdf": {
+          "min": 246,
+          "max": 331,
+          "median": 316,
+          "p75": 331,
+          "mean": 293
+        },
+        "stuEdit": {
+          "min": 436,
+          "max": 534,
+          "median": 505,
+          "p75": 520,
+          "mean": 484
+        },
+        "raw": {
+          "stuShell": [
+            316,
+            314,
+            250,
+            245,
+            330,
+            329,
+            256
+          ],
+          "stuPdf": [
+            319,
+            316,
+            251,
+            246,
+            331,
+            331,
+            257
+          ],
+          "stuEdit": [
+            520,
+            505,
+            440,
+            436,
+            534,
+            517,
+            439
+          ]
+        }
+      }
+    },
+    "santiye-sefi-taahhutnamesi": {
+      "name": "Şantiye Şefi Taahhütnamesi",
+      "path": "/belgeler/santiye-sefi-taahhutnamesi",
+      "cold": {
+        "stuShell": {
+          "min": 295,
+          "max": 1942,
+          "median": 369,
+          "p75": 1887,
+          "mean": 914
+        },
+        "stuPdf": {
+          "min": 560,
+          "max": 2181,
+          "median": 608,
+          "p75": 2124,
+          "mean": 1157
+        },
+        "stuEdit": {
+          "min": 625,
+          "max": 2245,
+          "median": 665,
+          "p75": 2184,
+          "mean": 1220
+        },
+        "raw": {
+          "stuShell": [
+            356,
+            1942,
+            369,
+            1200,
+            351,
+            1887,
+            295
+          ],
+          "stuPdf": [
+            593,
+            2181,
+            608,
+            1439,
+            592,
+            2124,
+            560
+          ],
+          "stuEdit": [
+            661,
+            2245,
+            665,
+            1500,
+            661,
+            2184,
+            625
+          ]
+        }
+      },
+      "warm": {
+        "stuShell": {
+          "min": 215,
+          "max": 1832,
+          "median": 286,
+          "p75": 1302,
+          "mean": 783
+        },
+        "stuPdf": {
+          "min": 216,
+          "max": 1834,
+          "median": 288,
+          "p75": 1304,
+          "mean": 785
+        },
+        "stuEdit": {
+          "min": 375,
+          "max": 1985,
+          "median": 504,
+          "p75": 1450,
+          "mean": 930
+        },
+        "raw": {
+          "stuShell": [
+            272,
+            1288,
+            286,
+            1832,
+            215,
+            1302,
+            285
+          ],
+          "stuPdf": [
+            275,
+            1290,
+            288,
+            1834,
+            216,
+            1304,
+            287
+          ],
+          "stuEdit": [
+            375,
+            1389,
+            376,
+            1985,
+            431,
+            1450,
+            504
+          ]
+        }
+      }
+    },
+    "santiye-sefi-istifa-dilekcesi": {
+      "name": "Şantiye Şefi İstifa Dilekçesi",
+      "path": "/belgeler/santiye-sefi-istifa-dilekcesi",
+      "cold": {
+        "stuShell": {
+          "min": 314,
+          "max": 621,
+          "median": 357,
+          "p75": 615,
+          "mean": 457
+        },
+        "stuPdf": {
+          "min": 571,
+          "max": 643,
+          "median": 620,
+          "p75": 636,
+          "mean": 615
+        },
+        "stuEdit": {
+          "min": 635,
+          "max": 700,
+          "median": 687,
+          "p75": 698,
+          "mean": 677
+        },
+        "raw": {
+          "stuShell": [
+            314,
+            621,
+            356,
+            615,
+            355,
+            357,
+            578
+          ],
+          "stuPdf": [
+            571,
+            643,
+            620,
+            636,
+            605,
+            634,
+            596
+          ],
+          "stuEdit": [
+            635,
+            700,
+            687,
+            698,
+            671,
+            693,
+            657
+          ]
+        }
+      },
+      "warm": {
+        "stuShell": {
+          "min": 200,
+          "max": 300,
+          "median": 292,
+          "p75": 294,
+          "mean": 268
+        },
+        "stuPdf": {
+          "min": 202,
+          "max": 302,
+          "median": 294,
+          "p75": 296,
+          "mean": 270
+        },
+        "stuEdit": {
+          "min": 387,
+          "max": 486,
+          "median": 414,
+          "p75": 485,
+          "mean": 425
+        },
+        "raw": {
+          "stuShell": [
+            289,
+            200,
+            292,
+            210,
+            293,
+            294,
+            300
+          ],
+          "stuPdf": [
+            290,
+            202,
+            294,
+            212,
+            295,
+            296,
+            302
+          ],
+          "stuEdit": [
+            414,
+            387,
+            389,
+            396,
+            486,
+            417,
+            485
+          ]
+        }
+      }
+    },
+    "insaat-ruhsati-dilekcesi": {
+      "name": "İnşaat Ruhsatı Dilekçesi",
+      "path": "/belgeler/insaat-ruhsati-dilekcesi",
+      "cold": {
+        "stuShell": {
+          "min": 314,
+          "max": 692,
+          "median": 353,
+          "p75": 550,
+          "mean": 419
+        },
+        "stuPdf": {
+          "min": 586,
+          "max": 711,
+          "median": 613,
+          "p75": 686,
+          "mean": 631
+        },
+        "stuEdit": {
+          "min": 651,
+          "max": 756,
+          "median": 666,
+          "p75": 733,
+          "mean": 687
+        },
+        "raw": {
+          "stuShell": [
+            550,
+            356,
+            336,
+            353,
+            333,
+            314,
+            692
+          ],
+          "stuPdf": [
+            686,
+            613,
+            605,
+            620,
+            599,
+            586,
+            711
+          ],
+          "stuEdit": [
+            733,
+            666,
+            664,
+            676,
+            662,
+            651,
+            756
+          ]
+        }
+      },
+      "warm": {
+        "stuShell": {
+          "min": 216,
+          "max": 376,
+          "median": 293,
+          "p75": 316,
+          "mean": 296
+        },
+        "stuPdf": {
+          "min": 217,
+          "max": 377,
+          "median": 294,
+          "p75": 318,
+          "mean": 297
+        },
+        "stuEdit": {
+          "min": 372,
+          "max": 492,
+          "median": 449,
+          "p75": 479,
+          "mean": 436
+        },
+        "raw": {
+          "stuShell": [
+            216,
+            316,
+            292,
+            293,
+            296,
+            376,
+            281
+          ],
+          "stuPdf": [
+            217,
+            318,
+            294,
+            294,
+            297,
+            377,
+            283
+          ],
+          "stuEdit": [
+            407,
+            449,
+            372,
+            479,
+            375,
+            492,
+            478
+          ]
+        }
+      }
+    },
+    "santiye-sefi-sozlesmesi": {
+      "name": "Şantiye Şefi Hizmet Sözleşmesi",
+      "path": "/belgeler/santiye-sefi-sozlesmesi",
+      "cold": {
+        "stuShell": {
+          "min": 363,
+          "max": 720,
+          "median": 592,
+          "p75": 657,
+          "mean": 588
+        },
+        "stuPdf": {
+          "min": 602,
+          "max": 741,
+          "median": 613,
+          "p75": 677,
+          "mean": 640
+        },
+        "stuEdit": {
+          "min": 663,
+          "max": 799,
+          "median": 674,
+          "p75": 735,
+          "mean": 698
+        },
+        "raw": {
+          "stuShell": [
+            363,
+            720,
+            588,
+            610,
+            592,
+            657,
+            588
+          ],
+          "stuPdf": [
+            602,
+            741,
+            609,
+            628,
+            613,
+            677,
+            609
+          ],
+          "stuEdit": [
+            666,
+            799,
+            674,
+            680,
+            667,
+            735,
+            663
+          ]
+        }
+      },
+      "warm": {
+        "stuShell": {
+          "min": 210,
+          "max": 292,
+          "median": 275,
+          "p75": 288,
+          "mean": 270
+        },
+        "stuPdf": {
+          "min": 221,
+          "max": 293,
+          "median": 278,
+          "p75": 290,
+          "mean": 273
+        },
+        "stuEdit": {
+          "min": 385,
+          "max": 534,
+          "median": 491,
+          "p75": 503,
+          "mean": 459
+        },
+        "raw": {
+          "stuShell": [
+            273,
+            277,
+            210,
+            275,
+            273,
+            292,
+            288
+          ],
+          "stuPdf": [
+            275,
+            282,
+            221,
+            278,
+            275,
+            293,
+            290
+          ],
+          "stuEdit": [
+            492,
+            387,
+            424,
+            385,
+            491,
+            503,
+            534
+          ]
+        }
+      }
+    }
+  },
+  "abDiagnostics": {
+    "m_ab_blobs": {
+      "name": "M-A/B: 4 Renkli Blob Blur & Animasyon Etkisi",
+      "activeStats": {
+        "min": 696,
+        "max": 763,
+        "median": 746,
+        "p75": 746,
+        "mean": 738
+      },
+      "disabledStats": {
+        "min": 441,
+        "max": 617,
+        "median": 444,
+        "p75": 461,
+        "mean": 481
+      },
+      "interpretation": "Mobil composite/paint maliyeti ve GPU raster yükü A/B farkı."
+    },
+    "m_cd_card_blur": {
+      "name": "M-C/D: Kart Backdrop-Blur-2XL Etkisi",
+      "cardsRendered": true,
+      "tested": true
+    },
+    "d_ab_ocean": {
+      "name": "D-A/B: Masaüstü Okyanus Canvas Açık vs Kapalı",
+      "oceanOnStats": {
+        "min": 62,
+        "max": 1000,
+        "median": 716,
+        "p75": 872,
+        "mean": 543
+      },
+      "oceanOffStats": {
+        "min": 62,
+        "max": 65,
+        "median": 63,
+        "p75": 64,
+        "mean": 63
+      }
+    }
+  }
+}

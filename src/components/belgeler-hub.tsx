@@ -86,23 +86,44 @@ const THEMES = {
   },
 } as const;
 
+const cardRafMap = new WeakMap<HTMLElement, number>();
+
 function handleCardPointerMove(event: MouseEvent<HTMLElement>) {
   const card = event.currentTarget;
-  const rect = card.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const y = event.clientY - rect.top;
-  const rotateY = ((x / rect.width) - 0.5) * 3;
-  const rotateX = -((y / rect.height) - 0.5) * 3;
+  const clientX = event.clientX;
+  const clientY = event.clientY;
 
-  card.style.setProperty("--pointer-x", `${x}px`);
-  card.style.setProperty("--pointer-y", `${y}px`);
-  card.style.setProperty("--rotate-x", `${rotateX.toFixed(2)}deg`);
-  card.style.setProperty("--rotate-y", `${rotateY.toFixed(2)}deg`);
+  const existingRaf = cardRafMap.get(card);
+  if (existingRaf) {
+    cancelAnimationFrame(existingRaf);
+  }
+
+  const rafId = requestAnimationFrame(() => {
+    cardRafMap.delete(card);
+    const rect = card.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    const rotateY = ((x / rect.width) - 0.5) * 3;
+    const rotateX = -((y / rect.height) - 0.5) * 3;
+
+    card.style.setProperty("--pointer-x", `${x}px`);
+    card.style.setProperty("--pointer-y", `${y}px`);
+    card.style.setProperty("--rotate-x", `${rotateX.toFixed(2)}deg`);
+    card.style.setProperty("--rotate-y", `${rotateY.toFixed(2)}deg`);
+  });
+
+  cardRafMap.set(card, rafId);
 }
 
 function handleCardPointerLeave(event: MouseEvent<HTMLElement>) {
-  event.currentTarget.style.setProperty("--rotate-x", "0deg");
-  event.currentTarget.style.setProperty("--rotate-y", "0deg");
+  const card = event.currentTarget;
+  const existingRaf = cardRafMap.get(card);
+  if (existingRaf) {
+    cancelAnimationFrame(existingRaf);
+    cardRafMap.delete(card);
+  }
+  card.style.setProperty("--rotate-x", "0deg");
+  card.style.setProperty("--rotate-y", "0deg");
 }
 
 function DocumentCard({
@@ -119,7 +140,7 @@ function DocumentCard({
       onMouseLeave={handleCardPointerLeave}
       data-whale-card
       data-whale-protect
-      className="group relative flex min-h-full flex-col overflow-hidden rounded-[28px] border border-black/5 bg-white/75 p-6 shadow-md backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1.5 hover:border-amber-500/30 hover:shadow-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-2xl dark:hover:border-white/20 sm:p-7"
+      className="group relative flex min-h-full flex-col overflow-hidden rounded-[28px] border border-black/5 bg-white/75 p-6 shadow-md backdrop-blur-2xl transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-1.5 hover:border-amber-500/30 hover:shadow-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-2xl dark:hover:border-white/20 sm:p-7"
       style={{
         boxShadow: "0 20px 50px -15px rgba(0,0,0,0.06), inset 0 1px 1px rgba(255,255,255,0.8)",
       }}
@@ -185,7 +206,7 @@ function DocumentCard({
       <div className="relative z-10 mt-auto">
         <Link
           href={document.studioUrl}
-          className="group/btn relative inline-flex min-h-12 w-full items-center justify-between overflow-hidden rounded-2xl border border-amber-400/40 bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-3 text-sm font-black text-zinc-950 shadow-[0_6px_20px_rgba(245,158,11,0.35),inset_0_1px_1px_rgba(255,255,255,0.6)] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_10px_28px_rgba(245,158,11,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 motion-reduce:transform-none"
+          className="group/btn relative inline-flex min-h-12 w-full items-center justify-between overflow-hidden rounded-2xl border border-amber-400/40 bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-3 text-sm font-black text-zinc-950 shadow-[0_6px_20px_rgba(245,158,11,0.35),inset_0_1px_1px_rgba(255,255,255,0.6)] transition-[transform,box-shadow] duration-200 hover:scale-[1.02] hover:shadow-[0_10px_28px_rgba(245,158,11,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 motion-reduce:transform-none"
         >
           <span className="relative z-10 inline-flex items-center gap-2">
             <FilePenLine className="h-4 w-4" />
@@ -197,6 +218,25 @@ function DocumentCard({
     </article>
   );
 }
+
+const PRECOMPUTED_DOCUMENTS = DOCUMENTS.map((document) => {
+  const searchableText = [
+    document.title,
+    document.subtitle,
+    document.description,
+    document.categoryLabel,
+    document.targetAudience,
+    document.usageGuide,
+    document.legalReference ?? "",
+    ...document.tags,
+    ...document.fields.map((field) => field.label),
+  ].join(" ");
+
+  return {
+    document,
+    normalizedText: normalizeBelgelerSearchText(searchableText),
+  };
+});
 
 export function BelgelerHub() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -228,22 +268,9 @@ export function BelgelerHub() {
 
     if (!query) return DOCUMENTS;
 
-    return DOCUMENTS.filter((document) => {
-      const searchableText = [
-        document.title,
-        document.subtitle,
-        document.description,
-        document.categoryLabel,
-        document.targetAudience,
-        document.usageGuide,
-        document.legalReference ?? "",
-        ...document.tags,
-        ...document.fields.map((field) => field.label),
-      ]
-        .join(" ");
-
-      return normalizeBelgelerSearchText(searchableText).includes(query);
-    });
+    return PRECOMPUTED_DOCUMENTS
+      .filter((item) => item.normalizedText.includes(query))
+      .map((item) => item.document);
   }, [searchQuery]);
 
   return (
