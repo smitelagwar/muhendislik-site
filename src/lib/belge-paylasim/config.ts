@@ -6,19 +6,22 @@ export const BELGE_SHARE_CONFIG = {
   /** Süre: Tam 90 gün (90 x 24 saat) */
   EXPIRATION_DAYS: 90,
   EXPIRATION_MS: 90 * 24 * 60 * 60 * 1000,
+  /** Create attempt fencing lease; render/upload never hold a SQL lock. */
+  ATTEMPT_LEASE_DURATION_MS: 2 * 60 * 1000,
 
   /** İstek gövdesi sınırları */
   MAX_JSON_BODY_BYTES: 64 * 1024, // 64 KiB
   MAX_PDF_SIZE_BYTES: 3 * 1024 * 1024, // 3 MiB
 
-  /** IP bazlı kota sınırları */
-  IP_RATE_LIMIT_15MIN: 3, // 15 dakikada en çok 3 bağlantı
-  IP_RATE_LIMIT_24H: 10,  // 24 saatte en çok 10 bağlantı
-  IP_MAX_ACTIVE_LINKS: 20, // Bir IP'nin aynı anda en çok 20 aktif bağlantısı olabilir
+  /** Tarayıcı başına günlük başarılı yeni link hakkı */
+  DAILY_BROWSER_LINK_LIMIT: 50,
 
-  /** Küresel bütçe sınırları */
-  GLOBAL_DAILY_LIMIT: 200, // Günde tüm sitede en çok 200 bağlantı
-  GLOBAL_MAX_ACTIVE_BLOB_BYTES: 1024 * 1024 * 1024, // 1 GiB toplam aktif depolama bütçesi
+  /**
+   * Yerel varsayımlar; üretim bu iki kapasiteyi açıkça yapılandırmalıdır.
+   * 200/gün ve 1 GiB eski değerleri körlemesine üretim kapasitesi sayılmaz.
+   */
+  LOCAL_GLOBAL_DAILY_LIMIT: 200,
+  LOCAL_GLOBAL_MAX_STORAGE_BYTES: 1024 * 1024 * 1024,
 
   /** Blob depolama yolu öneki (izole prefix) */
   BLOB_PATH_PREFIX: "belge_paylasim/",
@@ -36,6 +39,77 @@ export const BELGE_SHARE_CONFIG = {
   ] as const,
 } as const;
 
+export type BelgeShareRuntimeErrorCode =
+  | "DATABASE_NOT_CONFIGURED"
+  | "DATABASE_UNAVAILABLE"
+  | "BLOB_NOT_CONFIGURED"
+  | "SCHEMA_NOT_READY"
+  | "SHARE_SECRET_NOT_CONFIGURED"
+  | "TOKEN_KEY_VERSION_UNAVAILABLE"
+  | "QUOTA_CAPACITY_CONFIG_NOT_CONFIGURED"
+  | "TEST_ADAPTER_FORBIDDEN";
+
+/** Kalıcı paylaşım altyapısı hazır olmadığında istemciye güvenli 503 taşır. */
+export class BelgeShareRuntimeError extends Error {
+  public readonly statusCode = 503;
+
+  constructor(public readonly code: BelgeShareRuntimeErrorCode) {
+    const messages: Record<BelgeShareRuntimeErrorCode, string> = {
+      DATABASE_NOT_CONFIGURED: "Belge paylaşım veritabanı yapılandırılmamış.",
+      DATABASE_UNAVAILABLE: "Belge paylaşım veritabanına şu anda ulaşılamıyor.",
+      BLOB_NOT_CONFIGURED: "Belge paylaşım dosya deposu yapılandırılmamış.",
+      SCHEMA_NOT_READY: "Belge paylaşım altyapısı henüz hazır değil.",
+      SHARE_SECRET_NOT_CONFIGURED: "Production ortamında en az 32 karakterlik BELGE_SHARE_SECRET tanımlanmalıdır.",
+      TOKEN_KEY_VERSION_UNAVAILABLE: "Paylaşım bağlantısının anahtar sürümü bu sunucuda kullanılamıyor.",
+      QUOTA_CAPACITY_CONFIG_NOT_CONFIGURED: "Paylaşım kapasite sınırları yapılandırılmamış.",
+      TEST_ADAPTER_FORBIDDEN: "Bellek içi test deposu bu çalışma ortamında kullanılamaz.",
+    };
+
+    super(messages[code]);
+    this.name = "BelgeShareRuntimeError";
+  }
+}
+
+export interface BelgeShareQuotaConfig {
+  globalDailyLimit: number;
+  globalMaxStorageBytes: number;
+}
+
+function positiveSafeInteger(value: string | undefined): number | null {
+  if (!value || !/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+/** Production kota bütçeleri açıkça girilir; yerelde yalnız belgelenmiş test varsayımları kullanılır. */
+export function getBelgeShareQuotaConfig(): BelgeShareQuotaConfig {
+  const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+  const dailyRaw = process.env.BELGE_SHARE_GLOBAL_DAILY_LIMIT;
+  const bytesRaw = process.env.BELGE_SHARE_GLOBAL_MAX_STORAGE_BYTES;
+  const globalDailyLimit = dailyRaw === undefined && !isProduction
+    ? BELGE_SHARE_CONFIG.LOCAL_GLOBAL_DAILY_LIMIT
+    : positiveSafeInteger(dailyRaw);
+  const globalMaxStorageBytes = bytesRaw === undefined && !isProduction
+    ? BELGE_SHARE_CONFIG.LOCAL_GLOBAL_MAX_STORAGE_BYTES
+    : positiveSafeInteger(bytesRaw);
+
+  if (globalDailyLimit === null || globalMaxStorageBytes === null) {
+    throw new BelgeShareRuntimeError("QUOTA_CAPACITY_CONFIG_NOT_CONFIGURED");
+  }
+  return { globalDailyLimit, globalMaxStorageBytes };
+}
+
+/** Yeni token üretiminde kullanılan anahtar sürümü; otomatik secret rotasyonu yapmaz. */
+export function getBelgeShareTokenKeyVersion(): number {
+  const configured = process.env.BELGE_SHARE_TOKEN_KEY_VERSION;
+  if (!configured) return 1;
+  const version = Number(configured);
+  if (!Number.isSafeInteger(version) || version < 1 || version > 32767) {
+    throw new BelgeShareRuntimeError("TOKEN_KEY_VERSION_UNAVAILABLE");
+  }
+  return version;
+}
+
 /**
  * Sunucu tarafında deterministik HMAC token üretimi için gizli anahtarı döner.
  * Production'da BELGE_SHARE_SECRET tanımlı değilse fail-closed davranır.
@@ -50,9 +124,7 @@ export function getBelgeShareSecret(): string {
     process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 
   if (isProduction) {
-    throw new Error(
-      "GÜVENLİK HATASI: Production ortamında en az 32 karakterlik BELGE_SHARE_SECRET ortam değişkeni tanımlı olmalıdır."
-    );
+    throw new BelgeShareRuntimeError("SHARE_SECRET_NOT_CONFIGURED");
   }
 
   // Yerel geliştirme ve izole birim testleri için sabit test anahtarı

@@ -1,0 +1,7 @@
+{
+  "command": "npx.cmd tsc --noEmit --incremental false -p tsconfig.next.json",
+  "environment": "Local runtime TypeScript scope; no project env or deployment",
+  "result": "PASS",
+  "exitCode": 0,
+  "log": "ASAMA_14_preview_origin_tsc.log"
+}

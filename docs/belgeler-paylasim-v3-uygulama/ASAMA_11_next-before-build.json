@@ -1,0 +1,69 @@
+{
+  "productSourceHashes": [
+    {
+      "file": "next.config.ts",
+      "sha256": "16c2af475a1930077c9d24404b24258a63993f9642cd01e7d9476d9195bb8709"
+    },
+    {
+      "file": "src/app/layout.tsx",
+      "sha256": "50cfaac535fff060419ed13ef7327f4e27bdd99eacb819a4275d9b541c3cb215"
+    },
+    {
+      "file": "src/app/b/[token]/page.tsx",
+      "sha256": "9cf7d3a3d4e8d904bfb0daab427c0d5be864ba4317bdabbac436bd90d840b988"
+    },
+    {
+      "file": "src/app/b/[token]/layout.tsx",
+      "sha256": "e6fb9813f5d75dc5b464b96f1d76f7d46965ca0f31ad3e9bf75606ed060d203c"
+    },
+    {
+      "file": "src/app/b/[token]/error.tsx",
+      "sha256": "d833c59eb7c41dcf7d1a28fbca7021389b469eaaf8d305b3f55ded86bde80232"
+    },
+    {
+      "file": "src/components/site-shell.tsx",
+      "sha256": "2cb1fe961c8ffd8e7f34e12eb6e90c0bd59edf8bf22a55e27e3433966879edf6"
+    },
+    {
+      "file": "src/components/belge-paylasim/share-access-state.tsx",
+      "sha256": "79729d540da1d63f6a790796254b04f96a7363587daac3c403f6d7bf1311cc49"
+    },
+    {
+      "file": "src/app/api/belgeler/paylasim/[token]/pdf/route.ts",
+      "sha256": "f601489c3770e1419b059a8eccadcb91d9ba7c2cf5d8dba6013853a976089c8d"
+    },
+    {
+      "file": "src/lib/belge-paylasim/config.ts",
+      "sha256": "95da04ecfdcbef1279ab014b3b6c5df19ca7d67444b3be371a844711c3a4647c"
+    },
+    {
+      "file": "src/lib/belge-paylasim/service-core.ts",
+      "sha256": "5a482327efe3edc609c5de79686697295b158b7a174b830a74eeba6d2e2a0c7a"
+    }
+  ],
+  "prerendered": [
+    "/_global-error",
+    "/opengraph-image",
+    "/robots.txt"
+  ],
+  "dynamic": [],
+  "result": "PASS",
+  "mode": "before-build",
+  "scope": "real Next HTTP/router + copied product sources, isolated memory read/Blob adapters; no real DB/Blob",
+  "checks": [
+    {
+      "id": "representative-next-build",
+      "result": "PASS",
+      "detail": {
+        "normalPrerendered": false,
+        "rootHeaders": true
+      }
+    }
+  ],
+  "passed": 1,
+  "failed": 0,
+  "skipped": 0,
+  "timeoutMs": 240000,
+  "durationMs": 27018,
+  "error": null
+}

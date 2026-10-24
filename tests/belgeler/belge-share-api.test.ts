@@ -1,6 +1,8 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { POST as createShareRoute, GET as methodNotAllowedCreate } from "../../src/app/api/belgeler/paylasim/route";
+import { POST as bootstrapQuotaRoute } from "../../src/app/api/belgeler/paylasim/kota/route";
 import { DELETE as revokeShareRoute, GET as methodNotAllowedRevoke } from "../../src/app/api/belgeler/paylasim/[token]/route";
 import {
   MemoryBelgePaylasimRepository,
@@ -11,16 +13,26 @@ import {
   setBelgeBlobStoreForTest,
 } from "../../src/lib/belge-paylasim/blob-store";
 import type { BelgePaylasimDocumentId } from "../../src/lib/belge-paylasim/types";
+import { getBrowserIdentity } from "../../src/lib/belge-paylasim/browser-identity";
 
-describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () => {
+describe("ASAMA_06: Belge Paylaşım HTTP API ve Sunucu PDF Testleri", () => {
+  const replayProof = Buffer.alloc(32, 7).toString("base64url");
   let memoryRepo: MemoryBelgePaylasimRepository;
   let memoryBlobStore: MemoryBelgeBlobStore;
+  let browserCookie: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     memoryRepo = new MemoryBelgePaylasimRepository();
     memoryBlobStore = new MemoryBelgeBlobStore();
     setBelgePaylasimRepositoryForTest(memoryRepo);
     setBelgeBlobStoreForTest(memoryBlobStore);
+    const bootstrap = await bootstrapQuotaRoute(new Request("http://localhost:3000/api/belgeler/paylasim/kota", {
+      method: "POST",
+      headers: { host: "localhost:3000", origin: "http://localhost:3000" },
+    }));
+    const setCookie = bootstrap.headers.get("set-cookie");
+    assert.ok(setCookie, "test tarayıcı kimliği cookie'si kurulmalı");
+    browserCookie = setCookie.split(";", 1)[0]!;
   });
 
   function createMockRequest(
@@ -28,14 +40,21 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
     options: {
       headers?: Record<string, string>;
       method?: string;
+      allowInvalidRequestId?: boolean;
     } = {}
   ): Request {
-    const rawBody = typeof body === "string" ? body : JSON.stringify(body);
+    let rawBody = typeof body === "string" ? body : JSON.stringify(body);
+    if (typeof body !== "string" && typeof body.clientRequestId === "string" && !options.allowInvalidRequestId) {
+      const id = createHash("sha256").update(body.clientRequestId).digest("base64url");
+      rawBody = JSON.stringify({ ...body, clientRequestId: id });
+    }
     const headers = new Headers({
       "content-type": "application/json; charset=utf-8",
       host: "localhost:3000",
       origin: "http://localhost:3000",
       "x-forwarded-for": "127.0.0.1",
+      cookie: browserCookie,
+      "x-belge-share-replay-proof": replayProof,
       ...(options.headers || {}),
     });
 
@@ -115,7 +134,8 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
         assert.strictEqual(data.documentId, item.docId);
         assert.ok(data.viewToken);
         assert.ok(data.manageToken);
-        assert.strictEqual(data.url, `/b/${data.viewToken}`);
+        assert.strictEqual(data.url, `http://localhost:3000/b/${data.viewToken}`);
+        assert.ok(res.headers.get("X-Request-Correlation-Id"));
         assert.ok(data.expiresAt);
 
         // Header kontrolleri (güvenlik ve noindex)
@@ -197,7 +217,7 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
       );
       assert.strictEqual(res2.status, 409);
       const err = await res2.json();
-      assert.strictEqual(err.error, "IDEMPOTENCY_CONFLICT");
+      assert.strictEqual(err.code, "IDEMPOTENCY_CONFLICT");
     });
   });
 
@@ -213,7 +233,7 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
       const res = await createShareRoute(req);
       assert.strictEqual(res.status, 403);
       const data = await res.json();
-      assert.strictEqual(data.error, "CROSS_SITE_FORBIDDEN");
+      assert.strictEqual(data.code, "CROSS_SITE_FORBIDDEN");
     });
 
     it("3.2 Uyuşmayan Origin başlığı 403 INVALID_ORIGIN ile engellenmelidir", async () => {
@@ -224,7 +244,7 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
       const res = await createShareRoute(req);
       assert.strictEqual(res.status, 403);
       const data = await res.json();
-      assert.strictEqual(data.error, "INVALID_ORIGIN");
+      assert.strictEqual(data.code, "INVALID_ORIGIN");
     });
 
     it("3.3 Yanlış Content-Type 415 UNSUPPORTED_MEDIA_TYPE dönmelidir", async () => {
@@ -235,7 +255,7 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
       const res = await createShareRoute(req);
       assert.strictEqual(res.status, 415);
       const data = await res.json();
-      assert.strictEqual(data.error, "UNSUPPORTED_MEDIA_TYPE");
+      assert.strictEqual(data.code, "UNSUPPORTED_MEDIA_TYPE");
     });
 
     it("3.4 64 KiB tavanını aşan gövde 413 PAYLOAD_TOO_LARGE dönmelidir", async () => {
@@ -250,7 +270,7 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
       const res = await createShareRoute(req);
       assert.strictEqual(res.status, 413);
       const data = await res.json();
-      assert.strictEqual(data.error, "PAYLOAD_TOO_LARGE");
+      assert.strictEqual(data.code, "PAYLOAD_TOO_LARGE");
     });
 
     it("3.5 Geçersiz JSON sözdizimi 400 INVALID_JSON dönmelidir", async () => {
@@ -260,19 +280,19 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
       const res = await createShareRoute(req);
       assert.strictEqual(res.status, 400);
       const data = await res.json();
-      assert.strictEqual(data.error, "INVALID_JSON");
+      assert.strictEqual(data.code, "INVALID_JSON");
     });
 
     it("3.6 Geçersiz veya kısa clientRequestId 400 dönmelidir", async () => {
       const req = createMockRequest({
-        clientRequestId: "short", // < 8 karakter
+        clientRequestId: "short",
         documentId: "beton-dokum-tutanagi",
         values: {},
-      });
+      }, { allowInvalidRequestId: true });
       const res = await createShareRoute(req);
       assert.strictEqual(res.status, 400);
       const data = await res.json();
-      assert.strictEqual(data.error, "INVALID_CLIENT_REQUEST_ID");
+      assert.strictEqual(data.code, "INVALID_CLIENT_REQUEST_ID");
     });
 
     it("3.7 Desteklenmeyen belge türü 400 UNSUPPORTED_DOCUMENT dönmelidir", async () => {
@@ -284,7 +304,7 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
       const res = await createShareRoute(req);
       assert.strictEqual(res.status, 400);
       const data = await res.json();
-      assert.strictEqual(data.error, "UNSUPPORTED_DOCUMENT");
+      assert.strictEqual(data.code, "UNSUPPORTED_DOCUMENT");
     });
 
     it("3.8 Form allowlist dışı alanlar 400 UNKNOWN_FIELD dönmelidir", async () => {
@@ -296,7 +316,7 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
       const res = await createShareRoute(req);
       assert.strictEqual(res.status, 400);
       const data = await res.json();
-      assert.strictEqual(data.error, "UNKNOWN_FIELD");
+      assert.strictEqual(data.code, "UNKNOWN_FIELD");
     });
 
     it("3.9 2000 karakteri aşan form alanı 400 FIELD_TOO_LONG dönmelidir", async () => {
@@ -308,15 +328,15 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
       const res = await createShareRoute(req);
       assert.strictEqual(res.status, 400);
       const data = await res.json();
-      assert.strictEqual(data.error, "FIELD_TOO_LONG");
+      assert.strictEqual(data.code, "FIELD_TOO_LONG");
     });
   });
 
   // --------------------------------------------------------------------------
   // 4. Kota Aşımı (Rate Limit) ve HTTP 429
   // --------------------------------------------------------------------------
-  describe("4. Kota Aşımı ve HTTP 429", () => {
-    it("4.1 15 dakikada 3 bağlantı sonrası 4. istek 429 ve Retry-After: 900 almalıdır", async () => {
+  describe("4. Günlük tarayıcı kotası ve eski IP engelleri", () => {
+    it("4.1 aynı IP'den dördüncü başarılı yeni link IP preflight'i olmadan oluşturulmalıdır", async () => {
       const ip = "192.168.1.50";
 
       for (let i = 1; i <= 3; i++) {
@@ -333,7 +353,7 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
         assert.strictEqual(res.status, 201);
       }
 
-      // 4. İstek
+      // 4. bağlantı aynı anonim tarayıcıda yeni linktir; eski 3/15dk IP sınırı uygulanmaz.
       const res4 = await createShareRoute(
         createMockRequest(
           {
@@ -345,10 +365,33 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
         )
       );
 
-      assert.strictEqual(res4.status, 429);
-      assert.strictEqual(res4.headers.get("Retry-After"), "900");
+      assert.strictEqual(res4.status, 201);
       const data = await res4.json();
-      assert.strictEqual(data.error, "QUOTA_EXCEEDED");
+      assert.strictEqual(data.status, "ready");
+    });
+
+    it("4.2 dolu günlük kota 429 Retry-After değerini sunucu resetAt/serverNow farkından üretmelidir", async () => {
+      const request = createMockRequest({
+        clientRequestId: "quota-retry-after-reset-boundary",
+        documentId: "beton-dokum-tutanagi",
+        values: {},
+      });
+      const identity = getBrowserIdentity(request);
+      assert.ok(identity);
+      const current = await memoryRepo.getDailyQuota(identity.environmentKey, identity.ownerHash);
+      memoryRepo.setDailyQuotaForTest(identity.environmentKey, identity.ownerHash, current.quotaDay, {
+        usedLinks: 50,
+        reservedLinks: 0,
+      });
+
+      const response = await createShareRoute(request);
+      assert.equal(response.status, 429);
+      const body = await response.json();
+      const expectedRetryAfter = Math.max(1, Math.ceil((Date.parse(body.resetAt) - Date.parse(body.serverNow)) / 1000));
+      assert.equal(response.headers.get("Retry-After"), String(expectedRetryAfter));
+      assert.equal(body.code, "DAILY_BROWSER_QUOTA_EXCEEDED");
+      assert.equal(body.remaining, 0);
+      assert.ok(body.requestCorrelationId);
     });
   });
 
@@ -376,6 +419,8 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
         {
           method: "DELETE",
           headers: {
+            origin: "http://localhost:3000",
+            host: "localhost:3000",
             "x-manage-token": created.manageToken,
           },
         }
@@ -411,38 +456,45 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
     });
 
     it("5.2 x-manage-token başlığı eksikse 400 MISSING_MANAGE_TOKEN dönmelidir", async () => {
+      const validViewToken = Buffer.alloc(32, 9).toString("base64url");
       const deleteReq = new Request(
-        "http://localhost:3000/api/belgeler/paylasim/view-token-12345",
+        `http://localhost:3000/api/belgeler/paylasim/${validViewToken}`,
         {
           method: "DELETE",
+          headers: { origin: "http://localhost:3000", host: "localhost:3000" },
         }
       );
 
       const deleteRes = await revokeShareRoute(deleteReq, {
-        params: Promise.resolve({ token: "view-token-12345" }),
+        params: Promise.resolve({ token: validViewToken }),
       });
 
       assert.strictEqual(deleteRes.status, 400);
       const data = await deleteRes.json();
-      assert.strictEqual(data.error, "MISSING_MANAGE_TOKEN");
+      assert.strictEqual(data.code, "MISSING_MANAGE_TOKEN");
     });
 
     it("5.3 Bilinmeyen token 404 NOT_FOUND dönmelidir", async () => {
+      const unknownToken = Buffer.alloc(32, 10).toString("base64url");
       const deleteReq = new Request(
-        "http://localhost:3000/api/belgeler/paylasim/unknown-token",
+        `http://localhost:3000/api/belgeler/paylasim/${unknownToken}`,
         {
           method: "DELETE",
-          headers: { "x-manage-token": "some-manage-token" },
+          headers: {
+            origin: "http://localhost:3000",
+            host: "localhost:3000",
+            "x-manage-token": Buffer.alloc(32, 11).toString("base64url"),
+          },
         }
       );
 
       const deleteRes = await revokeShareRoute(deleteReq, {
-        params: Promise.resolve({ token: "unknown-token" }),
+        params: Promise.resolve({ token: unknownToken }),
       });
 
       assert.strictEqual(deleteRes.status, 404);
       const data = await deleteRes.json();
-      assert.strictEqual(data.error, "NOT_FOUND");
+      assert.strictEqual(data.code, "NOT_FOUND");
     });
 
     it("5.4 Başka bağlantının yönetim anahtarı ile silme denemesi 403 FORBIDDEN dönmelidir", async () => {
@@ -471,7 +523,7 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
         `http://localhost:3000/api/belgeler/paylasim/${data1.viewToken}`,
         {
           method: "DELETE",
-          headers: { "x-manage-token": data2.manageToken }, // Başkasının anahtarı!
+          headers: { origin: "http://localhost:3000", host: "localhost:3000", "x-manage-token": data2.manageToken }, // Başkasının anahtarı!
         }
       );
 
@@ -481,7 +533,45 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
 
       assert.strictEqual(deleteRes.status, 403);
       const err = await deleteRes.json();
-      assert.strictEqual(err.error, "FORBIDDEN");
+      assert.strictEqual(err.code, "FORBIDDEN");
+    });
+
+    it("5.5 Bozuk veya aşırı uzun view/manage token DB lookup yapılmadan reddedilmelidir", async () => {
+      class LookupCountingRepository extends MemoryBelgePaylasimRepository {
+        tokenLookups = 0;
+        override async findByTokenHash(tokenHash: string) {
+          this.tokenLookups += 1;
+          return super.findByTokenHash(tokenHash);
+        }
+      }
+      const lookupRepo = new LookupCountingRepository();
+      setBelgePaylasimRepositoryForTest(lookupRepo);
+      const validToken = Buffer.alloc(32, 12).toString("base64url");
+      const makeDelete = (viewToken: string, manageToken: string) => new Request(
+        `http://localhost:3000/api/belgeler/paylasim/${viewToken}`,
+        {
+          method: "DELETE",
+          headers: {
+            origin: "http://localhost:3000",
+            host: "localhost:3000",
+            "x-manage-token": manageToken,
+          },
+        },
+      );
+
+      const badView = await revokeShareRoute(makeDelete("bad-token", validToken), {
+        params: Promise.resolve({ token: "bad-token" }),
+      });
+      assert.equal(badView.status, 400);
+      assert.equal((await badView.json()).code, "INVALID_TOKEN");
+
+      const longManage = "A".repeat(256);
+      const badManage = await revokeShareRoute(makeDelete(validToken, longManage), {
+        params: Promise.resolve({ token: validToken }),
+      });
+      assert.equal(badManage.status, 400);
+      assert.equal((await badManage.json()).code, "INVALID_MANAGE_TOKEN");
+      assert.equal(lookupRepo.tokenLookups, 0);
     });
   });
 
@@ -492,13 +582,13 @@ describe("ASAMA_05: Belge Paylaşım API ve Sunucu PDF Üretimi Testleri", () =>
     it("6.1 GET /api/belgeler/paylasim 405 Method Not Allowed dönmelidir", async () => {
       const res = await methodNotAllowedCreate();
       assert.strictEqual(res.status, 405);
-      assert.strictEqual(res.headers.get("Allow"), "POST");
+      assert.strictEqual(res.headers.get("Allow"), "POST, OPTIONS");
     });
 
     it("6.2 GET /api/belgeler/paylasim/[token] 405 Method Not Allowed dönmelidir", async () => {
       const res = await methodNotAllowedRevoke();
       assert.strictEqual(res.status, 405);
-      assert.strictEqual(res.headers.get("Allow"), "DELETE");
+      assert.strictEqual(res.headers.get("Allow"), "DELETE, OPTIONS");
     });
   });
 });

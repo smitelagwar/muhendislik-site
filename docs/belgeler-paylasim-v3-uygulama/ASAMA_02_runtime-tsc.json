@@ -1,0 +1,12 @@
+{
+  "command": "node node_modules/typescript/bin/tsc -p tsconfig.next.json --noEmit --incremental false",
+  "environment": "local runtime typecheck; NODE_ENV=test; cloud and secret variable names removed",
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 180000,
+  "durationMs": 19890,
+  "removedEnvironmentNames": [
+    "CODEX_MCP_NODE_PATH"
+  ],
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_02_runtime-tsc.log"
+}

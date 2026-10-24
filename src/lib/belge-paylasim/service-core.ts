@@ -3,19 +3,25 @@
 // ============================================================================
 
 import crypto from "crypto";
-import { BELGE_SHARE_CONFIG } from "./config";
+import { BELGE_SHARE_CONFIG, BelgeShareRuntimeError, getBelgeShareTokenKeyVersion } from "./config";
 import { getBelgeBlobStore } from "./blob-store";
 import { getBelgePaylasimRepository } from "./repository";
 import {
+  computeReplayProofHash,
   computePayloadDigest,
-  generateDeterministicTokens,
+  generateReservationTokens,
   hashCreatorIp,
+  isValidReplayProof,
   sha256Hex,
+  constantTimeCompare,
+  isValidShareToken,
+  isValidClientRequestId,
 } from "./tokens";
 import type {
   BelgePaylasimRecord,
   CreateShareReservationParams,
   CreateShareReservationResult,
+  BelgeShareTokens,
 } from "./types";
 
 export class BelgeShareServiceError extends Error {
@@ -46,82 +52,43 @@ export async function createShareReservation(
     );
   }
 
-  // 2. Hash ve özet hesaplamaları
-  const requestIdHash = sha256Hex(params.clientRequestId.trim());
+  const clientRequestId = params.clientRequestId.trim();
+  const requestIdHash = sha256Hex(clientRequestId);
   const payloadDigest = computePayloadDigest(params.documentId, params.values);
   const creatorIpHash = hashCreatorIp(params.creatorIp);
-
-  // 3. Idempotency kontrolü: Bu requestId daha önce işlendi mi?
+  const testIdentity = process.env.NODE_ENV === "test";
+  const ownerHash = params.ownerHash ?? (testIdentity ? "0".repeat(64) : "");
+  const environmentKey = params.environmentKey ?? (testIdentity ? "local" : undefined);
+  const replayProof = params.replayProof ?? (testIdentity ? "A".repeat(43) : "");
+  if (!ownerHash || !environmentKey || !isValidReplayProof(replayProof)) {
+    throw new BelgeShareServiceError("REPLAY_PROOF_REQUIRED", "İstek güvenli tekrar kanıtı taşımıyor.", 400);
+  }
+  const proofHash = computeReplayProofHash(ownerHash, requestIdHash, replayProof);
   const existing = await repo.findByRequestIdHash(requestIdHash);
   if (existing) {
-    // Farklı form içeriği ile aynı requestId gönderildiyse 409 Conflict
-    if (existing.payloadDigest !== payloadDigest) {
-      throw new BelgeShareServiceError(
-        "IDEMPOTENCY_CONFLICT",
-        "Aynı clientRequestId için farklı form verisi tespit edildi.",
-        409
-      );
-    }
-
-    // İptal edilmiş bağlantı tekrar aktifleşmez
-    if (existing.status === "revoked" || existing.revokedAt != null) {
-      throw new BelgeShareServiceError(
-        "LINK_REVOKED",
-        "Bu istek kimliğiyle oluşturulan bağlantı daha önce iptal edilmiştir.",
-        410
-      );
-    }
-
-    // Süresi dolmuş kayıt tekrar aktifleşmez
-    if (existing.status === "purged" || existing.expiresAt.getTime() <= Date.now()) {
-      throw new BelgeShareServiceError(
-        "LINK_EXPIRED",
-        "Bu istek kimliğiyle oluşturulan bağlantının geçerlilik süresi dolmuştur.",
-        410
-      );
-    }
-
-    // Mevcut kayıt zaten hazırsa aynı tokenları hesaplayıp idempotent yanıt dön
-    if (existing.status === "ready") {
-      const tokens = generateDeterministicTokens(params.clientRequestId.trim());
-      return {
-        status: "existing_ready",
-        record: existing,
-        tokens,
-        url: `/b/${tokens.viewToken}`,
-        manageToken: tokens.manageToken,
-        expiresAt: existing.expiresAt.toISOString(),
-      };
-    }
-
-    // İşlem hala devam ediyorsa
-    if (existing.status === "pending") {
-      throw new BelgeShareServiceError(
-        "OPERATION_IN_FLIGHT",
-        "Bu bağlantı oluşturma işlemi devam ediyor. Lütfen birazdan tekrar deneyin.",
-        409
-      );
-    }
+    const reused = await resumeExistingReservation({
+      record: existing,
+      clientRequestId,
+      ownerHash,
+      proofHash,
+      payloadDigest,
+      creatorIpHash,
+    });
+    if (reused) return reused;
   }
 
-  // 4. Atomik kota denetimi
-  const quota = await repo.checkAndAcquireQuota(creatorIpHash);
-  if (!quota.allowed) {
-    throw new BelgeShareServiceError(
-      "QUOTA_EXCEEDED",
-      quota.reason || "Kota aşıldı.",
-      429
-    );
-  }
+  // Legacy rows have no browser owner/replay proof. Never reconstruct or return
+  // their management token from the old requestId-only derivation.
+  const tokenKeyVersion = getBelgeShareTokenKeyVersion();
+  const reservationNonce = crypto.randomBytes(32);
+  const tokens = generateReservationTokens(clientRequestId, reservationNonce, tokenKeyVersion);
+  const attemptId = crypto.randomUUID();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + BELGE_SHARE_CONFIG.EXPIRATION_MS);
+  const leaseUntil = new Date(now.getTime() + BELGE_SHARE_CONFIG.ATTEMPT_LEASE_DURATION_MS);
+  const blobPathname = `${BELGE_SHARE_CONFIG.BLOB_PATH_PREFIX}${attemptId}.pdf`;
 
-  // 5. Deterministik token üretimi
-  const tokens = generateDeterministicTokens(params.clientRequestId.trim());
-  const randomBlobId = crypto.randomUUID();
-  const blobPathname = `${BELGE_SHARE_CONFIG.BLOB_PATH_PREFIX}${randomBlobId}.pdf`;
-  const expiresAt = new Date(Date.now() + BELGE_SHARE_CONFIG.EXPIRATION_MS);
-
-  // 6. DB'de pending rezervasyon kaydı aç
-  const newRecord = await repo.createPendingReservation({
+  const reserved = await repo.createOrGetReservation({
     requestIdHash,
     payloadDigest,
     tokenHash: tokens.viewTokenHash,
@@ -130,16 +97,170 @@ export async function createShareReservation(
     blobPathname,
     creatorIpHash,
     expiresAt,
+    ownerHash,
+    ownerVersion: 1,
+    requestVersion: 1,
+    proofHash,
+    proofVersion: 1,
+    tokenVersion: 2,
+    tokenKeyVersion,
+    reservationNonce,
+    environmentKey,
+    attemptId,
+    attemptVersion: 1,
+    leaseUntil,
   });
+  if (!reserved.created) {
+    const raced = await resumeExistingReservation({
+      record: reserved.record, clientRequestId, ownerHash, proofHash, payloadDigest, creatorIpHash,
+    });
+    if (raced) return raced;
+    throw new BelgeShareServiceError("REPLAY_NOT_FOUND", "İşlem bulunamadı.", 404);
+  }
 
   return {
     status: "new",
-    record: newRecord,
+    record: reserved.record,
     tokens,
     url: `/b/${tokens.viewToken}`,
     manageToken: tokens.manageToken,
     expiresAt: expiresAt.toISOString(),
   };
+}
+
+interface ResumeReservationParams {
+  record: BelgePaylasimRecord;
+  clientRequestId: string;
+  ownerHash: string;
+  proofHash: string;
+  payloadDigest: string;
+  creatorIpHash: string;
+}
+
+function tokensForRecord(record: BelgePaylasimRecord, clientRequestId: string): BelgeShareTokens {
+  if (
+    record.tokenVersion !== 2 || !record.tokenKeyVersion || !record.reservationNonce ||
+    record.reservationNonce.byteLength !== 32
+  ) {
+    throw new BelgeShareRuntimeError("TOKEN_KEY_VERSION_UNAVAILABLE");
+  }
+  try {
+    return generateReservationTokens(clientRequestId, record.reservationNonce, record.tokenKeyVersion);
+  } catch {
+    throw new BelgeShareRuntimeError("TOKEN_KEY_VERSION_UNAVAILABLE");
+  }
+}
+
+async function resumeExistingReservation(
+  params: ResumeReservationParams,
+): Promise<CreateShareReservationResult | null> {
+  const { record } = params;
+  if (!record.ownerHash || !record.proofHash || record.ownerVersion !== 1 || record.proofVersion !== 1) {
+    throw new BelgeShareServiceError(
+      "LEGACY_REPLAY_UNAVAILABLE",
+      "Eski paylaşım bu tarayıcıyla güvenli biçimde geri bulunamıyor. Eski yönetim anahtarı korunmalıdır.",
+      409,
+    );
+  }
+  if (
+    !constantTimeCompare(record.ownerHash, params.ownerHash) ||
+    !constantTimeCompare(record.proofHash, params.proofHash)
+  ) {
+    throw new BelgeShareServiceError("REPLAY_NOT_FOUND", "İşlem bulunamadı.", 404);
+  }
+  if (record.payloadDigest !== params.payloadDigest) {
+    throw new BelgeShareServiceError(
+      "IDEMPOTENCY_CONFLICT",
+      "Bu istek kimliği farklı içerikle daha önce kullanılmış.",
+      409,
+    );
+  }
+  if (record.status === "revoked" || record.revokedAt) {
+    throw new BelgeShareServiceError("LINK_REVOKED", "Bu işlem artık kullanılamıyor.", 410);
+  }
+  if (record.status === "purged" || record.expiresAt.getTime() <= Date.now()) {
+    throw new BelgeShareServiceError("LINK_EXPIRED", "Bu işlem artık kullanılamıyor.", 410);
+  }
+  if (record.status === "ready") {
+    const tokens = tokensForRecord(record, params.clientRequestId);
+    return {
+      status: "existing_ready",
+      record,
+      tokens,
+      url: `/b/${tokens.viewToken}`,
+      manageToken: tokens.manageToken,
+      expiresAt: record.expiresAt.toISOString(),
+    };
+  }
+  if (record.status === "pending" && record.leaseUntil && record.leaseUntil.getTime() > Date.now()) {
+    return { status: "in_flight", record };
+  }
+  if (record.status !== "failed" && record.status !== "pending") {
+    throw new BelgeShareServiceError("LINK_EXPIRED", "Bu işlem artık kullanılamıyor.", 410);
+  }
+
+  const attemptId = crypto.randomUUID();
+  const leaseUntil = new Date(Date.now() + BELGE_SHARE_CONFIG.ATTEMPT_LEASE_DURATION_MS);
+  const blobPathname = `${BELGE_SHARE_CONFIG.BLOB_PATH_PREFIX}${attemptId}.pdf`;
+  const retry = await getBelgePaylasimRepository().beginRetryAttempt(record.id, attemptId, blobPathname, leaseUntil);
+  if (retry) {
+    const tokens = tokensForRecord(retry, params.clientRequestId);
+    return {
+      status: "retry",
+      record: retry,
+      tokens,
+      url: `/b/${tokens.viewToken}`,
+      manageToken: tokens.manageToken,
+      expiresAt: retry.expiresAt.toISOString(),
+    };
+  }
+
+  // A concurrent retry/takeover won. Re-read the state and return only the
+  // safe operation status; the winner alone may render and write its Blob.
+  const latest = await getBelgePaylasimRepository().findByRequestIdHash(record.requestIdHash);
+  if (latest && latest.status === "ready") {
+    const tokens = tokensForRecord(latest, params.clientRequestId);
+    return {
+      status: "existing_ready", record: latest, tokens,
+      url: `/b/${tokens.viewToken}`, manageToken: tokens.manageToken,
+      expiresAt: latest.expiresAt.toISOString(),
+    };
+  }
+  return { status: "in_flight", record: latest ?? record };
+}
+
+export type ShareOperationStatus =
+  | { status: "not_found" }
+  | { status: "pending" }
+  | { status: "failed" }
+  | { status: "terminal" }
+  | { status: "ready"; record: BelgePaylasimRecord; tokens: BelgeShareTokens };
+
+/** Proof-authenticated recovery endpoint lookup; form data is never persisted or returned. */
+export async function getShareOperationStatus(params: {
+  clientRequestId: string;
+  ownerHash: string | null;
+  replayProof: string | null;
+}): Promise<ShareOperationStatus> {
+  if (!params.ownerHash || !isValidReplayProof(params.replayProof)) return { status: "not_found" };
+  const clientRequestId = params.clientRequestId.trim();
+  if (!isValidClientRequestId(clientRequestId)) return { status: "not_found" };
+  const requestIdHash = sha256Hex(clientRequestId);
+  const record = await getBelgePaylasimRepository().findByRequestIdHash(requestIdHash);
+  if (!record || !record.ownerHash || !record.proofHash || record.ownerVersion !== 1 || record.proofVersion !== 1) {
+    return { status: "not_found" };
+  }
+  const proofHash = computeReplayProofHash(params.ownerHash, requestIdHash, params.replayProof);
+  if (!constantTimeCompare(record.ownerHash, params.ownerHash) || !constantTimeCompare(record.proofHash, proofHash)) {
+    return { status: "not_found" };
+  }
+  if (record.status === "revoked" || record.status === "purged" || record.revokedAt || record.expiresAt.getTime() <= Date.now()) {
+    return { status: "terminal" };
+  }
+  if (record.status === "pending") return { status: "pending" };
+  if (record.status === "failed") return { status: "failed" };
+  if (record.status !== "ready") return { status: "terminal" };
+  return { status: "ready", record, tokens: tokensForRecord(record, clientRequestId) };
 }
 
 /**
@@ -148,10 +269,12 @@ export async function createShareReservation(
 export async function finalizeShareReservation(
   recordId: string,
   sizeBytes: number,
-  pdfSha256: string
-): Promise<void> {
+  pdfSha256: string,
+  attemptId?: string,
+  attemptVersion?: number,
+): Promise<boolean> {
   const repo = getBelgePaylasimRepository();
-  await repo.finalizeReady(recordId, sizeBytes, pdfSha256);
+  return repo.finalizeReady(recordId, sizeBytes, pdfSha256, attemptId, attemptVersion);
 }
 
 /**
@@ -159,10 +282,14 @@ export async function finalizeShareReservation(
  */
 export async function failShareReservation(
   recordId: string,
-  errorCode: string
-): Promise<void> {
+  errorCode: string,
+  attemptId?: string,
+  attemptVersion?: number,
+  uploadState: "not_started" | "unknown" | "present" = "unknown",
+  actualBytes?: number,
+): Promise<boolean> {
   const repo = getBelgePaylasimRepository();
-  await repo.markFailed(recordId, errorCode);
+  return repo.markFailed(recordId, errorCode, attemptId, attemptVersion, uploadState, actualBytes);
 }
 
 /**
@@ -218,12 +345,16 @@ export type GetShareResult =
  */
 export async function getShareByViewToken(viewToken: string): Promise<GetShareResult> {
   const cleanToken = viewToken.trim();
-  if (!cleanToken) return { status: "not_found" };
+  if (!isValidShareToken(cleanToken)) return { status: "not_found" };
 
-  const repo = getBelgePaylasimRepository();
   const tokenHash = sha256Hex(cleanToken);
-
-  const record = await repo.findByTokenHash(tokenHash);
+  let record: BelgePaylasimRecord | null;
+  try {
+    record = await getBelgePaylasimRepository().findByTokenHash(tokenHash);
+  } catch (error) {
+    if (error instanceof BelgeShareRuntimeError) throw error;
+    throw new BelgeShareRuntimeError("DATABASE_UNAVAILABLE");
+  }
   if (!record) return { status: "not_found" };
 
   const now = Date.now();

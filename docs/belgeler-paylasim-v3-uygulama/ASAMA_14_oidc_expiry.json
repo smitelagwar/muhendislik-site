@@ -1,0 +1,9 @@
+{
+  "dateChecked": "2026-10-24 Europe/Istanbul",
+  "source": "Vercel Development env-run child; token inspected only in memory; no token value recorded",
+  "tokenPresent": true,
+  "expiryUtc": "2026-10-12T08:56:25.000Z",
+  "expiredAtCheck": true,
+  "previousExposedValueIndependentlyCompared": false,
+  "conclusion": "The currently exposed local OIDC token is expired. A fresh token is still required before any future remote Vercel write; no remote write was made."
+}

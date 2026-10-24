@@ -1,0 +1,32 @@
+{
+  "command": "node --import tsx --test --test-concurrency=1 tests/belgeler/belge-filename.test.ts tests/belgeler/belge-share-api.test.ts tests/belgeler/belge-share-cleanup.test.ts tests/belgeler/belge-share-client.test.ts tests/belgeler/belge-share-server.test.ts tests/belgeler/belge-share-ui.test.ts tests/belgeler/belge-share-viewer.test.ts tests/belgeler/belge-share-stage02.test.ts tests/belgeler/belge-share-stage03.test.ts tests/belgeler/belge-share-stage04.test.ts tests/belgeler/belge-share-stage05.test.ts tests/belgeler/belge-share-stage06.test.ts tests/belgeler/belge-share-stage07.test.ts tests/belgeler/belge-share-stage08.test.ts",
+  "environment": "NODE_ENV=test; DB/blob/secret/cloud environment names removed; isolated Memory/PGlite fixtures; no production data",
+  "files": [
+    "tests/belgeler/belge-filename.test.ts",
+    "tests/belgeler/belge-share-api.test.ts",
+    "tests/belgeler/belge-share-cleanup.test.ts",
+    "tests/belgeler/belge-share-client.test.ts",
+    "tests/belgeler/belge-share-server.test.ts",
+    "tests/belgeler/belge-share-ui.test.ts",
+    "tests/belgeler/belge-share-viewer.test.ts",
+    "tests/belgeler/belge-share-stage02.test.ts",
+    "tests/belgeler/belge-share-stage03.test.ts",
+    "tests/belgeler/belge-share-stage04.test.ts",
+    "tests/belgeler/belge-share-stage05.test.ts",
+    "tests/belgeler/belge-share-stage06.test.ts",
+    "tests/belgeler/belge-share-stage07.test.ts",
+    "tests/belgeler/belge-share-stage08.test.ts"
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 180000,
+  "durationMs": 23661,
+  "tests": 176,
+  "suites": 48,
+  "passed": 176,
+  "failed": 0,
+  "skipped": 0,
+  "todo": 0,
+  "removedEnvironmentNames": [],
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_08_tests.tap"
+}

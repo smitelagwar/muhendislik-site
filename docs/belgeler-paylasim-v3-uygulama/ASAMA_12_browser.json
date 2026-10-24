@@ -1,0 +1,185 @@
+{
+  "result": "PASS",
+  "sourceHashes": [
+    {
+      "file": "src/lib/pdf-engine.ts",
+      "sha256": "658d990ba1cfba839b74c763da1e928f1c22b1c88f9e89a749294e2c3d85d0ca"
+    },
+    {
+      "file": "src/lib/belge-filename.ts",
+      "sha256": "f3f814dffbf80567869b97229dc1875aa5f9b71babfc72f34a916510bce9bb9f"
+    },
+    {
+      "file": "src/lib/belge-paylasim/server-pdf.ts",
+      "sha256": "4a713993dcef31668b36172b361b9830acc01829d765731b7804e87ecacda56d"
+    }
+  ],
+  "scope": "real Next dev studios + Playwright transport bridge calling actual create/quota/PDF handlers, real server PDF generation, isolated Memory DB/Blob; not real Neon/Blob; controlled print window",
+  "checks": [
+    {
+      "id": "beton-inline-latest-share-real-generator",
+      "result": "PASS"
+    },
+    {
+      "id": "beton-share-download-all-fields-filename-focus",
+      "result": "PASS"
+    },
+    {
+      "id": "beton-debounce-revision-old-link-immutable",
+      "result": "PASS"
+    },
+    {
+      "id": "beton-clear-undo-form-values",
+      "result": "PASS"
+    },
+    {
+      "id": "beton-draft-restore-editable-download",
+      "result": "PASS"
+    },
+    {
+      "id": "beton-field-focus-form-fit",
+      "result": "PASS"
+    },
+    {
+      "id": "beton-print-current-blob-handoff",
+      "result": "PASS"
+    },
+    {
+      "id": "beton-no-browser-or-bridge-errors",
+      "result": "PASS"
+    },
+    {
+      "id": "taahhutname-inline-latest-share-real-generator",
+      "result": "PASS"
+    },
+    {
+      "id": "taahhutname-share-download-all-fields-filename-focus",
+      "result": "PASS"
+    },
+    {
+      "id": "taahhutname-debounce-revision-old-link-immutable",
+      "result": "PASS"
+    },
+    {
+      "id": "taahhutname-clear-undo-form-values",
+      "result": "PASS"
+    },
+    {
+      "id": "taahhutname-draft-restore-editable-download",
+      "result": "PASS"
+    },
+    {
+      "id": "taahhutname-field-focus-form-fit",
+      "result": "PASS"
+    },
+    {
+      "id": "taahhutname-print-current-blob-handoff",
+      "result": "PASS"
+    },
+    {
+      "id": "taahhutname-no-browser-or-bridge-errors",
+      "result": "PASS"
+    },
+    {
+      "id": "istifa-inline-latest-share-real-generator",
+      "result": "PASS"
+    },
+    {
+      "id": "istifa-share-download-all-fields-filename-focus",
+      "result": "PASS"
+    },
+    {
+      "id": "istifa-debounce-revision-old-link-immutable",
+      "result": "PASS"
+    },
+    {
+      "id": "istifa-clear-undo-form-values",
+      "result": "PASS"
+    },
+    {
+      "id": "istifa-draft-restore-editable-download",
+      "result": "PASS"
+    },
+    {
+      "id": "istifa-field-focus-form-fit",
+      "result": "PASS"
+    },
+    {
+      "id": "istifa-print-current-blob-handoff",
+      "result": "PASS"
+    },
+    {
+      "id": "istifa-no-browser-or-bridge-errors",
+      "result": "PASS"
+    },
+    {
+      "id": "ruhsat-inline-latest-share-real-generator",
+      "result": "PASS"
+    },
+    {
+      "id": "ruhsat-share-download-all-fields-filename-focus",
+      "result": "PASS"
+    },
+    {
+      "id": "ruhsat-debounce-revision-old-link-immutable",
+      "result": "PASS"
+    },
+    {
+      "id": "ruhsat-clear-undo-form-values",
+      "result": "PASS"
+    },
+    {
+      "id": "ruhsat-draft-restore-editable-download",
+      "result": "PASS"
+    },
+    {
+      "id": "ruhsat-field-focus-form-fit",
+      "result": "PASS"
+    },
+    {
+      "id": "ruhsat-print-current-blob-handoff",
+      "result": "PASS"
+    },
+    {
+      "id": "ruhsat-no-browser-or-bridge-errors",
+      "result": "PASS"
+    },
+    {
+      "id": "sozlesme-inline-latest-share-real-generator",
+      "result": "PASS"
+    },
+    {
+      "id": "sozlesme-share-download-all-fields-filename-focus",
+      "result": "PASS"
+    },
+    {
+      "id": "sozlesme-debounce-revision-old-link-immutable",
+      "result": "PASS"
+    },
+    {
+      "id": "sozlesme-clear-undo-form-values",
+      "result": "PASS"
+    },
+    {
+      "id": "sozlesme-draft-restore-editable-download",
+      "result": "PASS"
+    },
+    {
+      "id": "sozlesme-field-focus-form-fit",
+      "result": "PASS"
+    },
+    {
+      "id": "sozlesme-print-current-blob-handoff",
+      "result": "PASS"
+    },
+    {
+      "id": "sozlesme-no-browser-or-bridge-errors",
+      "result": "PASS"
+    }
+  ],
+  "passed": 40,
+  "failed": 0,
+  "skipped": 0,
+  "durationMs": 104802,
+  "error": null
+}

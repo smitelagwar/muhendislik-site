@@ -1,0 +1,38 @@
+{
+  "command": "node node_modules/eslint/bin/eslint.js src/lib/belge-paylasim/http.ts src/lib/belge-paylasim/request-validation.ts src/lib/belge-paylasim/tokens.ts src/lib/belge-paylasim/service-core.ts src/lib/belge-paylasim/server-pdf.ts src/lib/belge-paylasim/browser-bootstrap.ts src/lib/site-config.ts src/hooks/use-belge-share.ts src/app/api/belgeler/paylasim/route.ts src/app/api/belgeler/paylasim/[token]/route.ts src/app/api/belgeler/paylasim/[token]/pdf/route.ts src/app/api/belgeler/paylasim/islem/[requestId]/route.ts next.config.ts tests/belgeler/belge-share-stage06.test.ts tests/belgeler/belge-share-api.test.ts tests/belgeler/belge-share-viewer.test.ts tests/belgeler/belge-share-stage02.test.ts tests/belgeler/belge-share-stage03.test.ts tests/belgeler/belge-share-stage04.test.ts tests/belgeler/belge-share-client.test.ts tests/belgeler/belge-share-ui.test.ts docs/belgeler-paylasim-v3-uygulama/run-stage06-tests.mjs docs/belgeler-paylasim-v3-uygulama/run-stage06-runtime-tsc.mjs docs/belgeler-paylasim-v3-uygulama/run-stage06-lint.mjs",
+  "environment": "ESLint over ASAMA_05 runtime, API, regression tests and bounded evidence runners; cloud/database/blob/secret variable names removed",
+  "files": [
+    "src/lib/belge-paylasim/http.ts",
+    "src/lib/belge-paylasim/request-validation.ts",
+    "src/lib/belge-paylasim/tokens.ts",
+    "src/lib/belge-paylasim/service-core.ts",
+    "src/lib/belge-paylasim/server-pdf.ts",
+    "src/lib/belge-paylasim/browser-bootstrap.ts",
+    "src/lib/site-config.ts",
+    "src/hooks/use-belge-share.ts",
+    "src/app/api/belgeler/paylasim/route.ts",
+    "src/app/api/belgeler/paylasim/[token]/route.ts",
+    "src/app/api/belgeler/paylasim/[token]/pdf/route.ts",
+    "src/app/api/belgeler/paylasim/islem/[requestId]/route.ts",
+    "next.config.ts",
+    "tests/belgeler/belge-share-stage06.test.ts",
+    "tests/belgeler/belge-share-api.test.ts",
+    "tests/belgeler/belge-share-viewer.test.ts",
+    "tests/belgeler/belge-share-stage02.test.ts",
+    "tests/belgeler/belge-share-stage03.test.ts",
+    "tests/belgeler/belge-share-stage04.test.ts",
+    "tests/belgeler/belge-share-client.test.ts",
+    "tests/belgeler/belge-share-ui.test.ts",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage06-tests.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage06-runtime-tsc.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage06-lint.mjs"
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 180000,
+  "durationMs": 4783,
+  "removedEnvironmentNames": [
+    "CODEX_MCP_NODE_PATH"
+  ],
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_06_lint.log"
+}

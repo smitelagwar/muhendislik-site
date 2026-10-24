@@ -2,8 +2,9 @@
 // BELGE PAYLAŞIM — İSTEK DOĞRULAMA VE GÜVENLİK FİLTRESİ
 // ============================================================================
 
-import { DOCUMENT_EDITABLE_FIELDS } from "../document-field-contracts";
+import { DOCUMENT_EDITABLE_FIELDS, DOCUMENT_PDF_ONLY_FIELDS } from "../document-field-contracts";
 import { BELGE_SHARE_CONFIG } from "./config";
+import { isValidClientRequestId } from "./tokens";
 import type { BelgePaylasimDocumentId } from "./types";
 
 export interface ValidatedShareCreateInput {
@@ -24,240 +25,267 @@ export class RequestValidationError extends Error {
   }
 }
 
-/**
- * İstemci IP adresini platform başlıklarından (x-forwarded-for, x-real-ip) güvenle ayıklar.
- */
+export const REQUEST_BODY_READ_TIMEOUT_MS = 10_000;
+
+function validationError(code: string, message: string, statusCode = 400): RequestValidationError {
+  return new RequestValidationError(code, message, statusCode);
+}
+
+/** İstemci IP'si kota anahtarı değildir; yalnız anonim/operasyonel kayıtta kullanılır. */
 export function extractClientIp(request: Request): string {
   const forwardedFor = request.headers.get("x-forwarded-for");
   if (forwardedFor) {
-    const firstIp = forwardedFor.split(",")[0].trim();
+    const firstIp = forwardedFor.split(",")[0]?.trim();
     if (firstIp) return firstIp;
   }
 
   const realIp = request.headers.get("x-real-ip");
-  if (realIp && realIp.trim()) {
-    return realIp.trim();
-  }
-
+  if (realIp?.trim()) return realIp.trim();
   return "127.0.0.1";
 }
 
 /**
- * Same-Origin / Sec-Fetch-Site denetimi ile harici sitelerden gelen CSRF/abusive istekleri engeller.
+ * Browser API mutation isteklerinde Origin, Request URL ve Host aynı scheme,
+ * hostname ve portu göstermelidir. Eksik, `null` veya bozuk başlık fail-closed'dur.
+ * Salt-okunur GET uçları yalnız Origin başlığı hiç yoksa aynı Host kontrolünü seçebilir.
  */
-export function validateSameOrigin(request: Request): void {
-  const secFetchSite = request.headers.get("sec-fetch-site");
-  if (secFetchSite === "cross-site") {
-    throw new RequestValidationError(
+export function validateSameOrigin(
+  request: Request,
+  options: { allowMissingOrigin?: boolean } = {},
+): void {
+  if (request.headers.get("sec-fetch-site") === "cross-site") {
+    throw validationError(
       "CROSS_SITE_FORBIDDEN",
       "Farklı kaynaklardan gelen istekler güvenlik nedeniyle reddedildi.",
-      403
+      403,
     );
   }
 
   const origin = request.headers.get("origin");
   const host = request.headers.get("host");
+  if (!host) {
+    throw validationError("INVALID_ORIGIN", "Origin ve Host başlıkları zorunludur.", 403);
+  }
 
-  if (origin && host) {
-    try {
-      const originUrl = new URL(origin);
-      if (originUrl.host.toLowerCase() !== host.toLowerCase()) {
-        throw new RequestValidationError(
-          "INVALID_ORIGIN",
-          "İstek kaynağı ile hedef sunucu uyuşmuyor.",
-          403
-        );
-      }
-    } catch (err) {
-      if (err instanceof RequestValidationError) throw err;
-      throw new RequestValidationError("INVALID_ORIGIN", "Geçersiz Origin başlığı.", 403);
-    }
+  let requestUrl: URL;
+  try {
+    requestUrl = new URL(request.url);
+  } catch {
+    throw validationError("INVALID_ORIGIN", "İstek kaynağı doğrulanamadı.", 403);
+  }
+
+  // Same-origin GET requests commonly omit Origin. This exception is only for
+  // explicitly opted-in read endpoints; cross-site Fetch Metadata still fails above.
+  if (!origin && options.allowMissingOrigin && host.toLowerCase() === requestUrl.host.toLowerCase()) {
+    return;
+  }
+
+  if (!origin || origin === "null") {
+    throw validationError("INVALID_ORIGIN", "Origin ve Host başlıkları zorunludur.", 403);
+  }
+
+  let originUrl: URL;
+  try {
+    originUrl = new URL(origin);
+  } catch {
+    throw validationError("INVALID_ORIGIN", "İstek kaynağı doğrulanamadı.", 403);
+  }
+
+  if (
+    originUrl.username || originUrl.password || originUrl.pathname !== "/" ||
+    originUrl.search || originUrl.hash || origin !== originUrl.origin ||
+    originUrl.origin !== requestUrl.origin || host.toLowerCase() !== requestUrl.host.toLowerCase()
+  ) {
+    throw validationError("INVALID_ORIGIN", "İstek kaynağı ile hedef sunucu uyuşmuyor.", 403);
   }
 }
 
-/**
- * Gelen HTTP isteğini boyut, format, alan ve tip açısından tam olarak doğrular.
- */
+function validateContentLength(request: Request): void {
+  const declared = request.headers.get("content-length");
+  if (declared === null) return;
+  if (!/^\d+$/.test(declared)) {
+    throw validationError("INVALID_CONTENT_LENGTH", "Content-Length başlığı geçersiz.");
+  }
+  const bytes = Number(declared);
+  if (!Number.isSafeInteger(bytes)) {
+    throw validationError("INVALID_CONTENT_LENGTH", "Content-Length başlığı geçersiz.");
+  }
+  if (bytes > BELGE_SHARE_CONFIG.MAX_JSON_BODY_BYTES) {
+    void request.body?.cancel().catch(() => undefined);
+    throw validationError("PAYLOAD_TOO_LARGE", "İstek gövdesi 64 KiB sınırını aşamaz.", 413);
+  }
+}
+
+/** Reads at most 64 KiB+1, cancels the stream on overflow/timeout/abort and releases its lock. */
+export async function readShareJsonBody(
+  request: Request,
+  timeoutMs = REQUEST_BODY_READ_TIMEOUT_MS,
+): Promise<string> {
+  validateContentLength(request);
+  const stream = request.body;
+  if (!stream) return "";
+
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let abortListener: (() => void) | undefined;
+
+  const cancel = (reason?: unknown) => {
+    try {
+      void reader.cancel(reason).catch(() => undefined);
+    } catch {
+      // The source may already be closed or cancelled.
+    }
+  };
+
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(validationError("REQUEST_BODY_TIMEOUT", "İstek gövdesi zaman aşımına uğradı.", 408));
+        cancel("request body timeout");
+      }, timeoutMs);
+    });
+    const abortPromise = new Promise<never>((_, reject) => {
+      abortListener = () => {
+        reject(validationError("REQUEST_ABORTED", "İstek tamamlanmadan bağlantı kesildi.", 408));
+        cancel("request aborted");
+      };
+      if (request.signal.aborted) abortListener();
+      else request.signal.addEventListener("abort", abortListener, { once: true });
+    });
+
+    while (true) {
+      const result = await Promise.race([reader.read(), timeoutPromise, abortPromise]);
+      if (result.done) break;
+      totalBytes += result.value.byteLength;
+      if (totalBytes > BELGE_SHARE_CONFIG.MAX_JSON_BODY_BYTES) {
+        cancel("request body exceeds limit");
+        throw validationError("PAYLOAD_TOO_LARGE", "İstek gövdesi 64 KiB sınırını aşamaz.", 413);
+      }
+      chunks.push(result.value);
+    }
+  } catch (error) {
+    cancel(error);
+    if (error instanceof RequestValidationError) throw error;
+    throw validationError("REQUEST_BODY_READ_FAILED", "İstek gövdesi okunamadı.", 400);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+    if (abortListener) request.signal.removeEventListener("abort", abortListener);
+    try {
+      reader.releaseLock();
+    } catch {
+      // A cancelled stream can release its lock itself.
+    }
+  }
+
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw validationError("INVALID_UTF8", "İstek gövdesi geçerli UTF-8 olmalıdır.");
+  }
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+/** Validates a strict, bounded JSON contract before any database or Blob access. */
 export async function validateShareCreateRequest(
-  request: Request
+  request: Request,
+  bodyReadTimeoutMs = REQUEST_BODY_READ_TIMEOUT_MS,
 ): Promise<ValidatedShareCreateInput> {
-  // 1. Same-Origin kontrolü
   validateSameOrigin(request);
 
-  // 2. Content-Type doğrulaması
   const contentType = request.headers.get("content-type") || "";
-  if (!contentType.toLowerCase().includes("application/json")) {
-    throw new RequestValidationError(
-      "UNSUPPORTED_MEDIA_TYPE",
-      "İçerik türü application/json olmalıdır.",
-      415
-    );
+  const mediaType = contentType.split(";", 1)[0]?.trim().toLowerCase();
+  if (mediaType !== "application/json") {
+    throw validationError("UNSUPPORTED_MEDIA_TYPE", "İçerik türü application/json olmalıdır.", 415);
   }
 
-  // 3. Gövde boyutu kontrolü (azami 64 KiB)
-  const rawBodyText = await request.text();
-  const bodyBytes = Buffer.byteLength(rawBodyText, "utf-8");
-
-  if (bodyBytes > BELGE_SHARE_CONFIG.MAX_JSON_BODY_BYTES) {
-    throw new RequestValidationError(
-      "PAYLOAD_TOO_LARGE",
-      `İstek boyutu azami ${BELGE_SHARE_CONFIG.MAX_JSON_BODY_BYTES / 1024} KiB sınırını aşamaz.`,
-      413
-    );
+  const rawBodyText = await readShareJsonBody(request, bodyReadTimeoutMs);
+  if (Buffer.byteLength(rawBodyText, "utf8") === 0) {
+    throw validationError("EMPTY_BODY", "İstek gövdesi boş olamaz.");
   }
 
-  if (bodyBytes === 0) {
-    throw new RequestValidationError(
-      "EMPTY_BODY",
-      "İstek gövdesi boş olamaz.",
-      400
-    );
-  }
-
-  // 4. JSON çözümleme
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawBodyText);
   } catch {
-    throw new RequestValidationError(
-      "INVALID_JSON",
-      "İstek gövdesi geçerli bir JSON içermiyor.",
-      400
-    );
+    throw validationError("INVALID_JSON", "İstek gövdesi geçerli bir JSON içermiyor.");
+  }
+  if (!isPlainRecord(parsed)) {
+    throw validationError("INVALID_BODY_STRUCTURE", "İstek gövdesi bir JSON nesnesi olmalıdır.");
   }
 
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new RequestValidationError(
-      "INVALID_BODY_STRUCTURE",
-      "İstek gövdesi bir JSON nesnesi olmalıdır.",
-      400
-    );
+  const forbiddenKeys = new Set(["__proto__", "constructor", "prototype"]);
+  const bodyKeys = Object.keys(parsed);
+  if (bodyKeys.some((key) => forbiddenKeys.has(key))) {
+    throw validationError("INVALID_BODY_KEY", "İstek gövdesi yasak bir anahtar içeriyor.");
+  }
+  if (bodyKeys.some((key) => !["clientRequestId", "documentId", "values"].includes(key))) {
+    throw validationError("UNKNOWN_BODY_FIELD", "İstek gövdesinde izin verilmeyen bir alan var.");
   }
 
-  const body = parsed as Record<string, unknown>;
-
-  // 5. clientRequestId kontrolü
-  const rawRequestId = body.clientRequestId;
-  if (typeof rawRequestId !== "string" || !rawRequestId.trim()) {
-    throw new RequestValidationError(
-      "MISSING_CLIENT_REQUEST_ID",
-      "clientRequestId alanı zorunludur.",
-      400
-    );
+  const rawRequestId = parsed.clientRequestId;
+  if (typeof rawRequestId !== "string" || !isValidClientRequestId(rawRequestId)) {
+    throw validationError("INVALID_CLIENT_REQUEST_ID", "clientRequestId 256-bit URL-güvenli kimlik olmalıdır.");
   }
 
-  const clientRequestId = rawRequestId.trim();
-  if (clientRequestId.length < 8 || clientRequestId.length > 128) {
-    throw new RequestValidationError(
-      "INVALID_CLIENT_REQUEST_ID",
-      "clientRequestId uzunluğu 8 ile 128 karakter arasında olmalıdır.",
-      400
-    );
-  }
-
-  if (!/^[a-zA-Z0-9_-]+$/.test(clientRequestId)) {
-    throw new RequestValidationError(
-      "INVALID_CLIENT_REQUEST_ID",
-      "clientRequestId yalnızca harf, rakam, tire ve alt çizgi içerebilir.",
-      400
-    );
-  }
-
-  // 6. documentId kontrolü
-  const rawDocId = body.documentId;
+  const rawDocId = parsed.documentId;
   if (typeof rawDocId !== "string" || !rawDocId.trim()) {
-    throw new RequestValidationError(
-      "MISSING_DOCUMENT_ID",
-      "documentId alanı zorunludur.",
-      400
-    );
+    throw validationError("MISSING_DOCUMENT_ID", "documentId alanı zorunludur.");
   }
-
   const documentId = rawDocId.trim() as BelgePaylasimDocumentId;
   if (!BELGE_SHARE_CONFIG.SUPPORTED_DOCUMENTS.includes(documentId)) {
-    throw new RequestValidationError(
-      "UNSUPPORTED_DOCUMENT",
-      `Desteklenmeyen belge türü: ${rawDocId}`,
-      400
-    );
+    throw validationError("UNSUPPORTED_DOCUMENT", "Desteklenmeyen belge türü.");
   }
 
-  // 7. values nesnesi kontrolü
-  const rawValues = body.values;
-  if (!rawValues || typeof rawValues !== "object" || Array.isArray(rawValues)) {
-    throw new RequestValidationError(
-      "INVALID_VALUES",
-      "values bir alan-değer nesnesi olmalıdır.",
-      400
-    );
+  const rawValues = parsed.values;
+  if (!isPlainRecord(rawValues)) {
+    throw validationError("INVALID_VALUES", "values bir düz alan-değer nesnesi olmalıdır.");
   }
 
   const allowedFieldKeys = new Set<string>([
-    ...(DOCUMENT_EDITABLE_FIELDS[documentId] || []),
-    // Güvenli uyumluluk: İstifa bileşen durumunda saklanan sabit etiket alanları
-    "adres_etiket",
-    "tc_etiket",
-    "iletisim_etiket",
+    ...DOCUMENT_EDITABLE_FIELDS[documentId],
+    ...DOCUMENT_PDF_ONLY_FIELDS[documentId],
   ]);
+  const entries = Object.entries(rawValues);
+  if (entries.length > 100) throw validationError("TOO_MANY_FIELDS", "Form alan sayısı sınırı aşıldı.");
 
   const cleanValues: Record<string, string> = {};
-  const entries = Object.entries(rawValues as Record<string, unknown>);
-
-  if (entries.length > 100) {
-    throw new RequestValidationError(
-      "TOO_MANY_FIELDS",
-      "Form alan sayısı sınırı aşıldı.",
-      400
-    );
-  }
-
-  for (const [key, val] of entries) {
-    // Güvenlik: prototype pollution veya beklenmeyen anahtarları engelle
-    if (key === "__proto__" || key === "constructor" || key === "prototype") {
-      continue;
+  for (const [key, value] of entries) {
+    if (forbiddenKeys.has(key)) {
+      throw validationError("INVALID_FIELD_KEY", "values yasak bir anahtar içeriyor.");
     }
-
     if (!allowedFieldKeys.has(key)) {
-      throw new RequestValidationError(
-        "UNKNOWN_FIELD",
-        `"${key}" alanı ${documentId} belgesi için geçerli bir form alanı değildir.`,
-        400
-      );
+      throw validationError("UNKNOWN_FIELD", "Belge için izin verilmeyen bir form alanı var.");
     }
-
-    if (val !== undefined && val !== null && typeof val !== "string") {
-      throw new RequestValidationError(
-        "INVALID_FIELD_TYPE",
-        `"${key}" alanı metin (string) türünde olmalıdır.`,
-        400
-      );
+    if (typeof value !== "string") {
+      throw validationError("INVALID_FIELD_TYPE", "Form alanlarının tüm değerleri metin olmalıdır.");
     }
-
-    const strVal = String(val ?? "");
-    if (strVal.length > 2000) {
-      throw new RequestValidationError(
-        "FIELD_TOO_LONG",
-        `"${key}" alanının uzunluğu 2000 karakter sınırını aşamaz.`,
-        400
-      );
+    if (value.length > 2000) {
+      throw validationError("FIELD_TOO_LONG", "Bir form alanı 2000 karakter sınırını aşıyor.");
     }
-
-    cleanValues[key] = strVal;
+    cleanValues[key] = value;
   }
 
-  // Eksik alanları varsayılan boş dize ile tamamla (bütünlük için)
-  for (const requiredKey of allowedFieldKeys) {
-    if (cleanValues[requiredKey] === undefined) {
-      cleanValues[requiredKey] = "";
-    }
+  for (const key of allowedFieldKeys) {
+    if (!(key in cleanValues)) cleanValues[key] = "";
   }
-
-  const creatorIp = extractClientIp(request);
 
   return {
-    clientRequestId,
+    clientRequestId: rawRequestId,
     documentId,
     values: cleanValues,
-    creatorIp,
+    creatorIp: extractClientIp(request),
   };
 }

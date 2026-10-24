@@ -1,0 +1,28 @@
+{
+  "command": "node --import tsx --test tests/belgeler/belge-filename.test.ts tests/belgeler/belge-share-api.test.ts tests/belgeler/belge-share-cleanup.test.ts tests/belgeler/belge-share-client.test.ts tests/belgeler/belge-share-server.test.ts tests/belgeler/belge-share-ui.test.ts tests/belgeler/belge-share-viewer.test.ts",
+  "environment": "local Node test process; NODE_ENV=test; cloud and secret variable names removed",
+  "adapter": "test fixtures explicitly inject MemoryBelgePaylasimRepository and MemoryBelgeBlobStore; browser probe is not included",
+  "files": [
+    "tests/belgeler/belge-filename.test.ts",
+    "tests/belgeler/belge-share-api.test.ts",
+    "tests/belgeler/belge-share-cleanup.test.ts",
+    "tests/belgeler/belge-share-client.test.ts",
+    "tests/belgeler/belge-share-server.test.ts",
+    "tests/belgeler/belge-share-ui.test.ts",
+    "tests/belgeler/belge-share-viewer.test.ts"
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 180000,
+  "durationMs": 1963,
+  "tests": 108,
+  "suites": 37,
+  "passed": 108,
+  "failed": 0,
+  "skipped": 0,
+  "todo": 0,
+  "removedEnvironmentNames": [
+    "CODEX_MCP_NODE_PATH"
+  ],
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_01_baseline.tap"
+}

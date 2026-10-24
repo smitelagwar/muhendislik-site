@@ -71,6 +71,7 @@ export function turkishToAscii(str: string): string {
  * Takvim geçerliliğini kontrol eder (artık yıllar ve ay gün sınırları dahil).
  */
 export function isValidCalendarDate(year: number, month: number, day: number): boolean {
+  if (![year, month, day].every(Number.isInteger)) return false;
   if (year < 1900 || year > 2100) return false;
   if (month < 1 || month > 12) return false;
   if (day < 1 || day > 31) return false;
@@ -180,15 +181,10 @@ function isSamplePersonName(namePart: string): boolean {
  */
 export function formatYibfPart(rawYibf: string | undefined | null, maxLen = 40): string {
   if (!rawYibf || typeof rawYibf !== "string") return "";
-
-  const ascii = turkishToAscii(rawYibf);
-  // Kullanıcı zaten "YIBF" veya "YIBF-" yazmış olabilir
-  const strippedPrefix = ascii.replace(/^yibf[-_\s]*/i, "");
-  const clean = strippedPrefix.replace(/[^a-zA-Z0-9]/g, "");
-  if (!clean) return "";
-
-  const result = `YIBF-${clean}`.slice(0, maxLen).replace(/-+$/, "");
-  return result;
+  const match = turkishToAscii(rawYibf).trim().match(/^(?:YIBF[-_\s]*)?([0-9]{7})$/i);
+  const result = match ? `YIBF-${match[1]}` : "";
+  // Do not turn a valid seven-digit identifier into a partial identifier.
+  return result.length <= maxLen ? result : "";
 }
 
 /**

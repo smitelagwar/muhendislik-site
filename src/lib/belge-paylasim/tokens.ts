@@ -3,7 +3,7 @@
 // ============================================================================
 
 import crypto from "crypto";
-import { getBelgeShareSecret } from "./config";
+import { getBelgeShareSecret, getBelgeShareTokenKeyVersion } from "./config";
 import type { BelgeShareTokens } from "./types";
 
 /**
@@ -50,6 +50,79 @@ export function generateDeterministicTokens(
     viewTokenHash,
     manageTokenHash,
   };
+}
+
+/** New V3 tokens are bound to a durable random reservation nonce and key version. */
+export function generateReservationTokens(
+  clientRequestId: string,
+  reservationNonce: Uint8Array,
+  keyVersion: number,
+  secretOverride?: string,
+): BelgeShareTokens {
+  const cleanRequestId = clientRequestId.trim();
+  if (!cleanRequestId) throw new Error("clientRequestId boş olamaz.");
+  if (!(reservationNonce instanceof Uint8Array) || reservationNonce.byteLength !== 32) {
+    throw new Error("reservation nonce tam 32 bayt olmalıdır.");
+  }
+  if (!Number.isSafeInteger(keyVersion) || keyVersion < 1 || keyVersion !== getBelgeShareTokenKeyVersion()) {
+    throw new Error("TOKEN_KEY_VERSION_UNAVAILABLE");
+  }
+
+  const secret = secretOverride ?? getBelgeShareSecret();
+  const nonce = Buffer.from(reservationNonce);
+  const derive = (purpose: "view" | "manage") => crypto
+    .createHmac("sha256", secret)
+    .update(`belge-share-token:v2:key-${keyVersion}:${purpose}:`, "utf8")
+    .update(cleanRequestId, "utf8")
+    .update("\0", "utf8")
+    .update(nonce)
+    .digest("base64url");
+  const viewToken = derive("view");
+  const manageToken = derive("manage");
+  return {
+    viewToken,
+    manageToken,
+    viewTokenHash: sha256Hex(viewToken),
+    manageTokenHash: sha256Hex(manageToken),
+  };
+}
+
+export function isValidReplayProof(proof: string | null | undefined): proof is string {
+  if (!proof || !/^[A-Za-z0-9_-]{43}$/.test(proof)) return false;
+  const bytes = Buffer.from(proof, "base64url");
+  return bytes.byteLength === 32 && bytes.toString("base64url") === proof;
+}
+
+/** Shared view/manage tokens are canonical base64url encodings of 256-bit values. */
+export function isValidShareToken(token: string | null | undefined): token is string {
+  if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) return false;
+  const bytes = Buffer.from(token, "base64url");
+  return bytes.byteLength === 32 && bytes.toString("base64url") === token;
+}
+
+export function isValidClientRequestId(requestId: string | null | undefined): requestId is string {
+  if (!requestId || !/^[A-Za-z0-9_-]{43}$/.test(requestId)) return false;
+  const bytes = Buffer.from(requestId, "base64url");
+  return bytes.byteLength === 32 && bytes.toString("base64url") === requestId;
+}
+
+/** Replay proofs are stored as a scoped HMAC, never as the raw browser secret. */
+export function computeReplayProofHash(
+  ownerHash: string,
+  requestIdHash: string,
+  proof: string,
+  secretOverride?: string,
+): string {
+  const secret = secretOverride ?? getBelgeShareSecret();
+  return crypto
+    .createHmac("sha256", secret)
+    .update("belge-share-replay-proof:v1\0", "utf8")
+    .update(ownerHash, "utf8")
+    .update("\0", "utf8")
+    .update(requestIdHash, "utf8")
+    .update("\0", "utf8")
+    .update(proof, "utf8")
+    .digest("hex");
 }
 
 /**

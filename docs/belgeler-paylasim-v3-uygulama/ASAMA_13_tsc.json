@@ -1,0 +1,14 @@
+{
+  "mode": "tsc",
+  "command": "node node_modules/typescript/bin/tsc -p tsconfig.next.json --noEmit --incremental false",
+  "environment": "process credential env scrubbed and share DB/Blob/Vercel runtime keys set empty; .env.local has no share DB/Blob settings; Next may still report .env.local loaded",
+  "head": "04048e50fd02e50c1c9ea783acec2d7383f516b4",
+  "worktreeDigest": "e348df55954a1090af9201fbb0dc462a1158d6cc506ec4086035ae7c13afa33b",
+  "digestFileCount": 88,
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 300000,
+  "durationMs": 20695,
+  "playwrightSummary": null,
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_13_tsc.log"
+}

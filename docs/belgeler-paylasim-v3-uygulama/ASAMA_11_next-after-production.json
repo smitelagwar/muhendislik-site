@@ -1,0 +1,398 @@
+{
+  "productSourceHashes": [
+    {
+      "file": "next.config.ts",
+      "sha256": "16c2af475a1930077c9d24404b24258a63993f9642cd01e7d9476d9195bb8709"
+    },
+    {
+      "file": "src/app/layout.tsx",
+      "sha256": "14538561bdbdb2de80d2dd7085741f6edfe6d966b1a7f29a9ab6a0229257dc2d"
+    },
+    {
+      "file": "src/app/b/[token]/page.tsx",
+      "sha256": "9cf7d3a3d4e8d904bfb0daab427c0d5be864ba4317bdabbac436bd90d840b988"
+    },
+    {
+      "file": "src/app/b/[token]/layout.tsx",
+      "sha256": "e6fb9813f5d75dc5b464b96f1d76f7d46965ca0f31ad3e9bf75606ed060d203c"
+    },
+    {
+      "file": "src/app/b/[token]/error.tsx",
+      "sha256": "d833c59eb7c41dcf7d1a28fbca7021389b469eaaf8d305b3f55ded86bde80232"
+    },
+    {
+      "file": "src/components/site-shell.tsx",
+      "sha256": "2cb1fe961c8ffd8e7f34e12eb6e90c0bd59edf8bf22a55e27e3433966879edf6"
+    },
+    {
+      "file": "src/components/belge-paylasim/share-access-state.tsx",
+      "sha256": "79729d540da1d63f6a790796254b04f96a7363587daac3c403f6d7bf1311cc49"
+    },
+    {
+      "file": "src/app/api/belgeler/paylasim/[token]/pdf/route.ts",
+      "sha256": "f601489c3770e1419b059a8eccadcb91d9ba7c2cf5d8dba6013853a976089c8d"
+    },
+    {
+      "file": "src/lib/belge-paylasim/config.ts",
+      "sha256": "95da04ecfdcbef1279ab014b3b6c5df19ca7d67444b3be371a844711c3a4647c"
+    },
+    {
+      "file": "src/lib/belge-paylasim/service-core.ts",
+      "sha256": "5a482327efe3edc609c5de79686697295b158b7a174b830a74eeba6d2e2a0c7a"
+    }
+  ],
+  "prerendered": [
+    "/",
+    "/_global-error",
+    "/_not-found",
+    "/opengraph-image",
+    "/robots.txt",
+    "/stage11-normal"
+  ],
+  "dynamic": [],
+  "html": [
+    {
+      "name": "ready",
+      "status": 200,
+      "headers": {
+        "cache-control": "private, no-store, no-cache, must-revalidate",
+        "referrer-policy": "no-referrer",
+        "x-robots-tag": "noindex, nofollow, noarchive, nosnippet",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    {
+      "name": "unknown",
+      "status": 200,
+      "headers": {
+        "cache-control": "private, no-store, no-cache, must-revalidate",
+        "referrer-policy": "no-referrer",
+        "x-robots-tag": "noindex, nofollow, noarchive, nosnippet",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    {
+      "name": "revoked",
+      "status": 200,
+      "headers": {
+        "cache-control": "private, no-store, no-cache, must-revalidate",
+        "referrer-policy": "no-referrer",
+        "x-robots-tag": "noindex, nofollow, noarchive, nosnippet",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    {
+      "name": "expired",
+      "status": 200,
+      "headers": {
+        "cache-control": "private, no-store, no-cache, must-revalidate",
+        "referrer-policy": "no-referrer",
+        "x-robots-tag": "noindex, nofollow, noarchive, nosnippet",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    {
+      "name": "pending",
+      "status": 200,
+      "headers": {
+        "cache-control": "private, no-store, no-cache, must-revalidate",
+        "referrer-policy": "no-referrer",
+        "x-robots-tag": "noindex, nofollow, noarchive, nosnippet",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    {
+      "name": "db-down",
+      "status": 200,
+      "headers": {
+        "cache-control": "private, no-store, no-cache, must-revalidate",
+        "referrer-policy": "no-referrer",
+        "x-robots-tag": "noindex, nofollow, noarchive, nosnippet",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    {
+      "name": "purged-revoked",
+      "status": 200,
+      "headers": {
+        "cache-control": "private, no-store, no-cache, must-revalidate",
+        "referrer-policy": "no-referrer",
+        "x-robots-tag": "noindex, nofollow, noarchive, nosnippet",
+        "x-content-type-options": "nosniff"
+      }
+    }
+  ],
+  "api": [
+    {
+      "name": "ready",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "name": "ready",
+      "method": "HEAD",
+      "status": 200
+    },
+    {
+      "name": "unknown",
+      "method": "GET",
+      "status": 404
+    },
+    {
+      "name": "unknown",
+      "method": "HEAD",
+      "status": 404
+    },
+    {
+      "name": "revoked",
+      "method": "GET",
+      "status": 410
+    },
+    {
+      "name": "revoked",
+      "method": "HEAD",
+      "status": 410
+    },
+    {
+      "name": "expired",
+      "method": "GET",
+      "status": 410
+    },
+    {
+      "name": "expired",
+      "method": "HEAD",
+      "status": 410
+    },
+    {
+      "name": "pending",
+      "method": "GET",
+      "status": 425
+    },
+    {
+      "name": "pending",
+      "method": "HEAD",
+      "status": 425
+    },
+    {
+      "name": "db-down",
+      "method": "GET",
+      "status": 503
+    },
+    {
+      "name": "db-down",
+      "method": "HEAD",
+      "status": 503
+    },
+    {
+      "name": "storage-null",
+      "method": "GET",
+      "status": 502
+    },
+    {
+      "name": "storage-null",
+      "method": "HEAD",
+      "status": 200
+    },
+    {
+      "name": "storage-throw",
+      "method": "GET",
+      "status": 502
+    },
+    {
+      "name": "storage-throw",
+      "method": "HEAD",
+      "status": 200
+    },
+    {
+      "name": "purged-revoked",
+      "method": "GET",
+      "status": 410
+    },
+    {
+      "name": "purged-revoked",
+      "method": "HEAD",
+      "status": 410
+    }
+  ],
+  "result": "PASS",
+  "mode": "after-production",
+  "scope": "real Next HTTP/router + copied product sources, isolated memory read/Blob adapters; no real DB/Blob",
+  "checks": [
+    {
+      "id": "representative-next-build",
+      "result": "PASS",
+      "detail": {
+        "normalPrerendered": true,
+        "rootHeaders": false
+      }
+    },
+    {
+      "id": "normal-direct",
+      "result": "PASS",
+      "detail": "Navbar and overlays mounted; Footer mount instrumented in copy"
+    },
+    {
+      "id": "prefetch-client-entry-isolated",
+      "result": "PASS",
+      "detail": {
+        "navbar": false,
+        "overlays": false,
+        "footer": false
+      }
+    },
+    {
+      "id": "back-normal",
+      "result": "PASS"
+    },
+    {
+      "id": "forward-isolated",
+      "result": "PASS"
+    },
+    {
+      "id": "reload-isolated",
+      "result": "PASS"
+    },
+    {
+      "id": "viewer-to-normal-client",
+      "result": "PASS"
+    },
+    {
+      "id": "html-ready-state-headers-metadata",
+      "result": "PASS"
+    },
+    {
+      "id": "html-unknown-state-headers-metadata",
+      "result": "PASS"
+    },
+    {
+      "id": "html-revoked-state-headers-metadata",
+      "result": "PASS"
+    },
+    {
+      "id": "html-expired-state-headers-metadata",
+      "result": "PASS"
+    },
+    {
+      "id": "html-pending-state-headers-metadata",
+      "result": "PASS"
+    },
+    {
+      "id": "html-db-down-state-headers-metadata",
+      "result": "PASS"
+    },
+    {
+      "id": "html-purged-revoked-state-headers-metadata",
+      "result": "PASS"
+    },
+    {
+      "id": "server-error-boundary-isolated",
+      "result": "PASS",
+      "detail": {
+        "status": 500,
+        "expectedFaults": 0
+      }
+    },
+    {
+      "id": "client-state-ready-isolated",
+      "result": "PASS"
+    },
+    {
+      "id": "client-state-unknown-isolated",
+      "result": "PASS"
+    },
+    {
+      "id": "client-state-revoked-isolated",
+      "result": "PASS"
+    },
+    {
+      "id": "client-state-expired-isolated",
+      "result": "PASS"
+    },
+    {
+      "id": "client-state-pending-isolated",
+      "result": "PASS"
+    },
+    {
+      "id": "client-state-db-down-isolated",
+      "result": "PASS"
+    },
+    {
+      "id": "client-state-purged-revoked-isolated",
+      "result": "PASS"
+    },
+    {
+      "id": "http-get-head-ready",
+      "result": "PASS"
+    },
+    {
+      "id": "http-get-head-unknown",
+      "result": "PASS"
+    },
+    {
+      "id": "http-get-head-revoked",
+      "result": "PASS"
+    },
+    {
+      "id": "http-get-head-expired",
+      "result": "PASS"
+    },
+    {
+      "id": "http-get-head-pending",
+      "result": "PASS"
+    },
+    {
+      "id": "http-get-head-db-down",
+      "result": "PASS"
+    },
+    {
+      "id": "http-get-head-storage-null",
+      "result": "PASS"
+    },
+    {
+      "id": "http-get-head-storage-throw",
+      "result": "PASS"
+    },
+    {
+      "id": "http-get-head-purged-revoked",
+      "result": "PASS"
+    },
+    {
+      "id": "range-full200-no-range-promise",
+      "result": "PASS"
+    },
+    {
+      "id": "additional-http-404-security",
+      "result": "PASS"
+    },
+    {
+      "id": "additional-http-400-security",
+      "result": "PASS"
+    },
+    {
+      "id": "additional-http-405-security",
+      "result": "PASS"
+    },
+    {
+      "id": "additional-http-204-security",
+      "result": "PASS"
+    },
+    {
+      "id": "robots-disallow",
+      "result": "PASS"
+    },
+    {
+      "id": "no-unexpected-browser-errors",
+      "result": "PASS"
+    },
+    {
+      "id": "no-token-referrer-on-browser-requests",
+      "result": "PASS"
+    }
+  ],
+  "passed": 39,
+  "failed": 0,
+  "skipped": 0,
+  "timeoutMs": 240000,
+  "durationMs": 28897,
+  "error": null
+}

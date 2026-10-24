@@ -1,0 +1,32 @@
+{
+  "deploymentId": "dpl_9hQVKHvEK9xsETMtYhn89NZiwau8",
+  "url": "https://muhendislik-site-2o68ppbmy-huseying5713-2819s-projects.vercel.app",
+  "target": "preview",
+  "readyState": "READY",
+  "aliasAssigned": false,
+  "sourceGitHead": "04048e50fd02e50c1c9ea783acec2d7383f516b4",
+  "sourceTree": "dirty local V3 worktree",
+  "previewAttemptsThisPlan": 4,
+  "previewAttemptLimit": 4,
+  "productionDeployment": false,
+  "githubWrite": false,
+  "build": {
+    "framework": "Next.js 16.4.2 (webpack)",
+    "typescript": "PASS",
+    "productionCompilation": "PASS",
+    "staticPages": 627,
+    "reportedBuildDuration": "2 minutes",
+    "region": "iad1",
+    "machine": "2 cores, 8 GB"
+  },
+  "runtimeIsolation": {
+    "database": "Vercel Development isolated Neon",
+    "blobStoreName": "belgeler-stage14-preview-20261024",
+    "blobStoreId": "store_fnCz97b5poIneDPq",
+    "blobAccess": "private",
+    "blobStoreEnvironmentBinding": "preview only",
+    "projectEnvironmentChanged": false,
+    "secretValuesRecorded": false
+  },
+  "deploymentEventsLog": "Vercel MCP deployment events for dpl_9hQVKHvEK9xsETMtYhn89NZiwau8"
+}

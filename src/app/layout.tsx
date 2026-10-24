@@ -1,10 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import { headers } from "next/headers";
-import { Toaster } from "sonner";
 import { Footer } from "@/components/footer";
-import { GlobalOverlays } from "@/components/global-overlays";
-import { Navbar } from "@/components/navbar";
+import { SiteShell } from "@/components/site-shell";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/toast-provider";
 import {
@@ -90,45 +87,19 @@ export const viewport: Viewport = {
   ],
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = await headers();
-  const pathname = headersList.get("x-pathname") || "";
-  const isIsolatedViewer = pathname.startsWith("/b/");
-
   return (
     <html lang="tr" suppressHydrationWarning>
       <body className={`${plexSans.variable} ${plexMono.variable} antialiased`} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <ToastProvider>
-            {isIsolatedViewer ? (
-              <main id="main-content" tabIndex={-1} className="min-h-screen focus:outline-none">
-                {children}
-              </main>
-            ) : (
-              <>
-                <div className="flex min-h-screen flex-col">
-                  <a
-                    href="#main-content"
-                    className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-amber-500 focus:px-4 focus:py-2 focus:font-bold focus:text-black focus:shadow-lg"
-                  >
-                    Ana içeriğe atla
-                  </a>
-                  <Navbar />
-                  <main id="main-content" tabIndex={-1} className="flex-grow focus:outline-none">
-                    {children}
-                  </main>
-                  <Footer />
-                </div>
-                <GlobalOverlays />
-              </>
-            )}
+            <SiteShell footer={<Footer />}>{children}</SiteShell>
           </ToastProvider>
         </ThemeProvider>
-        <Toaster position="top-center" richColors />
       </body>
     </html>
   );

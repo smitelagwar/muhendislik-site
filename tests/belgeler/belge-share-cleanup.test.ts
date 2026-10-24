@@ -4,6 +4,7 @@
 
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import {
   MemoryBelgePaylasimRepository,
   setBelgePaylasimRepositoryForTest,
@@ -16,6 +17,7 @@ import { executeBelgePaylasimCleanup } from "../../src/lib/belge-paylasim/cleanu
 import { GET as cronGet, POST as cronPost } from "../../src/app/api/cron/belge-paylasim-temizlik/route";
 import { GET as getPdfRoute } from "../../src/app/api/belgeler/paylasim/[token]/pdf/route";
 import { sha256Hex } from "../../src/lib/belge-paylasim/tokens";
+import type { ReservationAttemptInput } from "../../src/lib/belge-paylasim/types";
 
 describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
   let memoryRepo: MemoryBelgePaylasimRepository;
@@ -29,6 +31,36 @@ describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
     setBelgeBlobStoreForTest(memoryBlobStore);
     process.env.CRON_SECRET = TEST_CRON_SECRET;
   });
+
+  async function createReadyV3Reservation(id: string, blobPathname: string, expiresAt?: Date) {
+    const attemptId = crypto.randomUUID();
+    const input: ReservationAttemptInput = {
+      requestIdHash: sha256Hex(`cleanup-request-${id}`),
+      payloadDigest: sha256Hex(`cleanup-payload-${id}`),
+      tokenHash: sha256Hex(`cleanup-token-${id}`),
+      manageTokenHash: sha256Hex(`cleanup-manage-${id}`),
+      documentId: "beton-dokum-tutanagi",
+      blobPathname,
+      creatorIpHash: sha256Hex("cleanup-test-ip"),
+      expiresAt: expiresAt ?? new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      ownerHash: sha256Hex("cleanup-test-owner"),
+      ownerVersion: 1,
+      requestVersion: 1,
+      proofHash: sha256Hex(`cleanup-proof-${id}`),
+      proofVersion: 1,
+      tokenVersion: 2,
+      tokenKeyVersion: 1,
+      reservationNonce: crypto.randomBytes(32),
+      environmentKey: "local",
+      attemptId,
+      attemptVersion: 1,
+      leaseUntil: new Date(Date.now() + 120_000),
+    };
+    const created = await memoryRepo.createOrGetReservation(input);
+    assert.equal(created.created, true);
+    assert.equal(await memoryRepo.finalizeReady(created.record.id, 4, sha256Hex(`cleanup-pdf-${id}`), input.attemptId, input.attemptVersion), true);
+    return created.record;
+  }
 
   describe("1. Cron Rota Yetkilendirme ve Güvenlik", () => {
     it("CRON_SECRET ortam değişkeni yoksa fail-closed 401 dönmelidir", async () => {
@@ -94,18 +126,9 @@ describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
       assert.equal(memoryBlobStore.has(blobPath), true);
 
       // 2. Geçmişte süresi dolmuş rezervasyon oluştur
-      const pastDate = new Date(Date.now() - 1000 * 60 * 60); // 1 saat önce dolmuş
-      const rec = await memoryRepo.createPendingReservation({
-        requestIdHash: "req-hash-1",
-        payloadDigest: "digest-1",
-        tokenHash: "token-hash-1",
-        manageTokenHash: "manage-hash-1",
-        documentId: "beton-dokum-tutanagi",
-        blobPathname: blobPath,
-        creatorIpHash: "ip-1",
-        expiresAt: pastDate,
-      });
-      await memoryRepo.finalizeReady(rec.id, 4, "sha256-mock");
+      const rec = await createReadyV3Reservation("expired-1", blobPath);
+      const internalRec = memoryRepo.getAllRecordsForTest().find((r) => r.id === rec.id);
+      if (internalRec) internalRec.expiresAt = new Date(Date.now() - 1000 * 60 * 60);
 
       // 3. Cleanup çalıştır
       const stats = await executeBelgePaylasimCleanup({
@@ -130,18 +153,7 @@ describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
       const blobPath = "belge_paylasim/test-revoked-1.pdf";
       await memoryBlobStore.put(blobPath, new Uint8Array([1, 2, 3]));
 
-      const futureDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // 30 gün sonra
-      const rec = await memoryRepo.createPendingReservation({
-        requestIdHash: "req-hash-rev",
-        payloadDigest: "digest-rev",
-        tokenHash: "token-hash-rev",
-        manageTokenHash: "manage-hash-rev",
-        documentId: "santiye-sefi-taahhutnamesi",
-        blobPathname: blobPath,
-        creatorIpHash: "ip-rev",
-        expiresAt: futureDate,
-      });
-      await memoryRepo.finalizeReady(rec.id, 3, "sha256-mock");
+      const rec = await createReadyV3Reservation("revoked-1", blobPath);
       await memoryRepo.revokeLink(rec.id);
 
       const stats = await executeBelgePaylasimCleanup({
@@ -159,18 +171,7 @@ describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
       const blobPath = "belge_paylasim/test-active-1.pdf";
       await memoryBlobStore.put(blobPath, new Uint8Array([1, 2, 3]));
 
-      const futureDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 90);
-      const rec = await memoryRepo.createPendingReservation({
-        requestIdHash: "req-hash-act",
-        payloadDigest: "digest-act",
-        tokenHash: "token-hash-act",
-        manageTokenHash: "manage-hash-act",
-        documentId: "santiye-sefi-sozlesmesi",
-        blobPathname: blobPath,
-        creatorIpHash: "ip-act",
-        expiresAt: futureDate,
-      });
-      await memoryRepo.finalizeReady(rec.id, 3, "sha256-mock");
+      const rec = await createReadyV3Reservation("active-1", blobPath);
 
       const stats = await executeBelgePaylasimCleanup({
         repository: memoryRepo,
@@ -187,28 +188,17 @@ describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
   });
 
   describe("3. Eşzamanlılık ve Lease Mekanizması", () => {
-    it("Aktif lease süresi bulunan kayıt diğer cron tarafından işlenmemelidir", async () => {
+    it("Aktif Blob yükümlülüğü lease'i ikinci cron'un aynı nesneyi işlemesini engeller", async () => {
       const blobPath = "belge_paylasim/test-leased-1.pdf";
       await memoryBlobStore.put(blobPath, new Uint8Array([1, 2]));
 
-      const pastDate = new Date(Date.now() - 1000 * 60);
-      const rec = await memoryRepo.createPendingReservation({
-        requestIdHash: "req-hash-lease",
-        payloadDigest: "digest-lease",
-        tokenHash: "token-hash-lease",
-        manageTokenHash: "manage-hash-lease",
-        documentId: "insaat-ruhsati-dilekcesi",
-        blobPathname: blobPath,
-        creatorIpHash: "ip-lease",
-        expiresAt: pastDate,
-      });
-      await memoryRepo.finalizeReady(rec.id, 2, "sha256-mock");
-
-      // Başka bir işlem 5 dakikalık lease almış gibi simüle edelim:
+      const rec = await createReadyV3Reservation("leased-1", blobPath);
       const internalRec = memoryRepo.getAllRecordsForTest().find((r) => r.id === rec.id);
-      if (internalRec) {
-        internalRec.leaseUntil = new Date(Date.now() + 5 * 60 * 1000);
-      }
+      if (internalRec) internalRec.expiresAt = new Date(Date.now() - 60_000);
+      const firstLease = await memoryRepo.claimCleanupRun(crypto.randomUUID(), 90_000);
+      const claims = await memoryRepo.claimDueCleanupBlobs("local", firstLease.ownerId, firstLease.leaseVersion, 1, 5 * 60_000);
+      assert.equal(claims.length, 1);
+      assert.equal(await memoryRepo.finishCleanupRun(firstLease.ownerId, firstLease.leaseVersion, "partial"), true);
 
       const stats = await executeBelgePaylasimCleanup({
         repository: memoryRepo,
@@ -217,6 +207,8 @@ describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
 
       assert.equal(stats.processedCount, 0);
       assert.equal(stats.purgedCount, 0);
+      assert.equal(stats.success, false);
+      assert.equal(stats.partial, true);
       // Blob henüz silinmemiş olmalı
       assert.equal(memoryBlobStore.has(blobPath), true);
     });
@@ -225,24 +217,16 @@ describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
       const blobPath = "belge_paylasim/test-expired-lease.pdf";
       await memoryBlobStore.put(blobPath, new Uint8Array([1, 2]));
 
-      const pastDate = new Date(Date.now() - 1000 * 60);
-      const rec = await memoryRepo.createPendingReservation({
-        requestIdHash: "req-hash-lease-2",
-        payloadDigest: "digest-lease-2",
-        tokenHash: "token-hash-lease-2",
-        manageTokenHash: "manage-hash-lease-2",
-        documentId: "insaat-ruhsati-dilekcesi",
-        blobPathname: blobPath,
-        creatorIpHash: "ip-lease-2",
-        expiresAt: pastDate,
-      });
-      await memoryRepo.finalizeReady(rec.id, 2, "sha256-mock");
-
-      // Lease süresi geçmişte:
+      const rec = await createReadyV3Reservation("expired-lease", blobPath);
       const internalRec = memoryRepo.getAllRecordsForTest().find((r) => r.id === rec.id);
-      if (internalRec) {
-        internalRec.leaseUntil = new Date(Date.now() - 1000 * 10);
-      }
+      if (internalRec) internalRec.expiresAt = new Date(Date.now() - 60_000);
+      const firstLease = await memoryRepo.claimCleanupRun(crypto.randomUUID(), 90_000);
+      const claims = await memoryRepo.claimDueCleanupBlobs("local", firstLease.ownerId, firstLease.leaseVersion, 1, 30_000);
+      assert.equal(claims.length, 1);
+      assert.equal(await memoryRepo.finishCleanupRun(firstLease.ownerId, firstLease.leaseVersion, "partial"), true);
+      const obligations = (memoryRepo as unknown as { blobObligations: Map<string, { pathname: string; cleanupLeaseUntil: Date | null }> }).blobObligations;
+      const obligation = obligations.get(`local:${blobPath}`);
+      if (obligation) obligation.cleanupLeaseUntil = new Date(Date.now() - 10_000);
 
       const stats = await executeBelgePaylasimCleanup({
         repository: memoryRepo,
@@ -265,18 +249,9 @@ describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
         throw new Error("BLOB_SERVICE_UNAVAILABLE");
       };
 
-      const pastDate = new Date(Date.now() - 1000 * 60);
-      const rec = await memoryRepo.createPendingReservation({
-        requestIdHash: "req-hash-err",
-        payloadDigest: "digest-err",
-        tokenHash: "token-hash-err",
-        manageTokenHash: "manage-hash-err",
-        documentId: "santiye-sefi-istifa-dilekcesi",
-        blobPathname: blobPath,
-        creatorIpHash: "ip-err",
-        expiresAt: pastDate,
-      });
-      await memoryRepo.finalizeReady(rec.id, 2, "sha256-mock");
+      const rec = await createReadyV3Reservation("delete-error", blobPath);
+      const internalRec = memoryRepo.getAllRecordsForTest().find((r) => r.id === rec.id);
+      if (internalRec) internalRec.expiresAt = new Date(Date.now() - 60_000);
 
       const stats = await executeBelgePaylasimCleanup({
         repository: memoryRepo,
@@ -288,33 +263,35 @@ describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
 
       const updated = memoryRepo.getAllRecordsForTest().find((r) => r.id === rec.id);
       assert.equal(updated?.purgeAttempts, 1);
-      assert.equal(updated?.lastPurgeErrorCode, "BLOB_SERVICE_UNAVAILABLE");
+      assert.equal(updated?.lastPurgeErrorCode, "BLOB_OPERATION_FAILED");
       assert.equal(updated?.leaseUntil, null); // Sonraki cronda retry için serbest bırakılmış
       assert.notEqual(updated?.status, "purged"); // Purged olarak işaretlenmemeli
     });
   });
 
   describe("5. Takılı Kalan 'pending' Rezervasyonları Uzlaştırma", () => {
-    it("24 saatten eski 'pending' kayıtları purge edilmeli ve blob'u temizlenmelidir", async () => {
+    it("eski ve lease'i bitmiş 'pending' kayıt failed yapılır; bilinmeyen Blob byte'ı ek 24 saat korunur", async () => {
       const blobPath = "belge_paylasim/stale-pending.pdf";
       await memoryBlobStore.put(blobPath, new Uint8Array([5, 6, 7]));
 
       const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000); // 25 saat önce oluşturulmuş
-      const rec = await memoryRepo.createPendingReservation({
-        requestIdHash: "req-stale-pending",
-        payloadDigest: "digest-stale",
-        tokenHash: "token-stale",
-        manageTokenHash: "manage-stale",
-        documentId: "beton-dokum-tutanagi",
-        blobPathname: blobPath,
-        creatorIpHash: "ip-stale",
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90),
-      });
+      const attemptId = crypto.randomUUID();
+      const input: ReservationAttemptInput = {
+        requestIdHash: sha256Hex("req-stale-pending"), payloadDigest: sha256Hex("digest-stale"),
+        tokenHash: sha256Hex("token-stale"), manageTokenHash: sha256Hex("manage-stale"),
+        documentId: "beton-dokum-tutanagi", blobPathname: blobPath, creatorIpHash: sha256Hex("ip-stale"),
+        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), ownerHash: sha256Hex("stale-owner"),
+        ownerVersion: 1, requestVersion: 1, proofHash: sha256Hex("stale-proof"), proofVersion: 1,
+        tokenVersion: 2, tokenKeyVersion: 1, reservationNonce: crypto.randomBytes(32), environmentKey: "local",
+        attemptId, attemptVersion: 1, leaseUntil: new Date(Date.now() + 120_000),
+      };
+      const { record: rec } = await memoryRepo.createOrGetReservation(input);
 
       // Oluşturulma tarihini 25 saat öncesine çekelim:
       const internalRec = memoryRepo.getAllRecordsForTest().find((r) => r.id === rec.id);
       if (internalRec) {
         internalRec.createdAt = oldDate;
+        internalRec.leaseUntil = new Date(Date.now() - 1000);
       }
 
       const stats = await executeBelgePaylasimCleanup({
@@ -324,10 +301,14 @@ describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
       });
 
       assert.equal(stats.stalePendingCount, 1);
-      assert.equal(memoryBlobStore.has(blobPath), false);
+      assert.equal(memoryBlobStore.has(blobPath), true);
+      assert.equal(stats.purgedCount, 0);
 
       const updated = memoryRepo.getAllRecordsForTest().find((r) => r.id === rec.id);
-      assert.equal(updated?.status, "purged");
+      assert.equal(updated?.status, "failed");
+      const metrics = await memoryRepo.getCleanupMetrics("local");
+      assert.equal(metrics.pendingDeleteCount, 1);
+      assert.ok(metrics.pendingDeleteBytes > 0);
     });
 
     it("24 saatten yeni 'pending' kayıtları henüz finalized olmasa bile silinmemelidir", async () => {
@@ -335,16 +316,17 @@ describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
       await memoryBlobStore.put(blobPath, new Uint8Array([5, 6]));
 
       const recentDate = new Date(Date.now() - 10 * 60 * 1000); // 10 dakika önce
-      const rec = await memoryRepo.createPendingReservation({
-        requestIdHash: "req-fresh-pending",
-        payloadDigest: "digest-fresh",
-        tokenHash: "token-fresh",
-        manageTokenHash: "manage-fresh",
-        documentId: "beton-dokum-tutanagi",
-        blobPathname: blobPath,
-        creatorIpHash: "ip-fresh",
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90),
-      });
+      const attemptId = crypto.randomUUID();
+      const input: ReservationAttemptInput = {
+        requestIdHash: sha256Hex("req-fresh-pending"), payloadDigest: sha256Hex("digest-fresh"),
+        tokenHash: sha256Hex("token-fresh"), manageTokenHash: sha256Hex("manage-fresh"),
+        documentId: "beton-dokum-tutanagi", blobPathname: blobPath, creatorIpHash: sha256Hex("ip-fresh"),
+        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), ownerHash: sha256Hex("fresh-owner"),
+        ownerVersion: 1, requestVersion: 1, proofHash: sha256Hex("fresh-proof"), proofVersion: 1,
+        tokenVersion: 2, tokenKeyVersion: 1, reservationNonce: crypto.randomBytes(32), environmentKey: "local",
+        attemptId, attemptVersion: 1, leaseUntil: new Date(Date.now() + 120_000),
+      };
+      const { record: rec } = await memoryRepo.createOrGetReservation(input);
 
       const internalRec = memoryRepo.getAllRecordsForTest().find((r) => r.id === rec.id);
       if (internalRec) {
@@ -469,7 +451,7 @@ describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
 
   describe("8. Cron Henüz Çalışmasa Bile Anında 410 Expiry Davranışı", () => {
     it("Süresi dolan link, cron henüz Blob'u silmemiş olsa dahi /pdf akışından anında 410 dönmelidir", async () => {
-      const rawToken = "raw-view-token-test-expiry-410";
+      const rawToken = Buffer.alloc(32, 90).toString("base64url");
       const tokenH = sha256Hex(rawToken);
       const blobPath = "belge_paylasim/not-yet-croned.pdf";
 
@@ -501,8 +483,7 @@ describe("Belge Paylaşım — Retention, Cron ve Purge Mekanizması", () => {
 
       // Anında 410 Gone dönmeli!
       assert.equal(res.status, 410);
-      const text = await res.text();
-      assert.ok(text.includes("süresi dolmuştur"));
+      assert.equal((await res.json()).code, "LINK_EXPIRED");
     });
   });
 });

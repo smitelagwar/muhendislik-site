@@ -1,12 +1,14 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import {
   GET as getPdfStreamRoute,
   HEAD as headPdfStreamRoute,
   POST as postPdfStreamRoute,
   DELETE as deletePdfStreamRoute,
 } from "../../src/app/api/belgeler/paylasim/[token]/pdf/route";
-import BelgeViewerPage, { metadata as viewerMetadata } from "../../src/app/b/[token]/page";
+import BelgeViewerPage from "../../src/app/b/[token]/page";
+import { metadata as viewerMetadata } from "../../src/app/b/[token]/layout";
 import robotsConfig from "../../src/app/robots";
 import {
   MemoryBelgePaylasimRepository,
@@ -17,6 +19,8 @@ import {
   setBelgeBlobStoreForTest,
 } from "../../src/lib/belge-paylasim/blob-store";
 import { sha256Hex } from "../../src/lib/belge-paylasim/tokens";
+
+const testViewToken = (seed: string) => createHash("sha256").update(seed).digest("base64url");
 
 describe("ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri", () => {
   let memoryRepo: MemoryBelgePaylasimRepository;
@@ -34,7 +38,7 @@ describe("ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri", () => {
   // --------------------------------------------------------------------------
   describe("1. GET /api/belgeler/paylasim/[token]/pdf Akış Rotaları", () => {
     it("1.1 Hazır ve geçerli token için 200 OK, inline PDF başlığı ve stream dönmelidir", async () => {
-      const viewToken = "valid-view-token-12345678901234567890";
+      const viewToken = testViewToken("valid-view-token");
       const viewTokenHash = sha256Hex(viewToken);
       const mockPdfBytes = Buffer.from("%PDF-1.4 Mock Stream Content");
 
@@ -73,7 +77,7 @@ describe("ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri", () => {
     });
 
     it("1.2 HEAD isteği 200 OK ve başlıkları dönmeli, gövde boş olmalıdır", async () => {
-      const viewToken = "valid-head-token-12345678901234567890";
+      const viewToken = testViewToken("valid-head-token");
       const viewTokenHash = sha256Hex(viewToken);
       const mockPdfBytes = Buffer.from("%PDF-1.4 Mock Head Content");
       const blobPath = "belge_paylasim/mock-head.pdf";
@@ -94,17 +98,25 @@ describe("ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri", () => {
       const req = new Request(`http://localhost:3000/api/belgeler/paylasim/${viewToken}/pdf`, {
         method: "HEAD",
       });
+      let blobReads = 0;
+      const originalGet = memoryBlobStore.get.bind(memoryBlobStore);
+      memoryBlobStore.get = async (pathname) => {
+        blobReads += 1;
+        return originalGet(pathname);
+      };
       const res = await headPdfStreamRoute(req, {
         params: Promise.resolve({ token: viewToken }),
       });
 
       assert.strictEqual(res.status, 200);
       assert.strictEqual(res.headers.get("Content-Type"), "application/pdf");
+      assert.strictEqual(res.headers.get("Content-Length"), String(mockPdfBytes.byteLength));
       assert.strictEqual(res.body, null);
+      assert.strictEqual(blobReads, 0, "HEAD yalnız DB metadata'sını kullanmalı, Blob get çağırmamalı");
     });
 
     it("1.3 İptal edilmiş (revoked) bağlantı için anında 410 Gone dönmelidir", async () => {
-      const viewToken = "revoked-view-token-12345678901234567890";
+      const viewToken = testViewToken("revoked-view-token");
       const record = await memoryRepo.createPendingReservation({
         requestIdHash: sha256Hex("req-rev-1"),
         payloadDigest: sha256Hex("digest-rev-1"),
@@ -124,12 +136,11 @@ describe("ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri", () => {
       });
 
       assert.strictEqual(res.status, 410);
-      const text = await res.text();
-      assert.ok(text.includes("iptal"));
+      assert.equal((await res.json()).code, "LINK_REVOKED");
     });
 
     it("1.4 Süresi dolmuş (expired) bağlantı için 410 Gone dönmelidir", async () => {
-      const viewToken = "expired-view-token-12345678901234567890";
+      const viewToken = testViewToken("expired-view-token");
       const record = await memoryRepo.createPendingReservation({
         requestIdHash: sha256Hex("req-exp-1"),
         payloadDigest: sha256Hex("digest-exp-1"),
@@ -149,14 +160,14 @@ describe("ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri", () => {
       });
 
       assert.strictEqual(res.status, 410);
-      const text = await res.text();
-      assert.ok(text.includes("süresi dolmuştur"));
+      assert.equal((await res.json()).code, "LINK_EXPIRED");
     });
 
-    it("1.5 Bilinmeyen veya boş token için 404 Not Found dönmelidir", async () => {
-      const req = new Request("http://localhost:3000/api/belgeler/paylasim/nonexistent/pdf");
+    it("1.5 Bilinmeyen token için DB sorgusundan sonra 404 Not Found dönmelidir", async () => {
+      const unknownToken = testViewToken("nonexistent-view");
+      const req = new Request(`http://localhost:3000/api/belgeler/paylasim/${unknownToken}/pdf`);
       const res = await getPdfStreamRoute(req, {
-        params: Promise.resolve({ token: "nonexistent" }),
+        params: Promise.resolve({ token: unknownToken }),
       });
       assert.strictEqual(res.status, 404);
     });
@@ -164,11 +175,11 @@ describe("ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri", () => {
     it("1.6 İzin verilmeyen yöntemler (POST, DELETE) 405 Method Not Allowed dönmelidir", async () => {
       const resPost = await postPdfStreamRoute();
       assert.strictEqual(resPost.status, 405);
-      assert.strictEqual(resPost.headers.get("Allow"), "GET, HEAD");
+      assert.strictEqual(resPost.headers.get("Allow"), "GET, HEAD, OPTIONS");
 
       const resDelete = await deletePdfStreamRoute();
       assert.strictEqual(resDelete.status, 405);
-      assert.strictEqual(resDelete.headers.get("Allow"), "GET, HEAD");
+      assert.strictEqual(resDelete.headers.get("Allow"), "GET, HEAD, OPTIONS");
     });
   });
 
@@ -177,11 +188,13 @@ describe("ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri", () => {
   // --------------------------------------------------------------------------
   describe("2. /b/[token] Sunucu Sayfası ve Güvenlik Meta Verileri", () => {
     it("2.1 metadata index: false, follow: false ve noarchive içermelidir", () => {
-      assert.strictEqual(viewerMetadata.title, "Paylaşılan PDF Belgesi | İnşa Blog");
+      assert.deepStrictEqual(viewerMetadata.title, { absolute: "Paylaşılan PDF Belgesi" });
       assert.deepStrictEqual(viewerMetadata.robots, {
         index: false,
         follow: false,
         nocache: true,
+        noarchive: true,
+        nosnippet: true,
       });
     });
 
@@ -200,7 +213,7 @@ describe("ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri", () => {
     });
 
     it("2.4 BelgeViewerPage iptal edilmiş token için 'Bağlantı İptal Edildi' ekranı render etmelidir", async () => {
-      const token = "revoked-page-token-1234567890123456";
+      const token = testViewToken("revoked-page-token");
       const record = await memoryRepo.createPendingReservation({
         requestIdHash: sha256Hex("req-p-rev"),
         payloadDigest: sha256Hex("digest-p-rev"),
@@ -221,7 +234,7 @@ describe("ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri", () => {
     });
 
     it("2.5 BelgeViewerPage süresi dolmuş token için 'Süre Doldu' ekranı render etmelidir", async () => {
-      const token = "expired-page-token-1234567890123456";
+      const token = testViewToken("expired-page-token");
       const record = await memoryRepo.createPendingReservation({
         requestIdHash: sha256Hex("req-p-exp"),
         payloadDigest: sha256Hex("digest-p-exp"),
@@ -242,7 +255,7 @@ describe("ASAMA_06: Salt-Okunur PDF Viewer ve /b Rotası Testleri", () => {
     });
 
     it("2.6 BelgeViewerPage geçerli token için BelgeShareViewer bileşenini döndürmelidir", async () => {
-      const token = "valid-page-token-1234567890123456";
+      const token = testViewToken("valid-page-token");
       const record = await memoryRepo.createPendingReservation({
         requestIdHash: sha256Hex("req-p-ok"),
         payloadDigest: sha256Hex("digest-p-ok"),

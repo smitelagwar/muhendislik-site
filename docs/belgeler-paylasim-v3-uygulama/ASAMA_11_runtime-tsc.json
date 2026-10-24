@@ -1,0 +1,15 @@
+{
+  "command": "node node_modules/typescript/bin/tsc -p tsconfig.next.json --noEmit --incremental false",
+  "environment": "isolated local; cloud/secret names removed",
+  "mode": "runtime-tsc",
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 180000,
+  "durationMs": 22539,
+  "tests": 0,
+  "suites": 0,
+  "passed": 0,
+  "failed": 0,
+  "skipped": 0,
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_11_runtime-tsc.log"
+}

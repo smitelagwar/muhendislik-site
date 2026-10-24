@@ -1,0 +1,39 @@
+{
+  "inputs": [
+    {
+      "file": "db/migrations/006_belge_paylasim_v3_runtime.sql",
+      "sha256": "c547c505a6eed3b9e6a2aaffbbd0d3dd4c3a372a53f7745e9622040341df536a"
+    },
+    {
+      "file": "db/migrations/007_belge_paylasim_token_key_version.sql",
+      "sha256": "0c62bb6b60862b995706d76d60761f8f72934a8ab91c0b702f4aa17d11cc2b07"
+    },
+    {
+      "file": "db/migrations/008_belge_paylasim_atomic_quota.sql",
+      "sha256": "40af481513c80d53de06918f2056dcd463d55a1abff18ebdc33aa54eea7eca8b"
+    },
+    {
+      "file": "db/migrations/009_belge_paylasim_cleanup_queue.sql",
+      "sha256": "a244f5607bf4e88c6e4838d5758c926c8c9fb13ebcf4471943b2e6aee5d354cb"
+    }
+  ],
+  "combinedSha256": "cdf398ebb5737ae74f759e5471d350fc5507ca3bb18173eb850e23ab03d5dd13",
+  "transaction": "single atomic PostgreSQL DO statement",
+  "lockTimeoutSeconds": 5,
+  "statementTimeoutSeconds": 45,
+  "preservesExistingRowsAndActiveBytes": true,
+  "executed": true,
+  "result": "PASS",
+  "verification": {
+    "schemaVersion": 9,
+    "totalLinks": 6,
+    "activeReady": 2,
+    "activeReadyBytes": 2456130,
+    "blobObligations": 6,
+    "dailyQuotas": 0,
+    "originalRowsAndActiveBytesPreserved": true,
+    "executionMs": 2933,
+    "readonlyModeRestored": true
+  },
+  "firstAttempt": "Prepared multi-command request rejected before execution; corrected to one atomic DO statement, whose preservation assertions passed."
+}

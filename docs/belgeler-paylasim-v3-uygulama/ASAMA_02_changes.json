@@ -1,0 +1,54 @@
+{
+  "algorithm": "SHA-256 over JSON array of sorted changed product, migration, and stage test file paths plus per-file SHA-256",
+  "worktree_digest": "45327afcbb9bf636c2aeb87090b617c8b8200a746ac1f07c57cb203d5d371bee",
+  "files": [
+    {
+      "file": ".env.example",
+      "sha256": "5c1618a790f640fe7f2b47c1b4ed748edba9b992e315440659fdfa22bbeea557"
+    },
+    {
+      "file": "docs/BELGELER_SISTEMI.md",
+      "sha256": "370eb821856184fb7b0656224b675380625fe875f72f088d195849d87ef6b6f4"
+    },
+    {
+      "file": "db/migrations/006_belge_paylasim_v3_runtime.sql",
+      "sha256": "c547c505a6eed3b9e6a2aaffbbd0d3dd4c3a372a53f7745e9622040341df536a"
+    },
+    {
+      "file": "src/app/api/belgeler/paylasim/route.ts",
+      "sha256": "7f2f8437fb469b088a0971bd45436264613bdebb8acf19ee38018e99554ae720"
+    },
+    {
+      "file": "src/app/api/belgeler/paylasim/[token]/route.ts",
+      "sha256": "87244b5e9697cc5b6378528b3e82e5ef89dc05efdb7df207b67c8948b7508c7e"
+    },
+    {
+      "file": "src/app/api/belgeler/paylasim/[token]/pdf/route.ts",
+      "sha256": "897a98de5121f81e13462e6169d11edeb68deca9de2a4ddb7ab44fdaf88d7fc4"
+    },
+    {
+      "file": "src/app/api/cron/belge-paylasim-temizlik/route.ts",
+      "sha256": "792a827368de815f25287a9edb3afe465cebf8f29cffeb5e32075041415be1e4"
+    },
+    {
+      "file": "src/lib/belge-paylasim/blob-store.ts",
+      "sha256": "54646c4e9194ab56d8381d1657a522905c1eedede014c364f152a415485eaf75"
+    },
+    {
+      "file": "src/lib/belge-paylasim/config.ts",
+      "sha256": "71d913aa76092512b3eb345b4e2da1969e8469ce5162b3e6dd8d5b3e49089945"
+    },
+    {
+      "file": "src/lib/belge-paylasim/repository.ts",
+      "sha256": "57b147c8cedc58663be5d2a778418aeb68c85e2f0b9ba15018c2e7febeb4da92"
+    },
+    {
+      "file": "src/lib/belge-paylasim/types.ts",
+      "sha256": "d4bea0bf962cd6e081775150e77d2a0f8a0a8862d4dfd6c957e7a7c6f67c3e09"
+    },
+    {
+      "file": "tests/belgeler/belge-share-stage02.test.ts",
+      "sha256": "050e771823c471cc0cd45a82a4817959cc0672575a74b7de6dc32f9c826ecc1c"
+    }
+  ]
+}

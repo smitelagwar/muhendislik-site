@@ -1,0 +1,42 @@
+{
+  "stage": "ASAMA_14",
+  "result": "PASS",
+  "deploymentId": "dpl_9hQVKHvEK9xsETMtYhn89NZiwau8",
+  "deploymentUrl": "https://muhendislik-site-2o68ppbmy-huseying5713-2819s-projects.vercel.app",
+  "deploymentState": "READY",
+  "target": "preview",
+  "previewAttempt": "4 of 4 allowed",
+  "aliasAssigned": false,
+  "gitHubWrites": 0,
+  "productionDeployment": false,
+  "projectEnvironmentChanged": false,
+  "databaseScope": "Vercel Development isolated Neon",
+  "blobScope": "private Preview-only test store store_fnCz97b5poIneDPq",
+  "browser": "Chromium on Vercel Linux Preview",
+  "acceptance": {
+    "K01_pdf_content_and_stability": "PASS",
+    "K02_same_browser_shared_quota_and_independent_browser_isolation": "PASS",
+    "testCount": 1,
+    "passed": 1,
+    "failed": 0,
+    "durationSeconds": 16.2
+  },
+  "localOriginFallback": {
+    "unitTests": { "passed": 10, "failed": 0 },
+    "runtimeTypeScript": "PASS",
+    "uses": "Exact HTTPS origin from trusted Vercel VERCEL_URL only when explicit preview URL and origin allowlist are absent"
+  },
+  "cleanup": {
+    "developmentPreviewRows": { "links": 0, "quotas": 0, "obligations": 0 },
+    "privateBlobStoreResidual": { "count": 1, "reportedSize": "1.17MB", "reason": "Earlier failed response left one synthetic upload" },
+    "blobStoreDeletion": "blocked by HTTP 409 while non-empty"
+  },
+  "remainingStage14Blockers": [
+    "Project-level Preview and Production DB/Blob settings remain shared; only this deployment used isolated overrides",
+    "Production DB schema/backlog and cleanup throughput were not measured",
+    "Production quotas and exact invoice/capacity spending choice remain unresolved",
+    "Hobby GET/HEAD metrics are unavailable",
+    "Authenticated legacy deployment writer/cron path is not fully verified",
+    "Physical Android and iOS acceptance is not run"
+  ]
+}

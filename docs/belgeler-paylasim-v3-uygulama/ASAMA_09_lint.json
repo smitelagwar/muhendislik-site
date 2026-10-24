@@ -1,0 +1,30 @@
+{
+  "command": "node node_modules/eslint/bin/eslint.js src/app/api/cron/belge-paylasim-temizlik/route.ts src/lib/belge-paylasim/blob-store.ts src/lib/belge-paylasim/cleanup.ts src/lib/belge-paylasim/repository.ts src/lib/belge-paylasim/types.ts tests/belgeler/belge-share-cleanup.test.ts tests/belgeler/belge-share-stage02.test.ts tests/belgeler/belge-share-stage03.test.ts tests/belgeler/belge-share-stage04.test.ts tests/belgeler/belge-share-stage05.test.ts tests/belgeler/belge-share-stage09.test.ts docs/belgeler-paylasim-v3-uygulama/run-stage09-tests.mjs docs/belgeler-paylasim-v3-uygulama/run-stage09-runtime-tsc.mjs docs/belgeler-paylasim-v3-uygulama/run-stage09-lint.mjs docs/belgeler-paylasim-v3-uygulama/run-stage09-manifest.mjs docs/belgeler-paylasim-v3-uygulama/run-stage09-diff-check.mjs",
+  "environment": "ESLint over cleanup source, repository schema harnesses, cleanup tests and bounded evidence runners; secrets removed",
+  "files": [
+    "src/app/api/cron/belge-paylasim-temizlik/route.ts",
+    "src/lib/belge-paylasim/blob-store.ts",
+    "src/lib/belge-paylasim/cleanup.ts",
+    "src/lib/belge-paylasim/repository.ts",
+    "src/lib/belge-paylasim/types.ts",
+    "tests/belgeler/belge-share-cleanup.test.ts",
+    "tests/belgeler/belge-share-stage02.test.ts",
+    "tests/belgeler/belge-share-stage03.test.ts",
+    "tests/belgeler/belge-share-stage04.test.ts",
+    "tests/belgeler/belge-share-stage05.test.ts",
+    "tests/belgeler/belge-share-stage09.test.ts",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage09-tests.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage09-runtime-tsc.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage09-lint.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage09-manifest.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage09-diff-check.mjs"
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 180000,
+  "durationMs": 4368,
+  "removedEnvironmentNames": [
+    "CODEX_MCP_NODE_PATH"
+  ],
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_09_lint.log"
+}

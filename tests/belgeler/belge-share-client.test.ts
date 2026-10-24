@@ -108,7 +108,7 @@ describe("ASAMA_07: Kullanıcı Bağlantı Geçmişi (Registry) ve Paylaşım Ka
       assert.strictEqual(all[0].manageToken, "manage-new");
     });
 
-    it("1.4 Azami 20 bağlantı sınırı korunmalıdır (21. bağlantı eski kaydı düşürmelidir)", () => {
+    it("1.4 Aktif bağlantılar sayısal sınırla atılmamalıdır (tüm 25 bağlantı korunmalıdır)", () => {
       for (let i = 1; i <= 25; i++) {
         addStoredShareLink({
           viewToken: `token-${i}`,
@@ -121,13 +121,13 @@ describe("ASAMA_07: Kullanıcı Bağlantı Geçmişi (Registry) ve Paylaşım Ka
       }
 
       const all = getStoredShareLinks();
-      assert.strictEqual(all.length, 20);
+      assert.strictEqual(all.length, 25);
       // En son eklenen en başta olmalı
       assert.strictEqual(all[0].viewToken, "token-25");
-      // 1..5 arasındaki eski bağlantılar düşmüş olmalı
-      assert.strictEqual(all.some((l) => l.viewToken === "token-1"), false);
-      assert.strictEqual(all.some((l) => l.viewToken === "token-5"), false);
-      assert.strictEqual(all.some((l) => l.viewToken === "token-6"), true);
+      // 1..25 arasındaki tüm aktif bağlantılar korunmalıdır
+      assert.strictEqual(all.some((l) => l.viewToken === "token-1"), true);
+      assert.strictEqual(all.some((l) => l.viewToken === "token-5"), true);
+      assert.strictEqual(all.some((l) => l.viewToken === "token-25"), true);
     });
 
     it("1.5 markStoredLinkRevoked belirtilen bağlantıya revokedAt damgası vurmalıdır", () => {
@@ -184,8 +184,9 @@ describe("ASAMA_07: Kullanıcı Bağlantı Geçmişi (Registry) ve Paylaşım Ka
     });
 
     it("2.2 validateShareLinkSecurity yetkisiz paylaşım kanallarını reddetmelidir", () => {
-      assert.strictEqual(validateShareLinkSecurity("https://muhendislik-site.vercel.app/b/xyz123"), true);
-      assert.strictEqual(validateShareLinkSecurity("http://localhost:3000/b/xyz123"), true);
+      const token = Buffer.alloc(32, 1).toString("base64url");
+      assert.strictEqual(validateShareLinkSecurity(`https://muhendislik-site.vercel.app/b/${token}`), true);
+      assert.strictEqual(validateShareLinkSecurity(`http://localhost:3000/b/${token}`), true);
       assert.strictEqual(validateShareLinkSecurity("https://wa.me/905551234567"), false);
       assert.strictEqual(validateShareLinkSecurity("https://api.whatsapp.com/send"), false);
       assert.strictEqual(validateShareLinkSecurity("mailto:info@muhendis.com"), false);

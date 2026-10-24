@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-24 Europe/Istanbul",
+  "status": "YAYINA_HAZIR",
+  "productionReadOnlyDashboard": {
+    "schema": "005 legacy; 18 existing link columns; no V3 schema-version table yet",
+    "totalLinks": 6,
+    "recordedBytes": 7554661,
+    "activeReady": 2,
+    "activeReadyBytes": 2456130,
+    "pending": 0,
+    "expiredNotPurged": 0,
+    "revokedNotPurged": 0,
+    "failed": 0,
+    "activeLeases": 0,
+    "maxPurgeAttempts": 0,
+    "databaseBytes": 9658368,
+    "linksLast30Days": 6,
+    "historicalMaxLinksPerDay": 4,
+    "meanPdfBytes": 1259110.1666666667,
+    "p95PdfBytes": 1283900,
+    "maxPdfBytes": 1283900,
+    "writesExecuted": false,
+    "credentialsReadOrRecorded": false
+  },
+  "plans": {
+    "vercel": "Hobby",
+    "neon": "Free",
+    "paidUpgrade": false,
+    "exactInvoice": "API costs_not_found; not represented as a zero-dollar invoice"
+  },
+  "observedProductionBlob": {
+    "storage": "54.7 MB",
+    "averageStorage": "25.3 MB / 1 GB",
+    "simpleOperations": "183 / 10000",
+    "advancedOperations": "277 / 2000",
+    "dataTransfer": "312 MB / 10 GB",
+    "scope": "whole-store dashboard, not per-route GET/HEAD counts"
+  },
+  "capacityDecision": {
+    "globalDailyLimit": 50,
+    "globalMaxStorageBytes": 600000000,
+    "browserDailyLimit": 50,
+    "addedSubscriptionSpend": 0,
+    "retainDays": 90,
+    "basis": "6 links in 30 days => 18 in 90 days; even at 3 MiB each, 56,623,104 bytes fits the 600 MB liability guard",
+    "overload": "Sustained quota-maximum demand is not supported on Hobby; storage exhaustion returns 503 and preserves existing retention. This is an explicit bounded capacity tier, not a promise of 4500 stored PDFs."
+  },
+  "isolation": {
+    "neon": "Create Database Branch For Deployment: Preview checked; Production unchecked; saved and reopened to verify",
+    "productionBlob": {
+      "storeId": "store_8gJnihtVzXm27MGK",
+      "environments": [
+        "production"
+      ]
+    },
+    "previewBlob": {
+      "storeId": "store_fnCz97b5poIneDPq",
+      "environments": [
+        "preview"
+      ],
+      "syntheticObjectsRemaining": 0
+    },
+    "verification": "Vercel account API confirmed resource connection targets after dashboard save"
+  },
+  "scope": {
+    "userDirection": "Complete with available resources without requesting user-supplied resources; explicitly publish; preserve control and token budget",
+    "physicalAndroidIos": "NOT_RUN: no attached Android and no iOS tooling. Retained as a disclosed manual acceptance risk; no physical-device PASS claim.",
+    "desktopAndLinux": "Firefox/WebKit live Development 2/2 PASS; Linux Preview K01/K02 1/1 PASS; Stage13 real Neon/private Blob acceptance PASS",
+    "load": "No Production load test or bulk cron invocation; measured Production cleanup backlog is zero. High-volume throughput remains outside the selected measured-use Hobby tier."
+  },
+  "legacyProtection": "Generated current/previous deployment URLs require Vercel SSO; anonymous writer/cron access is blocked. Authorized operators retain privileged access; no blind rollback to old insecure create code.",
+  "releasePath": "One atomic internal-* source checkpoint; one staged Production deployment with --skip-domain; READY then promote that same Production artifact. No main push / duplicate Git-triggered production build.",
+  "productionMigration": "006-009 additive migration required in Stage15 before the new application is promoted; preserve all six existing rows and two active links",
+  "previewDeployments": 4,
+  "newProductionDeployments": 0
+}

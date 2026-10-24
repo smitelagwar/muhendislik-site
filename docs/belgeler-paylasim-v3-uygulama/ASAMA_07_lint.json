@@ -1,0 +1,27 @@
+{
+  "command": "node node_modules/eslint/bin/eslint.js src/hooks/use-belge-share.ts src/components/belge-paylasim/belge-share-dialog.tsx src/components/beton-dokum-studio.tsx src/components/istifa-studio.tsx src/components/insaat-ruhsati-studio.tsx src/components/taahhutname-studio.tsx src/components/sozlesme-studio.tsx tests/belgeler/belge-share-stage07.test.ts docs/belgeler-paylasim-v3-uygulama/run-stage07-tests.mjs docs/belgeler-paylasim-v3-uygulama/run-stage07-runtime-tsc.mjs docs/belgeler-paylasim-v3-uygulama/run-stage07-lint.mjs docs/belgeler-paylasim-v3-uygulama/run-stage07-browser.mjs docs/belgeler-paylasim-v3-uygulama/run-stage07-manifest.mjs",
+  "environment": "ESLint over ASAMA_07 client hook, five studios, dialog, regression test and bounded runners; secrets removed",
+  "files": [
+    "src/hooks/use-belge-share.ts",
+    "src/components/belge-paylasim/belge-share-dialog.tsx",
+    "src/components/beton-dokum-studio.tsx",
+    "src/components/istifa-studio.tsx",
+    "src/components/insaat-ruhsati-studio.tsx",
+    "src/components/taahhutname-studio.tsx",
+    "src/components/sozlesme-studio.tsx",
+    "tests/belgeler/belge-share-stage07.test.ts",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage07-tests.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage07-runtime-tsc.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage07-lint.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage07-browser.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage07-manifest.mjs"
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 180000,
+  "durationMs": 5528,
+  "removedEnvironmentNames": [
+    "CODEX_MCP_NODE_PATH"
+  ],
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_07_lint.log"
+}

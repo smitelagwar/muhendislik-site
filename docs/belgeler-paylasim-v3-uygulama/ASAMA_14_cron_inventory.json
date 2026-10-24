@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-24 Europe/Istanbul",
+  "command": "vercel crons list --non-interactive --scope huseying5713-2819s-projects",
+  "project": "muhendislik-site",
+  "result": "PASS",
+  "cronJobCount": 1,
+  "jobs": [
+    {
+      "path": "/api/cron/belge-paylasim-temizlik",
+      "schedule": "0 3 * * *"
+    }
+  ],
+  "invocationExecuted": false,
+  "productionDatabaseOrBlobMutated": false,
+  "meaning": "Configured schedule exists; listing does not prove an invocation ran or completed."
+}

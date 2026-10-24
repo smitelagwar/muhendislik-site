@@ -3,111 +3,131 @@
 // ============================================================================
 
 import { NextResponse } from "next/server";
+import { BelgeShareRuntimeError } from "@/lib/belge-paylasim/config";
 import { getBelgeBlobStore } from "@/lib/belge-paylasim/blob-store";
+import { createRequestCorrelationId, logShareRequestFailure, shareErrorResponse, shareMethodNotAllowed, shareOptionsResponse, shareResponseHeaders } from "@/lib/belge-paylasim/http";
 import { getShareByViewToken } from "@/lib/belge-paylasim/service-core";
+import { isValidShareToken } from "@/lib/belge-paylasim/tokens";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
-const SECURITY_HEADERS: Record<string, string> = {
+const ALLOW = "GET, HEAD, OPTIONS";
+const PDF_HEADERS = {
   "Content-Type": "application/pdf",
   "Content-Disposition": 'inline; filename="paylasilan-belge.pdf"',
-  "Cache-Control": "private, no-store, no-cache, must-revalidate",
-  "X-Robots-Tag": "noindex, nofollow, noarchive",
-  "Referrer-Policy": "no-referrer",
-  "X-Content-Type-Options": "nosniff",
 };
 
 interface RouteParams {
   params: Promise<{ token: string }>;
 }
 
-export async function GET(request: Request, { params }: RouteParams) {
+async function resolveReadyShare(
+  params: RouteParams,
+  requestCorrelationId: string,
+): Promise<{ record: Extract<Awaited<ReturnType<typeof getShareByViewToken>>, { status: "ok" }>['record'] } | Response> {
+  const { token } = await params.params;
+  if (!isValidShareToken(token)) {
+    return shareErrorResponse("INVALID_TOKEN", "Geçersiz bağlantı belirteci.", 400, requestCorrelationId);
+  }
+
+  const result = await getShareByViewToken(token);
+  if (result.status === "not_found") {
+    return shareErrorResponse("NOT_FOUND", "Belge bağlantısı bulunamadı.", 404, requestCorrelationId);
+  }
+  if (result.status === "revoked") {
+    return shareErrorResponse("LINK_REVOKED", "Bu paylaşım bağlantısı iptal edilmiştir.", 410, requestCorrelationId);
+  }
+  if (result.status === "expired") {
+    return shareErrorResponse("LINK_EXPIRED", "Bu paylaşım bağlantısının geçerlilik süresi dolmuştur.", 410, requestCorrelationId);
+  }
+  if (result.status === "not_ready") {
+    return shareErrorResponse("LINK_NOT_READY", "Belge hazırlanıyor, lütfen birazdan tekrar deneyin.", 425, requestCorrelationId, { "Retry-After": "2" });
+  }
+  return { record: result.record };
+}
+
+function isErrorResponse(value: unknown): value is Response {
+  return value instanceof Response;
+}
+
+function getPdfHeaders(requestCorrelationId: string, sizeBytes?: number): Headers {
+  const headers = shareResponseHeaders(requestCorrelationId, PDF_HEADERS);
+  if (sizeBytes !== undefined) headers.set("Content-Length", String(sizeBytes));
+  return headers;
+}
+
+export async function GET(_request: Request, params: RouteParams) {
+  const requestCorrelationId = createRequestCorrelationId();
+  const startedAt = performance.now();
   try {
-    const { token: viewToken } = await params;
+    const resolved = await resolveReadyShare(params, requestCorrelationId);
+    if (isErrorResponse(resolved)) return resolved;
 
-    if (!viewToken || !viewToken.trim()) {
-      return new NextResponse("Geçersiz bağlantı belirteci.", {
-        status: 400,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    }
-
-    // 1. viewToken kontrolü ve yaşam döngüsü doğrulaması
-    const shareResult = await getShareByViewToken(viewToken.trim());
-
-    if (shareResult.status === "not_found") {
-      return new NextResponse("Belge bağlantısı bulunamadı.", {
-        status: 404,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    }
-
-    if (shareResult.status === "revoked" || shareResult.status === "expired") {
-      return new NextResponse(
-        shareResult.status === "revoked"
-          ? "Bu paylaşım bağlantısı oluşturan kişi tarafından iptal edilmiştir."
-          : "Bu paylaşım bağlantısının 90 günlük geçerlilik süresi dolmuştur.",
-        {
-          status: 410,
-          headers: {
-            "Content-Type": "text/plain; charset=utf-8",
-            "Cache-Control": "private, no-store, no-cache, must-revalidate",
-            "X-Robots-Tag": "noindex, nofollow, noarchive",
-          },
-        }
-      );
-    }
-
-    if (shareResult.status === "not_ready") {
-      return new NextResponse("Belge hazırlanıyor, lütfen birazdan tekrar deneyin.", {
-        status: 425,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    }
-
-    const { record } = shareResult;
-
-    // 2. Private Blob deposundan PDF verisini getir
-    const blobStore = getBelgeBlobStore();
-    const blobResponse = await blobStore.get(record.blobPathname);
-
-    if (!blobResponse || !blobResponse.body) {
-      return new NextResponse("Belge dosyası depolama alanından alınamadı.", {
-        status: 502,
-        headers: { "Content-Type": "text/plain; charset=utf-8" },
-      });
-    }
-
-    const responseHeaders = new Headers(SECURITY_HEADERS);
-    if (record.sizeBytes) {
-      responseHeaders.set("Content-Length", String(record.sizeBytes));
+    const blobResponse = await getBelgeBlobStore().get(resolved.record.blobPathname);
+    if (!blobResponse?.ok || !blobResponse.body) {
+      return shareErrorResponse("PDF_STORAGE_UNAVAILABLE", "Belge dosyası şu anda alınamıyor.", 502, requestCorrelationId);
     }
 
     return new NextResponse(blobResponse.body, {
       status: 200,
-      headers: responseHeaders,
+      headers: getPdfHeaders(requestCorrelationId, resolved.record.sizeBytes ?? undefined),
     });
-  } catch (err) {
-    console.error("PDF akışı sunulurken hata oluştu:", err);
-    return new NextResponse("Belge yüklenirken bir sunucu hatası meydana geldi.", {
-      status: 500,
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
+  } catch (error) {
+    if (error instanceof BelgeShareRuntimeError) {
+      logShareRequestFailure(requestCorrelationId, "runtime", startedAt);
+      return shareErrorResponse(error.code, error.message, error.statusCode, requestCorrelationId);
+    }
+    logShareRequestFailure(requestCorrelationId, "storage", startedAt);
+    return shareErrorResponse("PDF_STORAGE_UNAVAILABLE", "Belge dosyası şu anda alınamıyor.", 502, requestCorrelationId);
   }
 }
 
-export async function HEAD(request: Request, { params }: RouteParams) {
-  const getResponse = await GET(request, { params });
-  return new NextResponse(null, {
-    status: getResponse.status,
-    headers: getResponse.headers,
-  });
+/** Metadata and lifecycle check only; HEAD must never open or stream the Blob. */
+export async function HEAD(_request: Request, params: RouteParams) {
+  const requestCorrelationId = createRequestCorrelationId();
+  const startedAt = performance.now();
+  try {
+    const resolved = await resolveReadyShare(params, requestCorrelationId);
+    if (isErrorResponse(resolved)) {
+      return new Response(null, {
+        status: resolved.status,
+        headers: resolved.headers,
+      });
+    }
+    return new Response(null, {
+      status: 200,
+      headers: getPdfHeaders(requestCorrelationId, resolved.record.sizeBytes ?? undefined),
+    });
+  } catch (error) {
+    if (error instanceof BelgeShareRuntimeError) {
+      logShareRequestFailure(requestCorrelationId, "runtime", startedAt);
+      const response = shareErrorResponse(error.code, error.message, error.statusCode, requestCorrelationId);
+      return new Response(null, { status: response.status, headers: response.headers });
+    }
+    logShareRequestFailure(requestCorrelationId, "service", startedAt);
+    const response = shareErrorResponse("DATABASE_UNAVAILABLE", "Belge bağlantısı şu anda doğrulanamıyor.", 503, requestCorrelationId);
+    return new Response(null, { status: response.status, headers: response.headers });
+  }
 }
 
-export async function POST() {
-  return new NextResponse(null, { status: 405, headers: { Allow: "GET, HEAD" } });
+export function POST() {
+  return shareMethodNotAllowed(ALLOW, createRequestCorrelationId());
 }
 
-export async function DELETE() {
-  return new NextResponse(null, { status: 405, headers: { Allow: "GET, HEAD" } });
+export function PUT() {
+  return shareMethodNotAllowed(ALLOW, createRequestCorrelationId());
+}
+
+export function PATCH() {
+  return shareMethodNotAllowed(ALLOW, createRequestCorrelationId());
+}
+
+export function DELETE() {
+  return shareMethodNotAllowed(ALLOW, createRequestCorrelationId());
+}
+
+export function OPTIONS() {
+  return shareOptionsResponse(ALLOW, createRequestCorrelationId());
 }

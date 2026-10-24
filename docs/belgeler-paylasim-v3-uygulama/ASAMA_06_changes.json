@@ -1,0 +1,206 @@
+{
+  "algorithm": "SHA-256 over UTF-8 JSON.stringify of sorted ASAMA_06 source/test/docs/evidence-runner paths and their SHA-256 hashes; excludes STATE and self-referential manifest",
+  "worktree_digest": "8b5b35e3fbdfc0330a56841c76dde010e6ba0e7ab49bf22ef835342d8245ca79",
+  "files": [
+    {
+      "file": ".env.example",
+      "sha256": "ef02ecd11efa417495607f7d4d02b8f18487518011a8db03770cf32c07e42412"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_attempt01_lint.json",
+      "sha256": "c2db4e6960d3f5b3fcb25d2f9e0a9139ef0fafaf1b813bcddd166057be61efdb"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_attempt01_lint.log",
+      "sha256": "9c382067e390d06177977c2ed90573ffc893f843946c5a7807bfe78153197964"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_attempt01_runtime-tsc.json",
+      "sha256": "f81897781bdb010268956950184a960cd9ce82bb0c5ced4a72ed35523976084c"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_attempt01_runtime-tsc.log",
+      "sha256": "8117379e6ba3c013814e98082eb276c07d71e5834c57c8be072c1a5c8afcdf03"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_attempt01_tests.json",
+      "sha256": "c99d2eb88afecec567dbba2c4450ac20b6bee9e5941feca12a618219b5931f89"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_attempt01_tests.tap",
+      "sha256": "0ca25ed11c2171f2d3303ec7153326c557099dba6bbaaf8cb51dab207d416405"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_attempt02_lint.json",
+      "sha256": "f46d4dc9b6df215675efad57b4788c71ac4d506f19c888ea411f11a36d53aa76"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_attempt02_lint.log",
+      "sha256": "9c382067e390d06177977c2ed90573ffc893f843946c5a7807bfe78153197964"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_attempt02_runtime-tsc.json",
+      "sha256": "6ccf154d7558163cf90e4221775218c1837aba39e8684a3bd8a37ab6c0d801fe"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_attempt02_runtime-tsc.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_attempt02_tests.json",
+      "sha256": "e702e2667250fe95937d502323194a38397013fadba90585aa033504fef682e5"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_attempt02_tests.tap",
+      "sha256": "fec1c0fb704dbf996636e5bbc3729913bf9a92f0bcb7ddfe728175ef71325584"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_diff-check.log",
+      "sha256": "a6bdaffc5472db4cb985736a88cb4dd74b080d961b647114ed9aae24f33cac71"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_lint.json",
+      "sha256": "2f4be55aea4d397494f2c279911a508343c7cc2e23fca588d75a21e144df45ec"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_lint.log",
+      "sha256": "9c382067e390d06177977c2ed90573ffc893f843946c5a7807bfe78153197964"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_prod-build.log",
+      "sha256": "488d68c3176ddc042f80632c48153cb941d0a15039457c27a4e7d8a32355ee5d"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_prod-route.js.nft.json",
+      "sha256": "74efb0a063c344e2e3ce4ac5a1dcbe9d49284f57b75823f7fcb18ecf1884cb84"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_prod-trace.json",
+      "sha256": "b2941456321307fc00b709349f164148baea3a61b6f76db50dc8f5440217b042"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_runtime-tsc.json",
+      "sha256": "9d3b8a958344fa339a97ecaec88f1d981d339878dc3632a58bc8694b3a35866f"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_runtime-tsc.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_tests.json",
+      "sha256": "2b0f4da26e859f71fb37af719d808a0ecd7c77f462494bad5ea64250070ab022"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06_tests.tap",
+      "sha256": "56ce767238080c9bddfd9f10a0705e2e8b9dbd790c6cf8cb021011038d69b9f7"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_06.md",
+      "sha256": "d51138c083ef7cd6a86353a82f2f96ccf6aad1e08a295d98c69d44513fa1cd72"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/run-stage06-lint.mjs",
+      "sha256": "99164b7279295ba01068fd0129d77a3c047ebd06929634bd2b816ce846e7506c"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/run-stage06-prod-trace.mjs",
+      "sha256": "7dec3db9c90a83c18253a885f5884edc1670bf3da298ab2c1cb9cb09b1762f6f"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/run-stage06-runtime-tsc.mjs",
+      "sha256": "7dc3b36823f003243fec6d7c178dd21f90789fdb6753b6279fa05eca7310607c"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/run-stage06-tests.mjs",
+      "sha256": "6851a2728fc4c3e83b0380bfe00132f7e03f83e8a5d3f0f700be052809884729"
+    },
+    {
+      "file": "next.config.ts",
+      "sha256": "96a6838229bdff2825a0275850abb91a164eccb32273a5992fce58b4756ee4bf"
+    },
+    {
+      "file": "src/app/api/belgeler/paylasim/[token]/pdf/route.ts",
+      "sha256": "0976c514e25a45089a5802d170306a0cb32b6b64c9731854f8465f34e7c5d38a"
+    },
+    {
+      "file": "src/app/api/belgeler/paylasim/[token]/route.ts",
+      "sha256": "51a340f946213ee5ae77ecd82109e2e78fdd9d6bf19ee350778cd4861c3de32f"
+    },
+    {
+      "file": "src/app/api/belgeler/paylasim/islem/[requestId]/route.ts",
+      "sha256": "93701b512b36256f97bc8366c148d14f680b5f6ace359f34aa30949389652fdf"
+    },
+    {
+      "file": "src/app/api/belgeler/paylasim/route.ts",
+      "sha256": "44ce87ca2c1a50380861e40476bd71ee21b307538e148ffade4cc7bebd29d8ca"
+    },
+    {
+      "file": "src/hooks/use-belge-share.ts",
+      "sha256": "46114505f64323064370f98e21ea7257c7540c36c355cc9344de2a0d12699cfd"
+    },
+    {
+      "file": "src/lib/belge-paylasim/browser-bootstrap.ts",
+      "sha256": "b458bbd5c3af4be596fbedbfc487a0522e0cea75bdd3a0325da5db05c5d38f9c"
+    },
+    {
+      "file": "src/lib/belge-paylasim/http.ts",
+      "sha256": "126530f6da8465fceecf80a8a74cc3cf9ff075719850b86b5aeb6029528380b6"
+    },
+    {
+      "file": "src/lib/belge-paylasim/request-validation.ts",
+      "sha256": "deffda45a497b98008b2138eb0cc4ed12a93bb5c1d0908b1a797d56f13a1d3a7"
+    },
+    {
+      "file": "src/lib/belge-paylasim/server-pdf.ts",
+      "sha256": "b70f6f0c299d4cd6bd3ec17b64cb947be4d370b3edf9e9e5f963072cba8eeca6"
+    },
+    {
+      "file": "src/lib/belge-paylasim/service-core.ts",
+      "sha256": "46bfe82a6aa347de28920156cd6b0aa0175de53f3cdc4436587398beb06360c0"
+    },
+    {
+      "file": "src/lib/belge-paylasim/tokens.ts",
+      "sha256": "12aa5e3c7375d9792a73a0167fe432f6a5387bab91715d7976193d741faa2dab"
+    },
+    {
+      "file": "src/lib/site-config.ts",
+      "sha256": "643395e4082d8c921083eac99ba9ade423bc6a278443227cd93f3290ff3c07db"
+    },
+    {
+      "file": "tests/belgeler/belge-share-api.test.ts",
+      "sha256": "8d4402dee8c1cac54f82e3ac1464ccefd96db3902ffbc15e0fc5c40772a38183"
+    },
+    {
+      "file": "tests/belgeler/belge-share-cleanup.test.ts",
+      "sha256": "cc07e35958e0ae669ae16287417a6315859e3e5b439744895b65e2437d090623"
+    },
+    {
+      "file": "tests/belgeler/belge-share-client.test.ts",
+      "sha256": "653e5d50fbc9479fa57126ddee89b46259cbc4adcea305fddae02d0f063a1e4b"
+    },
+    {
+      "file": "tests/belgeler/belge-share-stage02.test.ts",
+      "sha256": "e4796aaf47fa0524fb62cfd174220d63e169b25dd2d8bb705d8902ebcc4078f0"
+    },
+    {
+      "file": "tests/belgeler/belge-share-stage03.test.ts",
+      "sha256": "a0b45e330de469b944df7bf3b5d8fa50a7bb357c40d9a0cf91b24383c108307f"
+    },
+    {
+      "file": "tests/belgeler/belge-share-stage04.test.ts",
+      "sha256": "e30af44f066272513824d8e2d4b89bd6624bdf41885ef5396ad631358b87d4bd"
+    },
+    {
+      "file": "tests/belgeler/belge-share-stage06.test.ts",
+      "sha256": "ca9e2ebc867a8f675ef0e8ce85415ea197c8c872537da8965e08f4a0bb4f6424"
+    },
+    {
+      "file": "tests/belgeler/belge-share-ui.test.ts",
+      "sha256": "f42ee459fbdf71f0c0063161edd7d04214b4460b28abe25f4976663577c8c5f9"
+    },
+    {
+      "file": "tests/belgeler/belge-share-viewer.test.ts",
+      "sha256": "bd61ae8cfb39e44d306ac495e2d9911aa022610ac74ed58c2f71bde70f61ea45"
+    }
+  ]
+}

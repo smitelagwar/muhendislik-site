@@ -110,6 +110,10 @@ export function IstifaStudio({
   const shareApi = useBelgeShare({
     documentId: "santiye-sefi-istifa-dilekcesi",
     getSnapshotValues: () => formData as unknown as Record<string, string>,
+    isReady: document.status === "ready" && previewIsCurrent && previewResult.status === "ready",
+    snapshotRevision: document.status === "ready" && previewIsCurrent && previewResult.status === "ready"
+      ? snapshot?.revision ?? null
+      : null,
   });
 
   // Odaklanan alan kapalı bir bölüme aitse o bölümü otomatik genişlet (yalnızca yeni odak event'inde tetiklenir)

@@ -1,0 +1,21 @@
+{
+  "command": "node node_modules/eslint/bin/eslint.js src/lib/belge-paylasim/local-link-registry.ts src/hooks/use-belge-share.ts src/components/belge-paylasim/belge-share-dialog.tsx tests/belgeler/belge-share-client.test.ts tests/belgeler/belge-share-stage08.test.ts docs/belgeler-paylasim-v3-uygulama/run-stage08-tests.mjs docs/belgeler-paylasim-v3-uygulama/run-stage08-runtime-tsc.mjs docs/belgeler-paylasim-v3-uygulama/run-stage08-lint.mjs docs/belgeler-paylasim-v3-uygulama/run-stage08-manifest.mjs",
+  "environment": "ESLint over ASAMA_08 local registry, hook, dialog, unit tests, and bounded runners; secrets removed",
+  "files": [
+    "src/lib/belge-paylasim/local-link-registry.ts",
+    "src/hooks/use-belge-share.ts",
+    "src/components/belge-paylasim/belge-share-dialog.tsx",
+    "tests/belgeler/belge-share-client.test.ts",
+    "tests/belgeler/belge-share-stage08.test.ts",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage08-tests.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage08-runtime-tsc.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage08-lint.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage08-manifest.mjs"
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 180000,
+  "durationMs": 5405,
+  "removedEnvironmentNames": [],
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_08_lint.log"
+}

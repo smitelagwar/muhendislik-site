@@ -1,0 +1,17 @@
+{
+  "command": "node node_modules/eslint/bin/eslint.js docs/belgeler-paylasim-v3-uygulama/run-stage01-tests.mjs docs/belgeler-paylasim-v3-uygulama/run-stage01-runtime-tsc.mjs docs/belgeler-paylasim-v3-uygulama/run-stage01-lint.mjs",
+  "environment": "local lint of stage evidence runners; cloud and secret variable names removed",
+  "files": [
+    "docs/belgeler-paylasim-v3-uygulama/run-stage01-tests.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage01-runtime-tsc.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage01-lint.mjs"
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 180000,
+  "durationMs": 3487,
+  "removedEnvironmentNames": [
+    "CODEX_MCP_NODE_PATH"
+  ],
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_01_lint.log"
+}

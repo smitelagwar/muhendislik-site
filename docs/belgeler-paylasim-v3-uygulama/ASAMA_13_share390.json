@@ -1,0 +1,18 @@
+{
+  "mode": "share390",
+  "command": "node node_modules/@playwright/test/cli.js test --config=playwright.site.config.ts tests/site-audit/belgeler-share-e2e.spec.ts --project=chromium-mobile-390 --timeout=30000",
+  "environment": "process credential env scrubbed and share DB/Blob/Vercel runtime keys set empty; .env.local has no share DB/Blob settings; Next may still report .env.local loaded",
+  "head": "04048e50fd02e50c1c9ea783acec2d7383f516b4",
+  "worktreeDigest": "1816768f00ff98913dca48f61cebfc2e8179297b3832e8890bbb321e173a352b",
+  "digestFileCount": 87,
+  "exitCode": 1,
+  "timedOut": false,
+  "timeoutMs": 600000,
+  "durationMs": 86759,
+  "playwrightSummary": {
+    "passed": 0,
+    "failed": 5,
+    "skipped": 0
+  },
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_13_share390.log"
+}

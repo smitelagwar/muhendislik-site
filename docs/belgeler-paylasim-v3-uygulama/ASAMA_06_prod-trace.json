@@ -1,0 +1,36 @@
+{
+  "command": "node node_modules/next/dist/bin/next build",
+  "environment": "local production build; NODE_ENV=production; Vercel/database/Blob/share-secret/password/token/credential names removed or replaced by fixed dummy values; no deployment or live API calls",
+  "distDir": ".next-stage06",
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 600000,
+  "durationMs": 24577,
+  "removedEnvironmentNames": [
+    "CODEX_SESSION_ID"
+  ],
+  "isolatedLocalCredentialNames": [
+    "ADMIN_PASSWORD_HASH",
+    "ADMIN_SESSION_VERSION",
+    "ADMIN_USERNAME",
+    "RATE_LIMIT_SALT",
+    "SESSION_SECRET",
+    "SHARE_TOKEN_ENCRYPTION_KEY",
+    "VERCEL_OIDC_TOKEN"
+  ],
+  "routeManifest": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\.next-stage06\\server\\app\\api\\belgeler\\paylasim\\route.js.nft.json",
+  "includedAssets": [
+    "public/belgeler/beton-dokum-tutanagi.pdf",
+    "public/belgeler/insaat-ruhsati-dilekcesi.pdf",
+    "public/belgeler/santiye-sefi-istifa-dilekcesi.pdf",
+    "public/belgeler/santiye-sefi-sozlesmesi.pdf",
+    "public/belgeler/santiye-sefi-taahhutnamesi.pdf",
+    "public/fonts/Arial-Bold.ttf",
+    "public/fonts/Arial-Regular.ttf",
+    "public/fonts/IBMPlexSerif-Bold.ttf",
+    "public/fonts/IBMPlexSerif-Regular.ttf"
+  ],
+  "missingAssets": [],
+  "manifestCopyPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_06_prod-route.js.nft.json",
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_06_prod-build.log"
+}

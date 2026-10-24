@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 import fs from "node:fs";
 
 const port = Number(process.env.PLAYWRIGHT_PORT || 3005);
+const host = process.env.PLAYWRIGHT_HOST === "localhost" ? "localhost" : "127.0.0.1";
 const productionServer =
   process.env.PLAYWRIGHT_PRODUCTION_SERVER === "1" ||
   (process.env.PLAYWRIGHT_PRODUCTION_SERVER !== "0" && fs.existsSync(".next"));
@@ -15,7 +16,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: [["list"], ["html", { outputFolder: "./playwright-report/site-audit", open: "never" }]],
   use: {
-    baseURL: `http://127.0.0.1:${port}`,
+    baseURL: `http://${host}:${port}`,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -70,9 +71,9 @@ export default defineConfig({
   ],
   webServer: {
     command: productionServer
-      ? `npm start -- --hostname 127.0.0.1 --port ${port}`
-      : `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
-    url: `http://127.0.0.1:${port}`,
+      ? `npm start -- --hostname ${host} --port ${port}`
+      : `npm run dev -- --hostname ${host} --port ${port}`,
+    url: `http://${host}:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

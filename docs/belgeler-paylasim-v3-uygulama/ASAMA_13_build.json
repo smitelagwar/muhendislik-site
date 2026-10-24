@@ -1,0 +1,16 @@
+{
+  "mode": "build",
+  "command": "npm.cmd run build",
+  "environment": "process credential env scrubbed and share DB/Blob/Vercel runtime keys set empty; .env.local has no share DB/Blob settings; Next may still report .env.local loaded",
+  "head": "04048e50fd02e50c1c9ea783acec2d7383f516b4",
+  "worktreeDigest": "6167687cf1d9f747f039470c5dd041c8759606c55e06650c93efcd6ebd5bc4de",
+  "digestFileCount": 87,
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 900000,
+  "durationMs": 117370,
+  "playwrightSummary": null,
+  "buildDistDir": ".next-stage13-isolated",
+  "buildId": "wjOA2UxIsLzUS4XUlSort",
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_13_build.log"
+}

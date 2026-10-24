@@ -1,0 +1,42 @@
+{
+  "environment": "fresh local production build; isolated Neon PostgreSQL schema 9 and private Blob; development-only credentials; secrets redacted",
+  "buildId": "TANJ6q1sDUCaKkaVKq3i9",
+  "shareE2E": {
+    "command": "npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-share-e2e.spec.ts --project=chromium-desktop-1366 --project=chromium-mobile-320 --project=chromium-mobile-390",
+    "testCount": 15,
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0,
+    "allPassed": true,
+    "logPath": "docs/belgeler-paylasim-v3-uygulama/ASAMA_13_share_live_all.log",
+    "projects": [
+      { "project": "chromium-desktop-1366", "passed": 5, "failed": 0, "skipped": 0 },
+      { "project": "chromium-mobile-390", "passed": 5, "failed": 0, "skipped": 0 },
+      { "project": "chromium-mobile-320", "passed": 5, "failed": 0, "skipped": 0 }
+    ]
+  },
+  "acceptance": {
+    "K01": "PASS: first PDF SHA-256 stable after second changed-content link; second PDF differs; quota 2/50",
+    "K02": "PASS: real SQL 49/50/51 and reserved boundary; two tabs share identity; separate Chromium browser on same NAT has independent quota",
+    "testCount": 1,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "logPath": "docs/belgeler-paylasim-v3-uygulama/ASAMA_13_live_k01k02.log"
+  },
+  "postgresLive": {
+    "status": "PASS",
+    "independentPostgresBackends": true,
+    "schemaVersion": 9,
+    "uniqueIds": { "attempted": 100, "accepted": 50, "quotaBlocked": 50, "finalized": 50 },
+    "sameId": { "attempts": 100, "created": 1, "reservedBeforeFinalize": 1, "usedAfterFinalize": 1 },
+    "browserQuotaBoundary": { "at49": 49, "at49PlusReserved": 1, "afterFinalize": 50, "reservation51Blocked": true, "daily51Blocked": true },
+    "byteCapacity": { "accepted": 2, "blocked": 1, "byteRefundVerified": true },
+    "failureInjection": { "renderRefundOnce": true, "uploadedFinalizeFailureRetainedBytesUntilDelete": true, "lostFinalizeAckNotDoubleCounted": true },
+    "testRowsAndBlobsCleanedAfterRun": true,
+    "remainingRows": { "links": 0, "quotas": 0, "obligations": 0 },
+    "remainingPrivateBlobObjects": 0,
+    "logPath": "docs/belgeler-paylasim-v3-uygulama/ASAMA_13_postgres_live.log"
+  },
+  "allPassed": true
+}

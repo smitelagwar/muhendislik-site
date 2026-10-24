@@ -1,0 +1,26 @@
+{
+  "command": "node node_modules/eslint/bin/eslint.js src/lib/belge-paylasim/config.ts src/lib/belge-paylasim/types.ts src/lib/belge-paylasim/repository.ts src/lib/belge-paylasim/blob-store.ts src/app/api/belgeler/paylasim/route.ts src/app/api/belgeler/paylasim/[token]/route.ts src/app/api/belgeler/paylasim/[token]/pdf/route.ts src/app/api/cron/belge-paylasim-temizlik/route.ts tests/belgeler/belge-share-stage02.test.ts docs/belgeler-paylasim-v3-uygulama/run-stage02-tests.mjs docs/belgeler-paylasim-v3-uygulama/run-stage02-runtime-tsc.mjs docs/belgeler-paylasim-v3-uygulama/run-stage02-lint.mjs",
+  "environment": "local ESLint on changed source, migration tests, and evidence runners; cloud and secret variable names removed",
+  "files": [
+    "src/lib/belge-paylasim/config.ts",
+    "src/lib/belge-paylasim/types.ts",
+    "src/lib/belge-paylasim/repository.ts",
+    "src/lib/belge-paylasim/blob-store.ts",
+    "src/app/api/belgeler/paylasim/route.ts",
+    "src/app/api/belgeler/paylasim/[token]/route.ts",
+    "src/app/api/belgeler/paylasim/[token]/pdf/route.ts",
+    "src/app/api/cron/belge-paylasim-temizlik/route.ts",
+    "tests/belgeler/belge-share-stage02.test.ts",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage02-tests.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage02-runtime-tsc.mjs",
+    "docs/belgeler-paylasim-v3-uygulama/run-stage02-lint.mjs"
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 180000,
+  "durationMs": 3563,
+  "removedEnvironmentNames": [
+    "CODEX_MCP_NODE_PATH"
+  ],
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_02_lint.log"
+}

@@ -1,0 +1,231 @@
+{
+  "pageUrl": "/belgeler/santiye-sefi-sozlesmesi",
+  "browser": "Chromium headless via Playwright",
+  "viewportSizes": [
+    390,
+    320
+  ],
+  "media": [
+    "light",
+    "dark",
+    "reduced-motion"
+  ],
+  "browserApiMode": "Playwright route mocks only; local UI browser run is not a live backend test",
+  "mockedSuccessfulLinks": 5,
+  "mockedQuota": {
+    "used": 5,
+    "reserved": 0,
+    "limit": 50
+  },
+  "requestCount": 5,
+  "requestIdsDistinct": true,
+  "differingPayloadDigestCount": 4,
+  "submittedFieldNames": [
+    "ada",
+    "adres",
+    "il",
+    "ilce",
+    "mahalle",
+    "muteahhit_imza_unvan",
+    "muteahhit_unvan",
+    "pafta",
+    "parsel",
+    "santiye_sefi_ad",
+    "santiye_sefi_imza_adi",
+    "sozlesme_tarihi",
+    "ucret",
+    "yibf"
+  ],
+  "confirmedDifferentFieldValues": true,
+  "browserApiRequests": 64,
+  "browserApiResponses": 64,
+  "checks": [
+    {
+      "id": "F09_plain_data_warning",
+      "result": "PASS",
+      "detail": "editable field values produce a plain Turkish visibility warning"
+    },
+    {
+      "id": "inflight_double_click",
+      "result": "PASS",
+      "detail": "two same-frame clicks create one request while the first response is delayed"
+    },
+    {
+      "id": "B02_first_link",
+      "result": "PASS",
+      "detail": "first mock request created for current PDF revision"
+    },
+    {
+      "id": "same_snapshot_distinct_action",
+      "result": "PASS",
+      "detail": "an explicit new independent link action is visible for the same current form"
+    },
+    {
+      "id": "clipboard_manual_fallback",
+      "result": "PASS",
+      "detail": "read-only link is selected and manual-copy help is visible"
+    },
+    {
+      "id": "copy_is_free",
+      "result": "PASS",
+      "detail": "copying an existing link sends no create request"
+    },
+    {
+      "id": "B01_revoke_error",
+      "result": "PASS",
+      "detail": "synthetic active-link revoke error remains in the dialog's shared assertive aria-live area"
+    },
+    {
+      "id": "history_copy_error",
+      "result": "PASS",
+      "detail": "history copy failure uses the same live error and manual-copy field"
+    },
+    {
+      "id": "history_revoke_error",
+      "result": "PASS",
+      "detail": "history revoke failure is visible in the same aria-live error area"
+    },
+    {
+      "id": "dialog_focus_restore",
+      "result": "PASS",
+      "detail": "focus returns to the share trigger after close"
+    },
+    {
+      "id": "inline_draft_commit",
+      "result": "PASS",
+      "detail": "inline draft commit updates the live form"
+    },
+    {
+      "id": "B02_current_revision_path",
+      "result": "PASS",
+      "detail": "old link is labeled as a prior revision; current revision creation is available"
+    },
+    {
+      "id": "first_to_second_link",
+      "result": "PASS",
+      "detail": "two distinct request IDs carry different PDF field values"
+    },
+    {
+      "id": "success_keeps_form",
+      "result": "PASS",
+      "detail": "successful second link leaves the edited form intact"
+    },
+    {
+      "id": "F24_quota_independent_of_history",
+      "result": "PASS",
+      "detail": "server quota aggregate remains distinct from the two local history entries"
+    },
+    {
+      "id": "daily_quota_error",
+      "result": "PASS",
+      "detail": "JSON daily quota response uses the server Retry-After value"
+    },
+    {
+      "id": "waf_quota_separation",
+      "result": "PASS",
+      "detail": "HTML 429 does not claim that the daily quota was exhausted"
+    },
+    {
+      "id": "capacity_error",
+      "result": "PASS",
+      "detail": "503 capacity response remains distinct from daily quota"
+    },
+    {
+      "id": "reserved_quota_ui",
+      "result": "PASS",
+      "detail": "reserved work is shown separately and does not claim 50 successes"
+    },
+    {
+      "id": "quota_midnight_refresh",
+      "result": "PASS",
+      "detail": "reset timer re-reads the server after the mocked quota boundary"
+    },
+    {
+      "id": "cookie_disabled",
+      "result": "PASS",
+      "detail": "missing browser identity is reported as cookie setup, not daily quota"
+    },
+    {
+      "id": "quota_waf_html",
+      "result": "PASS",
+      "detail": "HTML quota bootstrap denial is not shown as consumed daily links"
+    },
+    {
+      "id": "dialog_escape",
+      "result": "PASS",
+      "detail": "Escape closes and restores focus"
+    },
+    {
+      "id": "B03_320px_layout",
+      "result": "PASS",
+      "detail": "320px layout: {\"viewportWidth\":320,\"documentWidth\":320,\"computedWidth\":\"304px\",\"clientWidth\":302,\"scrollWidth\":302,\"dialogLeft\":8,\"dialogRight\":312,\"copyVisible\":true,\"allButtonsAtLeast44\":true,\"buttonCount\":10,\"buttons\":[{\"width\":44,\"height\":44,\"label\":\"Pencereyi kapat\",\"title\":null},{\"width\":278,\"height\":44,\"label\":\"Kopyala\",\"title\":null},{\"width\":278,\"height\":44,\"label\":\"Bu bağlantıyı iptal et\",\"title\":null},{\"width\":278,\"height\":44,\"label\":\"Bu cihazdaki bağlantılarım (2)\",\"title\":null},{\"width\":44,\"height\":44,\"label\":\"\",\"title\":\"Bağlantıyı kopyala\"},{\"width\":44,\"height\":44,\"label\":\"\",\"title\":\"Bağlantıyı iptal et\"},{\"width\":44,\"height\":44,\"label\":\"\",\"title\":\"Bağlantıyı kopyala\"},{\"width\":67.640625,\"height\":44,\"label\":\"İptal et\",\"title\":null},{\"width\":278,\"height\":44,\"label\":\"Kapat\",\"title\":null},{\"width\":278,\"height\":44,\"label\":\"Yeni ayrı bağlantı oluştur\",\"title\":null}]}"
+    },
+    {
+      "id": "dark_reduced_motion",
+      "result": "PASS",
+      "detail": "dialog stays usable in dark mode with reduced motion enabled"
+    },
+    {
+      "id": "draft_restore_transition",
+      "result": "PASS",
+      "detail": "saved form restores before the share snapshot is read"
+    },
+    {
+      "id": "reset_transition",
+      "result": "PASS",
+      "detail": "reset replaces current form data and invalidates the previous PDF revision"
+    },
+    {
+      "id": "undo_transition",
+      "result": "PASS",
+      "detail": "undo restores the exact form values used by the edited revision"
+    },
+    {
+      "id": "recovery_record_has_no_form",
+      "result": "PASS",
+      "detail": "session recovery record stores only request proof, document ID, revision, digest, and time"
+    },
+    {
+      "id": "lost_response_recovery",
+      "result": "PASS",
+      "detail": "reload status lookup restores the ready link without a second POST; restored same form remains current"
+    },
+    {
+      "id": "changed_form_pending_request",
+      "result": "PASS",
+      "detail": "the second recoverable operation captured its own click-time form values"
+    },
+    {
+      "id": "changed_form_restored",
+      "result": "PASS",
+      "detail": "a newer local draft restores while the previous request proof remains available"
+    },
+    {
+      "id": "changed_form_recovery_no_repost",
+      "result": "PASS",
+      "detail": "status recovery resolves the old request without resending its ID with a changed form"
+    },
+    {
+      "id": "changed_form_uses_new_request_id",
+      "result": "PASS",
+      "detail": "the changed form is sent only under a new request ID after recovering the previous form result"
+    },
+    {
+      "id": "mock_api_only",
+      "result": "PASS",
+      "detail": "share, quota, status, and revoke responses were intercepted by Playwright; no live API behavior is claimed"
+    },
+    {
+      "id": "browser_runtime",
+      "result": "PASS",
+      "detail": "0 uncaught browser errors"
+    }
+  ],
+  "allChecksPassed": true,
+  "devLogPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_07_dev-server.log",
+  "result": "PASS",
+  "timedOut": false,
+  "exitCode": 0,
+  "durationMs": 19333,
+  "error": null
+}

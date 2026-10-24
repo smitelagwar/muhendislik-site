@@ -1,0 +1,18 @@
+{
+  "mode": "pdfViewer",
+  "command": "node node_modules/@playwright/test/cli.js test --config=docs/belgeler-paylasim-v3-uygulama/playwright.stage13-production.config.ts tests/document-studio/pdf-viewer-v2.spec.ts --project=chromium --timeout=45000",
+  "environment": "process credential env scrubbed and share DB/Blob/Vercel runtime keys set empty; .env.local has no share DB/Blob settings; Next may still report .env.local loaded",
+  "head": "04048e50fd02e50c1c9ea783acec2d7383f516b4",
+  "worktreeDigest": "1816768f00ff98913dca48f61cebfc2e8179297b3832e8890bbb321e173a352b",
+  "digestFileCount": 87,
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 900000,
+  "durationMs": 10697,
+  "playwrightSummary": {
+    "passed": 4,
+    "failed": 0,
+    "skipped": 3
+  },
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_13_pdfViewer.log"
+}

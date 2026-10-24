@@ -4,6 +4,7 @@
 
 import { del, get, list, put } from "@vercel/blob";
 import { getBlobCommandOptions, hasBlobAccessConfiguration } from "@/lib/dokumantasyon/runtime-mode";
+import { BelgeShareRuntimeError } from "./config";
 
 export interface BlobPutResult {
   pathname: string;
@@ -21,13 +22,14 @@ export interface BlobItemSummary {
 export interface BlobListResult {
   blobs: BlobItemSummary[];
   cursor?: string;
+  hasMore: boolean;
 }
 
 export interface BelgeBlobStore {
   put(pathname: string, data: Uint8Array): Promise<BlobPutResult>;
   get(pathname: string): Promise<Response | null>;
-  del(pathname: string): Promise<void>;
-  list(prefix: string, options?: { cursor?: string; limit?: number }): Promise<BlobListResult>;
+  del(pathname: string, options?: { signal?: AbortSignal }): Promise<void>;
+  list(prefix: string, options?: { cursor?: string; limit?: number; signal?: AbortSignal }): Promise<BlobListResult>;
 }
 
 /**
@@ -66,24 +68,32 @@ export class MemoryBelgeBlobStore implements BelgeBlobStore {
   }
 
   async list(prefix: string, options?: { cursor?: string; limit?: number }): Promise<BlobListResult> {
-    const limit = options?.limit ?? 100;
-    const matching: BlobItemSummary[] = [];
-
-    for (const [pathname, item] of this.store.entries()) {
-      if (pathname.startsWith(prefix)) {
-        matching.push({
-          pathname,
-          url: `https://blob.local.mock/${pathname}`,
-          sizeBytes: item.data.byteLength,
-          uploadedAt: item.createdAt,
-        });
-      }
+    const limit = Math.max(1, Math.min(1000, options?.limit ?? 100));
+    const matching = Array.from(this.store.entries())
+      .filter(([pathname]) => pathname.startsWith(prefix))
+      .sort(([left], [right]) => left.localeCompare(right));
+    let startIndex = 0;
+    if (options?.cursor) {
+      if (options.cursor.startsWith("invalid:")) throw new Error("BLOB_LIST_INVALID_CURSOR");
+      const lastPathname = options.cursor.startsWith("mem:") ? decodeURIComponent(options.cursor.slice(4)) : options.cursor;
+      const exactIndex = matching.findIndex(([pathname]) => pathname === lastPathname);
+      startIndex = exactIndex >= 0
+        ? exactIndex + 1
+        : matching.findIndex(([pathname]) => pathname.localeCompare(lastPathname) > 0);
+      if (startIndex < 0) startIndex = matching.length;
     }
-
-    const blobs = matching.slice(0, limit);
+    const page = matching.slice(startIndex, startIndex + limit);
+    const blobs: BlobItemSummary[] = page.map(([pathname, item]) => ({
+      pathname,
+      url: `https://blob.local.mock/${pathname}`,
+      sizeBytes: item.data.byteLength,
+      uploadedAt: item.createdAt,
+    }));
+    const hasMore = startIndex + page.length < matching.length;
     return {
       blobs,
-      cursor: matching.length > limit ? "has_more" : undefined,
+      cursor: hasMore && page.length ? `mem:${encodeURIComponent(page[page.length - 1]![0])}` : undefined,
+      hasMore,
     };
   }
 
@@ -153,17 +163,18 @@ export class VercelBelgeBlobStore implements BelgeBlobStore {
     }
   }
 
-  async del(pathname: string): Promise<void> {
-    const options = getBlobCommandOptions();
-    await del(pathname, options);
+  async del(pathname: string, requestOptions?: { signal?: AbortSignal }): Promise<void> {
+    const commandOptions = getBlobCommandOptions();
+    await del(pathname, { ...commandOptions, abortSignal: requestOptions?.signal });
   }
 
-  async list(prefix: string, options?: { cursor?: string; limit?: number }): Promise<BlobListResult> {
+  async list(prefix: string, options?: { cursor?: string; limit?: number; signal?: AbortSignal }): Promise<BlobListResult> {
     const commandOptions = getBlobCommandOptions();
     const result = await list({
       prefix,
       cursor: options?.cursor,
       limit: options?.limit,
+      abortSignal: options?.signal,
       ...commandOptions,
     });
 
@@ -175,6 +186,7 @@ export class VercelBelgeBlobStore implements BelgeBlobStore {
         uploadedAt: b.uploadedAt,
       })),
       cursor: result.cursor,
+      hasMore: result.hasMore,
     };
   }
 }
@@ -184,27 +196,16 @@ let activeBlobStore: BelgeBlobStore | null = null;
 export function getBelgeBlobStore(): BelgeBlobStore {
   if (activeBlobStore) return activeBlobStore;
 
-  const isVercel = Boolean(process.env.VERCEL);
-
-  if (isVercel) {
-    if (!hasBlobAccessConfiguration()) {
-      throw new Error("GÜVENLİK HATASI: Vercel Blob özel depolama erişimi yapılandırılmamış.");
-    }
-    activeBlobStore = new VercelBelgeBlobStore();
-    return activeBlobStore;
+  if (!hasBlobAccessConfiguration()) {
+    throw new BelgeShareRuntimeError("BLOB_NOT_CONFIGURED");
   }
-
-  // Yerel ortamda BLOB yapılandırması tanımlıysa VercelBlob kullan, yoksa Memory test adaptörü
-  if (hasBlobAccessConfiguration()) {
-    activeBlobStore = new VercelBelgeBlobStore();
-    return activeBlobStore;
-  }
-
-  // Test ve geliştirme ortamı için bellek içi mağaza
-  activeBlobStore = new MemoryBelgeBlobStore();
+  activeBlobStore = new VercelBelgeBlobStore();
   return activeBlobStore;
 }
 
 export function setBelgeBlobStoreForTest(store: BelgeBlobStore | null): void {
+  if (store && (process.env.NODE_ENV === "production" || process.env.VERCEL)) {
+    throw new BelgeShareRuntimeError("TEST_ADAPTER_FORBIDDEN");
+  }
   activeBlobStore = store;
 }

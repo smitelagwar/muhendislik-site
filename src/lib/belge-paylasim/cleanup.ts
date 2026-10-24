@@ -1,176 +1,331 @@
 // ============================================================================
-// BELGE PAYLAŞIM — RETENTION, PURGE VE DEPOLAMA TEMİZLİK MOTORU
+// BELGE PAYLAŞIM — SINIRLI, DEVAM EDEBİLEN FİZİKSEL TEMİZLİK MOTORU
 // ============================================================================
 
-import { BELGE_SHARE_CONFIG } from "./config";
-import { getBelgeBlobStore, type BelgeBlobStore } from "./blob-store";
+import { randomUUID } from "node:crypto";
+import { getBelgeShareEnvironmentKey } from "./browser-identity";
+import { getBelgeBlobStore, type BelgeBlobStore, type BlobItemSummary } from "./blob-store";
+import { BELGE_SHARE_CONFIG, getBelgeShareQuotaConfig } from "./config";
 import { getBelgePaylasimRepository, type BelgePaylasimRepository } from "./repository";
 
 export interface PurgeExecutionStats {
+  success: boolean;
+  outcome: "success" | "partial" | "failed";
+  alreadyRunning: boolean;
   processedCount: number;
   purgedCount: number;
   errorCount: number;
   stalePendingCount: number;
   orphanBlobCount: number;
   tombstonePurgedCount: number;
+  listPageCount: number;
   durationMs: number;
-  errors: Array<{ id?: string; pathname?: string; error: string }>;
+  partial: boolean;
+  errors: Array<{ code: string }>;
+  metrics?: {
+    pendingDeleteCount: number;
+    dueDeleteCount: number;
+    leasedDeleteCount: number;
+    failedDeleteCount: number;
+    pendingDeleteBytes: number;
+    oldestPendingDeleteAt: string | null;
+    lastSuccessfulAt: string | null;
+    lastOutcome: string | null;
+    liableBytes: number;
+    capacityLimitBytes: number | null;
+    capacityUtilizationPercent: number | null;
+  };
 }
 
 export interface CleanupOptions {
   batchLimit?: number;
+  pageSize?: number;
   leaseDurationMs?: number;
   orphanGraceHours?: number;
   tombstoneRetentionDays?: number;
+  maxDurationMs?: number;
+  listTimeoutMs?: number;
+  deleteTimeoutMs?: number;
+  ownerId?: string;
+  environmentKey?: "local" | "development" | "preview" | "production";
   repository?: BelgePaylasimRepository;
   blobStore?: BelgeBlobStore;
 }
 
-function extractErrorCode(err: unknown): string {
-  if (err && typeof err === "object" && "code" in err && (err as { code: unknown }).code != null) {
-    return String((err as { code: unknown }).code);
+class CleanupOperationTimeout extends Error {
+  readonly code = "BLOB_OPERATION_TIMEOUT";
+}
+
+function errorCode(error: unknown): string {
+  if (error instanceof CleanupOperationTimeout) return error.code;
+  if (error && typeof error === "object" && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === "string" && /^[A-Z0-9_]{1,64}$/.test(code)) return code;
   }
-  if (err instanceof Error) {
-    return err.message;
+  return "BLOB_OPERATION_FAILED";
+}
+
+function isSafeSharePath(pathname: string): boolean {
+  const prefix = BELGE_SHARE_CONFIG.BLOB_PATH_PREFIX;
+  if (!pathname.startsWith(prefix) || pathname.includes("\\") || /[\u0000-\u001f\u007f]/.test(pathname)) return false;
+  const segments = pathname.slice(prefix.length).split("/");
+  return segments.length > 0 && segments.every((segment) => segment.length > 0 && segment !== "." && segment !== "..");
+}
+
+async function withTimeout<T>(
+  timeoutMs: number,
+  operation: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new CleanupOperationTimeout());
+    }, Math.max(1, timeoutMs));
+  });
+  try {
+    return await Promise.race([Promise.resolve().then(() => operation(controller.signal)), timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
-  return "PURGE_BLOB_DELETE_ERROR";
+}
+
+function toMetricSummary(
+  metrics: Awaited<ReturnType<BelgePaylasimRepository["getCleanupMetrics"]>>,
+  capacityLimitBytes: number | null,
+) {
+  return {
+    pendingDeleteCount: metrics.pendingDeleteCount,
+    dueDeleteCount: metrics.dueDeleteCount,
+    leasedDeleteCount: metrics.leasedDeleteCount,
+    failedDeleteCount: metrics.failedDeleteCount,
+    pendingDeleteBytes: metrics.pendingDeleteBytes,
+    oldestPendingDeleteAt: metrics.oldestPendingDeleteAt?.toISOString() ?? null,
+    lastSuccessfulAt: metrics.lastSuccessfulAt?.toISOString() ?? null,
+    lastOutcome: metrics.lastOutcome,
+    liableBytes: metrics.liableBytes,
+    capacityLimitBytes,
+    capacityUtilizationPercent: capacityLimitBytes
+      ? Number(((metrics.liableBytes / capacityLimitBytes) * 100).toFixed(2))
+      : null,
+  };
 }
 
 /**
- * Belge paylaşım depolama ve veritabanı temizleme motoru.
- * Süresi dolan (90 gün) veya iptal edilen bağlantıların Blob nesnelerini siler,
- * yetim (orphan) nesneleri 24 saatlik koruma süresi sonrasında temizler,
- * ve 30 günlük mezar taşı süreleri dolan kayıtları GC ile veritabanından kaldırır.
+ * Tek kiracılı cron lease'iyle sayfalı Blob taraması yapar. Liste taraması
+ * tamamlanmadan Blob silinmez; cursor geçersizleşirse güvenli biçimde baştan
+ * taranabilir. Her silme, fencing sahibiyle DB'de doğrulanmadan byte borcu kapanmaz.
  */
-export async function executeBelgePaylasimCleanup(
-  options?: CleanupOptions
-): Promise<PurgeExecutionStats> {
-  const startTime = Date.now();
-  const batchLimit = options?.batchLimit ?? 50;
-  const leaseDurationMs = options?.leaseDurationMs ?? BELGE_SHARE_CONFIG.CRON_LEASE_DURATION_MS;
-  const orphanGraceHours = options?.orphanGraceHours ?? 24;
-  const tombstoneRetentionDays = options?.tombstoneRetentionDays ?? 30;
-
+export async function executeBelgePaylasimCleanup(options?: CleanupOptions): Promise<PurgeExecutionStats> {
+  const startedAt = Date.now();
+  const deadline = startedAt + Math.max(1, options?.maxDurationMs ?? 45_000);
+  const batchLimit = Math.max(1, Math.min(1000, options?.batchLimit ?? 100));
+  const pageSize = Math.max(1, Math.min(1000, options?.pageSize ?? 100));
+  const leaseDurationMs = Math.max(30_000, options?.leaseDurationMs ?? 90_000);
+  const orphanGraceHours = Math.max(24, options?.orphanGraceHours ?? 24);
+  const orphanGraceMs = orphanGraceHours * 60 * 60 * 1000;
+  const tombstoneRetentionDays = Math.max(30, options?.tombstoneRetentionDays ?? 30);
+  const environmentKey = options?.environmentKey ?? getBelgeShareEnvironmentKey();
+  const ownerId = options?.ownerId ?? randomUUID();
   const repo = options?.repository ?? getBelgePaylasimRepository();
   const blobStore = options?.blobStore ?? getBelgeBlobStore();
-
+  let capacityLimitBytes: number | null = null;
+  try {
+    capacityLimitBytes = getBelgeShareQuotaConfig().globalMaxStorageBytes;
+  } catch {
+    // Yapılandırma eksikliğinde temizliğin kendisi çalışmaya devam eder; kapasite oranı bilinmiyor kalır.
+  }
   const stats: PurgeExecutionStats = {
+    success: false,
+    outcome: "partial",
+    alreadyRunning: false,
     processedCount: 0,
     purgedCount: 0,
     errorCount: 0,
     stalePendingCount: 0,
     orphanBlobCount: 0,
     tombstonePurgedCount: 0,
+    listPageCount: 0,
     durationMs: 0,
+    partial: false,
     errors: [],
   };
+  const recordError = (code: string) => {
+    stats.errorCount += 1;
+    if (stats.errors.length < 20) stats.errors.push({ code });
+  };
 
-  const now = new Date();
-  const staleThreshold = new Date(now.getTime() - orphanGraceHours * 60 * 60 * 1000);
-  const tombstoneThreshold = new Date(now.getTime() - tombstoneRetentionDays * 24 * 60 * 60 * 1000);
-
-  // --------------------------------------------------------------------------
-  // 1. ADIM: Süresi Dolan veya İptal Edilen Kayıtların Fiziksel Temizliği (Batch Lease)
-  // --------------------------------------------------------------------------
+  let leaseVersion = 0;
+  let ownsRun = false;
+  let scanComplete = false;
+  let unresolvedClaim = false;
   try {
-    const expiredCandidates = await repo.claimExpiredForPurge(batchLimit, leaseDurationMs);
-
-    for (const record of expiredCandidates) {
-      stats.processedCount++;
-      try {
-        // Blob fiziksel silme (idempotent: nesne zaten yoksa da başarılı sayılır)
-        await blobStore.del(record.blobPathname);
-        // Veritabanında purged durumuna geçir
-        await repo.markPurged(record.id);
-        stats.purgedCount++;
-      } catch (err) {
-        const errorCode = extractErrorCode(err);
-        await repo.recordPurgeError(record.id, errorCode);
-        stats.errorCount++;
-        stats.errors.push({ id: record.id, pathname: record.blobPathname, error: errorCode });
-      }
+    const run = await repo.claimCleanupRun(ownerId, leaseDurationMs);
+    leaseVersion = run.leaseVersion;
+    ownsRun = run.acquired;
+    if (!ownsRun) {
+      stats.alreadyRunning = true;
+      stats.partial = true;
+      stats.outcome = "partial";
+      stats.metrics = toMetricSummary(await repo.getCleanupMetrics(environmentKey), capacityLimitBytes);
+      return stats;
     }
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : "CLAIM_EXPIRED_ERROR";
-    stats.errorCount++;
-    stats.errors.push({ error: `claimExpiredForPurge hatası: ${errorMsg}` });
-  }
 
-  // --------------------------------------------------------------------------
-  // 2. ADIM: Takılı Kalan 'pending' Rezervasyonları Uzlaştırma (24 saat grace)
-  // --------------------------------------------------------------------------
-  try {
-    const stalePendings = await repo.claimStalePendingForPurge(staleThreshold, batchLimit);
+    let cursor = run.blobCursor;
+    const scanStartedAt = run.blobScanStartedAt ?? new Date();
+    let cursorResetCount = 0;
 
-    for (const record of stalePendings) {
-      try {
-        if (record.blobPathname) {
-          await blobStore.del(record.blobPathname);
-        }
-        await repo.markPurged(record.id);
-        stats.stalePendingCount++;
-      } catch (err) {
-        const errorCode = err instanceof Error ? err.message : "STALE_PENDING_ERROR";
-        await repo.recordPurgeError(record.id, errorCode);
-        stats.errorCount++;
-        stats.errors.push({ id: record.id, pathname: record.blobPathname, error: errorCode });
-      }
+    // Süresi dolmuş üretim lease'lerini kapatır; yetim Blob'lar için 24 saatlik borç korunur.
+    while (Date.now() < deadline) {
+      const reclaimed = await repo.reclaimStalePendingAttempts(
+        ownerId, leaseVersion, new Date(Date.now() - orphanGraceMs), batchLimit, orphanGraceMs,
+      );
+      stats.stalePendingCount += reclaimed;
+      if (reclaimed < batchLimit) break;
     }
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : "STALE_PENDING_CHECK_ERROR";
-    stats.errorCount++;
-    stats.errors.push({ error: `claimStalePendingForPurge hatası: ${errorMsg}` });
-  }
 
-  // --------------------------------------------------------------------------
-  // 3. ADIM: Yalnızca 'belge_paylasim/' Önekli Yetim (Orphan) Blob'ları Temizleme
-  // --------------------------------------------------------------------------
-  try {
-    if (typeof blobStore.list === "function") {
-      const listResult = await blobStore.list(BELGE_SHARE_CONFIG.BLOB_PATH_PREFIX, {
-        limit: batchLimit,
-      });
-
-      for (const blob of listResult.blobs) {
-        // Güvenlik: Dokümantasyon veya diğer öneklere kesinlikle dokunulmaz
-        if (!blob.pathname.startsWith(BELGE_SHARE_CONFIG.BLOB_PATH_PREFIX)) {
+    // Tam liste taraması bitmeden fiziksel silme yapılmaz; böylece silinen ilk sayfa
+    // sonraki sayfaların cursor konumunu kaydırıp yetimleri aç bırakmaz.
+    while (Date.now() < deadline) {
+      let page;
+      try {
+        page = await withTimeout(options?.listTimeoutMs ?? 8_000, (signal) =>
+          blobStore.list(BELGE_SHARE_CONFIG.BLOB_PATH_PREFIX, { cursor: cursor ?? undefined, limit: pageSize, signal }),
+        );
+      } catch (error) {
+        if (cursor && cursorResetCount === 0) {
+          cursorResetCount += 1;
+          cursor = null;
+          if (!await repo.saveCleanupCheckpoint(ownerId, leaseVersion, null, scanStartedAt, leaseDurationMs)) {
+            ownsRun = false;
+            stats.partial = true;
+            break;
+          }
           continue;
         }
+        recordError(errorCode(error));
+        stats.partial = true;
+        break;
+      }
 
-        // Grace period: Yalnızca 24 saatten eski nesneler kontrol edilir
-        if (blob.uploadedAt.getTime() <= staleThreshold.getTime()) {
-          const isRegistered = await repo.hasRecordWithBlobPathname(blob.pathname);
-          if (!isRegistered) {
-            try {
-              await blobStore.del(blob.pathname);
-              stats.orphanBlobCount++;
-            } catch (err) {
-              const errorCode = err instanceof Error ? err.message : "ORPHAN_BLOB_DELETE_ERROR";
-              stats.errorCount++;
-              stats.errors.push({ pathname: blob.pathname, error: errorCode });
+      stats.listPageCount += 1;
+      const eligibleOrphans: BlobItemSummary[] = [];
+      const staleBefore = Date.now() - orphanGraceMs;
+      for (const blob of page.blobs) {
+        if (!isSafeSharePath(blob.pathname) || blob.uploadedAt.getTime() > staleBefore) continue;
+        eligibleOrphans.push(blob);
+      }
+      try {
+        stats.orphanBlobCount += await repo.registerOrphanObligations(
+          ownerId,
+          leaseVersion,
+          environmentKey,
+          eligibleOrphans.map(({ pathname, sizeBytes }) => ({ pathname, sizeBytes })),
+        );
+      } catch (error) {
+        recordError(errorCode(error));
+        stats.partial = true;
+        break;
+      }
+
+      if (page.hasMore && (!page.cursor || page.cursor === cursor)) {
+        recordError("BLOB_CURSOR_NO_PROGRESS");
+        stats.partial = true;
+        break;
+      }
+      const nextCursor = page.hasMore ? page.cursor ?? null : null;
+      const nextScanStartedAt = page.hasMore ? scanStartedAt : null;
+      if (!await repo.saveCleanupCheckpoint(ownerId, leaseVersion, nextCursor, nextScanStartedAt, leaseDurationMs)) {
+        ownsRun = false;
+        stats.partial = true;
+        break;
+      }
+      cursor = nextCursor;
+      if (!page.hasMore) {
+        scanComplete = true;
+        break;
+      }
+    }
+
+    if (!scanComplete && Date.now() >= deadline) stats.partial = true;
+
+    if (ownsRun && scanComplete && Date.now() < deadline) {
+      const tombstoneThreshold = new Date(Date.now() - tombstoneRetentionDays * 24 * 60 * 60 * 1000);
+      while (Date.now() < deadline) {
+        const claims = await repo.claimDueCleanupBlobs(environmentKey, ownerId, leaseVersion, batchLimit, leaseDurationMs);
+        if (claims.length === 0) break;
+        for (const claim of claims) {
+          if (Date.now() >= deadline) {
+            unresolvedClaim = true;
+            stats.partial = true;
+            break;
+          }
+          if (claim.environmentKey !== environmentKey || !isSafeSharePath(claim.blobPathname)) {
+            const recorded = await repo.failCleanupBlob(claim, "BLOB_PATH_OR_ENVIRONMENT_REFUSED");
+            if (recorded) recordError("BLOB_PATH_OR_ENVIRONMENT_REFUSED");
+            else unresolvedClaim = true;
+            continue;
+          }
+          stats.processedCount += 1;
+          try {
+            await withTimeout(options?.deleteTimeoutMs ?? 8_000, (signal) => blobStore.del(claim.blobPathname, { signal }));
+            if (await repo.completeCleanupBlob(claim)) stats.purgedCount += 1;
+            else {
+              unresolvedClaim = true;
+              recordError("CLEANUP_LEASE_LOST_AFTER_DELETE");
+            }
+          } catch (error) {
+            const code = errorCode(error);
+            if (await repo.failCleanupBlob(claim, code)) recordError(code);
+            else {
+              unresolvedClaim = true;
+              recordError("CLEANUP_LEASE_LOST_AFTER_DELETE_ERROR");
             }
           }
         }
+        if (unresolvedClaim || stats.partial || claims.length < batchLimit) break;
+      }
+
+      while (!unresolvedClaim && !stats.partial && Date.now() < deadline) {
+        const purged = await repo.purgeCleanupTombstones(ownerId, leaseVersion, tombstoneThreshold, batchLimit);
+        stats.tombstonePurgedCount += purged;
+        if (purged < batchLimit) break;
       }
     }
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : "ORPHAN_SCAN_ERROR";
-    stats.errorCount++;
-    stats.errors.push({ error: `orphan scan hatası: ${errorMsg}` });
-  }
 
-  // --------------------------------------------------------------------------
-  // 4. ADIM: Mezar Taşı (Tombstone) Temizliği (30 gün retention GC)
-  // --------------------------------------------------------------------------
-  try {
-    const tombstoneCount = await repo.purgeOldTombstones(tombstoneThreshold, batchLimit);
-    stats.tombstonePurgedCount = tombstoneCount;
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : "TOMBSTONE_GC_ERROR";
-    stats.errorCount++;
-    stats.errors.push({ error: `purgeOldTombstones hatası: ${errorMsg}` });
+    if (Date.now() >= deadline) stats.partial = true;
+    if (scanComplete && ownsRun) {
+      const postProcessMetrics = await repo.getCleanupMetrics(environmentKey);
+      if (postProcessMetrics.dueDeleteCount > 0) stats.partial = true;
+    }
+    const complete = scanComplete && !stats.partial && !unresolvedClaim && stats.errorCount === 0;
+    stats.outcome = complete ? "success" : stats.errorCount > 0 ? "failed" : "partial";
+    stats.success = complete;
+    if (ownsRun) {
+      const released = await repo.finishCleanupRun(ownerId, leaseVersion, stats.outcome);
+      if (!released) {
+        stats.success = false;
+        stats.outcome = "partial";
+        stats.partial = true;
+        recordError("CLEANUP_RUN_LEASE_LOST");
+      }
+    }
+    stats.metrics = toMetricSummary(await repo.getCleanupMetrics(environmentKey), capacityLimitBytes);
+    return stats;
+  } catch (error) {
+    recordError(errorCode(error));
+    stats.outcome = "failed";
+    stats.success = false;
+    stats.partial = true;
+    if (ownsRun) await repo.finishCleanupRun(ownerId, leaseVersion, "failed").catch(() => false);
+    try {
+      stats.metrics = toMetricSummary(await repo.getCleanupMetrics(environmentKey), capacityLimitBytes);
+    } catch {
+      // Tanılama deposu erişilemiyorsa güvenli genel yanıt yeterlidir.
+    }
+    return stats;
+  } finally {
+    stats.durationMs = Date.now() - startedAt;
   }
-
-  stats.durationMs = Date.now() - startTime;
-  return stats;
 }

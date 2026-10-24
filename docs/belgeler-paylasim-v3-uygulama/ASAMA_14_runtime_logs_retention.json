@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-24 Europe/Istanbul",
+  "operation": "Read-only Vercel production function runtime-log query for belge-paylasim-temizlik over the prior 7 days, grouped by level",
+  "result": "NOT_RUN",
+  "httpStatus": 400,
+  "code": "bad_request",
+  "reason": "Hobby runtime-log retention is 1 hour; requested 7-day range is unavailable without higher-tier Observability.",
+  "logRecordsReturned": 0,
+  "noMutation": true,
+  "noSecretValuesRecorded": true
+}

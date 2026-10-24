@@ -1,0 +1,183 @@
+{
+  "schema": "BELGELER_PAYLASIM_V3_ASAMA14_CAPACITY_MODEL",
+  "createdAt": "2026-10-24 Europe/Istanbul",
+  "planHead": "04048e50fd02e50c1c9ea783acec2d7383f516b4",
+  "units": {
+    "GB": "decimal (1,000,000,000 bytes)",
+    "GiB": "binary (1,073,741,824 bytes)",
+    "MiB": "binary (1,048,576 bytes)"
+  },
+  "pdfSample": {
+    "path": "docs/belgeler-paylasim-v3-uygulama/ASAMA_12_pdfs/*_shared.pdf",
+    "count": 15,
+    "bytesTotal": 18668902,
+    "bytesMin": 1178807,
+    "bytesMean": 1244593.466667,
+    "bytesP95NearestRank": 1284386,
+    "p95Method": "nearest rank: ceil(0.95*n); at n=15 this is the sample maximum",
+    "bytesMax": 1284386,
+    "bytesAllowedPerPdf": 3145728,
+    "representativeness": "Actual generated shared-PDF fixtures from five templates and three synthetic fixture sets; not production customer documents or production traffic."
+  },
+  "productionSnapshot": {
+    "observedAt": "2026-10-24 Europe/Istanbul",
+    "vercelPlan": "hobby",
+    "blobStore": {
+      "name": "muhendislik-site-blob",
+      "access": "private",
+      "region": "iad1",
+      "status": "available",
+      "bytes": 52285761,
+      "objects": 58,
+      "scope": "Whole-store aggregate; no object content read and no V3 prefix breakdown."
+    },
+    "productionDatabaseRowsAndBacklog": "NOT_RUN",
+    "productionPendingAndDeletionQueue": "NOT_RUN",
+    "billingChargesEndpoint": "404 costs_not_found; invoice total unavailable",
+    "stage13DevelopmentTestCleanup": {
+      "links": 0,
+      "quotas": 0,
+      "obligations": 0,
+      "privateBlobObjects": 0
+    }
+  },
+  "historicalLocalCleanupBenchmark": {
+    "source": "docs/belgeler-paylasim-v3-uygulama/ASAMA_09.md and ASAMA_09_tests.tap",
+    "orphans": 1000,
+    "listPages": 51,
+    "pageSizeOverride": 20,
+    "durationMs": 1105,
+    "deadlineMs": 30000,
+    "environment": "PGlite + Memory Blob; custom test pageSize=20, not Vercel runtime",
+    "scope": "Historical local synthetic benchmark; retained as context only, not recalculated as Production throughput."
+  },
+  "capacityInputs": {
+    "retentionDays": 90,
+    "perBrowserDailySuccessLimit": 50,
+    "localOnlyGlobalDailyDefault": 200,
+    "localOnlyGlobalMaxStorageBytes": 1073741824,
+    "productionGlobalDailyLimitConfigured": false,
+    "productionGlobalMaxStorageConfigured": false,
+    "productionPreviewShareDatabaseEnvironmentEntry": true,
+    "productionPreviewShareBlobStoreEnvironmentEntry": true,
+    "productionPreviewIsolationProven": false,
+    "cleanupPageSize": 100,
+    "cleanupCronScheduleUtc": "0 3 * * *",
+    "cleanupInternalDeadlineMs": 45000,
+    "cleanupRouteMaxDurationSeconds": 60
+  },
+  "formulas": {
+    "activeLinks": "acceptedNewSharesPerDay * 90",
+    "meanStoredBytes": "activeLinks * sampleMeanPdfBytes",
+    "p95StoredBytes": "activeLinks * sampleP95PdfBytes",
+    "hardUpperStoredBytes": "activeLinks * 3 MiB",
+    "oneGetMonthlyBlobTransferGB": "acceptedNewSharesPerDay * 30 * sampleMeanPdfBytes / 1,000,000,000",
+    "cleanupListCallsMonthly": "ceil(activeLinks / 100) * 30 (complete daily scan; assumes no backlog)",
+    "advancedOperationsMonthly": "successfulPutCount + cleanupListCalls (excludes retries and other app activity)",
+    "privateTransferUSDUpperBound": "oneGetMonthlyBlobTransferGB * ($0.05 Blob data + $0.06 origin miss + $0.15 fast data + $0.06 origin response) per GB at iad1; assumes every GET misses"
+  },
+  "scenarios": [
+    {
+      "activeBrowsers": 1,
+      "oneNewSharePerBrowserPerDay": {
+        "newSharesPerDay": 1,
+        "activeLinksAt90Days": 90,
+        "meanStorageBytes": 112013412,
+        "p95StorageBytes": 115594740,
+        "maxAllowedPdfStorageBytes": 283115520,
+        "oneFullGetPerNewShareBlobTransferGBPerMonth": 0.037338,
+        "uploadsPerMonth": 30,
+        "cleanupListCallsPerMonth": 30,
+        "advancedOperationsPerMonth": 60
+      },
+      "perBrowser50PerDayWithLocalGlobal200Hypothesis": {
+        "newSharesPerDay": 50,
+        "productionGlobalLimitConfigured": false,
+        "activeLinksAt90Days": 4500,
+        "meanStorageBytes": 5600670600,
+        "p95StorageBytes": 5779737000,
+        "maxAllowedPdfStorageBytes": 14155776000,
+        "oneFullGetPerNewShareBlobTransferGBPerMonth": 1.86689,
+        "threeFullGetsPerNewShareBlobTransferGBPerMonth": 5.600671,
+        "uploadsPerMonth": 1500,
+        "cleanupListCallsPerMonth": 1350,
+        "advancedOperationsPerMonth": 2850,
+        "estimatedBlobStorageUSDAtCurrentPublishedRate": 0.128815,
+        "estimatedPrivateTransferUSDAtIad1AllCacheMissUpperBound": 0.597405,
+        "estimatedAdvancedOperationsUSDAtCurrentPublishedRate": 0.01425
+      }
+    },
+    {
+      "activeBrowsers": 5,
+      "oneNewSharePerBrowserPerDay": {
+        "newSharesPerDay": 5,
+        "activeLinksAt90Days": 450,
+        "meanStorageBytes": 560067060,
+        "p95StorageBytes": 577973700,
+        "maxAllowedPdfStorageBytes": 1415577600,
+        "oneFullGetPerNewShareBlobTransferGBPerMonth": 0.186689,
+        "uploadsPerMonth": 150,
+        "cleanupListCallsPerMonth": 150,
+        "advancedOperationsPerMonth": 300
+      },
+      "perBrowser50PerDayWithLocalGlobal200Hypothesis": {
+        "newSharesPerDay": 200,
+        "productionGlobalLimitConfigured": false,
+        "activeLinksAt90Days": 18000,
+        "meanStorageBytes": 22402682400,
+        "p95StorageBytes": 23118948000,
+        "maxAllowedPdfStorageBytes": 56623104000,
+        "oneFullGetPerNewShareBlobTransferGBPerMonth": 7.467561,
+        "threeFullGetsPerNewShareBlobTransferGBPerMonth": 22.402682,
+        "uploadsPerMonth": 6000,
+        "cleanupListCallsPerMonth": 5400,
+        "advancedOperationsPerMonth": 11400,
+        "estimatedBlobStorageUSDAtCurrentPublishedRate": 0.515262,
+        "estimatedPrivateTransferUSDAtIad1AllCacheMissUpperBound": 2.389619,
+        "estimatedAdvancedOperationsUSDAtCurrentPublishedRate": 0.057
+      }
+    },
+    {
+      "activeBrowsers": 10,
+      "oneNewSharePerBrowserPerDay": {
+        "newSharesPerDay": 10,
+        "activeLinksAt90Days": 900,
+        "meanStorageBytes": 1120134120,
+        "p95StorageBytes": 1155947400,
+        "maxAllowedPdfStorageBytes": 2831155200,
+        "oneFullGetPerNewShareBlobTransferGBPerMonth": 0.373378,
+        "uploadsPerMonth": 300,
+        "cleanupListCallsPerMonth": 270,
+        "advancedOperationsPerMonth": 570
+      },
+      "perBrowser50PerDayWithLocalGlobal200Hypothesis": {
+        "newSharesPerDay": 200,
+        "productionGlobalLimitConfigured": false,
+        "activeLinksAt90Days": 18000,
+        "meanStorageBytes": 22402682400,
+        "p95StorageBytes": 23118948000,
+        "maxAllowedPdfStorageBytes": 56623104000,
+        "oneFullGetPerNewShareBlobTransferGBPerMonth": 7.467561,
+        "threeFullGetsPerNewShareBlobTransferGBPerMonth": 22.402682,
+        "uploadsPerMonth": 6000,
+        "cleanupListCallsPerMonth": 5400,
+        "advancedOperationsPerMonth": 11400,
+        "estimatedBlobStorageUSDAtCurrentPublishedRate": 0.515262,
+        "estimatedPrivateTransferUSDAtIad1AllCacheMissUpperBound": 2.389619,
+        "estimatedAdvancedOperationsUSDAtCurrentPublishedRate": 0.057
+      }
+    }
+  ],
+  "pricingSources": [
+    "https://vercel.com/pricing (accessed 2026-10-24; Hobby $0, Pro $20/month with $20 included usage credit)",
+    "https://vercel.com/docs/vercel-blob/usage-and-pricing (accessed 2026-10-24; Blob allowances and Hobby over-limit behavior)",
+    "https://vercel.com/docs/pricing/regional-pricing/iad1 (accessed 2026-10-24; IAD1 rates; last updated 2026-09-14)",
+    "https://vercel.com/docs/vercel-blob/private-storage (accessed 2026-10-24; private delivery meters)",
+    "https://neon.com/pricing (accessed 2026-10-24; Neon Free and Launch rates)"
+  ],
+  "limitations": [
+    "Production PDF size distribution, GET/HEAD count, V3 prefix backlog, DB row counts and deployed cleanup throughput were not queried.",
+    "Cost estimates are hypothetical single-share full GETs; exclude other project traffic, non-Blob Vercel usage, tax and unknown Neon database usage.",
+    "Production and Preview target the same DB/Blob environment entries; no Preview/RC request or deployment was made."
+  ]
+}

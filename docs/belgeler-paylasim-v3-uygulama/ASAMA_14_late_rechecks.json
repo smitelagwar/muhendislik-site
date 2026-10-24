@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-24 Europe/Istanbul",
+  "scope": "Read-only account checks plus one guarded cleanup attempt against the isolated Preview test store",
+  "billing": {
+    "endpoint": "Vercel billing charges API",
+    "windowUtc": {
+      "from": "2026-09-24T00:00:00Z",
+      "toExclusive": "2026-10-24T00:00:00Z"
+    },
+    "result": "UNAVAILABLE",
+    "httpStatus": 404,
+    "errorCode": "costs_not_found",
+    "exactInvoiceRetrieved": false
+  },
+  "productionDatabaseEnvironment": {
+    "key": "POSTGRES_URL_NON_POOLING",
+    "target": ["production", "preview"],
+    "type": "sensitive",
+    "decryptedValueReturned": false,
+    "readOnlySqlStarted": false,
+    "productionTouched": false
+  },
+  "previewBlobCleanup": {
+    "storeId": "store_fnCz97b5poIneDPq",
+    "prefix": "belge_paylasim/",
+    "result": "FAILED_BEFORE_LIST_OR_DELETE",
+    "error": "Vercel Blob: Access denied, please provide a valid token for this resource.",
+    "objectDeletionRequested": false,
+    "lastKnownAggregate": {
+      "blobCount": 1,
+      "reportedSize": "1.17MB"
+    },
+    "storeRemainsPrivate": true
+  },
+  "release": {
+    "userInstruction": "publish if needed",
+    "authorizationIsConditional": true,
+    "stage14Ready": false,
+    "productionDeploymentStarted": false
+  }
+}

@@ -2,121 +2,107 @@
 // DELETE /api/belgeler/paylasim/[token] — GÜVENLİ PAYLAŞIM BAĞLANTISINI İPTAL ETME
 // ============================================================================
 
-import { NextResponse } from "next/server";
+import { BelgeShareRuntimeError } from "@/lib/belge-paylasim/config";
 import { getBelgePaylasimRepository } from "@/lib/belge-paylasim/repository";
+import { BelgeShareServiceError, revokeShareByManageToken } from "@/lib/belge-paylasim/service-core";
 import {
-  BelgeShareServiceError,
-  revokeShareByManageToken,
-} from "@/lib/belge-paylasim/service-core";
-import { constantTimeCompare, sha256Hex } from "@/lib/belge-paylasim/tokens";
+  createRequestCorrelationId,
+  logShareRequestFailure,
+  shareErrorResponse,
+  shareJsonResponse,
+  shareMethodNotAllowed,
+  shareOptionsResponse,
+} from "@/lib/belge-paylasim/http";
+import { constantTimeCompare, isValidShareToken, sha256Hex } from "@/lib/belge-paylasim/tokens";
+import { validateSameOrigin } from "@/lib/belge-paylasim/request-validation";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
-const SECURITY_HEADERS: Record<string, string> = {
-  "Cache-Control": "private, no-store, no-cache, must-revalidate",
-  "X-Content-Type-Options": "nosniff",
-  "Referrer-Policy": "no-referrer",
-  "X-Robots-Tag": "noindex, nofollow, noarchive",
-};
+const ALLOW = "DELETE, OPTIONS";
 
 interface RouteParams {
   params: Promise<{ token: string }>;
 }
 
 export async function DELETE(request: Request, { params }: RouteParams) {
+  const requestCorrelationId = createRequestCorrelationId();
+  const startedAt = performance.now();
   try {
+    validateSameOrigin(request);
     const { token: viewToken } = await params;
-
-    if (!viewToken || !viewToken.trim()) {
-      return NextResponse.json(
-        { error: "INVALID_TOKEN", message: "Geçersiz veya boş bağlantı belirteci." },
-        { status: 400, headers: SECURITY_HEADERS }
-      );
+    if (!isValidShareToken(viewToken)) {
+      return shareErrorResponse("INVALID_TOKEN", "Geçersiz bağlantı belirteci.", 400, requestCorrelationId);
     }
 
-    // 1. Yönetim anahtarı başlığını kontrol et
-    const manageToken =
-      request.headers.get("x-manage-token") ||
-      request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
-      "";
-
-    if (!manageToken.trim()) {
-      return NextResponse.json(
-        {
-          error: "MISSING_MANAGE_TOKEN",
-          message: "Bağlantıyı iptal etmek için yönetim anahtarı (x-manage-token) zorunludur.",
-        },
-        { status: 400, headers: SECURITY_HEADERS }
-      );
+    const authorization = request.headers.get("authorization");
+    const manageToken = request.headers.get("x-manage-token") ??
+      (authorization?.match(/^Bearer ([A-Za-z0-9_-]+)$/i)?.[1] ?? "");
+    if (!manageToken) {
+      return shareErrorResponse("MISSING_MANAGE_TOKEN", "Bağlantıyı iptal etmek için yönetim anahtarı zorunludur.", 400, requestCorrelationId);
+    }
+    if (!isValidShareToken(manageToken)) {
+      return shareErrorResponse("INVALID_MANAGE_TOKEN", "Geçerli bir yönetim anahtarı zorunludur.", 400, requestCorrelationId);
     }
 
-    // 2. viewToken ile kaydı bul
-    const repo = getBelgePaylasimRepository();
-    const tokenHash = sha256Hex(viewToken.trim());
-    const record = await repo.findByTokenHash(tokenHash);
-
+    const repository = getBelgePaylasimRepository();
+    const record = await repository.findByTokenHash(sha256Hex(viewToken));
     if (!record) {
-      return NextResponse.json(
-        { error: "NOT_FOUND", message: "İptal edilecek bağlantı bulunamadı." },
-        { status: 404, headers: SECURITY_HEADERS }
-      );
+      return shareErrorResponse("NOT_FOUND", "İptal edilecek bağlantı bulunamadı.", 404, requestCorrelationId);
     }
 
-    // 3. Yönetim anahtarının bu kayda ait olduğunu sabit süreli (constant-time) doğrula
-    const candidateManageTokenHash = sha256Hex(manageToken.trim());
+    const candidateManageTokenHash = sha256Hex(manageToken);
     if (!constantTimeCompare(record.manageTokenHash, candidateManageTokenHash)) {
-      return NextResponse.json(
-        {
-          error: "FORBIDDEN",
-          message: "Bu bağlantıyı iptal etme yetkiniz bulunmamaktadır.",
-        },
-        { status: 403, headers: SECURITY_HEADERS }
-      );
+      return shareErrorResponse("FORBIDDEN", "Bu bağlantıyı iptal etme yetkiniz bulunmamaktadır.", 403, requestCorrelationId);
     }
 
-    // 4. Bağlantı zaten iptal edilmişse idempotent 200 dön
     if (record.status === "revoked" || record.revokedAt) {
-      return NextResponse.json(
-        {
-          status: "revoked",
-          revokedAt: record.revokedAt ? record.revokedAt.toISOString() : new Date().toISOString(),
-        },
-        { status: 200, headers: SECURITY_HEADERS }
-      );
-    }
-
-    // 5. İptal işlemini çekirdek servisle yürüt (Önce DB'de revoked -> ardından Blob del)
-    const revokedRecord = await revokeShareByManageToken(manageToken.trim());
-
-    return NextResponse.json(
-      {
+      return shareJsonResponse({
         status: "revoked",
-        revokedAt: revokedRecord.revokedAt ? revokedRecord.revokedAt.toISOString() : new Date().toISOString(),
-      },
-      { status: 200, headers: SECURITY_HEADERS }
-    );
-  } catch (error) {
-    if (error instanceof BelgeShareServiceError) {
-      return NextResponse.json(
-        { error: error.code, message: error.message },
-        { status: error.statusCode, headers: SECURITY_HEADERS }
-      );
+        revokedAt: record.revokedAt?.toISOString() ?? new Date().toISOString(),
+      }, 200, requestCorrelationId);
     }
 
-    console.error("Bağlantı iptal edilirken beklenmeyen hata:", error);
-    return NextResponse.json(
-      {
-        error: "INTERNAL_SERVER_ERROR",
-        message: "Bağlantı iptal edilirken bir sunucu hatası oluştu.",
-      },
-      { status: 500, headers: SECURITY_HEADERS }
-    );
+    const revokedRecord = await revokeShareByManageToken(manageToken);
+    return shareJsonResponse({
+      status: "revoked",
+      revokedAt: revokedRecord.revokedAt?.toISOString() ?? new Date().toISOString(),
+    }, 200, requestCorrelationId);
+  } catch (error) {
+    if (error instanceof BelgeShareRuntimeError) {
+      logShareRequestFailure(requestCorrelationId, "runtime", startedAt);
+      return shareErrorResponse(error.code, error.message, error.statusCode, requestCorrelationId);
+    }
+    if (error instanceof BelgeShareServiceError) {
+      if (error.statusCode >= 500) logShareRequestFailure(requestCorrelationId, "service", startedAt);
+      return shareErrorResponse(error.code, error.message, error.statusCode, requestCorrelationId);
+    }
+    logShareRequestFailure(requestCorrelationId, "unexpected", startedAt);
+    return shareErrorResponse("INTERNAL_SERVER_ERROR", "Bağlantı iptal edilirken bir sunucu hatası oluştu.", 500, requestCorrelationId);
   }
 }
 
-export async function GET() {
-  return new NextResponse(null, {
-    status: 405,
-    headers: { Allow: "DELETE", ...SECURITY_HEADERS },
-  });
+export function GET() {
+  return shareMethodNotAllowed(ALLOW, createRequestCorrelationId());
+}
+
+export function POST() {
+  return shareMethodNotAllowed(ALLOW, createRequestCorrelationId());
+}
+
+export function PUT() {
+  return shareMethodNotAllowed(ALLOW, createRequestCorrelationId());
+}
+
+export function PATCH() {
+  return shareMethodNotAllowed(ALLOW, createRequestCorrelationId());
+}
+
+export function HEAD() {
+  return shareMethodNotAllowed(ALLOW, createRequestCorrelationId(), true);
+}
+
+export function OPTIONS() {
+  return shareOptionsResponse(ALLOW, createRequestCorrelationId());
 }

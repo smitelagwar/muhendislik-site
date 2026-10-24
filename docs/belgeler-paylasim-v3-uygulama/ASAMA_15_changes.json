@@ -1,0 +1,39 @@
+{
+  "sourceHead": "04048e50fd02e50c1c9ea783acec2d7383f516b4",
+  "worktreeDigest": "2f584eae88ca922678aeae1183ffa7f3899a1d45cd39a22b9eaa0ee5261dc5c6",
+  "fileCount": 8,
+  "files": [
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_15.md",
+      "sha256": "0518c1b04a2e6adb21e11883fe1cdaaf370571473ef08e20ae1a2e25a2110519"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_15_migration_inputs.json",
+      "sha256": "85685c43d2503297505abc4072ff8272fa1b472633a7eddfcba14e9bd514df02"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_15_migration_verified.jpg",
+      "sha256": "cb2b8584de19b8cfa20466ee28ef23e02b6f44ad111a2233aab3d685bf62e775"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/playwright.stage15-production.config.ts",
+      "sha256": "868eb1e21fd7daf85df3a4355e232c2da3c6b0b7305826e9753f006b0b1f2036"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/prepare-stage15-migration.mjs",
+      "sha256": "795f14f9d9616a5a80be9fbb0750f37fa62ad5a543feaef2628b5f787a2e46b3"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/record-stage15-release.mjs",
+      "sha256": "ff6b7221a242fe6df682607a856e98bd639120534febe3c3a2365411343e36f9"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/run-stage15-production-smoke.mjs",
+      "sha256": "efe7c2ae4d3dcb97d8b2c6a52aec29170d10a546692dd6cda903b418c26a4ec0"
+    },
+    {
+      "file": "tests/site-audit/belgeler-stage15-production-smoke.spec.ts",
+      "sha256": "1a40a6ca12a3d83ce215d1a3eed9efb0032a9764bf1c970aa53f0994ddc1d977"
+    }
+  ]
+}

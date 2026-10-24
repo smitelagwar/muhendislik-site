@@ -61,6 +61,28 @@ function normalizePublicOrigin(value: string): string {
   return origin.origin;
 }
 
+function normalizeBelgeShareOrigin(value: string, environment: "production" | "preview"): string {
+  const origin = normalizePublicOrigin(value);
+  const parsed = new URL(origin);
+  const isLocalhost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+  if (parsed.protocol !== "https:" || isLocalhost) {
+    throw new PublicSiteOriginError(`${environment} belge paylaşım adresi HTTPS kullanmalıdır.`);
+  }
+  return origin;
+}
+
+function isBase64Url32(value: string): boolean {
+  if (!/^[A-Za-z0-9_-]{43}$/.test(value)) return false;
+  try {
+    const normalized = value.replace(/-/g, "+").replace(/_/g, "/") + "=";
+    const decoded = atob(normalized);
+    const canonical = btoa(decoded).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+    return decoded.length === 32 && canonical === value;
+  } catch {
+    return false;
+  }
+}
+
 export function getPublicSiteOrigin(): string {
   const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL;
   if (configuredOrigin) return normalizePublicOrigin(configuredOrigin);
@@ -81,9 +103,55 @@ export function buildPublicShareUrl(rawToken: string): string {
 }
 
 export function buildBelgeShareUrl(rawToken: string): string {
-  if (!/^[A-Za-z0-9_-]{32,}$/.test(rawToken)) {
+  if (!isBase64Url32(rawToken)) {
     throw new PublicSiteOriginError("Belge share token is not URL-safe.");
   }
 
-  return new URL(`/b/${rawToken}`, getPublicSiteOrigin()).toString();
+  return new URL(`/b/${rawToken}`, getBelgeSharePublicOrigin()).toString();
+}
+
+/**
+ * Share URLs always use the canonical production host. Isolated previews must
+ * opt into one exact HTTPS origin that also appears in the explicit allowlist.
+ */
+export function getBelgeSharePublicOrigin(): string {
+  if (process.env.VERCEL_ENV === "preview") {
+    // CLI ile oluşturulan her Preview benzersiz bir VERCEL_URL alır. Açık bir
+    // Preview ayarı yoksa yalnız Vercel'in güvenilir sistem değişkeni aynı
+    // dağıtımın tek-host canonical adresi ve allowlist'i olarak kullanılır.
+    const platformPreviewOrigin = process.env.VERCEL === "1" && process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : undefined;
+    const previewUrl = process.env.BELGE_SHARE_PREVIEW_URL ?? platformPreviewOrigin;
+    const allowedRaw = process.env.BELGE_SHARE_PREVIEW_ORIGINS ?? platformPreviewOrigin;
+    if (!previewUrl || !allowedRaw) {
+      throw new PublicSiteOriginError("Belge paylaşım Preview adresi allowlist ile yapılandırılmamış.");
+    }
+    const previewOrigin = normalizeBelgeShareOrigin(previewUrl, "preview");
+    const allowedOrigins = allowedRaw.split(",").map((value) => normalizeBelgeShareOrigin(value.trim(), "preview"));
+    if (!allowedOrigins.includes(previewOrigin)) {
+      throw new PublicSiteOriginError("Belge paylaşım Preview adresi allowlist içinde değil.");
+    }
+    const productionValue = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    if (productionValue && previewOrigin === normalizeBelgeShareOrigin(productionValue, "production")) {
+      throw new PublicSiteOriginError("Preview belge paylaşım adresi production adresi olamaz.");
+    }
+    return previewOrigin;
+  }
+
+  const isVercelProduction = process.env.VERCEL_ENV === "production" ||
+    (process.env.NODE_ENV === "production" && process.env.VERCEL === "1");
+  if (isVercelProduction) {
+    const canonical = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    if (!canonical) throw new PublicSiteOriginError("Production canonical belge paylaşım adresi yapılandırılmamış.");
+    return normalizeBelgeShareOrigin(canonical, "production");
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    const canonical = process.env.NEXT_PUBLIC_SITE_URL;
+    if (!canonical) throw new PublicSiteOriginError("Production canonical belge paylaşım adresi yapılandırılmamış.");
+    return normalizeBelgeShareOrigin(canonical, "production");
+  }
+
+  return "http://localhost:3000";
 }

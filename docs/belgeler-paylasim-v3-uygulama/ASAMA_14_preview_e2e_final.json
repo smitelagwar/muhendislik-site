@@ -1,0 +1,22 @@
+{
+  "result": "PASS",
+  "deploymentId": "dpl_9hQVKHvEK9xsETMtYhn89NZiwau8",
+  "url": "https://muhendislik-site-2o68ppbmy-huseying5713-2819s-projects.vercel.app",
+  "suite": "tests/site-audit/belgeler-share-live-acceptance.spec.ts",
+  "project": "chromium-preview",
+  "testTitle": "ASAMA_13 K01/K02: changed PDF keeps first link stable; tabs share quota and separate browsers do not across one NAT",
+  "passed": 1,
+  "failed": 0,
+  "durationSeconds": 16.2,
+  "covered": [
+    "Two generated PDF links retain distinct, stable byte hashes",
+    "Two tabs in one browser share the same 50-link quota",
+    "A separate browser on the same NAT receives an independent quota",
+    "All three successful synthetic shares are revoked in the test finally block"
+  ],
+  "authentication": "Short-lived Vercel Development env-run OIDC was accepted by protected Preview; token value not recorded",
+  "database": "Vercel Development isolated Neon; preview namespace cleaned after test",
+  "blobStoreId": "store_fnCz97b5poIneDPq",
+  "productionTouched": false,
+  "log": "ASAMA_14_preview_e2e_final.log"
+}

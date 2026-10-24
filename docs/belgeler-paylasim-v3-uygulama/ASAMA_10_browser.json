@@ -1,0 +1,137 @@
+{
+  "environment": "isolated esbuild React harness using actual component, shared PDF.js 6.3.289 and synthetic local PDFs; no backend/DB/Blob calls",
+  "result": "PASS",
+  "checks": [
+    {
+      "id": "geometry-320-dpr1",
+      "result": "PASS",
+      "detail": "real PDF.js: mixed page sizes, fit, zoom label, 44px controls, resize, dark, canvas budget"
+    },
+    {
+      "id": "geometry-320-dpr2",
+      "result": "PASS",
+      "detail": "real PDF.js: mixed page sizes, fit, zoom label, 44px controls, resize, dark, canvas budget"
+    },
+    {
+      "id": "geometry-320-dpr3",
+      "result": "PASS",
+      "detail": "real PDF.js: mixed page sizes, fit, zoom label, 44px controls, resize, dark, canvas budget"
+    },
+    {
+      "id": "geometry-390-dpr1",
+      "result": "PASS",
+      "detail": "real PDF.js: mixed page sizes, fit, zoom label, 44px controls, resize, dark, canvas budget"
+    },
+    {
+      "id": "geometry-390-dpr2",
+      "result": "PASS",
+      "detail": "real PDF.js: mixed page sizes, fit, zoom label, 44px controls, resize, dark, canvas budget"
+    },
+    {
+      "id": "geometry-390-dpr3",
+      "result": "PASS",
+      "detail": "real PDF.js: mixed page sizes, fit, zoom label, 44px controls, resize, dark, canvas budget"
+    },
+    {
+      "id": "geometry-768-dpr1",
+      "result": "PASS",
+      "detail": "real PDF.js: mixed page sizes, fit, zoom label, 44px controls, resize, dark, canvas budget"
+    },
+    {
+      "id": "geometry-768-dpr2",
+      "result": "PASS",
+      "detail": "real PDF.js: mixed page sizes, fit, zoom label, 44px controls, resize, dark, canvas budget"
+    },
+    {
+      "id": "geometry-768-dpr3",
+      "result": "PASS",
+      "detail": "real PDF.js: mixed page sizes, fit, zoom label, 44px controls, resize, dark, canvas budget"
+    },
+    {
+      "id": "geometry-1366-dpr1",
+      "result": "PASS",
+      "detail": "real PDF.js: mixed page sizes, fit, zoom label, 44px controls, resize, dark, canvas budget"
+    },
+    {
+      "id": "geometry-1366-dpr2",
+      "result": "PASS",
+      "detail": "real PDF.js: mixed page sizes, fit, zoom label, 44px controls, resize, dark, canvas budget"
+    },
+    {
+      "id": "geometry-1366-dpr3",
+      "result": "PASS",
+      "detail": "real PDF.js: mixed page sizes, fit, zoom label, 44px controls, resize, dark, canvas budget"
+    },
+    {
+      "id": "one-page-expiry",
+      "result": "PASS",
+      "detail": "one-page PDF rendered; actual expiry is displayed"
+    },
+    {
+      "id": "real-touch-pinch-pan",
+      "result": "PASS",
+      "detail": "Chromium CDP touch events: scale grows and one-finger drag scrolls"
+    },
+    {
+      "id": "30-mount-unmount",
+      "result": "PASS",
+      "detail": {
+        "tasks": 0,
+        "documents": 0,
+        "renders": 0,
+        "maximumRenders": 1,
+        "destroyed": 31,
+        "workerDestroyed": 0,
+        "pendingPages": 0,
+        "pixelPeak": 7998376,
+        "sameWorker": true,
+        "beforeHeap": 4722452,
+        "afterHeap": 5313648,
+        "heapGrowthLimitBytes": 12582912,
+        "beforeDom": {
+          "documents": 1,
+          "nodes": 10,
+          "jsEventListeners": 168
+        },
+        "afterDom": {
+          "documents": 1,
+          "nodes": 68,
+          "jsEventListeners": 174
+        }
+      }
+    },
+    {
+      "id": "unmount-fetch-abort",
+      "result": "PASS",
+      "detail": "real local HTTP request aborted before delayed PDF response"
+    },
+    {
+      "id": "same-canvas-token-change",
+      "result": "PASS",
+      "detail": "prior document teardown settles before replacement starts"
+    },
+    {
+      "id": "20-rapid-page-zoom",
+      "result": "PASS",
+      "detail": "delayed getPage; no overlapping render and final canvas has ink"
+    },
+    {
+      "id": "render-failure-retry",
+      "result": "PASS",
+      "detail": "visible error and successful page retry"
+    },
+    {
+      "id": "fetch-failure-retry",
+      "result": "PASS",
+      "detail": "HTTP503 visible; retry opens the actual fixture"
+    },
+    {
+      "id": "unhandled-errors",
+      "result": "PASS",
+      "detail": "zero page errors/unhandled rejections"
+    }
+  ],
+  "errors": [],
+  "durationMs": 18006,
+  "physicalPhones": "NOT_RUN"
+}

@@ -1,0 +1,43 @@
+{
+  "result": "FAIL",
+  "mode": "after",
+  "scope": "real Next HTTP/router + copied product sources, isolated memory read/Blob adapters; no real DB/Blob",
+  "checks": [
+    {
+      "id": "normal-direct",
+      "result": "PASS",
+      "detail": "Navbar and overlays mounted; Footer mount instrumented in copy"
+    },
+    {
+      "id": "prefetch-client-entry-isolated",
+      "result": "PASS",
+      "detail": {
+        "navbar": false,
+        "overlays": false,
+        "footer": false
+      }
+    },
+    {
+      "id": "back-normal",
+      "result": "PASS"
+    },
+    {
+      "id": "forward-isolated",
+      "result": "PASS"
+    },
+    {
+      "id": "reload-isolated",
+      "result": "PASS"
+    },
+    {
+      "id": "viewer-to-normal-client",
+      "result": "PASS"
+    }
+  ],
+  "passed": 6,
+  "failed": 1,
+  "skipped": 0,
+  "timeoutMs": 180000,
+  "durationMs": 21732,
+  "error": "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /private.*no-store/. Input:\n\n'no-store'\n\n    at main (file:///C:/Users/hsyn/Desktop/muhendis-mimar-portali/docs/belgeler-paylasim-v3-uygulama/run-stage11-next.mjs:145:203)\n    at runNextTicks (node:internal/process/task_queues:65:5)\n    at process.processImmediate (node:internal/timers:472:9)\n    at async file:///C:/Users/hsyn/Desktop/muhendis-mimar-portali/docs/belgeler-paylasim-v3-uygulama/run-stage11-next.mjs:200:1"
+}

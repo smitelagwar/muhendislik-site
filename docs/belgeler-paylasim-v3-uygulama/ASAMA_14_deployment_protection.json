@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-24 Europe/Istanbul",
+  "source": "Read-only Vercel project/deployment metadata plus unauthenticated HEAD/OPTIONS probes; no POST or cron invocation",
+  "projectProtection": {
+    "enabled": true,
+    "deploymentType": "all_except_custom_domains"
+  },
+  "unauthenticatedProbes": [
+    {
+      "target": "latest-production-deployment-url",
+      "request": "HEAD /",
+      "status": 302
+    },
+    {
+      "target": "prior-production-deployment-url",
+      "request": "HEAD /",
+      "status": 302
+    },
+    {
+      "target": "latest-production-deployment-url",
+      "request": "OPTIONS /api/belgeler/paylasim",
+      "status": 302
+    },
+    {
+      "target": "prior-production-deployment-url",
+      "request": "OPTIONS /api/belgeler/paylasim",
+      "status": 302
+    },
+    {
+      "target": "prior-production-deployment-url",
+      "request": "OPTIONS /api/cron/belge-paylasim-temizlik",
+      "status": 302
+    },
+    {
+      "target": "project-production-alias",
+      "request": "GET /api/cron/belge-paylasim-temizlik without Authorization",
+      "status": 401
+    },
+    {
+      "target": "project-production-alias",
+      "request": "GET /api/belgeler/paylasim without body",
+      "status": 405
+    },
+    {
+      "target": "project-production-alias",
+      "request": "HEAD /",
+      "status": 200
+    },
+    {
+      "target": "project-production-alias",
+      "request": "OPTIONS /api/belgeler/paylasim",
+      "status": 204
+    }
+  ],
+  "assertions": {
+    "total": 9,
+    "passed": 9,
+    "failed": 0
+  },
+  "deployedCronSource": {
+    "commit": "04048e50fd02e50c1c9ea783acec2d7383f516b4",
+    "secretGuardPrecedesCleanup": true
+  },
+  "conclusion": "Unauthenticated requests to tested generated deployment URLs are redirected to Vercel Authentication. The public project alias returns 401 for cron GET without Authorization (deployed source checks the secret before cleanup) and 405 for share-route GET without a body. No POST, Authorization-bearing cron call, database mutation, or Blob operation was made; authenticated/bypass behavior and scheduled cron execution remain unverified.",
+  "officialDocumentation": [
+    "https://vercel.com/docs/deployment-protection",
+    "https://vercel.com/docs/cron-jobs/manage-cron-jobs"
+  ]
+}

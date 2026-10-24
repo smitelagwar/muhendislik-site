@@ -3,6 +3,7 @@
 // ============================================================================
 
 import crypto from "crypto";
+import { PDFDict, PDFDocument, PDFName } from "pdf-lib";
 import {
   generateBetonDokumPdf,
   generateInsaatRuhsatiPdf,
@@ -37,7 +38,7 @@ export class ServerPdfRenderError extends Error {
 
 /**
  * Sunucu ortamında form verisini PDF şablonuna basar ve AcroForm alanlarını tamamen kaldırarak (flatten: true)
- * salt-okunur, değiştirilemez bir PDF üretir.
+ * form alanları kaldırılmış bir PDF üretir. Kopyalama veya düzenlemeye karşı DRM sağlamaz.
  */
 export async function renderFlattenedPdf(
   documentId: BelgePaylasimDocumentId,
@@ -65,27 +66,34 @@ export async function renderFlattenedPdf(
       default:
         throw new ServerPdfRenderError(
           "UNSUPPORTED_DOCUMENT",
-          `Desteklenmeyen belge türü: ${documentId}`,
+          "Desteklenmeyen belge türü.",
           400
         );
     }
   } catch (err) {
     if (err instanceof ServerPdfRenderError) throw err;
-    const msg = err instanceof Error ? err.message : String(err);
     throw new ServerPdfRenderError(
       "PDF_RENDER_FAILED",
-      `Sunucuda PDF oluşturma işlemi başarısız oldu: ${msg}`,
+      "PDF oluşturulamadı. Lütfen daha sonra yeniden deneyin.",
       500
     );
   }
 
+  return validateFlattenedPdf(documentId, pdfBytes);
+}
+
+/** Validate the actual saved document before the caller can start a Blob PUT. */
+export async function validateFlattenedPdf(
+  documentId: BelgePaylasimDocumentId,
+  pdfBytes: Uint8Array,
+): Promise<RenderedServerPdf> {
   const sizeBytes = pdfBytes.byteLength;
 
   // 1. PDF üst bilgi doğrulaması
   if (sizeBytes < 100) {
     throw new ServerPdfRenderError(
       "PDF_TOO_SMALL",
-      "Oluşturulan PDF verisi bozuk veya çok küçük.",
+      "PDF oluşturulamadı. Lütfen daha sonra yeniden deneyin.",
       500
     );
   }
@@ -94,7 +102,7 @@ export async function renderFlattenedPdf(
   if (!header.startsWith("%PDF-")) {
     throw new ServerPdfRenderError(
       "INVALID_PDF_HEADER",
-      "Üretilen dosya geçerli bir PDF üst bilgisi taşımıyor.",
+      "PDF oluşturulamadı. Lütfen daha sonra yeniden deneyin.",
       500
     );
   }
@@ -108,7 +116,25 @@ export async function renderFlattenedPdf(
     );
   }
 
-  // 3. SHA-256 bütünlük özeti
+  try {
+    const document = await PDFDocument.load(pdfBytes, { updateMetadata: false, throwOnInvalidObject: true });
+    const expectedPages = documentId === "santiye-sefi-sozlesmesi" ? 2 : 1;
+    if (document.getPageCount() !== expectedPages) {
+      throw new ServerPdfRenderError("INVALID_PDF_PAGE_COUNT", "Belge sayfa sayısı doğrulanamadı.");
+    }
+    const hasWidgets = document.getPages().some((page) => page.node.Annots()?.asArray().some((reference) => {
+      const annotation = document.context.lookup(reference, PDFDict);
+      return annotation.get(PDFName.of("Subtype")) === PDFName.of("Widget");
+    }));
+    if (document.catalog.has(PDFName.of("AcroForm")) || hasWidgets) {
+      throw new ServerPdfRenderError("PDF_FORM_REMAINS", "Belge salt-okunur biçimde oluşturulamadı.");
+    }
+  } catch (error) {
+    if (error instanceof ServerPdfRenderError) throw error;
+    throw new ServerPdfRenderError("INVALID_PDF_DOCUMENT", "PDF içeriği doğrulanamadı.");
+  }
+
+  // SHA-256 bütünlük özeti yalnız parse/shape kontrolünden sonra üretilir.
   const pdfSha256 = crypto.createHash("sha256").update(Buffer.from(pdfBytes)).digest("hex");
 
   return {

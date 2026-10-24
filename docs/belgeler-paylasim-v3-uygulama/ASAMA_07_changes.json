@@ -1,0 +1,98 @@
+{
+  "algorithm": "SHA-256 over UTF-8 JSON.stringify of sorted ASAMA_07 file paths and their SHA-256 hashes; excludes STATE and self-referential manifest",
+  "worktree_digest": "e5b9409d2192009b6023aae327581151fd1772759be744848722c35222f16e2c",
+  "files": [
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_07.md",
+      "sha256": "c2701b2904286c20706a71e41d861fcaff347ae8cf6be76cae80fd66638a3f66"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_07_browser.json",
+      "sha256": "de06920e3ee09058b7434ff8482306d33bf810f9790159cf4b169a6cce9cc7f8"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_07_dev-server.log",
+      "sha256": "c0a238fd2d0f1862bc5468ae70bed8598bac07928d2232b5454fa1bbeae7b5aa"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_07_diff-check.log",
+      "sha256": "da7bbf67138b9f22c1cc26dba2cbb4d324ce8640002999fa393fc26f8ad5e2e8"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_07_lint.json",
+      "sha256": "abd284400c3eef2f3710dbd54fbb0a71f7574f8b7b13dab45ab536e9a90c8901"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_07_lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_07_runtime-tsc.json",
+      "sha256": "9c283104fe81d5df4b36fbb387bbd941f2b445699d75e50e703bc8df1b733103"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_07_runtime-tsc.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_07_tests.json",
+      "sha256": "12528779f375cddfaf925f39e0a4cf942f1d666e9b3e18c755696700727bbe03"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/ASAMA_07_tests.tap",
+      "sha256": "087a81a7760bc928fb3a19a49a79c04be7854433d62f8d555237285d2593256d"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/run-stage07-browser.mjs",
+      "sha256": "cde2a6d829889dbc36434b2aafa5d68328c76dd20e09c788435feae45d15a6e3"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/run-stage07-lint.mjs",
+      "sha256": "0347ec20678cefe72fbe60e326be872909bcbf90b6c3c9464b2ce91fa335a945"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/run-stage07-manifest.mjs",
+      "sha256": "7fb5c0511a4530937fe785128a0c1dcb8852bfe2d952d07d2132670519c0f4dd"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/run-stage07-runtime-tsc.mjs",
+      "sha256": "91bebe69ea6b240d441dc2903f52e79b55f3febdf93244efbc52490f3781e3b6"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/run-stage07-tests.mjs",
+      "sha256": "ad0c6b7333749ea1d50433cec02aa6488567c464920d76ec38076f4ba77f9fe7"
+    },
+    {
+      "file": "src/components/belge-paylasim/belge-share-dialog.tsx",
+      "sha256": "40f1ffb093e9de3c3186bda1c9460d9d90edc53378220d495ec43eb36e7fe319"
+    },
+    {
+      "file": "src/components/beton-dokum-studio.tsx",
+      "sha256": "5ca46920b6db37e2726a9334f3c0b5c9b3fecc016b17920a380116e8abfc1562"
+    },
+    {
+      "file": "src/components/insaat-ruhsati-studio.tsx",
+      "sha256": "6faafe9e512bcf4a3f8d6ed0527c317cfa42742cdac63ddddd34bcadb7e0c4d8"
+    },
+    {
+      "file": "src/components/istifa-studio.tsx",
+      "sha256": "6afc8cb60f1e1b360bc6458956b5b091d0769381c6f4175aaa87416ebe42cc8a"
+    },
+    {
+      "file": "src/components/sozlesme-studio.tsx",
+      "sha256": "60902ca5e0fdaac4f04d16870ad6bb96eb9f0ce34ec43dd2808caa5c6af31f59"
+    },
+    {
+      "file": "src/components/taahhutname-studio.tsx",
+      "sha256": "83a07446cbe829a2b83d3263ad89c988e3f5c443800d337e1f8a7eb37391f9ee"
+    },
+    {
+      "file": "src/hooks/use-belge-share.ts",
+      "sha256": "9e5ef580f9d59d04c446d5706b7f1a00ff67926566f358a32334c5895ceabb2a"
+    },
+    {
+      "file": "tests/belgeler/belge-share-stage07.test.ts",
+      "sha256": "842a457eea9dbf91e3c9777129b81e583ad85301b68b2ad92ab5a4941eeb9449"
+    }
+  ]
+}

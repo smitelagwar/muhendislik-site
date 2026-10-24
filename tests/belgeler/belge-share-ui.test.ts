@@ -36,8 +36,10 @@ describe("ASAMA_03: Paylaş Arayüzü ve Kanca Sözleşmesi Birim Testleri", () 
   });
 
   it("3. validateShareLinkSecurity HTTPS bağlantılarını onaylamalı, yetkisiz kanalları reddetmelidir", () => {
-    assert.strictEqual(validateShareLinkSecurity("https://muhendislik-site.vercel.app/b/abcdef123"), true);
-    assert.strictEqual(validateShareLinkSecurity("http://muhendislik-site.vercel.app/b/abcdef123"), false);
+    const token = Buffer.alloc(32, 2).toString("base64url");
+    assert.strictEqual(validateShareLinkSecurity(`https://muhendislik-site.vercel.app/b/${token}`), true);
+    assert.strictEqual(validateShareLinkSecurity(`http://muhendislik-site.vercel.app/b/${token}`), false);
+    assert.strictEqual(validateShareLinkSecurity(`http://localhost:3000/b/${token}`), true);
     assert.strictEqual(validateShareLinkSecurity("https://wa.me/905551234567"), false);
     assert.strictEqual(validateShareLinkSecurity("https://api.whatsapp.com/send"), false);
     assert.strictEqual(validateShareLinkSecurity("https://t.me/share"), false);
@@ -47,8 +49,9 @@ describe("ASAMA_03: Paylaş Arayüzü ve Kanca Sözleşmesi Birim Testleri", () 
 
   it("4. ActiveShareLink nesnesi ve 90 günlük sözleşme alanları eksiksiz olmalıdır", () => {
     const mockLink: ActiveShareLink = {
-      url: "https://muhendislik-site.vercel.app/b/abcdef123456",
-      manageToken: "manage_secret_token_789",
+      url: `https://muhendislik-site.vercel.app/b/${Buffer.alloc(32, 2).toString("base64url")}`,
+      viewToken: Buffer.alloc(32, 2).toString("base64url"),
+      manageToken: Buffer.alloc(32, 3).toString("base64url"),
       expiresAt: "2026-11-20T12:00:00.000Z",
       documentId: "santiye-sefi-istifa-dilekcesi",
       createdAt: "2026-08-22T12:00:00.000Z",
@@ -57,7 +60,7 @@ describe("ASAMA_03: Paylaş Arayüzü ve Kanca Sözleşmesi Birim Testleri", () 
     assert.ok(mockLink.url.startsWith("https://"));
     assert.ok(!mockLink.url.includes("whatsapp"));
     assert.strictEqual(mockLink.documentId, "santiye-sefi-istifa-dilekcesi");
-    assert.ok(mockLink.manageToken.length > 10);
+    assert.strictEqual(mockLink.manageToken.length, 43);
   });
 
   it("5. Kesin Kapsam Sözleşmesi: WhatsApp, wa.me veya navigator.share arayüzde yer almamalıdır", () => {

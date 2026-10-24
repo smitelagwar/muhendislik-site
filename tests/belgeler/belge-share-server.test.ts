@@ -17,6 +17,7 @@ import {
   MemoryBelgePaylasimRepository,
   setBelgePaylasimRepositoryForTest,
 } from "../../src/lib/belge-paylasim/repository";
+import { BelgeShareQuotaError } from "../../src/lib/belge-paylasim/quota";
 import {
   createShareReservation,
   finalizeShareReservation,
@@ -214,7 +215,7 @@ describe("ASAMA_04: Belge Paylaşım Sunucu ve Altyapı Birim Testleri", () => {
       // 2. Finalize et (ready)
       const mockPdfBytes = Buffer.from("%PDF-1.4 Mock PDF Content");
       const pdfSha256 = crypto.createHash("sha256").update(mockPdfBytes).digest("hex");
-      await finalizeShareReservation(res.record.id, mockPdfBytes.byteLength, pdfSha256);
+      await finalizeShareReservation(res.record.id, mockPdfBytes.byteLength, pdfSha256, res.record.attemptId!, res.record.attemptVersion);
 
       // 3. Alıcı token ile sorgula (ok)
       const afterReady = await getShareByViewToken(res.tokens.viewToken);
@@ -261,7 +262,7 @@ describe("ASAMA_04: Belge Paylaşım Sunucu ve Altyapı Birim Testleri", () => {
       assert.ok(res.record);
       assert.ok(res.tokens);
 
-      await finalizeShareReservation(res.record.id, 1024, "mock-sha");
+      await finalizeShareReservation(res.record.id, 1024, "mock-sha", res.record.attemptId!, res.record.attemptVersion);
 
       // Süreyi geçmişe al
       memoryRepo.updateExpiresAtForTest(res.record.id, new Date(Date.now() - 1000)); // 1 saniye önce bitti
@@ -290,7 +291,7 @@ describe("ASAMA_04: Belge Paylaşım Sunucu ve Altyapı Birim Testleri", () => {
       assert.ok(res1.record);
 
       // Finalize
-      await finalizeShareReservation(res1.record.id, 2048, "pdf-sha-1");
+      await finalizeShareReservation(res1.record.id, 2048, "pdf-sha-1", res1.record.attemptId!, res1.record.attemptVersion);
 
       // İkinci istek (aynı requestId ve aynı veriler)
       const res2 = await createShareReservation({
@@ -339,30 +340,21 @@ describe("ASAMA_04: Belge Paylaşım Sunucu ve Altyapı Birim Testleri", () => {
       const requestId = "req-inflight-1";
       const values = { ad: "Test" };
 
-      await createShareReservation({
+      const firstReservation = await createShareReservation({
         clientRequestId: requestId,
         documentId: "santiye-sefi-istifa-dilekcesi",
         values,
         creatorIp: "10.0.0.5",
       });
 
-      // Henüz finalize edilmeden tekrar gelirse
-      await assert.rejects(
-        async () => {
-          await createShareReservation({
-            clientRequestId: requestId,
-            documentId: "santiye-sefi-istifa-dilekcesi",
-            values,
-            creatorIp: "10.0.0.5",
-          });
-        },
-        (err: Error) => {
-          assert.ok(err instanceof BelgeShareServiceError);
-          assert.strictEqual(err.code, "OPERATION_IN_FLIGHT");
-          assert.strictEqual(err.statusCode, 409);
-          return true;
-        }
-      );
+      const replay = await createShareReservation({
+        clientRequestId: requestId,
+        documentId: "santiye-sefi-istifa-dilekcesi",
+        values,
+        creatorIp: "10.0.0.5",
+      });
+      assert.equal(replay.status, "in_flight");
+      assert.equal(replay.record?.id, firstReservation.record?.id);
     });
 
     it("4.4 İptal edilmiş bağlantının clientRequestId'si ile tekrar bağlantı açılamaz (410 LINK_REVOKED)", async () => {
@@ -378,7 +370,7 @@ describe("ASAMA_04: Belge Paylaşım Sunucu ve Altyapı Birim Testleri", () => {
       assert.ok(res.record);
       assert.ok(res.tokens);
 
-      await finalizeShareReservation(res.record.id, 100, "sha");
+      await finalizeShareReservation(res.record.id, 100, "sha", res.record.attemptId!, res.record.attemptVersion);
       await revokeShareByManageToken(res.tokens.manageToken);
 
       // İptal edildikten sonra aynı requestId ile tekrar denenirse
@@ -435,152 +427,74 @@ describe("ASAMA_04: Belge Paylaşım Sunucu ve Altyapı Birim Testleri", () => {
   // 5. Kota Sınırları ve Aşım Koruması (Rate Limits)
   // --------------------------------------------------------------------------
   describe("5. Kota Sınırları ve Aşım Koruması", () => {
-    it("5.1 15 dakikalık IP kotası (azami 3 deneme): 4. istek 429 QUOTA_EXCEEDED almalıdır", async () => {
+    it("5.1 Aynı IP'den 4 istek tarayıcı günlük sınırı içinde rezerve edilir", async () => {
       const ip = "192.168.10.1";
-
-      for (let i = 1; i <= 3; i++) {
-        await createShareReservation({
+      const results = [];
+      for (let i = 1; i <= 4; i += 1) {
+        results.push(await createShareReservation({
           clientRequestId: `req-rate15-${i}`,
           documentId: "beton-dokum-tutanagi",
           values: { i: String(i) },
           creatorIp: ip,
-        });
+        }));
       }
-
-      // 4. İstek reddedilmeli
-      await assert.rejects(
-        async () => {
-          await createShareReservation({
-            clientRequestId: "req-rate15-4",
-            documentId: "beton-dokum-tutanagi",
-            values: { i: "4" },
-            creatorIp: ip,
-          });
-        },
-        (err: Error) => {
-          assert.ok(err instanceof BelgeShareServiceError);
-          assert.strictEqual(err.code, "QUOTA_EXCEEDED");
-          assert.strictEqual(err.statusCode, 429);
-          return true;
-        }
-      );
+      assert.equal(results.length, 4);
+      assert.equal(results[3]?.status, "new");
+      assert.equal((await memoryRepo.getDailyQuota("local", "0".repeat(64))).reservedLinks, 4);
     });
 
-    it("5.2 Aktif bağlantı kotası: IP başına azami 20 aktif bağlantı sınırı", async () => {
+    it("5.2 IP başına 20 aktif link, ayrı create rezervasyonunu engellemez", async () => {
       const ip = "192.168.20.1";
-      const ipHash = hashCreatorIp(ip);
-
-      // 20 aktif kayıt simüle et (farklı zamanlarda oluşturulmuş gibi)
-      for (let i = 1; i <= 20; i++) {
-        const record = await memoryRepo.createPendingReservation({
-          requestIdHash: sha256Hex(`active-link-${i}`),
-          payloadDigest: sha256Hex(`payload-${i}`),
-          tokenHash: sha256Hex(`token-${i}`),
-          manageTokenHash: sha256Hex(`manage-${i}`),
-          documentId: "beton-dokum-tutanagi",
-          blobPathname: `belge_paylasim/active-${i}.pdf`,
-          creatorIpHash: ipHash,
-          expiresAt: new Date(Date.now() + 1000000),
-        });
-        await memoryRepo.finalizeReady(record.id, 1024, `sha-${i}`);
-      }
-
-      // 15 dakikalık limit aşımını önlemek için oluşturma zamanlarını 1 saat öncesine çekelim
-      const oneHourAgo = new Date(Date.now() - 3600 * 1000);
-      for (const r of memoryRepo.getAllRecordsForTest()) {
-        if (r.creatorIpHash === ipHash) {
-          r.createdAt = oneHourAgo;
-        }
-      }
-
-      // 21. bağlantı denemesi aktif bağlantı sınırından ötürü reddedilmeli
-      await assert.rejects(
-        async () => {
-          await createShareReservation({
-            clientRequestId: "req-active-link-21",
-            documentId: "beton-dokum-tutanagi",
-            values: { i: "21" },
-            creatorIp: ip,
-          });
-        },
-        (err: Error) => {
-          assert.ok(err instanceof BelgeShareServiceError);
-          assert.strictEqual(err.code, "QUOTA_EXCEEDED");
-          assert.strictEqual(err.statusCode, 429);
-          return true;
-        }
-      );
-    });
-
-    it("5.3 Küresel günlük kota: Sitede 24 saatte azami 200 bağlantı sınırı", async () => {
-      // 200 sahte kayıt simüle et (farklı IP'ler)
-      for (let i = 1; i <= 200; i++) {
-        await memoryRepo.createPendingReservation({
-          requestIdHash: sha256Hex(`global-link-${i}`),
-          payloadDigest: sha256Hex(`global-digest-${i}`),
-          tokenHash: sha256Hex(`global-token-${i}`),
-          manageTokenHash: sha256Hex(`global-manage-${i}`),
-          documentId: "beton-dokum-tutanagi",
-          blobPathname: `belge_paylasim/global-${i}.pdf`,
-          creatorIpHash: sha256Hex(`ip-${i}`),
-          expiresAt: new Date(Date.now() + 1000000),
-        });
-      }
-
-      // 201. bağlantı yeni bir IP'den gelse bile küresel günlük kota aşımına takılmalı
-      await assert.rejects(
-        async () => {
-          await createShareReservation({
-            clientRequestId: "req-global-overflow",
-            documentId: "beton-dokum-tutanagi",
-            values: { i: "201" },
-            creatorIp: "172.16.0.1",
-          });
-        },
-        (err: Error) => {
-          assert.ok(err instanceof BelgeShareServiceError);
-          assert.strictEqual(err.code, "QUOTA_EXCEEDED");
-          assert.strictEqual(err.statusCode, 429);
-          assert.ok(err.message.includes("küresel"));
-          return true;
-        }
-      );
-    });
-
-    it("5.4 Küresel aktif depolama bütçesi (1 GiB) sınırı", async () => {
-      // 1 GiB sınırını aşan tek veya çoklu kayıt simüle et
-      const record = await memoryRepo.createPendingReservation({
-        requestIdHash: sha256Hex("huge-storage-link"),
-        payloadDigest: sha256Hex("huge-digest"),
-        tokenHash: sha256Hex("huge-token"),
-        manageTokenHash: sha256Hex("huge-manage"),
+      const result = await createShareReservation({
+        clientRequestId: "req-active-link-21",
         documentId: "beton-dokum-tutanagi",
-        blobPathname: "belge_paylasim/huge.pdf",
-        creatorIpHash: sha256Hex("ip-huge"),
-        expiresAt: new Date(Date.now() + 1000000),
+        values: { i: "21" },
+        creatorIp: ip,
       });
+      assert.equal(result.status, "new");
+    });
 
-      // 1 GiB + 1 bayt boyutunda finalize et
-      await memoryRepo.finalizeReady(record.id, 1024 * 1024 * 1024 + 1, "huge-sha");
-
-      // Yeni bağlantı oluşturma depolama bütçesi aşımı nedeniyle reddedilmeli
+    it("5.3 Gerekçeli global günlük sınırı environment config ile uygulanır", async () => {
+      memoryRepo.setLimitsForTest({ globalDailyLimit: 3, globalMaxStorageBytes: 1024 * 1024 * 1024 });
+      for (let index = 1; index <= 3; index += 1) {
+        const result = await createShareReservation({
+          clientRequestId: `req-global-${index}`,
+          documentId: "beton-dokum-tutanagi",
+          values: { i: String(index) },
+          creatorIp: `172.16.0.${index}`,
+          ownerHash: index.toString(16).padStart(64, "0"),
+          environmentKey: "local",
+        });
+        assert.equal(result.status, "new");
+      }
       await assert.rejects(
-        async () => {
-          await createShareReservation({
-            clientRequestId: "req-after-storage-exhaust",
-            documentId: "beton-dokum-tutanagi",
-            values: { i: "huge" },
-            creatorIp: "172.16.0.2",
-          });
-        },
-        (err: Error) => {
-          assert.ok(err instanceof BelgeShareServiceError);
-          assert.strictEqual(err.code, "QUOTA_EXCEEDED");
-          assert.strictEqual(err.statusCode, 429);
-          assert.ok(err.message.includes("depolama"));
-          return true;
-        }
+        createShareReservation({
+          clientRequestId: "req-global-overflow",
+          documentId: "beton-dokum-tutanagi",
+          values: { i: "4" },
+          creatorIp: "172.16.0.4",
+          ownerHash: "4".padStart(64, "0"),
+          environmentKey: "local",
+        }),
+        (error: unknown) => error instanceof BelgeShareQuotaError && error.code === "GLOBAL_DAILY_CAPACITY_REACHED" && error.statusCode === 503,
       );
+    });
+
+    it("5.4 Storage bütçesi committed ve reserved byte yükümlülüklerini birlikte sayar", async () => {
+      const maxPdf = BELGE_SHARE_CONFIG.MAX_PDF_SIZE_BYTES;
+      memoryRepo.setLimitsForTest({ globalDailyLimit: 200, globalMaxStorageBytes: 2 * maxPdf - 1 });
+      const first = await createShareReservation({
+        clientRequestId: "huge-storage-link-1", documentId: "beton-dokum-tutanagi", values: {}, creatorIp: "172.16.0.1",
+      });
+      assert.ok(first.record);
+      assert.equal(await finalizeShareReservation(first.record.id, maxPdf, "1".repeat(64), first.record.attemptId ?? undefined, first.record.attemptVersion), true);
+      await assert.rejects(
+        createShareReservation({
+          clientRequestId: "req-after-storage-exhaust", documentId: "beton-dokum-tutanagi", values: {}, creatorIp: "172.16.0.2",
+        }),
+        (error: unknown) => error instanceof BelgeShareQuotaError && error.code === "STORAGE_CAPACITY_UNAVAILABLE" && error.statusCode === 503,
+      );
+      assert.equal((await memoryRepo.getActiveStats()).totalActiveBytes, maxPdf);
     });
   });
 
@@ -599,7 +513,7 @@ describe("ASAMA_04: Belge Paylaşım Sunucu ve Altyapı Birim Testleri", () => {
       assert.ok(res.record);
       assert.ok(res.tokens);
 
-      await finalizeShareReservation(res.record.id, 500, "sha");
+      await finalizeShareReservation(res.record.id, 500, "sha", res.record.attemptId!, res.record.attemptVersion);
 
       // BlobStore.del metodunu yapay olarak hata fırlatacak şekilde bozalım
       memoryBlobStore.del = async () => {

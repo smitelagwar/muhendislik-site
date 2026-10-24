@@ -1,0 +1,26 @@
+{
+  "deploymentId": "dpl_DJskKrDGJwDTpWcVnpAFE1mohWSj",
+  "url": "https://muhendislik-site-560ep08mz-huseying5713-2819s-projects.vercel.app",
+  "target": "preview",
+  "aliasAssigned": false,
+  "sourceGitHead": "04048e50fd02e50c1c9ea783acec2d7383f516b4",
+  "sourceTree": "dirty local V3 worktree",
+  "databaseEnvironment": "Vercel Development isolated Neon",
+  "blobStoreName": "belgeler-stage14-preview-20261024",
+  "blobStoreId": "store_fnCz97b5poIneDPq",
+  "blobStoreEnvironmentBinding": "preview only",
+  "projectEnvironmentChanged": "Blob store bound to Preview only; no project env variable modified",
+  "githubWrite": false,
+  "productionDeployment": false,
+  "buildRuntimeEnvKeys": [
+    "BELGE_SHARE_GLOBAL_DAILY_LIMIT",
+    "BELGE_SHARE_GLOBAL_MAX_STORAGE_BYTES",
+    "BELGE_SHARE_SECRET",
+    "BLOB_STORE_ID",
+    "CRON_SECRET",
+    "DATABASE_URL",
+    "POSTGRES_PRISMA_URL",
+    "POSTGRES_URL",
+    "POSTGRES_URL_NON_POOLING"
+  ]
+}

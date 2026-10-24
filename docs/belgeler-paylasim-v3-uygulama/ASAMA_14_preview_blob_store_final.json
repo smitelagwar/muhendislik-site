@@ -1,0 +1,27 @@
+{
+  "storeName": "belgeler-stage14-preview-20261024",
+  "storeId": "store_fnCz97b5poIneDPq",
+  "access": "private",
+  "region": "iad1",
+  "environmentBinding": "preview only",
+  "aggregateAfterE2ECleanup": {
+    "blobCount": 1,
+    "reportedSize": "1.17MB"
+  },
+  "remainingObject": "One synthetic upload from the earlier failed Preview attempt; object path and contents were not read.",
+  "storeDeletionAttempt": {
+    "command": "vercel blob delete-store store_fnCz97b5poIneDPq --scope huseying5713-2819s-projects --yes",
+    "result": "NOT_DELETED",
+    "httpStatus": 409,
+    "reason": "Blob store not empty"
+  },
+  "databasePreviewNamespace": {
+    "before": { "links": 4, "quotas": 3, "obligations": 4 },
+    "deleted": { "links": 4, "quotas": 3, "obligations": 4 },
+    "after": { "links": 0, "quotas": 0, "obligations": 0 }
+  },
+  "productionTouched": false,
+  "projectEnvironmentChanged": false,
+  "localEnvFilePreserved": true,
+  "cleanupLog": "ASAMA_14_preview_blob_cleanup_final.log"
+}

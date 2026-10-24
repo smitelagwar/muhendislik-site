@@ -1,0 +1,32 @@
+{
+  "result": "PASS",
+  "mode": "before",
+  "scope": "real Next HTTP/router + copied product sources, isolated memory read/Blob adapters; no real DB/Blob",
+  "checks": [
+    {
+      "id": "normal-direct",
+      "result": "PASS",
+      "detail": "Navbar and overlays mounted; Footer mount instrumented in copy"
+    },
+    {
+      "id": "F07-reproduced",
+      "result": "PASS",
+      "detail": {
+        "navbar": true,
+        "overlays": true,
+        "footer": true
+      }
+    },
+    {
+      "id": "F07-reverse-reproduced",
+      "result": "PASS",
+      "detail": "normal site loses chrome after direct viewer -> client navigation"
+    }
+  ],
+  "passed": 3,
+  "failed": 0,
+  "skipped": 0,
+  "timeoutMs": 180000,
+  "durationMs": 23256,
+  "error": null
+}

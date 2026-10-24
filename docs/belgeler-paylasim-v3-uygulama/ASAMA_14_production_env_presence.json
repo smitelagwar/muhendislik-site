@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-24 Europe/Istanbul",
+  "scope": "Vercel CLI env run; only boolean presence checks; no values recorded",
+  "production": {
+    "scopeMarkerPassed": true,
+    "databaseUrl": false,
+    "databaseUrlUnpooled": false,
+    "postgresUrl": false,
+    "postgresUrlNonPooling": false,
+    "blobReadWriteToken": false,
+    "blobStoreId": true
+  },
+  "developmentComparison": {
+    "databaseUrl": true,
+    "databaseUrlUnpooled": true,
+    "postgresUrl": true,
+    "postgresUrlNonPooling": true,
+    "postgresPassword": true,
+    "blobReadWriteToken": true,
+    "blobStoreId": false
+  },
+  "productionSnapshot": {
+    "result": "NOT_RUN",
+    "exitCode": 1,
+    "reason": "Read-only helper stopped at its database URL presence guard before creating a connection or opening a transaction.",
+    "productionSqlExecuted": false,
+    "productionBlobListed": false,
+    "secretsPrinted": false,
+    "attemptLog": "docs/belgeler-paylasim-v3-uygulama/ASAMA_14_production_readonly_snapshot.log",
+    "inventoryLog": "docs/belgeler-paylasim-v3-uygulama/ASAMA_14_production_env_inventory.log"
+  }
+}

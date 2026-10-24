@@ -1,0 +1,50 @@
+{
+  "result": "FAIL",
+  "passed": 2,
+  "goldenPages": 1,
+  "ghostPages": 6,
+  "failed": 1,
+  "skipped": 0,
+  "durationMs": 7262,
+  "renderer": "Poppler pdftoppm.exe at 144 DPI; channel difference >12; exact zero outside existing istifa contact masks",
+  "rows": [
+    {
+      "document": "beton",
+      "fixture": "blank",
+      "page": 1,
+      "changed": 0,
+      "allowed": 0,
+      "width": 1191,
+      "height": 1684,
+      "editableSha256": "6d352d2deed4b47bd1ecb18c155f8f219f164e6f149ca3145daedff3682073a4",
+      "sharedSha256": "56cffa9bb14ff9c0e381b8ce5d10ebdb7839adc8400eb4bb063fc7fd159a19e9",
+      "sharedBytes": 1227218,
+      "minimumFieldFontSize": 8.6
+    },
+    {
+      "document": "beton",
+      "fixture": "sample",
+      "page": 1,
+      "changed": 0,
+      "allowed": 0,
+      "width": 1191,
+      "height": 1684,
+      "editableSha256": "82e51e15ca535482d993f67adeb84b3fa6a8daa5ec0188b0b91bb47020091974",
+      "sharedSha256": "8f1c39185976f57d5108a87b9012f80a68b304766df835dfc60281fdbfb18a21",
+      "sharedBytes": 1228769,
+      "minimumFieldFontSize": 8.6
+    }
+  ],
+  "goldens": [
+    {
+      "document": "beton",
+      "page": 1,
+      "changed": 0,
+      "allowed": 0,
+      "width": 1191,
+      "height": 1684,
+      "approvedSha256": "23ec3bec87e228812f5eaa44fe9e7d484d8887e3dc1075b62cfed1d20505c2c1"
+    }
+  ],
+  "error": "beton/turkish-long/1: editable and shared render mismatch\n\n52 !== 0\n"
+}

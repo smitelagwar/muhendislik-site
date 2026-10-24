@@ -1,0 +1,11 @@
+{
+  "mode": "pdf",
+  "command": "npm.cmd run check:belgeler-pdf",
+  "environment": "local isolated process; DB/Blob/Vercel/secret environment names removed",
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 600000,
+  "durationMs": 30290,
+  "playwrightSummary": null,
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_13_pdf.log"
+}

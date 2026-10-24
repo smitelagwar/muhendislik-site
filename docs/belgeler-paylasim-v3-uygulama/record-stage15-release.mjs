@@ -1,0 +1,45 @@
+import fs from "node:fs";
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import yaml from "js-yaml";
+const dir = "docs/belgeler-paylasim-v3-uygulama";
+const stateFile = "PLAN/BELGELER_PAYLASIM_BIRLESIK_NIHAI_STATE_V3_2026-10-23.md";
+const text = fs.readFileSync(stateFile, "utf8"), start = text.indexOf("```yaml") + 7, end = text.indexOf("```", start);
+const state = yaml.load(text.slice(start, end), { schema: yaml.JSON_SCHEMA });
+const finished = process.argv[2] === "finish";
+const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+state.user_scope_change = "2026-10-24: User explicitly abandoned further full-plan work and ordered immediate Production deployment plus live verification. Remaining physical-device/high-volume/full-plan work is cancelled, not reported as tested.";
+state.execution_status = finished ? "YAYINLANDI" : "YAYINLANIYOR";
+state.active_stage = finished ? null : "ASAMA_15"; state.next_stage = finished ? null : "ASAMA_15";
+state.release_authorized = true;
+state.stages.ASAMA_15.status = finished ? "PASS" : "IN_PROGRESS";
+const migrationPath = `${dir}/ASAMA_15_migration_inputs.json`;
+const migration = JSON.parse(fs.readFileSync(migrationPath, "utf8"));
+migration.executed = true; migration.result = "PASS";
+migration.verification = { schemaVersion: 9, totalLinks: 6, activeReady: 2, activeReadyBytes: 2456130, blobObligations: 6, dailyQuotas: 0, originalRowsAndActiveBytesPreserved: true, executionMs: 2933, readonlyModeRestored: true };
+migration.firstAttempt = "Prepared multi-command request rejected before execution; corrected to one atomic DO statement, whose preservation assertions passed.";
+fs.writeFileSync(migrationPath, JSON.stringify(migration, null, 2) + "\n");
+let deployment, smoke;
+if (finished) {
+  deployment = JSON.parse(fs.readFileSync(`${dir}/ASAMA_15_deployment.json`, "utf8"));
+  smoke = JSON.parse(fs.readFileSync(`${dir}/ASAMA_15_production_smoke.json`, "utf8"));
+  if (smoke.result !== "PASS" || smoke.sharesCreated !== 2 || smoke.sharesRevoked !== 2 || deployment.state !== "READY" || deployment.target !== "production") throw new Error("Release verification did not pass");
+  state.deployment = { ...deployment, sourceCommit: head, canonicalUrl: "https://muhendislik-site.vercel.app" };
+  if (!state.completed_stages.includes("ASAMA_15")) state.completed_stages.push("ASAMA_15");
+}
+const report = `# ASAMA_15 — Production yayını\n\nDurum: **${finished ? "PASS / YAYINLANDI" : "MIGRATION PASS / YAYINLANIYOR"}**. Kullanıcı kalan tam-plan çalışmalarını iptal edip Production deployment ve canlı doğrulama istedi.\n\n- 006–009 migration tek atomik PostgreSQL DO statement ile uygulandı; schema 9, eski 6 kayıt ve 2 aktif link / 2.456.130 byte korundu. Konsol salt-okunur moda geri alındı.\n- Yayın yolu: tek internal-* atomic kaynak checkpoint; tek staged Production deployment (--skip-domain), READY sonrası aynı artifact promote. Main push ile ikinci build tetiklenmez.\n- Kapasite: mevcut Hobby/Neon Free, global 50/gün, fiziksel byte bütçesi 600 MB; tarayıcı başına kota 50 ve 90 günlük saklama korunur. Sustained quota-max yük kapasite 503 ile sınırlandırılır.\n- ${finished ? `Kaynak SHA: ${head}. Deployment: ${deployment.id}. Canonical: https://muhendislik-site.vercel.app. Canlı sözleşme smoke 1/1 PASS; yalnız iki sentetik PDF oluşturuldu ve ikisi de revoke edildi. İlk PDF değişmedi; ikinci PDF farklı hash verdi; revoke sonrası 410; viewer iki sayfayı gösterdi; kota 2/50, remaining 48 ve reserved 0.` : "Production build/smoke henüz çalıştırılmadı; hazır smoke yalnız iki sentetik sözleşme kullanır ve kendi fixture'larını finally bloğunda temizler."}\n- Fiziksel Android/iOS NOT_RUN; F09 uzun metin okunabilirliği P2; gelecek gerçek cron invocation NOT_YET_OBSERVED. Bunlar PASS diye etiketlenmedi. Yüksek hacim Production yük/cron testi yapılmadı.\n`;
+fs.writeFileSync(`${dir}/ASAMA_15.md`, report);
+if (finished) fs.writeFileSync(`${dir}/FINAL_AUDIT.md`, report.replace("# ASAMA_15 — Production yayını", "# FINAL_AUDIT — Production yayın doğrulaması") + "\nYerel/izole geçmiş kapılar ASAMA_01–14 raporlarında korunur. Kalan tam plan kapsamı kullanıcının son talebiyle durdurulmuştur; yayın ve bounded canlı doğrulama tamamlanmıştır.\n");
+const files = [`${dir}/ASAMA_15.md`, migrationPath, `${dir}/ASAMA_15_migration_verified.jpg`, `${dir}/prepare-stage15-migration.mjs`, `${dir}/record-stage15-release.mjs`, `${dir}/run-stage15-production-smoke.mjs`, `${dir}/playwright.stage15-production.config.ts`, "tests/site-audit/belgeler-stage15-production-smoke.spec.ts"];
+if (finished) files.push(`${dir}/ASAMA_15_deployment.json`, `${dir}/ASAMA_15_production_smoke.json`, `${dir}/ASAMA_15_production_smoke.log`, `${dir}/ASAMA_15_production_viewer.jpg`, `${dir}/FINAL_AUDIT.md`);
+const sha = (v) => createHash("sha256").update(v).digest("hex");
+const entries = files.sort().map((file) => ({ file, sha256: sha(fs.readFileSync(file)) }));
+const manifestPath = `${dir}/ASAMA_15_changes.json`;
+const digest = sha(entries.map((item) => `${item.file}|${item.sha256}`).join("\n"));
+fs.writeFileSync(manifestPath, JSON.stringify({ sourceHead: head, worktreeDigest: digest, fileCount: entries.length, files: entries }, null, 2) + "\n");
+let stage = state.implementation_evidence.find((item) => item.stage === "ASAMA_15");
+if (!stage) { stage = { stage: "ASAMA_15" }; state.implementation_evidence.push(stage); }
+Object.assign(stage, { status: finished ? "PASS" : "IN_PROGRESS", date: "2026-10-24 Europe/Istanbul", head, worktree_digest: digest, changed_files: [...files, manifestPath], manifest: manifestPath, manifest_file_sha256: sha(fs.readFileSync(manifestPath)), report: `${dir}/ASAMA_15.md`, acceptance_ids: finished ? ["K01", "K02", "bounded production contract/revoke smoke"] : [], not_run: ["Physical Android/iOS", "Production load/bulk cron test", "Future scheduled cron invocation: NOT_YET_OBSERVED"], next_stage: null });
+state.updated_at = "2026-10-24";
+fs.writeFileSync(stateFile, text.slice(0, start) + "\n" + yaml.dump(state, { schema: yaml.JSON_SCHEMA, noRefs: true, lineWidth: -1, quotingType: "'" }) + text.slice(end));
+console.log(JSON.stringify({ status: state.execution_status, schema: 9, sourceHead: head, smoke: smoke?.result ?? "NOT_RUN" }));

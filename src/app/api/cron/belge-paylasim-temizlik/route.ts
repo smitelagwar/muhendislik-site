@@ -4,6 +4,7 @@
 
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
+import { BelgeShareRuntimeError } from "@/lib/belge-paylasim/config";
 import { executeBelgePaylasimCleanup } from "@/lib/belge-paylasim/cleanup";
 
 export const dynamic = "force-dynamic";
@@ -59,15 +60,21 @@ export async function GET(request: Request) {
 
   try {
     const stats = await executeBelgePaylasimCleanup();
+    const status = stats.success ? 200 : stats.alreadyRunning ? 409 : 503;
 
     return NextResponse.json(
       {
-        success: true,
-        message: "Belge paylaşım depolama ve veritabanı temizliği başarıyla tamamlandı.",
+        success: stats.success,
+        outcome: stats.outcome,
+        message: stats.success
+          ? "Belge paylaşım temizliği tamamlandı."
+          : stats.alreadyRunning
+            ? "Başka bir temizlik çalışması sürüyor. Sonraki cron kalıcı checkpoint'ten devam eder."
+            : "Temizlik kısmi kaldı veya hata aldı; güvenli checkpoint ve retry kuyruğu korundu.",
         stats,
       },
       {
-        status: 200,
+        status,
         headers: {
           "Cache-Control": "no-store, private",
           "Content-Type": "application/json",
@@ -75,14 +82,24 @@ export async function GET(request: Request) {
       }
     );
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Bilinmeyen hata";
+    if (error instanceof BelgeShareRuntimeError) {
+      return NextResponse.json(
+        { success: false, error: error.code, message: error.message },
+        {
+          status: error.statusCode,
+          headers: { "Cache-Control": "no-store, private", "Content-Type": "application/json" },
+        }
+      );
+    }
+
     return NextResponse.json(
       {
         success: false,
-        error: `Temizlik sırasında hata oluştu: ${errorMessage}`,
+        outcome: "failed",
+        error: "CLEANUP_FAILED",
       },
       {
-        status: 500,
+        status: 503,
         headers: {
           "Cache-Control": "no-store, private",
           "Content-Type": "application/json",

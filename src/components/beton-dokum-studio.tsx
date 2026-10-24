@@ -110,6 +110,10 @@ export function BetonDokumStudio({
   const shareApi = useBelgeShare({
     documentId: "beton-dokum-tutanagi",
     getSnapshotValues: () => formData as unknown as Record<string, string>,
+    isReady: document.status === "ready" && previewIsCurrent && previewResult.status === "ready",
+    snapshotRevision: document.status === "ready" && previewIsCurrent && previewResult.status === "ready"
+      ? snapshot?.revision ?? null
+      : null,
   });
 
   // Odaklanan alan kapalı bir bölüme aitse o bölümü otomatik genişlet (yalnızca yeni odak event'inde tetiklenir)

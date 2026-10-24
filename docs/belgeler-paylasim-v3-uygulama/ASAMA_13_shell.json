@@ -1,0 +1,18 @@
+{
+  "mode": "shell",
+  "command": "node node_modules/@playwright/test/cli.js test --config=playwright.site.config.ts tests/site-audit/belgeler-stage13-shell-smoke.spec.ts --project=chromium-desktop-1366 --timeout=45000",
+  "environment": "fresh production build; separate .test-data local docs store enabled; share DB/Blob/Vercel runtime keys empty",
+  "head": "04048e50fd02e50c1c9ea783acec2d7383f516b4",
+  "worktreeDigest": "e348df55954a1090af9201fbb0dc462a1158d6cc506ec4086035ae7c13afa33b",
+  "digestFileCount": 88,
+  "exitCode": 0,
+  "timedOut": false,
+  "timeoutMs": 300000,
+  "durationMs": 4052,
+  "playwrightSummary": {
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0
+  },
+  "logPath": "C:\\Users\\hsyn\\Desktop\\muhendis-mimar-portali\\docs\\belgeler-paylasim-v3-uygulama\\ASAMA_13_shell.log"
+}

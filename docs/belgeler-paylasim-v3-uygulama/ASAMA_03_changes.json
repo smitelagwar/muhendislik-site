@@ -1,0 +1,58 @@
+{
+  "algorithm": "SHA-256 over UTF-8 JSON.stringify of sorted ASAMA_03 source/test/docs/evidence-runner paths and their SHA-256 hashes",
+  "worktree_digest": "2c8c9b0dd925b3443b32bd93c28eb221d7f3d0dfef70f4022cc53877a5024466",
+  "files": [
+    {
+      "file": "docs/BELGELER_SISTEMI.md",
+      "sha256": "eab7f4f2c12af774eec016f7ef0bfe219dec90d96d9249931fa82a8c0af37187"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/run-stage03-lint.mjs",
+      "sha256": "11b114ea7cd77a6739b15b9f91e022642b8e9527197aea6879c1bec881f83cc4"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/run-stage03-runtime-tsc.mjs",
+      "sha256": "a7a108302edf30bf68b55da0c86b608a8db72f81b6ee66dc2a59fb9753716eca"
+    },
+    {
+      "file": "docs/belgeler-paylasim-v3-uygulama/run-stage03-tests.mjs",
+      "sha256": "7b1230f7137ec29562d58141ec01f0f32f3ff4eb81c320b516c2676a5deca402"
+    },
+    {
+      "file": "src/app/api/belgeler/paylasim/kota/route.ts",
+      "sha256": "3b04769ea1bbac98155f363566bff536d5116c22a1df9cce6627dec27e187317"
+    },
+    {
+      "file": "src/app/api/belgeler/paylasim/route.ts",
+      "sha256": "e1ad94fd6c9452522978e61379bece51fa3ef291d35e18840a5f2dd303b2d094"
+    },
+    {
+      "file": "src/lib/belge-paylasim/browser-bootstrap.ts",
+      "sha256": "c74adfd9ecb80e650d3ab8afd49b037a1e85f6db0a11e3f2d47eb99deb78fc65"
+    },
+    {
+      "file": "src/lib/belge-paylasim/browser-identity.ts",
+      "sha256": "db2c5669783abe0623bd3795edc9e18dc94fe04709673b2b5f29fb031aa27dba"
+    },
+    {
+      "file": "src/lib/belge-paylasim/repository.ts",
+      "sha256": "b5ed2362721d36119bef901ae34307699e7f50ea2a1d69ebf6eb9508b0fec711"
+    },
+    {
+      "file": "src/lib/belge-paylasim/types.ts",
+      "sha256": "261a46e370828deba45efae9aba4022cacdde476313ce672db8262fadc63a58a"
+    },
+    {
+      "file": "tests/belgeler/belge-share-api.test.ts",
+      "sha256": "846702628605fb3555bc7f3ef22ecea18a1596780c3ff83eed152cadc51b71c7"
+    },
+    {
+      "file": "tests/belgeler/belge-share-stage02.test.ts",
+      "sha256": "e4027f4e932deb1e3433c03457c519d7bf2486449f460e2f7ff4d96186837dd6"
+    },
+    {
+      "file": "tests/belgeler/belge-share-stage03.test.ts",
+      "sha256": "c83a4b408eef32592dbb5b7822dfeae4392ab52f5e4d7f80dc24f9aa2f3a0395"
+    }
+  ]
+}

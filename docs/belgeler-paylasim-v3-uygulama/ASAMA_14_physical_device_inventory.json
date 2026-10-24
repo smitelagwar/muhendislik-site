@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-24 Europe/Istanbul",
+  "commands": ["adb devices -l", "idevice_id -l"],
+  "android": {
+    "adbAvailable": true,
+    "connectedDeviceCount": 0
+  },
+  "ios": {
+    "ideviceIdAvailable": false,
+    "connectedDeviceCount": null
+  },
+  "physicalAcceptance": "NOT_RUN",
+  "productionTouched": false
+}

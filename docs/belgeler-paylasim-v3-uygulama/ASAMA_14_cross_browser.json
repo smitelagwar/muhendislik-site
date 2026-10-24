@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-24 Europe/Istanbul",
+  "scope": "Vercel Development environment variables; local Windows Next.js dev server; no Production DB/Blob or deployment",
+  "baseline": {
+    "schemaVersion": 9,
+    "links": 0,
+    "quotas": 0,
+    "obligations": 0,
+    "nonDevelopmentRows": 0,
+    "privateSharePrefixObjects": 0
+  },
+  "attempts": [
+    {
+      "host": "127.0.0.1",
+      "result": "FAIL",
+      "passed": 0,
+      "failed": 2,
+      "detail": "Both browsers received HTTP 403 from quota identity bootstrap; no share creation was reached.",
+      "log": "docs/belgeler-paylasim-v3-uygulama/ASAMA_14_cross_browser.log",
+      "cleanupLog": "docs/belgeler-paylasim-v3-uygulama/ASAMA_14_development_cleanup.log"
+    },
+    {
+      "host": "localhost",
+      "result": "PASS",
+      "browsers": ["Firefox", "WebKit"],
+      "suite": "tests/site-audit/belgeler-share-live-acceptance.spec.ts",
+      "acceptance": ["K01", "K02"],
+      "testCount": 2,
+      "passed": 2,
+      "failed": 0,
+      "durationSeconds": 46.5,
+      "log": "docs/belgeler-paylasim-v3-uygulama/ASAMA_14_cross_browser_localhost.log"
+    }
+  ],
+  "cleanup": {
+    "result": "PASS",
+    "runner": "docs/belgeler-paylasim-v3-uygulama/run-stage13-postgres-live.ts",
+    "testRowsBeforeReset": { "links": 6, "quotas": 4, "obligations": 6 },
+    "privateSharePrefixObjectsBeforeReset": 0,
+    "runnerDatabaseRowsAfterReset": { "links": 0, "quotas": 0, "obligations": 0 },
+    "runnerStressTest": { "uniqueIdsAttempted": 100, "accepted": 50, "quotaBlocked": 50 },
+    "finalDevelopmentSnapshot": {
+      "schemaVersion": 9,
+      "links": 0,
+      "quotas": 0,
+      "obligations": 0,
+      "nonDevelopmentRows": 0,
+      "privateSharePrefixObjects": 0
+    },
+    "cleanupLog": "docs/belgeler-paylasim-v3-uygulama/ASAMA_14_development_cleanup_localhost.log",
+    "finalSnapshotLog": "docs/belgeler-paylasim-v3-uygulama/ASAMA_14_development_after_cleanup.log"
+  },
+  "limitations": [
+    "Local Development browsers do not prove Vercel Linux Preview/RC runtime or asset tracing.",
+    "Production GET/HEAD counts and transfer bytes remain unavailable on Hobby Observability.",
+    "Physical Android/iOS acceptance remains unrun."
+  ]
+}

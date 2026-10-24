@@ -1,4 +1,4 @@
-import { componentsToColor, CustomFontEmbedder, defaultTextFieldAppearanceProvider, drawTextField, PDFContext, PDFDict, PDFDocument, PDFFont, PDFName, PDFNumber, PDFRawStream, PDFString, rgb, setTextMatrix, type PDFTextField } from "pdf-lib";
+import { componentsToColor, CustomFontEmbedder, defaultTextFieldAppearanceProvider, drawTextField, PDFArray, PDFContext, PDFDict, PDFDocument, PDFFont, PDFName, PDFNumber, PDFRawStream, PDFString, rgb, setTextMatrix, type PDFTextField } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { getDocumentPdfProfiles, getBlankDocumentData, normalizePdfFieldValue, type BelgeDocumentId } from "./belgeler-pdf-profiles";
 import { measurePdfAppearance, type BelgePdfResult, type PdfFieldLayout, type PdfFieldLayouts, type PdfWidgetLayout } from "./belgeler-pdf-layout";
@@ -683,12 +683,44 @@ async function populateForm<T extends object>(
     }
   }
 
-  if (options.flatten) {
-    try {
-      form.flatten();
-    } catch {
-      // ignore
+  const opaqueWidgets = form.getFields().flatMap((field) => field.acroField.getWidgets()).filter((widget) => {
+      const color = widget.getAppearanceCharacteristics()?.getBackgroundColor();
+      return color?.length === 3 && color.every((component) => component === 1);
+    });
+  const coveredRectangles = new Map(pdfDoc.getPages().map((page) => [page, opaqueWidgets.filter((widget) =>
+      page.node.Annots()?.asArray().some((reference) => pdfDoc.context.lookup(reference) === widget.dict),
+    ).map((widget) => widget.getRectangle())]));
+  // Remove already covered template notes in both outputs, including invisible extractable text.
+  for (const page of pdfDoc.getPages()) {
+    const annotations = page.node.Annots();
+    if (!annotations) continue;
+    for (let index = annotations.size() - 1; index >= 0; index--) {
+      const annotation = pdfDoc.context.lookup(annotations.get(index));
+      if (annotation instanceof PDFDict && annotation.get(PDFName.of("Subtype")) === PDFName.of("FreeText")) {
+        const rectangle = annotation.lookup(PDFName.of("Rect"), PDFArray).asArray().map((value) => (value as PDFNumber).asNumber());
+        if (coveredRectangles.get(page)?.some((cover) => rectangle[0] >= cover.x - 2 && rectangle[1] >= cover.y - 2 &&
+          rectangle[2] <= cover.x + cover.width + 2 && rectangle[3] <= cover.y + cover.height + 2)) annotations.remove(index);
+      }
     }
+  }
+
+  if (options.flatten) {
+    form.flatten();
+    // Some legacy templates leave references to deleted field widgets in Annots.
+    // Remove only missing objects; preserve non-widget annotations and reject an unflattened widget.
+    for (const page of pdfDoc.getPages()) {
+      const annotations = page.node.Annots();
+      if (!annotations) continue;
+      for (let index = annotations.size() - 1; index >= 0; index--) {
+        const annotation = pdfDoc.context.lookup(annotations.get(index));
+        if (!annotation) annotations.remove(index);
+        else if (annotation instanceof PDFDict && annotation.get(PDFName.of("Subtype")) === PDFName.of("Widget")) {
+          throw new Error("PDF form alanı düzleştirilemedi.");
+        }
+      }
+      if (annotations.size() === 0) page.node.delete(PDFName.of("Annots"));
+    }
+    pdfDoc.catalog.delete(PDFName.of("AcroForm"));
   }
 
   return {

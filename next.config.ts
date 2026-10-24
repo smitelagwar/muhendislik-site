@@ -12,6 +12,17 @@ const nextConfig: NextConfig = {
   ],
   outputFileTracingIncludes: {
     "/api/document-template/\\[id\\]": ["./public/belgeler/*.pdf"],
+    "/api/belgeler/paylasim": [
+      "./public/belgeler/beton-dokum-tutanagi.pdf",
+      "./public/belgeler/insaat-ruhsati-dilekcesi.pdf",
+      "./public/belgeler/santiye-sefi-istifa-dilekcesi.pdf",
+      "./public/belgeler/santiye-sefi-sozlesmesi.pdf",
+      "./public/belgeler/santiye-sefi-taahhutnamesi.pdf",
+      "./public/fonts/Arial-Bold.ttf",
+      "./public/fonts/Arial-Regular.ttf",
+      "./public/fonts/IBMPlexSerif-Bold.ttf",
+      "./public/fonts/IBMPlexSerif-Regular.ttf",
+    ],
   },
   typescript: {
     tsconfigPath: "tsconfig.next.json",
@@ -135,6 +146,24 @@ const nextConfig: NextConfig = {
             key: "Cache-Control",
             value: "public, max-age=2592000, stale-while-revalidate=86400",
           },
+        ],
+      },
+      {
+        source: "/api/belgeler/paylasim/:path*",
+        headers: [
+          { key: "Cache-Control", value: "private, no-store, no-cache, must-revalidate" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+        ],
+      },
+      {
+        source: "/b/:path*",
+        headers: [
+          { key: "Cache-Control", value: "private, no-store, no-cache, must-revalidate" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive, nosnippet" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
         ],
       },
       {

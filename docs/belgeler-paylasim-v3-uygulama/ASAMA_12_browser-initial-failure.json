@@ -1,0 +1,10 @@
+{
+  "result": "FAIL",
+  "checks": [],
+  "passed": 0,
+  "failed": 1,
+  "skipped": 0,
+  "durationMs": 17820,
+  "error": "page.waitForFunction: Timeout 8000ms exceeded.",
+  "note": "Initial launch timed out before the first assertion. The bounded browser runner was rerun; ASAMA_12_browser.json records the final 40/40 PASS result."
+}
