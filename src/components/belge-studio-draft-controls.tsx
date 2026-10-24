@@ -288,35 +288,35 @@ export function BelgeStudioDraftStatusBadge({ draftApi }: BelgeStudioDraftContro
     badgeContent = (
       <>
         <Loader2 className="h-3 w-3 animate-spin text-amber-500 shrink-0" />
-        <span className="font-medium text-foreground">Kaydediliyor...</span>
+        <span className="font-medium text-foreground hidden sm:inline">Kaydediliyor...</span>
       </>
     );
   } else if (isPaused) {
     badgeContent = (
       <>
         <Clock className="h-3 w-3 text-amber-500 shrink-0" />
-        <span className="font-medium text-amber-600 dark:text-amber-400">Kayıt Duraklatıldı</span>
+        <span className="font-medium text-amber-600 dark:text-amber-400 hidden sm:inline">Kayıt Duraklatıldı</span>
       </>
     );
   } else if (lifecycleState === "save-error") {
     badgeContent = (
       <>
         <AlertCircle className="h-3 w-3 text-red-500 shrink-0" />
-        <span className="font-medium text-red-600 dark:text-red-400">Kayıt Hatası</span>
+        <span className="font-medium text-red-600 dark:text-red-400 hidden sm:inline">Kayıt Hatası</span>
       </>
     );
   } else if (storageMode === "none" || lifecycleState === "disabled") {
     badgeContent = (
       <>
         <HardDrive className="h-3 w-3 text-muted-foreground/70 shrink-0" />
-        <span className="font-medium text-muted-foreground">Taslak (Kapalı)</span>
+        <span className="font-medium text-muted-foreground hidden sm:inline">Taslak (Kapalı)</span>
       </>
     );
   } else if (lifecycleState === "saved") {
     badgeContent = (
       <>
         <Check className="h-3 w-3 text-emerald-500 shrink-0" />
-        <span className="font-medium text-foreground">
+        <span className="font-medium text-foreground hidden sm:inline">
           Taslak {storageMode === "device" ? "(Cihaz)" : "(Sekme)"}
         </span>
       </>
@@ -325,7 +325,7 @@ export function BelgeStudioDraftStatusBadge({ draftApi }: BelgeStudioDraftContro
     badgeContent = (
       <>
         <HardDrive className="h-3 w-3 text-muted-foreground shrink-0" />
-        <span className="font-medium text-foreground">Taslak</span>
+        <span className="font-medium text-foreground hidden sm:inline">Taslak</span>
       </>
     );
   }
@@ -342,7 +342,7 @@ export function BelgeStudioDraftStatusBadge({ draftApi }: BelgeStudioDraftContro
         aria-expanded={open}
         aria-controls={open ? popupId : undefined}
         aria-label="Otomatik taslak durumu ve ayarları"
-        className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-border/80 bg-background/90 px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
+        className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1 sm:gap-1.5 rounded-full border border-border/80 bg-background/90 px-2 sm:px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:border-border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
         title="Otomatik taslak durumu ve ayarları"
       >
         {badgeContent}
@@ -354,7 +354,7 @@ export function BelgeStudioDraftStatusBadge({ draftApi }: BelgeStudioDraftContro
           id={popupId}
           role="region"
           aria-label="Taslak ayarları"
-          className="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-xl border border-border bg-popover text-popover-foreground p-1.5 shadow-xl text-xs space-y-1"
+          className="absolute right-0 top-full mt-1.5 z-50 w-56 max-w-[calc(100vw-1rem)] rounded-xl border border-border bg-popover text-popover-foreground p-1.5 shadow-xl text-xs space-y-1"
         >
           {/* Durum Özeti */}
           <div className="px-2.5 py-1.5 border-b border-border/60 text-[11px] text-muted-foreground">

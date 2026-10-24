@@ -29,8 +29,8 @@ import {
 import { useBelgeAutoDraft } from "@/hooks/use-belge-auto-draft";
 import {
   BelgeStudioDraftControls,
-  BelgeStudioDraftStatusBadge,
 } from "@/components/belge-studio-draft-controls";
+import { BelgeStudioUnifiedHeader } from "@/components/belge-studio-unified-header";
 import { useBelgeStudioSections } from "@/hooks/use-belge-studio-sections";
 import {
   BelgeStudioSection,
@@ -113,6 +113,7 @@ export function InsaatRuhsatiStudio({
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [activeTabMobile, setActiveTabMobile] = useState<"form" | "preview">("preview");
   const [previewResult, setPreviewResult] = useState<{ revision: number; status: BelgePreviewStatus }>({ revision: 0, status: "loading" });
+  const [toolbarTarget, setToolbarTarget] = useState<HTMLDivElement | null>(null);
   const studioRootRef = useRef<HTMLDivElement | null>(null);
   const downloadInFlightRef = useRef(false);
   const document = useBelgeStudioDocument(formData, BELGE_DOCUMENT_GENERATORS["insaat-ruhsati-dilekcesi"]);
@@ -358,25 +359,17 @@ export function InsaatRuhsatiStudio({
         {previewStatusMessage}
       </span>
 
-      {/* Top Header Bar: Unified across modal and standard page views, desktop and mobile (F10) */}
-      <div
-        data-testid="belge-studio-top-header"
-        className="shrink-0 flex items-center justify-between border-b border-border/80 bg-background/95 px-3.5 py-1.5 min-h-[44px]"
-      >
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
-            <Building2 className="h-4 w-4" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate">
-              İnşaat Ruhsatı Dilekçesi
-            </h2>
-            <p className="text-[10px] text-muted-foreground hidden sm:block truncate">
-              Yapı Ruhsatı Başvuru & İdareye Talep Dilekçesi
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
+      {/* Top Header Bar: Unified across modal and standard page views, desktop and mobile */}
+      <BelgeStudioUnifiedHeader
+        title="İnşaat Ruhsatı Dilekçesi"
+        subtitle="Yapı Ruhsatı Başvuru & İdareye Talep Dilekçesi"
+        icon={<Building2 className="h-4 w-4" />}
+        isModal={isModal}
+        onClose={onClose}
+        draftApi={draft}
+        syncStatus={syncStatus}
+        toolbarSlotRef={setToolbarTarget}
+        extraActions={
           <button
             type="button"
             onClick={handleRandomize}
@@ -386,32 +379,8 @@ export function InsaatRuhsatiStudio({
             <Dice5 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Örnek Veri</span>
           </button>
-          <BelgeStudioDraftStatusBadge draftApi={draft} />
-          {syncStatus === "updating" && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              <span className="hidden sm:inline">Derleniyor...</span>
-            </span>
-          )}
-          {syncStatus === "synced" && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full animate-pulse bg-emerald-500" />
-              <span className="hidden sm:inline">Canlı Önizleme Hazır</span>
-            </span>
-          )}
-          {isModal && onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-              aria-label="Pencereyi Kapat"
-              title="Kapat"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
+        }
+      />
 
       {/* Draft Notification Banner (Consent / Recovery / Conflict / Error) */}
       <BelgeStudioDraftControls draftApi={draft} />
@@ -631,6 +600,7 @@ export function InsaatRuhsatiStudio({
             }}
             formView={formView}
             pdfFocus={pdfFocus}
+            toolbarTarget={toolbarTarget}
           />
         </div>
       </div>

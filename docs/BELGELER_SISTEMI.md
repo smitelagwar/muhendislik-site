@@ -24,10 +24,15 @@ Sistem, kullanıcıların belge şablonlarını tarayıcıda doldurmasına, **ge
 └───────────────────────────┬────────────────────────────┘
                                  ▼
 ┌────────────────────────────────────────────────────────────────────────┐
+│                BelgeStudioUnifiedHeader (Tek Ortak Üst Bar)            │
+│  ├─ Sol Bölge: Belgelere Dön Linki, Belge İkonu, Tek Başlık (h1/h2)    │
+│  ├─ Orta Bölge: PDF Toolbar Portal Slotu (createPortal hedefi)         │
+│  └─ Sağ Bölge: Ek Aksiyonlar, Kompakt Taslak Rozeti & Popover          │
+├────────────────────────────────────────────────────────────────────────┤
 │                        [Belge]Studio Bileşeni                          │
-│  ├─ Sol Panel: Form Girdileri, Yerel/Genel Sıfırlama, Validasyonlar   │
-│  ├─ Sağ Panel: PDF.js Canvas Önizleme, Sayfa ve Yakınlaştırma Araçları│
-│  └─ Alt/Üst: İndir, Boş Form İndir, Yazdır, Sıfırla, Temizle Aksiyonları│
+│  ├─ Sol Panel: Form Girdileri, Akordeon Bölümleri, Validasyonlar       │
+│  ├─ Sağ Panel: PDF.js Canvas Önizleme (Toolbar'sız, +102px Canvas)     │
+│  └─ Alt Footer: PDF İndir, Boş Form, Yazdır, Sıfırla, Temizle, Paylaş  │
 └────────────────────────────────┬───────────────────────────────────────┘
                                  │
                                  ▼

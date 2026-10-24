@@ -1,0 +1,31 @@
+{
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "outerNav": {
+    "clientHeight": 0,
+    "offsetHeight": 0,
+    "isVisible": false
+  },
+  "unifiedHeader": {
+    "clientHeight": 63,
+    "offsetHeight": 64
+  },
+  "previewToolbarInPreview": {
+    "clientHeight": 0,
+    "offsetHeight": 0
+  },
+  "formScroll": {
+    "clientHeight": 947
+  },
+  "pdfContainer": {
+    "clientHeight": 947,
+    "clientWidth": 1444
+  },
+  "pdfCanvas": {
+    "clientHeight": 915,
+    "clientWidth": 648
+  },
+  "horizontalOverflow": false
+}

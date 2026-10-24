@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { AlertCircle, Edit3, Loader2, RefreshCw } from "lucide-react";
 import { PDFJS_CMAPS, PDFJS_FONTS, PDFJS_ICCS, PDFJS_WASM } from "@/lib/pdfjs-paths";
@@ -66,6 +66,7 @@ export type BelgeStudioPdfPreviewProps = {
   fieldFocus?: FieldFocusSelection;
   onClearFieldFocus?: () => void;
   pdfFocus?: BelgeStudioPdfFocusApi;
+  toolbarTarget?: HTMLElement | null;
 };
 
 type Point = { x: number; y: number };
@@ -91,6 +92,7 @@ export function BelgeStudioPdfPreview({
   fieldFocus,
   onClearFieldFocus,
   pdfFocus,
+  toolbarTarget,
 }: BelgeStudioPdfPreviewProps) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
@@ -1508,18 +1510,22 @@ export function BelgeStudioPdfPreview({
     return () => window.cancelAnimationFrame(raf);
   }, [isMobileSheetOpen, sheetTop, selectedTop, selectedBottom, selectedLeft, selectedRight, renderedToken]);
 
+  const toolbar = (
+    <BelgeStudioPreviewToolbar
+      zoomLevel={zoomLevel}
+      onZoomChange={handleToolbarZoom}
+      onFit={handleFit}
+      pdfUrl={generationPending ? null : snapshot?.blobUrl ?? null}
+      page={{ current: currentPage, total: pageCount, onChange: handlePageChange }}
+      disabled={!snapshot || generationPending || visibleError}
+      formView={formView}
+      pdfFocus={pdfFocus}
+    />
+  );
+
   return (
     <section className={`${BELGE_STUDIO_PREVIEW_PANEL_CLASS} relative`} aria-label="PDF canlı önizlemesi">
-      <BelgeStudioPreviewToolbar
-        zoomLevel={zoomLevel}
-        onZoomChange={handleToolbarZoom}
-        onFit={handleFit}
-        pdfUrl={generationPending ? null : snapshot?.blobUrl ?? null}
-        page={{ current: currentPage, total: pageCount, onChange: handlePageChange }}
-        disabled={!snapshot || generationPending || visibleError}
-        formView={formView}
-        pdfFocus={pdfFocus}
-      />
+      {toolbarTarget ? createPortal(toolbar, toolbarTarget) : toolbarTarget === undefined ? toolbar : null}
       {editing && !isMobileSheetOpen && (
         <div className="absolute bottom-3 right-3 z-20 pointer-events-auto">
           <button

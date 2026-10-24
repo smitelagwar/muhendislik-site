@@ -1,0 +1,27 @@
+{
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "outerNav": {
+    "clientHeight": 52,
+    "offsetHeight": 53,
+    "isVisible": true
+  },
+  "studioHeader": {
+    "clientHeight": 56,
+    "offsetHeight": 57
+  },
+  "previewToolbar": {
+    "clientHeight": 44,
+    "offsetHeight": 44
+  },
+  "formScroll": {
+    "clientHeight": 897
+  },
+  "pdfCanvas": {
+    "clientHeight": 813,
+    "clientWidth": 575
+  },
+  "horizontalOverflow": false
+}

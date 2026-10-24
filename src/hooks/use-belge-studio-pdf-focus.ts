@@ -147,7 +147,8 @@ export function useBelgeStudioPdfFocus({
       if (active instanceof HTMLElement && container.contains(active) && active.id) {
         lastFocusedInputIdRef.current = active.id;
       }
-      container.parentElement?.parentElement?.querySelector<HTMLElement>('[data-testid="belge-pdf-focus-toggle"]')?.focus({ preventScroll: true });
+      const root = container.closest<HTMLElement>('[data-studio-locked="true"]') || container.parentElement?.parentElement || document;
+      root.querySelector<HTMLElement>('[data-testid="belge-pdf-focus-toggle"]')?.focus({ preventScroll: true });
     }
     setUserPdfFocus(true);
   }, [enabled, isDesktop, userPdfFocus, scrollContainerRef, restoreFocusAndScroll]);
