@@ -5,9 +5,9 @@ plan_id: INSA-BELGELER-PUBLIC-READER-V4-20261024
 plan_revision: 4
 plan_file: PLAN/BELGELER_PAYLASIM_PDF_OKUYUCU_V4_PLAN.md
 planning_status: PLAN_HAZIR
-execution_status: DEVAM_EDIYOR
-release_status: READY_FOR_DEPLOY
-active_stage: ASAMA_09
+execution_status: TAMAMLANDI
+release_status: RELEASED
+active_stage: null
 next_stage: null
 completed_stages:
   - ASAMA_01
@@ -18,6 +18,7 @@ completed_stages:
   - ASAMA_06
   - ASAMA_07
   - ASAMA_08
+  - ASAMA_09
 stages:
   ASAMA_01: { status: PASS, completed_at: "2026-10-24T17:05:00+03:00" }
   ASAMA_02: { status: PASS, completed_at: "2026-10-24T17:09:00+03:00" }
@@ -27,9 +28,9 @@ stages:
   ASAMA_06: { status: PASS, completed_at: "2026-10-24T17:36:00+03:00" }
   ASAMA_07: { status: PASS, completed_at: "2026-10-24T17:43:00+03:00" }
   ASAMA_08: { status: PASS, completed_at: "2026-10-24T18:04:00+03:00" }
-  ASAMA_09: { status: PENDING }
-local_head: "111ea6115c01bddac6511c0d3cf55d7a5fde1781"
-current_branch: "internal-belgeler-paylasim-v3-20261023"
+  ASAMA_09: { status: PASS, completed_at: "2026-10-24T18:12:00+03:00" }
+local_head: "d6edcfe04ab6df48e6204b19482c51d8d062002e"
+current_branch: "main"
 real_share_viewer_file: "src/components/belge-paylasim/belge-share-viewer.tsx"
 source_drift: "Plan referansı 04048e50fd02e50c1c9ea783acec2d7383f516b4 commit'iydi; yerel HEAD internal-belgeler-paylasim-v3-20261023 dalında 111ea6115c01bddac6511c0d3cf55d7a5fde1781'dir (2 commit ileride). %400 üst sınırı ve Genişlik/Sayfa kontrolleri commit 39e801a ile src/lib/belge-paylasim/viewer-geometry.ts dosyasında SHARE_VIEWER_MAX_SCALE = 4 olarak tanımlanmış olup /b/[token] rotası BelgeShareViewer bileşenini render etmektedir."
 share_test_fixture_method: "MemoryBelgePaylasimRepository + MemoryBelgeBlobStore (node:test birim/API seviyesinde) ve Playwright site audit testleri (/belgeler/[id] üzerinden dinamik link oluşturma)."
@@ -145,15 +146,20 @@ evidence:
     status: PASS
     sha_or_worktree: "npm run build + check:belgeler-pdf + check:pdf-v3:unit + check:pdf-v4:unit + check:smoke"
     evidence_path: "452/452 belgeler testi PASS; 17 PDF v4 birim modülü PASS; tsc -p tsconfig.next.json (0 hata); targeted ESLint 0 hata; next build --webpack (23.9s, 627 sayfa, /b/[token] ve /api/belgeler/... dinamik derlendi); site-smoke-test (305 sayfa gezildi, 0 hata); Playwright E2E sözleşmesi yerel DB yokluğunda gracefully skip (30/30) doğrulandı."
+  - stage: ASAMA_09
+    check: living_docs_single_release_and_production_smoke
+    status: PASS
+    sha_or_worktree: "docs/BELGELER_SISTEMI.md + git push origin main (d6edcfe)"
+    evidence_path: "docs/BELGELER_SISTEMI.md Bölüm 14 eklendi; main dalına tek atomic commit ile push yapıldı (04048e5..d6edcfe); Vercel Production deployment dpl_9xih7tB3fKvQvpMA2ZHQnFo2p3Xg başarıyla Ready oldu; canlı smoke testleri (root 200, /belgeler 200, /b/token 200 noindex/no-store, /api/belgeler/.../pdf 400 Bad Request) doğrulandı."
 manual_checks:
   - "Gerçek iOS Safari / Android Chrome fiziksel touch pinch ve gesture doğrulaması (MANUAL_PENDING)"
   - "Gerçek mobil / masaüstü fiziksel yazıcı baskı önizleme testi (MANUAL_PENDING)"
 blockers: []
-deploy_done: false
-production_sha: null
-deployment_id: null
-production_smoke_status: NOT_RUN
-updated_at: "2026-10-24T18:04:00+03:00"
+deploy_done: true
+production_sha: "d6edcfe04ab6df48e6204b19482c51d8d062002e"
+deployment_id: "dpl_9xih7tB3fKvQvpMA2ZHQnFo2p3Xg"
+production_smoke_status: PASS
+updated_at: "2026-10-24T18:12:00+03:00"
 ```
 
 ## Aşama Notları
@@ -246,3 +252,15 @@ updated_at: "2026-10-24T18:04:00+03:00"
 - `npm run check:smoke`: Yerel production smoke testi 305 sayfayı crawler ile gezdi; 0 sayfa hatası, 0 HTTP hatası ile doğrulandı.
 - `tests/site-audit/belgeler-share-e2e.spec.ts`: Yerel ortamda canlı PostgreSQL (POSTGRES_URL) bulunmadığında gracefully skip (30/30) sözleşmesi bağlandı; canlı Vercel release'ine hazırlandı.
 - ASAMA_08 başarıyla tamamlandı; sıradaki aşama ASAMA_09 (Yaşayan doküman güncellemesi, tek atomic release, canlı smoke ve kapanış).
+
+### ASAMA_09
+- `docs/BELGELER_SISTEMI.md` yaşayan mimari belgesine Bölüm 14 ("Paylaşılan Belgeler İçin Birleşik PDF Okuyucu V4 (PdfJsStudio Entegrasyonu)") eklendi: ortak çekirdek, metin seçimi ve PDF içi arama, yetkilendirilmiş indirme motoru, doğrudan yazdırma, geometri ve viewport koruma prensipleri belgelendi.
+- `main` dalı fast-forward ile güncellendi ve tek anlamlı atomik checkpoint commit (`d6edcfe`) ile `git push origin main` tamamlandı.
+- Vercel Production deployment `dpl_9xih7tB3fKvQvpMA2ZHQnFo2p3Xg` başarıyla derlendi ve `● Ready` durumuna ulaştı; `https://muhendislik-site.vercel.app` canonical alan adına bağlandı.
+- Canlı üretim ortamında smoke kontrolleri doğrulandı:
+  - Root sayfası (`/`): HTTP 200 OK
+  - Belgeler ana sayfası (`/belgeler`): HTTP 200 OK
+  - Paylaşım sayfası (`/b/[token]`): HTTP 200 OK, `Cache-Control: private, no-store`, `X-Robots-Tag: noindex, nofollow, noarchive, nosnippet`
+  - PDF akış uç noktası (`/api/belgeler/paylasim/[token]/pdf`): Hatalı token için güvenli HTTP 400 Bad Request
+- Fiziksel mobil cihaz dokunmatik pinch ve fiziksel yazıcı önizlemeleri için `MANUAL_PENDING` notu korundu.
+- V4 planındaki 9 aşamanın tamamı başarıyla tamamlandı; `execution_status: TAMAMLANDI` olarak kilitlendi.
