@@ -54,7 +54,7 @@ test("Kalıcı annotation hatasında deneme sınırı sonraki PDF revizyonların
   const field = studio.locator("#beton-dokum-yer");
   for (let index = 0; index < 3; index++) {
     await field.fill(`Deneme sınırı ${index}`);
-    await expect(studio.getByText("Canlı Önizleme Hazır", { exact: true })).toBeVisible();
+    await expect(studio.locator('[data-testid="belge-studio-preview-canvas"]')).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(350);
   }
   const calls = await page.evaluate(() => (window as unknown as { __focusProbe: { annotationCalls: number } }).__focusProbe.annotationCalls);
@@ -154,6 +154,7 @@ test.describe("Mobil gerçek yaşam döngüsü", () => {
 test.describe("Yoğun alanlarda yüksek DPR ve erişilebilir görünüm", () => {
   test.use({ deviceScaleFactor: 2 });
   test("Üretilmiş PDF hizası 50/100/200/400 zoom, iki tema ve forced-colors altında korunur", async ({ page }) => {
+    test.setTimeout(60_000);
     await page.emulateMedia({ reducedMotion: "reduce" });
     const studio = await openStudio(page, "santiye-sefi-taahhutnamesi");
     const rects = await readGeneratedFocusRects(page, ["adres"]);
@@ -167,8 +168,10 @@ test.describe("Yoğun alanlarda yüksek DPR ve erişilebilir görünüm", () => 
       await expectFocusRect(studio, "adres", rects.adres);
     }
     await studio.getByTestId("belge-theme-toggle").click();
+    await page.waitForTimeout(300);
     await expectFocusRect(studio, "adres", rects.adres);
     await page.emulateMedia({ forcedColors: "active" });
+    await page.waitForTimeout(500);
     await expectFocusRect(studio, "adres", rects.adres);
     await expect(studio.getByTestId("belge-field-focus-layer")).toHaveAttribute("aria-hidden", "true");
   });

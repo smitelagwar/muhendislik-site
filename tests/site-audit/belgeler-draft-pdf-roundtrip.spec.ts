@@ -16,12 +16,14 @@ for (const [documentId, fields] of Object.entries(DOCUMENT_EDITABLE_FIELDS)) {
     }
     const expected: Record<string, string> = {};
     for (const field of fields) expected[field] = await page.locator(`[data-belge-form-content] [id$="-${field}"]`).inputValue();
-    await page.getByTestId('belge-draft-consent-device').click();
+    // V3: Onaysız otomatik kayıt (2000ms debounce)
+    await expect(page.locator('[data-testid="belge-draft-status-badge"]')).toContainText("Kaydedildi", { timeout: 10_000 });
     await expect.poll(async () => page.evaluate(id => {
       const raw=localStorage.getItem(`belgeler:ux:draft:device:v1:${id}`);
       return raw ? JSON.parse(raw).values : null;
     },documentId)).toEqual(expected);
-    await page.reload(); await page.getByTestId('belge-draft-restore-confirm').click();
+    await page.reload();
+    await page.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
     for (const field of fields) await expect(page.locator(`[data-belge-form-content] [id$="-${field}"]`)).toHaveValue(expected[field]);
     // Başlık sürümleri yerine gerçek toolbar dış bağlantısını kaynakla eşleştir.
     const pdfLink=page.locator('a[target="_blank"][href^="blob:"]').first();

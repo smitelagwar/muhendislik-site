@@ -160,59 +160,42 @@ export function IstifaStudio({
     handleFieldChange(key, ISTIFA_DILEKCESI_DEFAULT_DATA[key] ?? "");
   };
 
-  // Global reset to original PDF default values (Sıfırla - F06 onay korumalı)
+  // Global reset to original PDF default values (Sıfırla - V3 onaysız ve anında kalıcı)
   const handleResetToPdfDefaults = () => {
-    const isDifferent = Object.keys(ISTIFA_DILEKCESI_DEFAULT_DATA).some(
-      (k) => formData[k as keyof IstifaDilekcesiData] !== ISTIFA_DILEKCESI_DEFAULT_DATA[k as keyof IstifaDilekcesiData]
-    );
-    if (
-      isDifferent &&
-      typeof window !== "undefined" &&
-      !window.confirm("Form değerleri varsayılan örneğe sıfırlanacaktır. Bu işlemi onaylıyor musunuz?")
-    ) {
-      return;
-    }
     clearFieldFocusSelection();
-    draft.markFormMutated();
     setUndoData({ ...formData });
-    setFormData({ ...ISTIFA_DILEKCESI_DEFAULT_DATA });
+    draft.replaceAndPersist({ ...ISTIFA_DILEKCESI_DEFAULT_DATA }, "reset");
   };
 
-  // Clear all fields (Temizle - F06 onay korumalı)
+  // Clear all fields (Temizle - V3 onaysız ve anında kalıcı)
   const handleClearAll = () => {
-    const hasValues = Object.values(formData).some((v) => typeof v === "string" && v.trim() !== "");
-    if (
-      hasValues &&
-      typeof window !== "undefined" &&
-      !window.confirm("Tüm form alanları temizlenecektir. Bu işlemi onaylıyor musunuz?")
-    ) {
-      return;
-    }
     clearFieldFocusSelection();
-    draft.markFormMutated();
     setUndoData({ ...formData });
-    setFormData({
-      hitap_1: "",
-      hitap_2: "",
-      ana_paragraf: "",
-      sonuc_cumlesi: "",
-      tarih: "",
-      unvan: "",
-      ad_soyad: "",
-      adres_etiket: "ADRES :",
-      adres_deger: "",
-      tc_etiket: "T.C. :",
-      tc_deger: "",
-      iletisim_etiket: "İletişim :",
-      iletisim_deger: "",
-    });
+    draft.replaceAndPersist(
+      {
+        hitap_1: "",
+        hitap_2: "",
+        ana_paragraf: "",
+        sonuc_cumlesi: "",
+        tarih: "",
+        unvan: "",
+        ad_soyad: "",
+        adres_etiket: "ADRES :",
+        adres_deger: "",
+        tc_etiket: "T.C. :",
+        tc_deger: "",
+        iletisim_etiket: "İletişim :",
+        iletisim_deger: "",
+      },
+      "clear"
+    );
   };
 
   const handleUndo = () => {
     if (!undoData) return;
-    draft.markFormMutated();
-    setFormData(undoData);
+    const previous = undoData;
     setUndoData(null);
+    draft.replaceAndPersist(previous, "undo");
   };
 
 

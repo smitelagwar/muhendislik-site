@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, RotateCcw, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,8 +31,21 @@ export interface BelgeStudioFormViewMenuProps {
   onReset: () => void;
   disabled?: boolean;
   className?: string;
+  side?: "top" | "bottom";
+  align?: "start" | "end" | "center";
+  iconOnly?: boolean;
 }
 
+/**
+ * Belge Stüdyosu — Form Görünümü Menüsü (V3 Sözleşmesi)
+ *
+ * Kurallar:
+ * 1. Alt işlem barında "Boş form indir" düğmesinin hemen solunda yer alır.
+ * 2. Masaüstünde etiketli ("Form Görünümü"), mobilde 44x44px ikon olarak sunulur.
+ * 3. Popover alt bardan YUKARI (side="top") doğru açılır, viewport dışına taşmaz.
+ * 4. "Varsayılana dön" yalnız form ölçeğini sıfırlar; belge form alanlarını sıfırlamaz.
+ * 5. PDF sığdırma ve PDF zoom durumundan tamamen bağımsızdır.
+ */
 export function BelgeStudioFormViewMenu({
   mode,
   manualScale,
@@ -44,8 +58,10 @@ export function BelgeStudioFormViewMenu({
   onReset,
   disabled = false,
   className = "",
+  side = "top",
+  align = "end",
+  iconOnly = false,
 }: BelgeStudioFormViewMenuProps) {
-  // Buton üzerindeki etiket metni
   let buttonLabel = `Form ${formatScaleLabel(manualScale)}`;
   if (mode === "fit") {
     if (fitStatus === "fitted") {
@@ -65,30 +81,45 @@ export function BelgeStudioFormViewMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
-          data-testid="belge-studio-form-view-trigger"
-          aria-label="Form görünüm seçenekleri"
-          title="Form görünümü ve yakınlaştırma seçenekleri"
-          className={`preview-tool-button inline-flex items-center gap-1.5 px-2 py-1 text-xs font-semibold tabular-nums text-foreground transition-all ${className}`}
-        >
-          <SlidersHorizontal className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-          <span>{buttonLabel}</span>
-          <span className="text-[10px] opacity-70">▾</span>
-        </button>
+        {iconOnly ? (
+          <button
+            type="button"
+            disabled={disabled}
+            data-testid="belge-studio-form-view-trigger"
+            aria-label="Form görünüm seçenekleri"
+            title="Form görünüm seçenekleri"
+            className={`inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-border/80 bg-card/90 p-0 text-muted-foreground transition hover:border-amber-500/50 hover:text-foreground dark:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer ${className}`}
+          >
+            <SlidersHorizontal className="h-[20px] w-[20px] text-amber-500 shrink-0" />
+          </button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={disabled}
+            data-testid="belge-studio-form-view-trigger"
+            aria-label="Form görünüm seçenekleri"
+            title="Form görünümü ve yakınlaştırma seçenekleri"
+            className={`min-h-11 gap-2 text-xs font-semibold ${className}`}
+          >
+            <SlidersHorizontal className="size-4 text-amber-500 shrink-0" />
+            <span>Form Görünümü</span>
+            <span className="text-[10px] opacity-70">▾</span>
+          </Button>
+        )}
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        side="bottom"
-        align="end"
-        sideOffset={8}
+        side={side}
+        align={align}
+        sideOffset={10}
         collisionPadding={12}
-        className="w-56 rounded-xl border border-border bg-popover p-1.5 shadow-xl text-popover-foreground z-50"
+        className="w-56 max-w-[calc(100vw-1rem)] rounded-xl border border-border bg-popover p-1.5 shadow-xl text-popover-foreground z-50 max-h-[85vh] overflow-y-auto"
         data-testid="belge-studio-form-view-menu"
       >
-        <DropdownMenuLabel className="px-2 py-1 text-xs font-bold text-muted-foreground">
-          Form Görünümü
+        <DropdownMenuLabel className="px-2 py-1 text-xs font-bold text-muted-foreground flex items-center justify-between">
+          <span>Form Görünümü</span>
+          <span className="text-[10px] font-mono font-normal opacity-70">{buttonLabel}</span>
         </DropdownMenuLabel>
 
         {FORM_SCALE_PRESETS.map((scale) => {

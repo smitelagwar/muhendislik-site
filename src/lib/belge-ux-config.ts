@@ -38,15 +38,17 @@ export type DraftConsentDecision = "device" | "session" | "dismissed";
  * Yaşam döngüsü durumları (UI ve hook için)
  */
 export type AutoDraftLifecycleState =
-  | "disabled"
-  | "consent-pending"
   | "booting"
-  | "restore-decision"
-  | "enabled-idle"
+  | "idle"
+  | "dirty"
   | "saving"
   | "saved"
   | "save-error"
-  | "conflict";
+  | "conflict"
+  | "disabled"
+  | "enabled-idle"
+  | "consent-pending"
+  | "restore-decision";
 
 /**
  * Depolama anahtar ad alanları ve sabitleri
@@ -61,6 +63,7 @@ export const BELGE_STORAGE_KEYS = {
   // Otomatik taslak anahtarları (mod ayrımı ile bağımsız ad alanları)
   DRAFT_DEVICE_PREFIX: "belgeler:ux:draft:device:v1:",
   DRAFT_SESSION_PREFIX: "belgeler:ux:draft:session:v1:",
+  DRAFT_RECOVERY_PREFIX: "belgeler:ux:draft:recovery:v1:",
 
   // PII içermeyen onay/tercih anahtarları
   CONSENT_DEVICE: "belgeler:ux:draft-consent:device:v1",
@@ -71,8 +74,8 @@ export const BELGE_STORAGE_KEYS = {
  * Zaman ve boyut limitleri
  */
 export const BELGE_UX_LIMITS = {
-  // Trailing debounce süresi (ms)
-  AUTOSAVE_DEBOUNCE_MS: 800,
+  // Trailing debounce süresi (ms) — V3 kesin sözleşme: 2.000 ms
+  AUTOSAVE_DEBOUNCE_MS: 2000,
 
   // Varsayılan UTF-8 JSON depolama güvenlik sınırı (64 KiB)
   DRAFT_MAX_BYTES: 64 * 1024,

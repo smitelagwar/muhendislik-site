@@ -181,7 +181,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
     await expect(highlight).toBeVisible();
     await expect(highlight).toHaveAttribute("data-field-key", "yer");
 
-    await expect(studio.getByText("Canlı Önizleme Hazır")).toBeVisible({ timeout: 10_000 });
+    await expect(studio.locator('[data-testid="belge-studio-preview-canvas"]')).toBeVisible({ timeout: 10_000 });
 
     await expect(highlight).toBeVisible();
     await expect(highlight).toHaveAttribute("data-field-key", "yer");
@@ -190,7 +190,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
     await olayInput.focus();
     await expect(highlight).toHaveAttribute("data-field-key", "olay_aciklamasi");
     await olayInput.fill("Beton döküm işlemi hava şartları nedeniyle saat 14:00 itibariyle durdurulmuştur.");
-    await expect(studio.getByText("Canlı Önizleme Hazır")).toBeVisible({ timeout: 10_000 });
+    await expect(studio.locator('[data-testid="belge-studio-preview-canvas"]')).toBeVisible({ timeout: 10_000 });
     await expect(highlight).toHaveAttribute("data-field-key", "olay_aciklamasi");
   });
 
@@ -304,7 +304,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
     const studio = await openStudio(page, "beton-dokum-tutanagi");
     const highlight = studio.locator('[data-testid="belge-field-focus-highlight"]');
 
-    await expect(studio.getByText("Canlı Önizleme Hazır")).toBeVisible({ timeout: 10_000 });
+    await expect(studio.locator('[data-testid="belge-studio-preview-canvas"]')).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(500);
 
     const initialMetrics = await page.evaluate(() => {
@@ -333,7 +333,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
     expect(postFocusMetrics.getAnnotationsCount).toBe(initialMetrics.getAnnotationsCount);
 
     await studio.locator("#beton-dokum-yer").fill("Test Yeni Metin");
-    await expect(studio.getByText("Canlı Önizleme Hazır")).toBeVisible({ timeout: 10_000 });
+    await expect(studio.locator('[data-testid="belge-studio-preview-canvas"]')).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(500);
 
     const postTypingMetrics = await page.evaluate(() => {
@@ -375,7 +375,7 @@ test.describe("Belgeler Form PDF Alan Odak Vurgusu — ASAMA_04 Pilot E2E", () =
 
     await studio.locator("#beton-dokum-yibf").focus();
     await expect(highlight).toBeVisible();
-    await studio.locator("h2").first().click();
+    await studio.locator("h1").first().click();
     await page.waitForTimeout(200);
     await expect(highlight).toHaveCount(0);
   });

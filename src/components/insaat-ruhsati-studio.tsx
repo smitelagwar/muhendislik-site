@@ -209,22 +209,11 @@ export function InsaatRuhsatiStudio({
     handleFieldChange(key, INSAAT_RUHSATI_DEFAULT_DATA[key] ?? "");
   };
 
-  // Global reset to original PDF default values (Sıfırla - F06 onay korumalı)
+  // Global reset to original PDF default values (Sıfırla - V3 onaysız ve anında kalıcı)
   const handleResetToPdfDefaults = () => {
-    const isDifferent = Object.keys(INSAAT_RUHSATI_DEFAULT_DATA).some(
-      (k) => formData[k as keyof InsaatRuhsatiData] !== INSAAT_RUHSATI_DEFAULT_DATA[k as keyof InsaatRuhsatiData]
-    );
-    if (
-      isDifferent &&
-      typeof window !== "undefined" &&
-      !window.confirm("Form değerleri varsayılan örneğe sıfırlanacaktır. Bu işlemi onaylıyor musunuz?")
-    ) {
-      return;
-    }
     clearFieldFocusSelection();
-    draft.markFormMutated();
     setUndoData({ ...formData });
-    setFormData({ ...INSAAT_RUHSATI_DEFAULT_DATA });
+    draft.replaceAndPersist({ ...INSAAT_RUHSATI_DEFAULT_DATA }, "reset");
   };
 
   // Randomize button handler (F06 onay korumalı)
@@ -245,36 +234,30 @@ export function InsaatRuhsatiStudio({
     setFormData({ ...sample });
   };
 
-  // Clear all fields (Temizle - F06 onay korumalı)
+  // Clear all fields (Temizle - V3 onaysız ve anında kalıcı)
   const handleClearAll = () => {
-    const hasValues = Object.values(formData).some((v) => typeof v === "string" && v.trim() !== "");
-    if (
-      hasValues &&
-      typeof window !== "undefined" &&
-      !window.confirm("Tüm form alanları temizlenecektir. Bu işlemi onaylıyor musunuz?")
-    ) {
-      return;
-    }
     clearFieldFocusSelection();
-    draft.markFormMutated();
     setUndoData({ ...formData });
-    setFormData({
-      tarih: "",
-      belediye_adi: "",
-      mudurluk_adi: "",
-      ana_metin: "",
-      ad_soyad: "",
-      unvan: "",
-      adres: "",
-      tel: "",
-    });
+    draft.replaceAndPersist(
+      {
+        tarih: "",
+        belediye_adi: "",
+        mudurluk_adi: "",
+        ana_metin: "",
+        ad_soyad: "",
+        unvan: "",
+        adres: "",
+        tel: "",
+      },
+      "clear"
+    );
   };
 
   const handleUndo = () => {
     if (!undoData) return;
-    draft.markFormMutated();
-    setFormData(undoData);
+    const previous = undoData;
     setUndoData(null);
+    draft.replaceAndPersist(previous, "undo");
   };
 
 

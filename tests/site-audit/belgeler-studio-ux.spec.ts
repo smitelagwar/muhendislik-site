@@ -17,56 +17,50 @@ test.describe("Belgeler Stüdyosu — ASAMA_08 Entegre UX ve Stres Paketi", () =
     });
   });
 
-  test("Senaryo 1: Tam döngü — İzin, Türkçe metin kaydı, akordeon, PDF odak, reload ve geri yükleme", async ({ page }) => {
+  test("Senaryo 1: Tam döngü — Türkçe metin kaydı, akordeon, PDF odak, reload ve sessiz geri yükleme", async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 850 });
     await page.goto("/belgeler/beton-dokum-tutanagi");
     await page.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
 
     // 1. Şantiye Yeri alanına uzun Türkçe adres yaz
     const yerInput = page.locator("#beton-dokum-yer");
-    await yerInput.fill("Ankara İli Çankaya İlçesi 1234 Ada 56 Parsel Zemin Kat Şantiye Sahası");
+    await yerInput.fill("Ankara İli Çankaya İlçesi 1234 Ada 56 Parsel Zemin Kat Şantiye Sahası V3");
 
-    // 2. İzin şeridi belirir -> "Bu cihazda kaydet" seç
-    const deviceConsentBtn = page.locator('[data-testid="belge-draft-consent-device"]');
-    await expect(deviceConsentBtn).toBeVisible({ timeout: 5000 });
-    await deviceConsentBtn.click();
-
-    // 3. 800ms debounce sonrası durum rozetinin "Taslak (Cihaz)" olduğunu doğrula
-    await page.waitForTimeout(1100);
+    // 2. V3: İzin şeridi çıkmaz; 2000ms debounce sonrası durum rozetinin 'Kaydedildi' olduğunu doğrula
+    await page.waitForTimeout(2400);
     const badge = page.locator('[data-testid="belge-draft-status-badge"]');
     await expect(badge).toBeVisible();
-    await expect(badge).toContainText("Taslak (Cihaz)");
+    await expect(badge).toContainText("Kaydedildi");
 
-    // 4. Akordeon bölümünü kapat ve aç
+    // 3. Akordeon bölümünü kapat ve aç
     const sectionToggle = page.locator('[data-testid="belge-section-toggle-belge-kayit"]');
     await sectionToggle.click();
     await expect(sectionToggle).toHaveAttribute("aria-expanded", "false");
     await sectionToggle.click();
     await expect(sectionToggle).toHaveAttribute("aria-expanded", "true");
 
-    // 5. PDF Odak Modunu aç ve kapat
+    // 4. PDF Odak Modunu aç ve kapat
     const focusToggle = page.locator('[data-testid="belge-pdf-focus-toggle"]');
     await focusToggle.click();
     await expect(page.locator('[data-testid="belge-studio-form-scroll"]')).toBeHidden();
     await focusToggle.click();
     await expect(page.locator('[data-testid="belge-studio-form-scroll"]')).toBeVisible();
 
-    // 6. Sayfayı yenile (reload)
+    // 5. Sayfayı yenile (reload)
     await page.reload();
     await page.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
 
-    // 7. Taslak kurtarma şeridi belirir -> "Taslağı Yükle" tıkla
+    // 6. V3: Kurtarma şeridi çıkmaz, sessizce geri yüklenir
     const restoreBanner = page.locator('[data-testid="belge-draft-restore-banner"]');
-    await expect(restoreBanner).toBeVisible({ timeout: 5000 });
-    await page.locator('[data-testid="belge-draft-restore-confirm"]').click();
+    await expect(restoreBanner).toHaveCount(0);
 
-    // 8. Hem input değerinin hem de PDF linkinin güncellendiğini doğrula
-    await expect(yerInput).toHaveValue("Ankara İli Çankaya İlçesi 1234 Ada 56 Parsel Zemin Kat Şantiye Sahası");
+    // 7. Hem input değerinin hem de PDF linkinin güncellendiğini doğrula
+    await expect(yerInput).toHaveValue("Ankara İli Çankaya İlçesi 1234 Ada 56 Parsel Zemin Kat Şantiye Sahası V3");
     const pdfLink = page.locator('a[title*="sekmede"]');
     await expect(pdfLink).toHaveAttribute("href", /^blob:/);
   });
 
-  test("Senaryo 2: Varsayılan şablon, Temizle snapshot kaydı ve Undo doğrulaması", async ({ page }) => {
+  test("Senaryo 2: Varsayılan şablon, onaysız Temizle snapshot kaydı ve Undo doğrulaması", async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 850 });
     await page.goto("/belgeler/beton-dokum-tutanagi");
     await page.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
@@ -77,74 +71,53 @@ test.describe("Belgeler Stüdyosu — ASAMA_08 Entegre UX ve Stres Paketi", () =
     });
     expect(initialDraft).toBeNull();
 
-    // İzni önceden aktif et
-    await page.evaluate(() => {
-      window.localStorage.setItem("belgeler:ux:draft-consent:device:v1", "device");
-    });
-    await page.reload();
-    await page.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
-
-    // 2. Temizle eylemini tetikle (window.confirm onay kapısı)
-    page.once("dialog", (dialog) => dialog.accept());
-    const clearBtn = page.locator('button:has-text("Temizle")');
-    await clearBtn.click();
-
-    // 3. Formun temizlendiğini ve yeni snapshot'ın boş verilerle kaydolduğunu doğrula
+    // 2. Bir alan doldur ve kaydet
     const yerInput = page.locator("#beton-dokum-yer");
+    await yerInput.fill("Temizlenecek Adres");
+    await page.waitForTimeout(2400);
+
+    // 3. Temizle eylemini tetikle (V3: window.confirm yok)
+    let confirmOpened = false;
+    page.on("dialog", async (dialog) => {
+      confirmOpened = true;
+      await dialog.accept();
+    });
+    const clearBtn = page.locator('footer[data-testid="belge-studio-actions"] button:has-text("Temizle")').first();
+    await clearBtn.click();
+    await page.waitForTimeout(500);
+
+    expect(confirmOpened).toBe(false);
     await expect(yerInput).toHaveValue("");
 
-    await page.waitForTimeout(1000);
+    // 4. Depoda boş snapshot olduğunu doğrula
     const clearedDraft = await page.evaluate(() => {
       return window.localStorage.getItem("belgeler:ux:draft:device:v1:beton-dokum-tutanagi");
     });
     expect(clearedDraft).not.toBeNull();
+    expect(JSON.parse(clearedDraft!).values.yer).toBe("");
 
-    // 4. Reload sonrası eski dolu verinin hortlamadığını doğrula
-    await page.reload();
-    await page.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
-
-    // Temiz snapshot olduğu için restore banner çıksa bile yüklenince boş kalmalıdır
-    const restoreBanner = page.locator('[data-testid="belge-draft-restore-banner"]');
-    await expect(restoreBanner).toBeVisible({ timeout: 5000 });
-    await page.locator('[data-testid="belge-draft-restore-confirm"]').click();
-    await expect(yerInput).toHaveValue("");
-
-    // 5. Geri Al (Undo) butonuna tıkla ve önceki dolu verinin geri geldiğini doğrula (F17)
-    const undoBtn = page.locator('button:has-text("Geri Al")');
+    // 5. Geri Al (Undo) butonuna tıkla ve önceki dolu verinin geri geldiğini doğrula
+    const undoBtn = page.locator('footer[data-testid="belge-studio-actions"] button:has-text("Geri al")').first();
     await expect(undoBtn).toBeVisible();
     await expect(undoBtn).toBeEnabled();
     await undoBtn.click();
-    await expect(yerInput).not.toHaveValue("");
+    await page.waitForTimeout(500);
+    await expect(yerInput).toHaveValue("Temizlenecek Adres");
   });
 
-  test("Senaryo 3: Cihaz ve Sekme modları, gizlilik ve depolama toleransı", async ({ page }) => {
+  test("Senaryo 3: Depolama toleransı ve bozuk veri koruması", async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 850 });
     await page.goto("/belgeler/beton-dokum-tutanagi");
     await page.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
 
-    // 1. "Kaydetme" seçildiğinde depoya PII yazılmamalı
+    // 1. Onaysız otomatik kayıt kontrolü
     const titleInput = page.locator("#beton-dokum-tutanak_alt_baslik");
-    await titleInput.fill("Gizli Proje Bilgisi");
-
-    const dismissBtn = page.locator('[data-testid="belge-draft-consent-dismiss"]');
-    await expect(dismissBtn).toBeVisible({ timeout: 5000 });
-    await dismissBtn.click();
-
-    await page.waitForTimeout(1000);
-    const storageKeys = await page.evaluate(() => {
-      const keys: string[] = [];
-      for (let i = 0; i < window.localStorage.length; i++) {
-        const k = window.localStorage.key(i);
-        if (k?.startsWith("belgeler:ux:draft:device")) keys.push(k);
-      }
-      return keys;
-    });
-    expect(storageKeys).toHaveLength(0);
+    await titleInput.fill("Depolama Toleransı Proje Bilgisi");
+    await expect(page.locator('[data-testid="belge-draft-status-badge"]')).toContainText("Kaydedildi", { timeout: 10_000 });
 
     // 2. Bozuk depolama verisi simülasyonu: geçersiz JSON yazıldığında stüdyo çökmemeli
     await page.evaluate(() => {
       window.localStorage.setItem("belgeler:ux:draft:device:v1:beton-dokum-tutanagi", "{ bozuk-json-verisi ");
-      window.localStorage.setItem("belgeler:ux:draft-consent:device:v1", "device");
     });
     await page.reload();
     await page.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
@@ -154,16 +127,14 @@ test.describe("Belgeler Stüdyosu — ASAMA_08 Entegre UX ve Stres Paketi", () =
     await expect(page.locator('[data-testid="belge-studio-preview-toolbar"]')).toBeVisible();
   });
 
-  test("Senaryo 4: Çoklu sekme çakışması ve Takeover akışı", async ({ context }) => {
+  test("Senaryo 4: Çoklu sekme bağımsız yazım ve storage tutarlılığı", async ({ context }) => {
     const pageA = await context.newPage();
     const pageB = await context.newPage();
 
-    // İzni cihazda aktif et
     await pageA.goto("/belgeler/beton-dokum-tutanagi");
     await pageA.evaluate(() => {
       window.localStorage.clear();
       window.sessionStorage.clear();
-      window.localStorage.setItem("belgeler:ux:draft-consent:device:v1", "device");
     });
     await pageA.reload();
     await pageA.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
@@ -171,34 +142,23 @@ test.describe("Belgeler Stüdyosu — ASAMA_08 Entegre UX ve Stres Paketi", () =
     await pageB.goto("/belgeler/beton-dokum-tutanagi");
     await pageB.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
 
-    // Sekme A'da veri yaz ve bekle
+    // Sekme A'da veri yaz ve kaydı bekle
     const inputA = pageA.locator("#beton-dokum-tutanak_alt_baslik");
     await inputA.fill("Sekme A Notu");
-    await pageA.waitForTimeout(1200);
+    await expect(pageA.locator('[data-testid="belge-draft-status-badge"]')).toContainText("Kaydedildi", { timeout: 10_000 });
 
-    // Sekme B'de veri yaz
+    // Sekme B'de veri yaz ve kaydı bekle
+    await pageB.bringToFront();
     const inputB = pageB.locator("#beton-dokum-tutanak_alt_baslik");
     await inputB.fill("Sekme B Notu");
+    await expect(pageB.locator('[data-testid="belge-draft-status-badge"]')).toContainText("Kaydedildi", { timeout: 10_000 });
 
-    // Sekme B çakışma şeridinde 'Bu Sekmedekiyle Devam Et' (takeover) seçer
-    const takeoverBtnB = pageB.locator('[data-testid="belge-draft-conflict-takeover"]');
-    await expect(takeoverBtnB).toBeVisible({ timeout: 6000 });
-    pageB.once("dialog", dialog => dialog.accept());
-    await takeoverBtnB.click();
-    await pageB.waitForTimeout(1200);
-
-    // Sekme A'ya bak: conflict banner belirmiş olmalı
-    const conflictBannerA = pageA.locator('[data-testid="belge-draft-conflict-banner"]');
-    await expect(conflictBannerA).toBeVisible({ timeout: 6000 });
-
-    // Sekme A "Diğer Sekmedekini Yükle" der (F05 window.confirm onay kapısı)
-    pageA.once("dialog", (dialog) => dialog.accept());
-    const reloadBtnA = pageA.locator('[data-testid="belge-draft-conflict-reload"]');
-    await reloadBtnA.click();
-    await expect(conflictBannerA).toHaveCount(0);
-
-    // Sekme A'daki input değeri B'nin yazdığı değer olmalı
-    await expect(inputA).toHaveValue("Sekme B Notu");
+    // Depodaki en son yazılan değer Sekme B Notu olmalı
+    const stored = await pageB.evaluate(() => {
+      const raw = window.localStorage.getItem("belgeler:ux:draft:device:v1:beton-dokum-tutanagi");
+      return raw ? JSON.parse(raw).values.tutanak_alt_baslik : null;
+    });
+    expect(stored).toBe("Sekme B Notu");
 
     await pageA.close();
     await pageB.close();
@@ -219,14 +179,11 @@ test.describe("Belgeler Stüdyosu — ASAMA_08 Entegre UX ve Stres Paketi", () =
     await nameInput.fill("Mehmet Kaya");
     const signInput = page.locator("#sozlesme-santiye_sefi_imza_adi");
     await signInput.fill("Mehmet KAYA (Özel Temsilci)");
-    await page.waitForTimeout(1100);
+    await page.waitForTimeout(2400);
 
     await page.reload();
     await page.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
-    const restoreConfirm = page.locator('[data-testid="belge-draft-restore-confirm"]');
-    if (await restoreConfirm.isVisible()) {
-      await restoreConfirm.click();
-    }
+    // V3: Sessiz restore, confirm gerekmez
     await expect(nameInput).toHaveValue("Mehmet Kaya");
     await expect(signInput).toHaveValue("Mehmet KAYA (Özel Temsilci)");
 

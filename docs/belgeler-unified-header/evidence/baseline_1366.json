@@ -4,20 +4,20 @@
     "height": 768
   },
   "outerNav": {
-    "clientHeight": 52,
-    "offsetHeight": 53,
+    "clientHeight": 44,
+    "offsetHeight": 44,
     "isVisible": true
   },
   "studioHeader": {
-    "clientHeight": 56,
-    "offsetHeight": 57
+    "clientHeight": 63,
+    "offsetHeight": 64
   },
   "previewToolbar": {
     "clientHeight": 44,
     "offsetHeight": 44
   },
   "formScroll": {
-    "clientHeight": 585
+    "clientHeight": 635
   },
   "pdfCanvas": {
     "clientHeight": 150,

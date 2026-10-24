@@ -1397,50 +1397,42 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   }
 }
 
+/* Belge Stüdyosu — PDF Önizleme Araç Çubuğu (V3 Geometrik Merkezleme) */
 .belge-preview-controls {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: center;
+  width: 100%;
   gap: 4px;
-  flex-wrap: nowrap;
   min-width: 0;
 }
 
-@media (max-width: 1023px) {
-  .belge-preview-controls[data-multipage="true"] {
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
-    gap: 4px;
-    min-width: 0;
+@media (min-width: 640px) {
+  .belge-preview-controls {
+    grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
   }
+}
 
-  .belge-preview-controls[data-multipage="true"] .belge-preview-navigation {
-    flex: 0 0 auto;
-  }
+.belge-preview-left {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
+}
 
-  .belge-preview-controls[data-multipage="true"] .belge-preview-zoom {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
+.belge-preview-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
 
-  .belge-preview-controls[data-multipage="true"] .belge-preview-zoom > span[aria-hidden="true"] {
-    display: none;
-  }
-
-  .belge-preview-controls[data-multipage="true"] .belge-preview-direct-action {
-    display: none;
-  }
-
-  .belge-preview-controls[data-multipage="true"] .belge-mobile-multipage-zoom-label {
-    display: none;
-  }
-
-  @container (min-width: 360px) {
-    .belge-preview-controls[data-multipage="true"] .belge-mobile-multipage-zoom-label {
-      display: inline;
-    }
-  }
+.belge-preview-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
 }
 
 

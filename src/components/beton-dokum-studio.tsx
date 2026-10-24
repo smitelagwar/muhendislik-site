@@ -160,56 +160,39 @@ export function BetonDokumStudio({
     handleFieldChange(key, BETON_DOKUM_DEFAULT_DATA[key] ?? "");
   };
 
-  // Global reset to original PDF default values (Sıfırla - F06 onay korumalı)
+  // Global reset to original PDF default values (Sıfırla - V3 onaysız ve anında kalıcı)
   const handleResetToPdfDefaults = () => {
-    const isDifferent = Object.keys(BETON_DOKUM_DEFAULT_DATA).some(
-      (k) => formData[k as keyof BetonDokumData] !== BETON_DOKUM_DEFAULT_DATA[k as keyof BetonDokumData]
-    );
-    if (
-      isDifferent &&
-      typeof window !== "undefined" &&
-      !window.confirm("Form değerleri varsayılan örneğe sıfırlanacaktır. Bu işlemi onaylıyor musunuz?")
-    ) {
-      return;
-    }
     clearFieldFocusSelection();
-    draft.markFormMutated();
     setUndoData({ ...formData });
-    setFormData({ ...BETON_DOKUM_DEFAULT_DATA });
+    draft.replaceAndPersist({ ...BETON_DOKUM_DEFAULT_DATA }, "reset");
   };
 
-  // Clear all fields (Temizle - F06 onay korumalı)
+  // Clear all fields (Temizle - V3 onaysız ve anında kalıcı)
   const handleClearAll = () => {
-    const hasValues = Object.values(formData).some((v) => typeof v === "string" && v.trim() !== "");
-    if (
-      hasValues &&
-      typeof window !== "undefined" &&
-      !window.confirm("Tüm form alanları temizlenecektir. Bu işlemi onaylıyor musunuz?")
-    ) {
-      return;
-    }
     clearFieldFocusSelection();
-    draft.markFormMutated();
     setUndoData({ ...formData });
-    setFormData({
-      tutanak_alt_baslik: "",
-      tarih: "",
-      yer: "",
-      yibf: "",
-      olay_aciklamasi: "",
-      gozlem_notlar: "",
-      laboratuvar: "",
-      muteahhit: "",
-      santiye_sefi: "",
-      yapi_denetim: "",
-    });
+    draft.replaceAndPersist(
+      {
+        tutanak_alt_baslik: "",
+        tarih: "",
+        yer: "",
+        yibf: "",
+        olay_aciklamasi: "",
+        gozlem_notlar: "",
+        laboratuvar: "",
+        muteahhit: "",
+        santiye_sefi: "",
+        yapi_denetim: "",
+      },
+      "clear"
+    );
   };
 
   const handleUndo = () => {
     if (!undoData) return;
-    draft.markFormMutated();
-    setFormData(undoData);
+    const previous = undoData;
     setUndoData(null);
+    draft.replaceAndPersist(previous, "undo");
   };
 
 

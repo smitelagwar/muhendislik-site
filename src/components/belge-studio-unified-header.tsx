@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertCircle, Loader2, X } from "lucide-react";
 import { BelgeBackIcon } from "@/components/belge-studio-icons";
 import { BelgeStudioDraftStatusBadge } from "@/components/belge-studio-draft-controls";
+import { BelgeStudioThemeToggle } from "@/components/belge-studio-theme-toggle";
 import type { UseBelgeAutoDraftReturn } from "@/hooks/use-belge-auto-draft";
 
 export type BelgeStudioUnifiedHeaderProps = {
@@ -20,6 +21,17 @@ export type BelgeStudioUnifiedHeaderProps = {
   className?: string;
 };
 
+/**
+ * Belge Stüdyosu — Tek Ortak Üst Bar (V3 Sözleşmesi)
+ *
+ * Yerleşim Sırası (Görsel ve DOM):
+ * [Geri/Başlık/İkon] [Orta Slot: PDF Zoom & Navigasyon] [Ek Aksiyonlar] [✓ Kaydedildi] [gerekliyse Modal X] [TEMA ANAHTARI]
+ *
+ * Kurallar:
+ * - Tema anahtarı üst barın EN SAĞINDA yer alır.
+ * - Modal X varsa tema anahtarının SOLUNDA kalır.
+ * - "Canlı Önizleme Hazır" yazısı ve yeşil nabız rozeti tamamen kaldırılmıştır.
+ */
 export function BelgeStudioUnifiedHeader({
   title,
   subtitle,
@@ -66,14 +78,14 @@ export function BelgeStudioUnifiedHeader({
         <div className="min-w-0">
           {isModal ? (
             <h2
-              className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate"
+              className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate max-w-[90px] min-[400px]:max-w-[140px] sm:max-w-none"
               title={title}
             >
               {title}
             </h2>
           ) : (
             <h1
-              className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate"
+              className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate max-w-[90px] min-[400px]:max-w-[140px] sm:max-w-none"
               title={title}
             >
               {title}
@@ -90,14 +102,14 @@ export function BelgeStudioUnifiedHeader({
         </div>
       </div>
 
-      {/* Orta Bölge: PDF Toolbar Portal Slotu (ASAMA_03 ile toolbar buraya createPortal edilecek) */}
+      {/* Orta Bölge: PDF Toolbar Portal Slotu (PreviewToolbar buraya createPortal ile yansıtılır) */}
       <div
         ref={toolbarSlotRef}
         data-testid="belge-unified-toolbar-slot"
-        className="flex min-w-0 flex-1 items-center justify-center shrink-0 sm:shrink"
+        className="flex min-w-0 flex-1 items-center justify-center shrink"
       />
 
-      {/* Sağ Bölge: Ek Aksiyonlar + Taslak Durum Rozeti + Canlı Durum İndikatörü + Modal Kapatma */}
+      {/* Sağ Bölge: Ek Aksiyonlar + Taslak Minimal Durum + Süreç İndikatörü + Modal Kapatma + TEMA ANAHTARI */}
       <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
         {extraActions}
         <BelgeStudioDraftStatusBadge draftApi={draftApi} />
@@ -112,16 +124,6 @@ export function BelgeStudioUnifiedHeader({
           </span>
         )}
 
-        {syncStatus === "synced" && (
-          <span
-            className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400"
-            role="status"
-          >
-            <span className="h-1.5 w-1.5 rounded-full animate-pulse bg-emerald-500 shrink-0" />
-            <span className="hidden sm:inline">Canlı Önizleme Hazır</span>
-          </span>
-        )}
-
         {syncStatus === "error" && (
           <span
             className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive"
@@ -132,17 +134,21 @@ export function BelgeStudioUnifiedHeader({
           </span>
         )}
 
+        {/* Modal Kapanış (X) — V3: TEMA SWITCH'IN SOLUNDA */}
         {isModal && onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-border text-muted-foreground transition hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
             aria-label="Pencereyi Kapat"
             title="Kapat"
           >
             <X className="h-4 w-4" />
           </button>
         )}
+
+        {/* TEMA SWITCH — V3: ÜST BARIN GÖRSEL VE DOM OLARAK EN SAĞINDA */}
+        <BelgeStudioThemeToggle />
       </div>
     </header>
   );

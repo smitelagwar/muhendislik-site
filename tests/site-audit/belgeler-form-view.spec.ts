@@ -23,26 +23,28 @@ test.describe("Belgeler Form View & UX Regresyon Paketi", () => {
       await expect(content).toHaveAttribute("data-scale", "1");
       await expect(content).toHaveAttribute("data-density", "normal");
 
-      // Masaüstü toolbar: Tek satır ve tema anahtarının solunda Form düğmesi
-      const trigger = page.locator('[data-testid="belge-studio-form-view-trigger"]');
-      const themeToggle = page.locator('[data-testid="belge-theme-toggle"]');
+      // Masaüstü V3: Footer'da Form Görünümü butonu ve Boş form indir yan yana
+      const trigger = page.locator('[data-testid="belge-studio-desktop-actions"] [data-testid="belge-studio-form-view-trigger"]');
+      const blankFormBtn = page.locator('[data-testid="belge-studio-desktop-actions"] button:has-text("Boş form indir")');
+      const themeToggle = page.locator('[data-testid="belge-studio-top-header"] [data-testid="belge-theme-toggle"]');
       const toolbar = page.locator('[data-testid="belge-studio-preview-toolbar"]');
 
       await expect(trigger).toBeVisible({ timeout: 5_000 });
+      await expect(blankFormBtn).toBeVisible({ timeout: 5_000 });
       await expect(themeToggle).toBeVisible({ timeout: 5_000 });
 
       const triggerBox = await trigger.boundingBox();
-      const themeBox = await themeToggle.boundingBox();
+      const blankFormBox = await blankFormBtn.boundingBox();
       const toolbarBox = await toolbar.boundingBox();
 
       expect(triggerBox).not.toBeNull();
-      expect(themeBox).not.toBeNull();
+      expect(blankFormBox).not.toBeNull();
       expect(toolbarBox).not.toBeNull();
 
-      // Tek satırda olmalı (yükseklik farkı 12px'den küçük olmalı)
-      expect(Math.abs(triggerBox!.y - themeBox!.y)).toBeLessThan(12);
-      expect(triggerBox!.x + triggerBox!.width).toBeLessThanOrEqual(themeBox!.x + 12);
-      expect(toolbarBox!.height).toBeLessThanOrEqual(52);
+      // Form görünümü Boş form indir ile aynı satırda ve hemen solunda olmalı
+      expect(Math.abs(triggerBox!.y - blankFormBox!.y)).toBeLessThan(12);
+      expect(triggerBox!.x + triggerBox!.width).toBeLessThanOrEqual(blankFormBox!.x + 12);
+      expect(toolbarBox!.height).toBeLessThanOrEqual(56);
 
       // Menü açılışı
       await trigger.click();
@@ -117,17 +119,15 @@ test.describe("Belgeler Form View & UX Regresyon Paketi", () => {
     const switchedLabel = await toggleBtn.getAttribute("aria-label");
     expect(initialLabel).not.toEqual(switchedLabel);
 
-    // Diğer belge işlemleri menüsü
-    const moreBtn = page.locator('button[aria-label="Diğer belge işlemleri"]');
-    await moreBtn.click();
-    const formTrigger = page.locator('[data-testid="belge-mobile-form-view-trigger"]');
+    // Mobil alt barda doğrudan yer alan Form Görünümü tetikleyicisi
+    const formTrigger = page.locator('[data-testid="belge-studio-mobile-actions"] [data-testid="belge-studio-form-view-trigger"]');
     await expect(formTrigger).toBeVisible({ timeout: 5_000 });
 
-    // Form görünümü alt menüsü
+    // Form görünümü menüsünü aç
     await formTrigger.click();
-    const mobileFitBtn = page.locator('[data-testid="belge-mobile-form-view-fit"]');
+    const mobileFitBtn = page.locator('[data-testid="form-view-fit"]');
     await expect(mobileFitBtn).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('[data-testid="belge-mobile-form-scale-90"]')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('[data-testid="form-view-scale-90"]')).toBeVisible({ timeout: 5_000 });
 
     // Mobil sığdır eylemini çalıştır
     await mobileFitBtn.click();
@@ -154,14 +154,12 @@ test.describe("Belgeler Form View & UX Regresyon Paketi", () => {
     await expect(formScroll).toBeVisible({ timeout: 10_000 });
     await expect(content).toBeVisible({ timeout: 5_000 });
 
-    // Tablette alt menüden Fit tetikle (gizli lg:flex başlık elemanı fit ölçümünü bozmamalıdır)
-    const moreBtn = page.locator('button[aria-label="Diğer belge işlemleri"]');
-    await moreBtn.click();
-    const formTrigger = page.locator('[data-testid="belge-mobile-form-view-trigger"]');
+    // Tablette (< 1024px) alt barda doğrudan yer alan Form Görünümü tetikleyicisini kullan
+    const formTrigger = page.locator('[data-testid="belge-studio-mobile-actions"] [data-testid="belge-studio-form-view-trigger"]');
     await expect(formTrigger).toBeVisible({ timeout: 5_000 });
     await formTrigger.click();
 
-    const fitBtn = page.locator('[data-testid="belge-mobile-form-view-fit"]');
+    const fitBtn = page.locator('[data-testid="form-view-fit"]');
     await expect(fitBtn).toBeVisible({ timeout: 5_000 });
     await fitBtn.click();
     await page.waitForTimeout(300);

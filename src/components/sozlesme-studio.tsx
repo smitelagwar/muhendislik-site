@@ -179,50 +179,29 @@ export function SozlesmeStudio({
     handleFieldChange(field, SOZLESME_DEFAULT_DATA[field] ?? "");
   }, [handleFieldChange]);
 
-  // Global reset to original PDF default values (Sıfırla - F06 onay korumalı)
+  // Global reset to original PDF default values (Sıfırla - V3 onaysız ve anında kalıcı)
   const handleResetToPdfDefaults = useCallback(() => {
-    const isDifferent = Object.keys(SOZLESME_DEFAULT_DATA).some(
-      (k) => formData[k as keyof SozlesmeData] !== SOZLESME_DEFAULT_DATA[k as keyof SozlesmeData]
-    );
-    if (
-      isDifferent &&
-      typeof window !== "undefined" &&
-      !window.confirm("Form değerleri varsayılan örneğe sıfırlanacaktır. Bu işlemi onaylıyor musunuz?")
-    ) {
-      return;
-    }
     clearFieldFocusSelection();
-    draft.markFormMutated();
     setUndoData({ ...formData });
-    setFormData({ ...SOZLESME_DEFAULT_DATA });
+    draft.replaceAndPersist({ ...SOZLESME_DEFAULT_DATA }, "reset");
   }, [clearFieldFocusSelection, draft, formData]);
 
-  // Clear all fields (Temizle - F06 onay korumalı)
+  // Clear all fields (Temizle - V3 onaysız ve anında kalıcı)
   const handleClearAll = useCallback(() => {
-    const hasValues = Object.values(formData).some((v) => typeof v === "string" && v.trim() !== "");
-    if (
-      hasValues &&
-      typeof window !== "undefined" &&
-      !window.confirm("Tüm form alanları temizlenecektir. Bu işlemi onaylıyor musunuz?")
-    ) {
-      return;
-    }
     clearFieldFocusSelection();
-    draft.markFormMutated();
     setUndoData({ ...formData });
-    setFormData(
-      Object.fromEntries(
-        Object.keys(SOZLESME_DEFAULT_DATA).map((k) => [k, ""])
-      ) as SozlesmeData
-    );
+    const cleared = Object.fromEntries(
+      Object.keys(SOZLESME_DEFAULT_DATA).map((k) => [k, ""])
+    ) as SozlesmeData;
+    draft.replaceAndPersist(cleared, "clear");
   }, [clearFieldFocusSelection, draft, formData]);
 
-  const handleUndo = () => {
+  const handleUndo = useCallback(() => {
     if (!undoData) return;
-    draft.markFormMutated();
-    setFormData(undoData);
+    const previous = undoData;
     setUndoData(null);
-  };
+    draft.replaceAndPersist(previous, "undo");
+  }, [draft, undoData]);
 
 
     const handleDownload = async () => {

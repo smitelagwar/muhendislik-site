@@ -1,8 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BELGE_UX_FLAGS, BELGE_UX_LIMITS, DOCUMENT_EDITABLE_FIELDS, getConsentKeyForMode, getKeyForMode, type AutoDraftLifecycleState, type BelgeDocumentId, type DraftConsentDecision, type DraftStorageMode } from "@/lib/belge-ux-config";
-import { createDraftEnvelope, deleteDraft, getSafeBrowserStorage, loadDraft, loadDraftConsent, saveDraft, saveDraftConsent, type StorageLike, type BelgeDraftEnvelope, type DraftAgeStatus } from "@/lib/belge-draft-storage";
+import {
+  BELGE_STORAGE_KEYS,
+  BELGE_UX_FLAGS,
+  BELGE_UX_LIMITS,
+  DOCUMENT_EDITABLE_FIELDS,
+  getKeyForMode,
+  type AutoDraftLifecycleState,
+  type BelgeDocumentId,
+  type DraftConsentDecision,
+  type DraftStorageMode,
+} from "@/lib/belge-ux-config";
+import {
+  createDraftEnvelope,
+  deleteDraft,
+  draftAgeStatus,
+  getSafeBrowserStorage,
+  loadDraft,
+  parseDraft,
+  saveDraft,
+  type BelgeDraftEnvelope,
+  type DraftAgeStatus,
+  type StorageLike,
+} from "@/lib/belge-draft-storage";
 
 export interface UseBelgeAutoDraftOptions<T extends object> {
   documentId: BelgeDocumentId;
@@ -13,6 +34,7 @@ export interface UseBelgeAutoDraftOptions<T extends object> {
   enabled?: boolean;
   storageOverride?: StorageLike;
 }
+
 export interface UseBelgeAutoDraftReturn {
   lifecycleState: AutoDraftLifecycleState;
   storageMode: DraftStorageMode;
@@ -32,8 +54,9 @@ export interface UseBelgeAutoDraftReturn {
   markFormMutated: () => void;
   resolveConflictWithRemote: () => void;
   resolveConflictWithLocal: () => void;
+  replaceAndPersist: <V extends object = Record<string, unknown>>(nextValues: V, reason?: string) => void;
 }
-type Mode = Exclude<DraftStorageMode, "none">;
+
 interface DraftView {
   lifecycleState: AutoDraftLifecycleState;
   storageMode: DraftStorageMode;
@@ -44,269 +67,619 @@ interface DraftView {
   pendingDraft: BelgeDraftEnvelope | null;
 }
 
-/** Tüm kayıt yolları aynı izin, karar, sürüm ve generation kapısından geçer. */
-export function useBelgeAutoDraft<T extends object>({ documentId, formData, setFormData, setUndoData, enabled = BELGE_UX_FLAGS.DRAFT, storageOverride }: UseBelgeAutoDraftOptions<T>): UseBelgeAutoDraftReturn {
-  const [view, setView] = useState<DraftView>({ lifecycleState: enabled ? "booting" : "disabled", storageMode: "none", savedAt: null, ageStatus: null, errorMessage: null, isPaused: false, pendingDraft: null });
-  const state = useRef(view);
-  const latest = useRef(formData);
-  const runtime = useRef({ authorized: false, declined: false, dirty: false, deleted: false, blocked: false, generation: 0, observed: null as string | null, pendingRaw: null as string | null, pendingMode: "device" as Mode, lastSaved: "", writer: "", mounted: false });
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const channel = useRef<BroadcastChannel | null>(null);
-  useLayoutEffect(() => { latest.current = formData; }, [formData]);
+/**
+ * Belge Stüdyosu — Minimal Otomatik Taslak Motoru (V3)
+ *
+ * Sözleşme:
+ * 1. İlk tuşla otomatik başlar; son değişiklikten 2.000 ms sonra yazılır. İzin / prompt sorulmaz.
+ * 2. Geçerli cihaz taslağı açılışta sessizce geri yüklenir.
+ * 3. `dirty → saving → saved` döngüsü gerçek depolama doğrulamasına bağlıdır.
+ * 4. Çift sekmede çakışma durumunda kullanıcının yerel verisi sessizce ezilmez.
+ * 5. `replaceAndPersist` ile Sıfırla/Temizle/Geri al gecikmesiz senkron kalıcılaştırılır.
+ */
+export function useBelgeAutoDraft<T extends object>({
+  documentId,
+  formData,
+  setFormData,
+  setUndoData,
+  enabled = BELGE_UX_FLAGS.DRAFT,
+  storageOverride,
+}: UseBelgeAutoDraftOptions<T>): UseBelgeAutoDraftReturn {
+  const [view, setView] = useState<DraftView>({
+    lifecycleState: enabled ? "booting" : "disabled",
+    storageMode: enabled ? "device" : "none",
+    savedAt: null,
+    ageStatus: null,
+    errorMessage: null,
+    isPaused: false,
+    pendingDraft: null,
+  });
+
+  const stateRef = useRef(view);
+  const latestValuesRef = useRef<T>(formData);
+  useLayoutEffect(() => {
+    latestValuesRef.current = formData;
+  }, [formData]);
+
+  const runtimeRef = useRef({
+    mounted: false,
+    booted: false,
+    dirty: false,
+    generation: 0,
+    lastSavedSnapshot: "",
+    lastObservedRaw: null as string | null,
+    lastRevision: 0,
+    writerId: "",
+  });
+
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const channelRef = useRef<BroadcastChannel | null>(null);
+
   const update = useCallback((patch: Partial<DraftView>) => {
-    state.current = { ...state.current, ...patch };
-    if (runtime.current.mounted) setView(state.current);
-  }, []);
-  const cancel = useCallback(() => {
-    runtime.current.generation++;
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = null;
-  }, []);
-  const storageFor = useCallback((mode: Mode) => storageOverride ?? getSafeBrowserStorage(mode), [storageOverride]);
-  const fail = useCallback((message: string) => {
-    runtime.current.blocked = true;
-    cancel();
-    update({ lifecycleState: "save-error", errorMessage: message });
-  }, [cancel, update]);
-  const values = useCallback(() => Object.fromEntries(DOCUMENT_EDITABLE_FIELDS[documentId].map(key => [key, String((latest.current as Record<string, unknown>)[key] ?? "")])), [documentId]);
-  const read = useCallback((mode: Mode) => {
-    const storage = storageFor(mode);
-    if (!storage) { fail("Tarayıcı depolamasına erişilemiyor. Formu kullanmaya devam edebilirsiniz."); return null; }
-    try {
-      const raw = storage.getItem(getKeyForMode(mode, documentId));
-      const loaded = loadDraft(storage, mode, documentId);
-      if (!loaded.ok) { fail(loaded.details); return null; }
-      return { storage, raw, ...loaded };
-    } catch { fail("Taslak okunamadı; mevcut kayıt korunuyor."); return null; }
-  }, [documentId, fail, storageFor]);
-  const offer = useCallback((mode: Mode, loaded: NonNullable<ReturnType<typeof read>>, phase: "restore-decision" | "conflict" = "restore-decision") => {
-    cancel();
-    runtime.current.pendingMode = mode;
-    runtime.current.pendingRaw = loaded.raw;
-    update({ storageMode: mode, pendingDraft: loaded.draft, savedAt: loaded.draft?.savedAt ?? null, ageStatus: loaded.ageStatus, lifecycleState: phase, errorMessage: null, isPaused: false });
-  }, [cancel, update]);
-
-  // Web Locks aynı origin/belge için read-check-write ve silmeyi sıralar.
-  // Destek yoksa synchronous yeniden okuma ve conflict durdurması kullanılır;
-  // bu fallback mutlak atomiklik garantisi taşımaz.
-  const exclusive = useCallback((mode: Mode, action: () => void) => {
-    const generation = runtime.current.generation;
-    const guarded = () => { if (generation === runtime.current.generation) action(); };
-    if (mode === "device" && typeof navigator !== "undefined" && navigator.locks) {
-      void navigator.locks.request(getKeyForMode(mode, documentId), guarded).catch(() => fail("Taslak kayıt kilidi alınamadı. Tekrar deneyin."));
-    } else guarded();
-  }, [documentId, fail]);
-  const canWrite = useCallback(() => enabled && runtime.current.authorized && runtime.current.dirty && !runtime.current.deleted && !runtime.current.blocked && !state.current.isPaused && state.current.storageMode !== "none" && !["booting", "restore-decision", "conflict", "consent-pending"].includes(state.current.lifecycleState), [enabled]);
-  const save = useCallback(() => {
-    if (!canWrite()) return;
-    const mode = state.current.storageMode as Mode;
-    exclusive(mode, () => {
-      if (!canWrite() || state.current.storageMode !== mode) return;
-      const loaded = read(mode);
-      if (!loaded) return;
-      if (loadDraftConsent(loaded.storage, mode) !== mode) {
-        cancel(); runtime.current.authorized = false;
-        update({ lifecycleState: "disabled", storageMode: "none" });
-        return;
-      }
-      if (loaded.raw !== runtime.current.observed) {
-        if (loaded.draft) offer(mode, loaded, "conflict");
-        else { cancel(); runtime.current.deleted = true; runtime.current.dirty = false; update({ savedAt: null, lifecycleState: "enabled-idle" }); }
-        return;
-      }
-      const snapshot = values();
-      const serialized = JSON.stringify(snapshot);
-      if (serialized === runtime.current.lastSaved && loaded.draft && JSON.stringify(loaded.draft.values) === serialized) {
-        runtime.current.dirty = false;
-        update({ lifecycleState: "saved" });
-        return;
-      }
-      const envelope = createDraftEnvelope({ documentId, values: snapshot, writerId: runtime.current.writer, revision: (loaded.draft?.revision ?? 0) + 1 });
-      if (!envelope.ok) { fail(envelope.details); return; }
-      const result = saveDraft(loaded.storage, mode, envelope.envelope);
-      if (!result.ok) { fail(result.details); return; }
-      runtime.current.observed = JSON.stringify(envelope.envelope);
-      runtime.current.lastSaved = serialized;
-      runtime.current.dirty = false;
-      update({ lifecycleState: "saved", savedAt: envelope.envelope.savedAt, ageStatus: null, errorMessage: null });
-      if (mode === "device") channel.current?.postMessage({ type: "DRAFT_SAVED", documentId });
-    });
-  }, [canWrite, cancel, documentId, exclusive, fail, offer, read, update, values]);
-  const saveRef = useRef(save);
-  useLayoutEffect(() => { saveRef.current = save; }, [save]);
-
-  useEffect(() => {
-    const currentRuntime = runtime.current;
-    currentRuntime.mounted = true;
-    currentRuntime.writer ||= crypto.randomUUID();
-    if (!enabled) return () => { currentRuntime.mounted = false; };
-    const boot = setTimeout(() => {
-      const session = storageFor("session");
-      const device = storageFor("device");
-      const sessionChoice = session && loadDraftConsent(session, "session");
-      const choice = sessionChoice ?? (device && loadDraftConsent(device, "device"));
-      runtime.current.declined = choice === "dismissed";
-      runtime.current.authorized = choice === "device" || choice === "session";
-      let mode: Mode = choice === "session" ? "session" : "device";
-      if (choice !== "session" && choice !== "device" && session) {
-        try { if (session.getItem(getKeyForMode("session", documentId)) !== null) mode = "session"; }
-        catch { mode = "session"; }
-      }
-      const loaded = read(mode);
-      if (!loaded) { runtime.current.pendingMode = mode; update({ storageMode: mode }); return; }
-      runtime.current.observed = loaded.raw;
-      if (loaded.draft) offer(mode, loaded);
-      else update({ lifecycleState: runtime.current.authorized ? "enabled-idle" : runtime.current.dirty && !runtime.current.declined ? "consent-pending" : "disabled", storageMode: runtime.current.authorized ? mode : "none" });
-    }, 0);
-    return () => {
-      clearTimeout(boot);
-      if (timer.current) clearTimeout(timer.current);
-      currentRuntime.mounted = false;
-      saveRef.current(); // SPA/modal ayrılışı: yalnız izinli ve çözümlenmiş durum.
-    };
-  }, [documentId, enabled, offer, read, storageFor, update]);
-
-  useEffect(() => {
-    if (!enabled) return;
-    const refresh = () => {
-      if (state.current.storageMode !== "device" || !runtime.current.authorized) return;
-      const loaded = read("device");
-      if (!loaded || loaded.raw === runtime.current.observed) return;
-      if (loaded.draft) offer("device", loaded, "conflict");
-      else {
-        cancel(); runtime.current.deleted = true; runtime.current.dirty = false; runtime.current.observed = null; runtime.current.lastSaved = "";
-        update({ pendingDraft: null, savedAt: null, lifecycleState: "enabled-idle" });
-      }
-    };
-    const onStorage = (e: StorageEvent) => {
-      if (e.storageArea !== window.localStorage || state.current.storageMode !== "device") return;
-      if (e.key === getConsentKeyForMode("device") && e.newValue !== "device") {
-        cancel(); runtime.current.authorized = false; runtime.current.declined = true;
-        update({ storageMode: "none", lifecycleState: "disabled" });
-      } else if (e.key === null || e.key === getKeyForMode("device", documentId)) refresh();
-    };
-    if (typeof BroadcastChannel !== "undefined") {
-      const bc = new BroadcastChannel(`belgeler:ux:draft:${documentId}`);
-      channel.current = bc;
-      bc.onmessage = refresh; // Mesaja güvenmek yerine güncel depo tekrar okunur.
+    stateRef.current = { ...stateRef.current, ...patch };
+    if (runtimeRef.current.mounted) {
+      setView(stateRef.current);
     }
-    const flush = () => saveRef.current();
-    const visibility = () => { if (document.visibilityState === "hidden") flush(); };
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("pagehide", flush);
-    window.addEventListener("pageshow", refresh);
-    document.addEventListener("visibilitychange", visibility);
-    return () => {
-      window.removeEventListener("storage", onStorage); window.removeEventListener("pagehide", flush); window.removeEventListener("pageshow", refresh); document.removeEventListener("visibilitychange", visibility);
-      channel.current?.close(); channel.current = null;
-    };
-  }, [cancel, documentId, enabled, offer, read, update]);
-  useEffect(() => {
-    if (!canWrite()) return;
-    timer.current = setTimeout(save, BELGE_UX_LIMITS.AUTOSAVE_DEBOUNCE_MS);
-    return () => { if (timer.current) clearTimeout(timer.current); };
-  }, [canWrite, formData, save, view]);
+  }, []);
 
-  const setConsent = useCallback((decision: DraftConsentDecision) => {
+  const getStorage = useCallback(
+    (mode: "device" | "session" = "device"): StorageLike | null => {
+      if (storageOverride) return storageOverride;
+      return getSafeBrowserStorage(mode);
+    },
+    [storageOverride]
+  );
+
+  const getEditableSnapshot = useCallback(
+    (source: unknown): Record<string, string> => {
+      const fields = DOCUMENT_EDITABLE_FIELDS[documentId] || [];
+      const rec = (source && typeof source === "object" ? source : {}) as Record<string, unknown>;
+      const snapshot: Record<string, string> = Object.create(null);
+      for (const field of fields) {
+        snapshot[field] = String(rec[field] ?? "");
+      }
+      return snapshot;
+    },
+    [documentId]
+  );
+
+  // Senkron, doğrulanmış depolama yazımı (hem debounce save hem replaceAndPersist hem unmount flush kullanır)
+  const persistSnapshotSync = useCallback(
+    (snapshot: Record<string, string>, overrideWriterId?: string): boolean => {
+      const storage = getStorage("device");
+      if (!storage) {
+        update({
+          lifecycleState: "save-error",
+          errorMessage: "Tarayıcı depolamasına erişilemiyor.",
+        });
+        return false;
+      }
+
+      const writer = overrideWriterId || runtimeRef.current.writerId;
+      const nextRev = (runtimeRef.current.lastRevision || 0) + 1;
+
+      const envelopeResult = createDraftEnvelope({
+        documentId,
+        values: snapshot,
+        writerId: writer,
+        revision: nextRev,
+        savedAt: Date.now(),
+      });
+
+      if (!envelopeResult.ok) {
+        update({
+          lifecycleState: "save-error",
+          errorMessage: envelopeResult.details,
+        });
+        return false;
+      }
+
+      const envelope = envelopeResult.envelope;
+      const saveResult = saveDraft(storage, "device", envelope);
+      if (!saveResult.ok) {
+        update({
+          lifecycleState: "save-error",
+          errorMessage: saveResult.details,
+        });
+        return false;
+      }
+
+      // Read-back kontrolü ile gerçek yazım garantisi
+      const rawInStore = storage.getItem(getKeyForMode("device", documentId));
+      const serialized = JSON.stringify(envelope);
+      if (rawInStore !== serialized) {
+        update({
+          lifecycleState: "save-error",
+          errorMessage: "Taslak depolama doğrulama eşleşmesi başarısız oldu.",
+        });
+        return false;
+      }
+
+      runtimeRef.current.lastObservedRaw = rawInStore;
+      runtimeRef.current.lastSavedSnapshot = JSON.stringify(snapshot);
+      runtimeRef.current.lastRevision = nextRev;
+      runtimeRef.current.dirty = false;
+
+      update({
+        lifecycleState: "saved",
+        savedAt: envelope.savedAt,
+        ageStatus: null,
+        errorMessage: null,
+        storageMode: "device",
+        isPaused: false,
+      });
+
+      // Diğer sekmelere yayın yap
+      channelRef.current?.postMessage({
+        type: "DRAFT_SAVED",
+        documentId,
+        revision: nextRev,
+        writerId: writer,
+      });
+
+      return true;
+    },
+    [documentId, getStorage, update]
+  );
+
+  // Asenkron debounce kayıt tetikleyicisi
+  const performSave = useCallback(() => {
     if (!enabled) return;
-    cancel();
-    if (decision === "dismissed") {
-      const oldMode = state.current.storageMode;
-      runtime.current.authorized = false; runtime.current.declined = true;
-      update({ storageMode: "none", lifecycleState: "disabled", isPaused: false });
-      const session = storageFor("session");
-      const result = session && saveDraftConsent(session, "session", "dismissed");
-      if (oldMode === "device") { const device = storageFor("device"); if (device) saveDraftConsent(device, "device", "dismissed"); }
-      if (!result || !result.ok) fail("Kayıt bu sayfada kapatıldı, ancak tercih depolanamadı.");
+    const currentGeneration = runtimeRef.current.generation;
+    if (!runtimeRef.current.dirty) return;
+
+    const storage = getStorage("device");
+    if (!storage) {
+      update({
+        lifecycleState: "save-error",
+        errorMessage: "Tarayıcı depolamasına erişilemiyor.",
+      });
       return;
     }
-    const target = storageFor(decision);
-    if (!target) { fail("Kayıt tercihi kaydedilemedi; depolamaya erişilemiyor."); return; }
-    const result = saveDraftConsent(target, decision, decision);
-    if (!result.ok) { fail(result.details); return; }
-    const session = storageFor("session");
-    if (session) saveDraftConsent(session, "session", decision); // Sekmeye özgü açık mod seçimi.
-    runtime.current.authorized = true; runtime.current.declined = false; runtime.current.blocked = false;
-    runtime.current.pendingMode = decision;
-    update({ storageMode: decision, isPaused: false, errorMessage: null });
-    const loaded = read(decision);
-    if (!loaded) return;
-    runtime.current.observed = loaded.raw;
-    runtime.current.lastSaved = "";
-    if (loaded.draft) offer(decision, loaded);
-    else update({ pendingDraft: null, lifecycleState: "enabled-idle" });
-  }, [cancel, enabled, fail, offer, read, storageFor, update]);
-  const acceptRemote = useCallback((confirmLoss: boolean) => {
-    if (confirmLoss && runtime.current.dirty && !window.confirm("Kaydedilmemiş form değişiklikleri değiştirilecek. Taslak yüklensin mi?")) return;
-    const mode = runtime.current.pendingMode;
-    const loaded = read(mode);
-    if (!loaded?.draft) return;
-    cancel();
-    setUndoData?.({ ...latest.current });
-    setFormData(prev => ({ ...prev, ...loaded.draft!.values }));
-    runtime.current.observed = loaded.raw; runtime.current.lastSaved = JSON.stringify(loaded.draft.values); runtime.current.dirty = false; runtime.current.deleted = false;
-    update({ pendingDraft: null, lifecycleState: runtime.current.authorized ? "saved" : "disabled", storageMode: mode, savedAt: loaded.draft.savedAt, ageStatus: loaded.ageStatus, isPaused: false });
-  }, [cancel, read, setFormData, setUndoData, update]);
-  const useLocal = useCallback(() => {
-    if (!runtime.current.authorized) { update({ lifecycleState: "consent-pending" }); return; }
-    if (!window.confirm("Bu form, kayıtlı taslağın yerine kaydedilecek. Devam edilsin mi?")) return;
-    const mode = runtime.current.pendingMode;
-    const expected = runtime.current.pendingRaw;
-    exclusive(mode, () => {
-      const loaded = read(mode);
-      if (!loaded) return;
-      if (loaded.raw !== expected) { offer(mode, loaded, "conflict"); return; }
-      cancel(); runtime.current.observed = loaded.raw; runtime.current.dirty = true; runtime.current.deleted = false;
-      update({ pendingDraft: null, lifecycleState: "enabled-idle", storageMode: mode, isPaused: false });
-      saveRef.current();
-    });
-  }, [cancel, exclusive, offer, read, update]);
-  const deleteDraftAction = useCallback(() => {
-    if (!enabled) return;
-    const mode = state.current.storageMode === "none" ? runtime.current.pendingMode : state.current.storageMode;
-    const target = storageFor(mode);
-    if (!target) { fail("Taslak silinemedi; depolama kullanılamıyor."); return; }
-    let expected: string | null;
-    try { expected = target.getItem(getKeyForMode(mode, documentId)); }
-    catch { fail("Taslak silinmeden önce doğrulanamadı."); return; }
-    cancel();
-    exclusive(mode, () => {
-      try {
-        if (target.getItem(getKeyForMode(mode, documentId)) !== expected) {
-          const loaded = read(mode);
-          if (loaded) offer(mode, loaded, "conflict");
-          return;
+
+    // Yazmadan önce depodaki mevcut durumu kontrol et (başka sekme araya girdiyse)
+    const currentRaw = storage.getItem(getKeyForMode("device", documentId));
+    if (
+      currentRaw !== null &&
+      currentRaw !== runtimeRef.current.lastObservedRaw
+    ) {
+      const parsed = parseDraft(currentRaw, documentId);
+      if (
+        parsed.ok &&
+        parsed.draft.writerId !== runtimeRef.current.writerId &&
+        parsed.draft.revision > runtimeRef.current.lastRevision
+      ) {
+        // Çakışma tespit edildi: sessizce üzerine yazma!
+        update({
+          lifecycleState: "conflict",
+          pendingDraft: parsed.draft,
+          errorMessage: "Başka bir sekmede daha yeni bir taslak kaydedildi.",
+        });
+        return;
+      }
+    }
+
+    update({ lifecycleState: "saving" });
+    const snapshot = getEditableSnapshot(latestValuesRef.current);
+
+    if (runtimeRef.current.generation !== currentGeneration) {
+      // Bekleme sırasında yeni bir tuş vuruşu olduysa bu işlemi atla
+      return;
+    }
+
+    persistSnapshotSync(snapshot);
+  }, [documentId, enabled, getEditableSnapshot, getStorage, persistSnapshotSync, update]);
+
+  // Sıfırla / Temizle / Geri al için anında gecikmesiz persist API'si
+  const replaceAndPersist = useCallback(
+    <V extends object = Record<string, unknown>>(nextValues: V, _reason?: string) => {
+      // 1. Bekleyen gecikmeli debounce timer'ı iptal et
+      runtimeRef.current.generation++;
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+
+      // 2. Ref'i ve React state'ini derhal güncelle (stale ref kalmasın)
+      latestValuesRef.current = nextValues as unknown as T;
+      setFormData(nextValues as unknown as T);
+
+      // 3. Anında senkron doğrulanmış depolama yazımı gerçekleştir
+      const snapshot = getEditableSnapshot(nextValues);
+      persistSnapshotSync(snapshot);
+    },
+    [getEditableSnapshot, persistSnapshotSync, setFormData]
+  );
+
+  // 1. Boot / Hydration Effect
+  useEffect(() => {
+    const runtime = runtimeRef.current;
+    runtime.mounted = true;
+    if (!runtime.writerId) {
+      runtime.writerId =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `w_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    }
+
+    if (!enabled) {
+      update({ lifecycleState: "disabled", storageMode: "none" });
+      return () => {
+        runtime.mounted = false;
+      };
+    }
+
+    // Hydration işlemi: önce geçerli cihaz taslağı, yoksa legacy session taslağı
+    const bootTimer = setTimeout(() => {
+      const deviceStorage = getStorage("device");
+      const sessionStorage = getStorage("session");
+
+      let hydrated = false;
+
+      if (deviceStorage) {
+        const rawDevice = deviceStorage.getItem(getKeyForMode("device", documentId));
+        const loadedDevice = loadDraft(deviceStorage, "device", documentId);
+        if (loadedDevice.ok && loadedDevice.draft) {
+          const draft = loadedDevice.draft;
+          // Kullanıcı boot tamamlanmadan henüz yazmadıysa geri yükle
+          if (!runtime.dirty) {
+            setFormData((prev) => ({ ...prev, ...draft.values }));
+            latestValuesRef.current = {
+              ...latestValuesRef.current,
+              ...draft.values,
+            };
+            runtime.lastSavedSnapshot = JSON.stringify(draft.values);
+            runtime.lastObservedRaw = rawDevice;
+            runtime.lastRevision = draft.revision;
+
+            update({
+              lifecycleState: "saved",
+              savedAt: draft.savedAt,
+              ageStatus: loadedDevice.ageStatus,
+              storageMode: "device",
+              pendingDraft: null,
+              errorMessage: null,
+            });
+            hydrated = true;
+          }
+
+          // Eğer session storage'da farklı bir taslak varsa kurtarma anahtarına taşı
+          if (sessionStorage) {
+            const rawSession = sessionStorage.getItem(getKeyForMode("session", documentId));
+            const loadedSession = loadDraft(sessionStorage, "session", documentId);
+            if (
+              loadedSession.ok &&
+              loadedSession.draft &&
+              JSON.stringify(loadedSession.draft.values) !== JSON.stringify(draft.values)
+            ) {
+              try {
+                sessionStorage.setItem(
+                  `${BELGE_STORAGE_KEYS.DRAFT_RECOVERY_PREFIX}${documentId}`,
+                  rawSession || JSON.stringify(loadedSession.draft)
+                );
+              } catch {
+                // Kurtarma yazımı best-effort
+              }
+            }
+          }
         }
-      } catch { fail("Taslak silinmeden önce doğrulanamadı."); return; }
-      const result = deleteDraft(target, mode, documentId);
-      if (!result.ok) { fail(result.details); return; }
-      runtime.current.deleted = true; runtime.current.dirty = false; runtime.current.blocked = false; runtime.current.observed = null; runtime.current.lastSaved = "";
-      update({ pendingDraft: null, savedAt: null, ageStatus: null, errorMessage: null, lifecycleState: runtime.current.authorized ? "enabled-idle" : "disabled" });
-      if (mode === "device") channel.current?.postMessage({ type: "DRAFT_DELETED", documentId });
-    });
-  }, [cancel, documentId, enabled, exclusive, fail, offer, read, storageFor, update]);
-  const dismissRestore = useCallback(() => { cancel(); update({ isPaused: true, lifecycleState: "enabled-idle" }); }, [cancel, update]);
-  const togglePause = useCallback(() => {
-    cancel();
-    if (state.current.pendingDraft) { update({ lifecycleState: "restore-decision", isPaused: false }); return; }
-    update({ isPaused: !state.current.isPaused });
-  }, [cancel, update]);
-  const markFormMutated = useCallback(() => {
+      }
+
+      // Cihaz taslağı yoksa legacy session taslağını güvenle device'a taşı
+      if (!hydrated && sessionStorage && deviceStorage) {
+        const loadedSession = loadDraft(sessionStorage, "session", documentId);
+        if (loadedSession.ok && loadedSession.draft) {
+          const draft = loadedSession.draft;
+          saveDraft(deviceStorage, "device", draft);
+          if (!runtime.dirty) {
+            setFormData((prev) => ({ ...prev, ...draft.values }));
+            latestValuesRef.current = {
+              ...latestValuesRef.current,
+              ...draft.values,
+            };
+            runtime.lastSavedSnapshot = JSON.stringify(draft.values);
+            runtime.lastObservedRaw = JSON.stringify(draft);
+            runtime.lastRevision = draft.revision;
+
+            update({
+              lifecycleState: "saved",
+              savedAt: draft.savedAt,
+              ageStatus: loadedSession.ageStatus,
+              storageMode: "device",
+              pendingDraft: null,
+              errorMessage: null,
+            });
+            hydrated = true;
+          }
+        }
+      }
+
+      if (!hydrated && !runtime.dirty) {
+        // Taslak yok; mevcut form değerlerini başlangıç snapshot'ı olarak kaydet
+        runtime.lastSavedSnapshot = JSON.stringify(
+          getEditableSnapshot(latestValuesRef.current)
+        );
+        update({
+          lifecycleState: "idle",
+          savedAt: null,
+          ageStatus: null,
+          storageMode: "device",
+          pendingDraft: null,
+          errorMessage: null,
+        });
+      }
+
+      runtime.booted = true;
+    }, 0);
+
+    return () => {
+      clearTimeout(bootTimer);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      runtime.mounted = false;
+
+      // SPA / sayfa ayrılışı: dirty varsa derhal senkron flush
+      if (runtime.dirty && enabled) {
+        const snapshot = getEditableSnapshot(latestValuesRef.current);
+        persistSnapshotSync(snapshot);
+      }
+    };
+  }, [
+    documentId,
+    enabled,
+    getEditableSnapshot,
+    getStorage,
+    persistSnapshotSync,
+    setFormData,
+    update,
+  ]);
+
+  // 2. Çoklu Sekme ve Storage Event Dinleyicisi
+  useEffect(() => {
     if (!enabled) return;
-    cancel(); runtime.current.dirty = true; runtime.current.deleted = false;
-    if (state.current.lifecycleState === "booting") return;
-    if (!runtime.current.authorized && !runtime.current.declined && !state.current.pendingDraft) update({ lifecycleState: "consent-pending" });
-    else if (canWrite()) update({ lifecycleState: "enabled-idle" });
-  }, [canWrite, cancel, enabled, update]);
+
+    const handleExternalChange = () => {
+      const storage = getStorage("device");
+      if (!storage) return;
+
+      const raw = storage.getItem(getKeyForMode("device", documentId));
+      if (raw === runtimeRef.current.lastObservedRaw) return;
+
+      if (raw === null) {
+        // Başka sekme sildiyse
+        runtimeRef.current.lastObservedRaw = null;
+        runtimeRef.current.lastSavedSnapshot = "";
+        runtimeRef.current.dirty = false;
+        update({
+          lifecycleState: "idle",
+          savedAt: null,
+          pendingDraft: null,
+          errorMessage: null,
+        });
+        return;
+      }
+
+      const parsed = parseDraft(raw, documentId);
+      if (!parsed.ok || !parsed.draft) return;
+
+      if (!runtimeRef.current.dirty) {
+        // Bu sekmede kaydedilmemiş yerel düzenleme yok; yeni taslağı sessizce yükle
+        setFormData((prev) => ({ ...prev, ...parsed.draft.values }));
+        latestValuesRef.current = {
+          ...latestValuesRef.current,
+          ...parsed.draft.values,
+        };
+        runtimeRef.current.lastObservedRaw = raw;
+        runtimeRef.current.lastSavedSnapshot = JSON.stringify(parsed.draft.values);
+        runtimeRef.current.lastRevision = parsed.draft.revision;
+
+        update({
+          lifecycleState: "saved",
+          savedAt: parsed.draft.savedAt,
+          ageStatus: draftAgeStatus(parsed.draft.savedAt),
+          pendingDraft: null,
+          errorMessage: null,
+        });
+      } else {
+        // Bu sekmede kaydedilmemiş veri var; sessiz overwrite yapma, conflict durumuna al
+        update({
+          lifecycleState: "conflict",
+          pendingDraft: parsed.draft,
+          errorMessage: "Başka bir sekmede taslak güncellendi.",
+        });
+      }
+    };
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.storageArea !== window.localStorage) return;
+      if (e.key === null || e.key === getKeyForMode("device", documentId)) {
+        handleExternalChange();
+      }
+    };
+
+    if (typeof BroadcastChannel !== "undefined") {
+      const bc = new BroadcastChannel(`belgeler:ux:draft:${documentId}`);
+      channelRef.current = bc;
+      bc.onmessage = (msg) => {
+        if (msg.data?.documentId === documentId) {
+          handleExternalChange();
+        }
+      };
+    }
+
+    const flushOnExit = () => {
+      if (runtimeRef.current.dirty && enabled) {
+        const snapshot = getEditableSnapshot(latestValuesRef.current);
+        persistSnapshotSync(snapshot);
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        flushOnExit();
+      }
+    };
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("pagehide", flushOnExit);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("pagehide", flushOnExit);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      channelRef.current?.close();
+      channelRef.current = null;
+    };
+  }, [
+    documentId,
+    enabled,
+    getEditableSnapshot,
+    getStorage,
+    persistSnapshotSync,
+    setFormData,
+    update,
+  ]);
+
+  // 3. Form Değişikliği ve 2.000 ms Debounce Tetikleyicisi
+  useEffect(() => {
+    if (!enabled || !runtimeRef.current.booted) return;
+
+    const currentSnapshot = getEditableSnapshot(formData);
+    const serialized = JSON.stringify(currentSnapshot);
+
+    // Kayıtlı olanla birebir aynıysa hiçbir şey yapma
+    if (serialized === runtimeRef.current.lastSavedSnapshot) {
+      return;
+    }
+
+    // Yeni değişiklik var: 2.000 ms debounce başlat
+    runtimeRef.current.dirty = true;
+    runtimeRef.current.generation++;
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
+    update({ lifecycleState: "dirty" });
+
+    timerRef.current = setTimeout(() => {
+      performSave();
+    }, BELGE_UX_LIMITS.AUTOSAVE_DEBOUNCE_MS);
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [enabled, formData, getEditableSnapshot, performSave, update]);
+
+  // Geriye dönük uyumluluk ve kullanıcı aksiyonları
+  const markFormMutated = useCallback(() => {
+    runtimeRef.current.dirty = true;
+    if (runtimeRef.current.booted && stateRef.current.lifecycleState === "idle") {
+      update({ lifecycleState: "dirty" });
+    }
+  }, [update]);
+
+  const deleteDraftAction = useCallback(() => {
+    const storage = getStorage("device");
+    if (!storage) return;
+
+    runtimeRef.current.generation++;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
+    deleteDraft(storage, "device", documentId);
+    runtimeRef.current.lastObservedRaw = null;
+    runtimeRef.current.lastSavedSnapshot = "";
+    runtimeRef.current.dirty = false;
+
+    update({
+      pendingDraft: null,
+      savedAt: null,
+      ageStatus: null,
+      errorMessage: null,
+      lifecycleState: "idle",
+    });
+
+    channelRef.current?.postMessage({
+      type: "DRAFT_DELETED",
+      documentId,
+    });
+  }, [documentId, getStorage, update]);
+
+  const resolveConflictWithRemote = useCallback(() => {
+    const pending = stateRef.current.pendingDraft;
+    if (!pending) return;
+
+    setUndoData?.({ ...latestValuesRef.current });
+    setFormData((prev) => ({ ...prev, ...pending.values }));
+    latestValuesRef.current = {
+      ...latestValuesRef.current,
+      ...pending.values,
+    };
+    runtimeRef.current.lastSavedSnapshot = JSON.stringify(pending.values);
+    runtimeRef.current.lastObservedRaw = JSON.stringify(pending);
+    runtimeRef.current.lastRevision = pending.revision;
+    runtimeRef.current.dirty = false;
+
+    update({
+      pendingDraft: null,
+      lifecycleState: "saved",
+      savedAt: pending.savedAt,
+      ageStatus: draftAgeStatus(pending.savedAt),
+      errorMessage: null,
+    });
+  }, [setFormData, setUndoData, update]);
+
+  const resolveConflictWithLocal = useCallback(() => {
+    // Yerel veriyi güncel revizyonla depoya zorla yaz
+    const snapshot = getEditableSnapshot(latestValuesRef.current);
+    persistSnapshotSync(snapshot);
+  }, [getEditableSnapshot, persistSnapshotSync]);
+
+  const restoreDraft = useCallback(() => {
+    resolveConflictWithRemote();
+  }, [resolveConflictWithRemote]);
+
+  const ignoreDraft = useCallback(() => {
+    update({ pendingDraft: null, lifecycleState: "idle" });
+  }, [update]);
+
+  const dismissRestore = useCallback(() => {
+    update({ pendingDraft: null, lifecycleState: "idle" });
+  }, [update]);
+
   const retrySave = useCallback(() => {
-    const mode = state.current.storageMode;
-    if (mode === "none") return;
-    runtime.current.blocked = false;
-    const loaded = read(mode);
-    if (!loaded) return;
-    if (loaded.raw !== runtime.current.observed && loaded.draft) { offer(mode, loaded); return; }
-    update({ lifecycleState: "enabled-idle", errorMessage: null });
-    saveRef.current();
-  }, [offer, read, update]);
-  return { ...view, isSaving: view.lifecycleState === "saving", setConsent, restoreDraft: () => acceptRemote(true), ignoreDraft: useLocal, deleteDraftAction, dismissRestore, retrySave, togglePause, markFormMutated, resolveConflictWithRemote: () => acceptRemote(true), resolveConflictWithLocal: useLocal };
+    update({ lifecycleState: "saving", errorMessage: null });
+    performSave();
+  }, [performSave, update]);
+
+  const togglePause = useCallback(() => {
+    // V3 sözleşmesinde duraklatma özelliği kalkmıştır; çağrı güvenle no-op'tur
+  }, []);
+
+  const setConsent = useCallback((_decision: DraftConsentDecision) => {
+    // V3 sözleşmesinde onay kapısı kalkmıştır; çağrı güvenle no-op'tur
+  }, []);
+
+  return {
+    ...view,
+    isSaving: view.lifecycleState === "saving",
+    setConsent,
+    restoreDraft,
+    ignoreDraft,
+    deleteDraftAction,
+    dismissRestore,
+    retrySave,
+    togglePause,
+    markFormMutated,
+    resolveConflictWithRemote,
+    resolveConflictWithLocal,
+    replaceAndPersist,
+  };
 }

@@ -167,60 +167,43 @@ export function TaahhutnameStudio({
     handleFieldChange(key, TAAHHUTNAME_DEFAULT_DATA[key] ?? "");
   };
 
-  // Global reset to original PDF default values (Sıfırla - F06 onay korumalı)
+  // Global reset to original PDF default values (Sıfırla - V3 onaysız ve anında kalıcı)
   const handleResetToPdfDefaults = () => {
-    const isDifferent = Object.keys(TAAHHUTNAME_DEFAULT_DATA).some(
-      (k) => formData[k as keyof TaahhutnameData] !== TAAHHUTNAME_DEFAULT_DATA[k as keyof TaahhutnameData]
-    );
-    if (
-      isDifferent &&
-      typeof window !== "undefined" &&
-      !window.confirm("Form değerleri varsayılan örneğe sıfırlanacaktır. Bu işlemi onaylıyor musunuz?")
-    ) {
-      return;
-    }
     clearFieldFocusSelection();
-    draft.markFormMutated();
     setUndoData({ ...formData });
-    setFormData({ ...TAAHHUTNAME_DEFAULT_DATA });
+    draft.replaceAndPersist({ ...TAAHHUTNAME_DEFAULT_DATA }, "reset");
   };
 
-  // Clear all fields (Temizle - F06 onay korumalı)
+  // Clear all fields (Temizle - V3 onaysız ve anında kalıcı)
   const handleClearAll = () => {
-    const hasValues = Object.values(formData).some((v) => typeof v === "string" && v.trim() !== "");
-    if (
-      hasValues &&
-      typeof window !== "undefined" &&
-      !window.confirm("Tüm form alanları temizlenecektir. Bu işlemi onaylıyor musunuz?")
-    ) {
-      return;
-    }
     clearFieldFocusSelection();
-    draft.markFormMutated();
     setUndoData({ ...formData });
-    setFormData({
-      oda_sicil_no: "",
-      tc_kimlik_no: "",
-      unvan: "",
-      adres: "",
-      telefon: "",
-      il_ilce: "",
-      ilgili_idare: "",
-      pafta_ada_parsel: "",
-      yapi_adresi: "",
-      yapi_sahibi: "",
-      yapi_sahibi_adresi: "",
-      tarih: "",
-      santiye_sefi_ad_soyad: "",
-      unvan_imza: "",
-    });
+    draft.replaceAndPersist(
+      {
+        oda_sicil_no: "",
+        tc_kimlik_no: "",
+        unvan: "",
+        adres: "",
+        telefon: "",
+        il_ilce: "",
+        ilgili_idare: "",
+        pafta_ada_parsel: "",
+        yapi_adresi: "",
+        yapi_sahibi: "",
+        yapi_sahibi_adresi: "",
+        tarih: "",
+        santiye_sefi_ad_soyad: "",
+        unvan_imza: "",
+      },
+      "clear"
+    );
   };
 
   const handleUndo = () => {
     if (!undoData) return;
-    draft.markFormMutated();
-    setFormData(undoData);
+    const previous = undoData;
     setUndoData(null);
+    draft.replaceAndPersist(previous, "undo");
   };
 
 

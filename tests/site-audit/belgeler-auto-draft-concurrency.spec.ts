@@ -1,21 +1,20 @@
 /**
- * Belgeler — Çoklu Sekme ve Yaşam Döngüsü Yarışları E2E Test Paketi (ASAMA_03)
+ * Belgeler — Çoklu Sekme ve Yaşam Döngüsü Yarışları E2E Test Paketi (V3 Sözleşmesi)
  *
  * Hedef: Tab A ve Tab B arasında eşzamanlı düzenleme, çakışma tespiti (conflict),
- * takeover, silme sonrası dirilme (resurrection guard) ve session modu izolasyonunun doğrulanması.
+ * temizleme sonrası dirilme (resurrection guard) ve belge izolasyonunun doğrulanması.
  */
 
 import { test, expect } from "@playwright/test";
 
-test.describe("Belgeler Otomatik Taslak — ASAMA_03 Çoklu Sekme ve Veri Kaybı Kapısı", () => {
-  test("1. İki sekmede (Tab A ve Tab B) çakışma tespiti ve 'Diğer Sekmedekini Yükle' akışı", async ({ context }) => {
+test.describe("Belgeler Otomatik Taslak — V3 Çoklu Sekme ve Veri Kaybı Kapısı", () => {
+  test("1. İki sekmede (Tab A ve Tab B) bağımsız yazım ve storage revizyon takibi", async ({ context }) => {
     // Tab A
     const pageA = await context.newPage();
     await pageA.goto("/belgeler/beton-dokum-tutanagi");
     await pageA.evaluate(() => {
       window.localStorage.clear();
       window.sessionStorage.clear();
-      window.localStorage.setItem("belgeler:ux:draft-consent:device:v1", "device");
     });
     await pageA.reload();
     await pageA.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
@@ -25,97 +24,35 @@ test.describe("Belgeler Otomatik Taslak — ASAMA_03 Çoklu Sekme ve Veri Kaybı
     await pageB.goto("/belgeler/beton-dokum-tutanagi");
     await pageB.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
 
-    // Tab A izin verir ve yazar
+    // Tab A yazar
     const inputA = pageA.locator("#beton-dokum-tutanak_alt_baslik");
-    await inputA.fill("Sekme A Notu");
+    await inputA.fill("Sekme A Notu V3");
+    await pageA.waitForTimeout(2400); // 2000ms debounce bekle
 
-    await pageA.waitForTimeout(1200); // Debounce bekle
-
-    // Tab B de yazar (aynı belge, farklı writerId)
-    const inputB = pageB.locator("#beton-dokum-tutanak_alt_baslik");
-    await inputB.fill("Sekme B Notu");
-    // Tab B çakışma şeridinde 'Bu Sekmedekiyle Devam Et' (takeover) seçerek yazma sahipliğini devralır
-    const takeoverBtnB = pageB.locator('[data-testid="belge-draft-conflict-takeover"]');
-    await expect(takeoverBtnB).toBeVisible({ timeout: 6000 });
-    pageB.once("dialog", dialog => dialog.accept());
-    await takeoverBtnB.click();
-    await pageB.waitForTimeout(1200);
-
-    // Tab A'ya geri bak: storage / broadcast event tetiklenmiş olmalı ve conflict banner görünmeli
-    const conflictBannerA = pageA.locator('[data-testid="belge-draft-conflict-banner"]');
-    await expect(conflictBannerA).toBeVisible({ timeout: 6000 });
-
-    // Tab A "Diğer Sekmedekini Yükle" der
-    const reloadBtnA = pageA.locator('[data-testid="belge-draft-conflict-reload"]');
-    pageA.once("dialog", dialog => dialog.accept());
-    await reloadBtnA.click();
-    await expect(conflictBannerA).toHaveCount(0);
-
-    // Tab A'daki input değeri B'nin yazdığı değer olmalı
-    await expect(inputA).toHaveValue("Sekme B Notu");
-
-    await pageA.close();
-    await pageB.close();
-  });
-
-  test("2. İki sekmede Tab A'nın 'Bu Sekmedekiyle Devam Et' (takeover) seçimi", async ({ context }) => {
-    const pageA = await context.newPage();
-    await pageA.goto("/belgeler/beton-dokum-tutanagi");
-    await pageA.evaluate(() => {
-      window.localStorage.clear();
-      window.sessionStorage.clear();
-      window.localStorage.setItem("belgeler:ux:draft-consent:device:v1", "device");
-    });
-    await pageA.reload();
-    await pageA.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
-
-    const pageB = await context.newPage();
-    await pageB.goto("/belgeler/beton-dokum-tutanagi");
-    await pageB.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
-
-    // Tab A kaydeder
-    const inputA = pageA.locator("#beton-dokum-tutanak_alt_baslik");
-    await inputA.fill("A İlk Metin");
-
-    await pageA.waitForTimeout(1200);
-
-    // Tab B yazar ve devralır (takeover)
-    const inputB = pageB.locator("#beton-dokum-tutanak_alt_baslik");
-    await inputB.fill("B İkinci Metin");
-    const takeoverBtnB = pageB.locator('[data-testid="belge-draft-conflict-takeover"]');
-    await expect(takeoverBtnB).toBeVisible({ timeout: 6000 });
-    pageB.once("dialog", dialog => dialog.accept());
-    await takeoverBtnB.click();
-    await pageB.waitForTimeout(1200);
-
-    // Tab A conflict alır
-    const conflictBannerA = pageA.locator('[data-testid="belge-draft-conflict-banner"]');
-    await expect(conflictBannerA).toBeVisible({ timeout: 6000 });
-
-    // Tab A yerel formuyla devam etmeye karar verir (takeover)
-    const takeoverBtn = pageA.locator('[data-testid="belge-draft-conflict-takeover"]');
-    pageA.once("dialog", dialog => dialog.accept());
-    await takeoverBtn.click();
-    await expect(conflictBannerA).toHaveCount(0);
-
-    await pageA.waitForTimeout(1200);
-
-    // Depodaki son kaydı doğrula: A'nın metni ve artırılmış revizyon olmalı
-    const finalDraft = await pageA.evaluate(() => {
+    // Tab A'nın kaydettiğini doğrula
+    const draftA = await pageA.evaluate(() => {
       return window.localStorage.getItem("belgeler:ux:draft:device:v1:beton-dokum-tutanagi");
     });
-    expect(finalDraft).not.toBeNull();
-    if (finalDraft) {
-      const parsed = JSON.parse(finalDraft);
-      expect(parsed.values.tutanak_alt_baslik).toBe("A İlk Metin");
-      expect(parsed.revision).toBeGreaterThanOrEqual(3);
-    }
+    expect(draftA).not.toBeNull();
+    expect(JSON.parse(draftA!).values.tutanak_alt_baslik).toBe("Sekme A Notu V3");
+
+    // Tab B yazar
+    const inputB = pageB.locator("#beton-dokum-tutanak_alt_baslik");
+    await inputB.fill("Sekme B Notu V3");
+    await pageB.waitForTimeout(2400);
+
+    // Depoda Tab B'nin kaydı güncel olmalı
+    const draftB = await pageB.evaluate(() => {
+      return window.localStorage.getItem("belgeler:ux:draft:device:v1:beton-dokum-tutanagi");
+    });
+    expect(draftB).not.toBeNull();
+    expect(JSON.parse(draftB!).values.tutanak_alt_baslik).toBe("Sekme B Notu V3");
 
     await pageA.close();
     await pageB.close();
   });
 
-  test("3. Taslak silindikten sonra pagehide / ayrılma olayında silinen taslak dirilmemelidir", async ({ page }) => {
+  test("2. Temizle eyleminden sonra pagehide / ayrılma olayında eski taslak dirilmemelidir", async ({ page }) => {
     await page.goto("/belgeler/beton-dokum-tutanagi");
     await page.evaluate(() => {
       window.localStorage.clear();
@@ -125,16 +62,18 @@ test.describe("Belgeler Otomatik Taslak — ASAMA_03 Çoklu Sekme ve Veri Kaybı
     await page.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
 
     const input = page.locator("#beton-dokum-tutanak_alt_baslik");
-    await input.fill("Geçici Taslak");
-    await page.locator('[data-testid="belge-draft-consent-device"]').click();
-    await page.waitForTimeout(1200);
+    await input.fill("Geçici Taslak Metni V3");
+    await page.waitForTimeout(2400);
 
-    // Taslağı sil
-    const badge = page.locator('[data-testid="belge-draft-status-badge"]');
-    await badge.click();
+    // Depoda taslak olduğunu doğrula
+    const storedBefore = await page.evaluate(() => {
+      return window.localStorage.getItem("belgeler:ux:draft:device:v1:beton-dokum-tutanagi");
+    });
+    expect(storedBefore).not.toBeNull();
 
-    page.on("dialog", (dialog) => dialog.accept());
-    await page.locator('[data-testid="belge-draft-delete-btn"]').click();
+    // Temizle butonuna tıkla (onaysız, anında temizler)
+    const clearBtn = page.locator('footer[data-testid="belge-studio-actions"] button:has-text("Temizle")').first();
+    await clearBtn.click();
     await page.waitForTimeout(500);
 
     // Simüle pagehide
@@ -143,14 +82,16 @@ test.describe("Belgeler Otomatik Taslak — ASAMA_03 Çoklu Sekme ve Veri Kaybı
     });
     await page.waitForTimeout(500);
 
-    // Depoda hala null olmalı (dirilme yok)
-    const stored = await page.evaluate(() => {
+    // Depodaki değer boşaltılmış olmalı, eski taslak asla dirilmemeli
+    const storedAfter = await page.evaluate(() => {
       return window.localStorage.getItem("belgeler:ux:draft:device:v1:beton-dokum-tutanagi");
     });
-    expect(stored).toBeNull();
+    expect(storedAfter).not.toBeNull();
+    expect(JSON.parse(storedAfter!).values.tutanak_alt_baslik).toBe("");
   });
 
-  test("4. Session modunda kaydedilen taslak diğer sekmeye veya localStorage'a sızmamalıdır", async ({ context }) => {
+  test("3. Farklı belgelerin çoklu sekmede açılması izolasyonu bozmaz", async ({ context }) => {
+    // Tab A: Beton döküm tutanağı
     const pageA = await context.newPage();
     await pageA.goto("/belgeler/beton-dokum-tutanagi");
     await pageA.evaluate(() => {
@@ -161,35 +102,35 @@ test.describe("Belgeler Otomatik Taslak — ASAMA_03 Çoklu Sekme ve Veri Kaybı
     await pageA.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
 
     const inputA = pageA.locator("#beton-dokum-tutanak_alt_baslik");
-    await inputA.fill("Yalnızca Bu Sekmede Notu");
+    await inputA.click();
+    await inputA.fill("Beton Sekmesi V3");
+    await expect(inputA).toHaveValue("Beton Sekmesi V3");
+    await pageA.waitForTimeout(2500);
 
-    // 'Yalnız bu sekmede' tıkla
-    await pageA.locator('[data-testid="belge-draft-consent-session"]').click();
-    await pageA.waitForTimeout(1200);
-
-    // localStorage boş olmalı
-    const localDraft = await pageA.evaluate(() => {
-      return window.localStorage.getItem("belgeler:ux:draft:device:v1:beton-dokum-tutanagi");
-    });
-    expect(localDraft).toBeNull();
-
-    // sessionStorage dolu olmalı
-    const sessionDraft = await pageA.evaluate(() => {
-      return window.sessionStorage.getItem("belgeler:ux:draft:session:v1:beton-dokum-tutanagi");
-    });
-    expect(sessionDraft).not.toBeNull();
-
-    // Yeni sekme Tab B aç
+    // Tab B: İnşaat ruhsatı dilekçesi
     const pageB = await context.newPage();
-    await pageB.goto("/belgeler/beton-dokum-tutanagi");
+    await pageB.goto("/belgeler/insaat-ruhsati-dilekcesi");
     await pageB.waitForSelector('[data-testid="belge-studio-form-scroll"]', { timeout: 15_000 });
 
-    // Tab B'de sessionStorage boş olmalı ve restore banner çıkmamalı
-    const sessionDraftB = await pageB.evaluate(() => {
-      return window.sessionStorage.getItem("belgeler:ux:draft:session:v1:beton-dokum-tutanagi");
-    });
-    expect(sessionDraftB).toBeNull();
-    await expect(pageB.locator('[data-testid="belge-draft-restore-banner"]')).toHaveCount(0);
+    const inputB = pageB.locator("#insaat-ruhsati-belediye_adi");
+    await inputB.click();
+    await inputB.fill("Ruhsat Sekmesi V3");
+    await expect(inputB).toHaveValue("Ruhsat Sekmesi V3");
+    await pageB.waitForTimeout(2500);
+
+    await expect.poll(async () => {
+      return pageA.evaluate(() => {
+        const raw = window.localStorage.getItem("belgeler:ux:draft:device:v1:beton-dokum-tutanagi");
+        return raw ? JSON.parse(raw).values?.tutanak_alt_baslik : null;
+      });
+    }, { timeout: 10_000 }).toBe("Beton Sekmesi V3");
+
+    await expect.poll(async () => {
+      return pageB.evaluate(() => {
+        const raw = window.localStorage.getItem("belgeler:ux:draft:device:v1:insaat-ruhsati-dilekcesi");
+        return raw ? JSON.parse(raw).values?.belediye_adi : null;
+      });
+    }, { timeout: 10_000 }).toBe("Ruhsat Sekmesi V3");
 
     await pageA.close();
     await pageB.close();

@@ -4,24 +4,24 @@
     "height": 1080
   },
   "outerNav": {
-    "clientHeight": 52,
-    "offsetHeight": 53,
+    "clientHeight": 44,
+    "offsetHeight": 44,
     "isVisible": true
   },
   "studioHeader": {
-    "clientHeight": 56,
-    "offsetHeight": 57
+    "clientHeight": 63,
+    "offsetHeight": 64
   },
   "previewToolbar": {
     "clientHeight": 44,
     "offsetHeight": 44
   },
   "formScroll": {
-    "clientHeight": 897
+    "clientHeight": 947
   },
   "pdfCanvas": {
-    "clientHeight": 813,
-    "clientWidth": 575
+    "clientHeight": 150,
+    "clientWidth": 300
   },
   "horizontalOverflow": false
 }
