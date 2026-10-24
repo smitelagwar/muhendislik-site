@@ -1,15 +1,14 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { DOCUMENT_EDITABLE_FIELDS } from "../../src/lib/document-field-contracts";
 import {
   mapPdfAnnotationsToInlineFields,
-  type BelgeDocumentId,
   type RawPdfAnnotation,
   type ViewportLike,
 } from "../../src/lib/belge-studio-inline-field-map";
 
 const documentIds = Object.keys(DOCUMENT_EDITABLE_FIELDS) as Array<keyof typeof DOCUMENT_EDITABLE_FIELDS>;
 
-async function openStudio(page: any, id: string) {
+async function openStudio(page: Page, id: string) {
   await page.goto(`/belgeler/${id}`, { waitUntil: "domcontentloaded", timeout: 30_000 });
   const studio = page.locator('[data-studio-locked="true"]:visible').last();
   const downloadBtn = studio
@@ -24,6 +23,21 @@ async function openStudio(page: any, id: string) {
   }
 
   return studio;
+}
+
+async function openMobileInlineEdit(page: Page, studio: Locator) {
+  const directToggle = studio.locator('[data-testid="belge-inline-edit-toggle"]');
+  if (await directToggle.isVisible()) {
+    await directToggle.click();
+  } else {
+    // V1.1 Mobil Çekmece: mobilde (<1024px) PDF üzerinde düzenle butonu çekmecededir
+    const menuBtn = studio.locator('[data-testid="belge-mobile-header-menu-btn"]');
+    await menuBtn.click();
+    const drawerBtn = page.locator('[data-testid="belge-drawer-inline-edit-btn"]');
+    await expect(drawerBtn).toBeVisible({ timeout: 5_000 });
+    await drawerBtn.click();
+    await expect(page.getByTestId("belge-mobile-actions-drawer")).toBeHidden({ timeout: 5_000 });
+  }
 }
 
 test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", () => {
@@ -557,15 +571,16 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
     // Başlangıç PDF önizlemesi üzerinden düzenle.
     await expect(studio.getByRole("region", { name: "PDF önizleme paneli" })).toBeVisible();
 
-    // Toggle butonunun 44px (min-h-11) mobil standardını karşıladığını doğrula
+    // V1.1 Mobil Çekmece: Çekmece üzerinden PDF üzerinde düzenleme modunu aç
+    await openMobileInlineEdit(page, studio);
+
+    // Açıldıktan sonra mobil çipin (belge-inline-edit-toggle) 44px standardını karşıladığını doğrula
     const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
     await expect(toggleBtn).toBeVisible({ timeout: 10_000 });
     const toggleBox = await toggleBtn.boundingBox();
     expect(toggleBox).not.toBeNull();
     expect(toggleBox!.height).toBeGreaterThanOrEqual(44);
 
-    // Aç ve katmanın yerleştiğini gör
-    await toggleBtn.click();
     const editLayer = studio.locator('[data-testid="belge-inline-edit-layer"]');
     await expect(editLayer).toBeVisible({ timeout: 10_000 });
 
@@ -605,9 +620,8 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
 
       await expect(studio.getByRole("region", { name: "PDF önizleme paneli" })).toBeVisible();
 
+      await openMobileInlineEdit(page, studio);
       const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
-      await expect(toggleBtn).toBeVisible({ timeout: 10_000 });
-      await toggleBtn.click();
 
       const editLayer = studio.locator('[data-testid="belge-inline-edit-layer"]');
       await expect(editLayer).toBeVisible({ timeout: 10_000 });
@@ -648,8 +662,7 @@ test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", (
     try {
       const studio = await openStudio(testPage, "beton-dokum-tutanagi");
 
-      const toggleBtn = studio.locator('[data-testid="belge-inline-edit-toggle"]');
-      await toggleBtn.click();
+      await openMobileInlineEdit(testPage, studio);
 
       const editLayer = studio.locator('[data-testid="belge-inline-edit-layer"]');
       await expect(editLayer).toBeVisible({ timeout: 10_000 });

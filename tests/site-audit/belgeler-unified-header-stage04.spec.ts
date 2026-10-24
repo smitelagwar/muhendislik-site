@@ -55,13 +55,11 @@ test.describe("Belgeler Unified Header — ASAMA_04 Responsive Priority & Overfl
     const evaluation = await page.evaluate(() => {
       const headerEl = document.querySelector('[data-testid="belge-studio-top-header"]') as HTMLElement;
       const backBtn = headerEl.querySelector('a[aria-label="Tüm belgelere dön"]') as HTMLElement;
-      const draftBadge = headerEl.querySelector('[data-testid="belge-draft-status-badge"]') as HTMLElement;
-      const moreBtn = headerEl.querySelector('[data-testid="belge-studio-more-view-options"]') as HTMLElement;
+      const moreBtn = headerEl.querySelector('[data-testid="belge-mobile-header-menu-btn"]') as HTMLElement;
 
       return {
         headerHeight: headerEl.offsetHeight,
         backBtnHeight: backBtn?.offsetHeight ?? 0,
-        draftBadgeHeight: draftBadge?.offsetHeight ?? 0,
         moreBtnHeight: moreBtn?.offsetHeight ?? 0,
         overflow: document.documentElement.scrollWidth > window.innerWidth,
       };
@@ -70,59 +68,57 @@ test.describe("Belgeler Unified Header — ASAMA_04 Responsive Priority & Overfl
     expect(evaluation.overflow).toBe(false);
     expect(evaluation.headerHeight).toBeLessThanOrEqual(56);
     expect(evaluation.backBtnHeight).toBeGreaterThanOrEqual(44);
-    expect(evaluation.draftBadgeHeight).toBeGreaterThanOrEqual(44);
     expect(evaluation.moreBtnHeight).toBeGreaterThanOrEqual(44);
   });
 
-  test("Mobile 390x844: Overflow menu (⋯) opens and actions function properly", async ({ page }) => {
+  // V1.1 Sözleşmesi: Mobilde toolbar menüsü yerine alt çekmece ("Belge İşlemleri") ve yüzen pill kullanılır.
+  test("Mobile 390x844: Alt çekmece (⋯) açılır ve eylemler işlevseldir", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const studio = await waitForStudioReady(page, "/belgeler/santiye-sefi-taahhutnamesi");
 
-    const moreBtn = studio.locator('[data-testid="belge-studio-more-view-options"]');
+    const moreBtn = studio.getByTestId("belge-studio-mobile-actions").getByTestId("belge-mobile-more-btn");
     await expect(moreBtn).toBeVisible();
     await moreBtn.click();
 
-    const menu = page.locator('[data-testid="belge-studio-more-view-menu"]');
-    await expect(menu).toBeVisible();
+    const drawer = page.getByTestId("belge-mobile-actions-drawer");
+    await expect(drawer).toBeVisible();
 
-    // Verify Sığdır option is present
-    const fitOption = menu.getByRole("menuitem", { name: /sığdır/i });
-    await expect(fitOption).toBeVisible();
-
-    // Verify Theme toggle option is present
-    const themeOption = menu.getByRole("menuitem", { name: /tema/i });
+    // Verify Theme card is present in drawer
+    const themeOption = drawer.getByTestId("belge-mobile-theme-card");
     await expect(themeOption).toBeVisible();
 
-    // Verify New tab option is present
-    const externalLink = menu.getByRole("menuitem", { name: /yeni sekmede aç/i });
+    // Verify New tab option is present under "Diğer işlemler"
+    await drawer.getByRole("button", { name: "Diğer işlemler" }).click();
+    const externalLink = drawer.getByRole("link", { name: /yeni sekmede aç/i });
     await expect(externalLink).toBeVisible();
 
-    // Test clicking Sığdır
+    // Sığdır doğrudan yüzen pill üzerindedir
+    await page.keyboard.press("Escape");
+    await expect(drawer).toBeHidden();
+    const pill = studio.getByTestId("belge-studio-mobile-zoom-pill");
+    const fitOption = pill.getByRole("button", { name: "Sayfayı Sığdır", exact: true });
+    await expect(fitOption).toBeVisible();
     await fitOption.click();
-    await expect(menu).toBeHidden();
   });
 
-  test("Mobile 390x844: Multi-page navigation from overflow menu on 2-page contract", async ({ page }) => {
+  // V1.1 Sözleşmesi: Çok sayfalı belgede sayfa geçişleri doğrudan yüzen pill üzerinden yönetilir.
+  test("Mobile 390x844: Çok sayfalı sözleşmede yüzen pill üzerinden sayfa navigasyonu", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const studio = await waitForStudioReady(page, "/belgeler/santiye-sefi-sozlesmesi");
 
-    const moreBtn = studio.locator('[data-testid="belge-studio-more-view-options"]');
-    await expect(moreBtn).toBeVisible();
-    await moreBtn.click();
+    const pill = studio.getByTestId("belge-studio-mobile-zoom-pill");
+    await expect(pill).toBeVisible();
 
-    const menu = page.locator('[data-testid="belge-studio-more-view-menu"]');
-    await expect(menu).toBeVisible();
+    // Verify page info "1 / 2"
+    await expect(pill.getByText(/1\s*\/\s*2/)).toBeVisible();
 
-    // Verify page info "Sayfa 1 / 2"
-    await expect(menu.getByText("Sayfa 1 / 2")).toBeVisible();
-
-    // Advance to page 2 via next page button in menu
-    const nextBtn = menu.getByRole("button", { name: "Sonraki sayfa" });
+    // Advance to page 2 via next page button in pill
+    const nextBtn = pill.getByRole("button", { name: "Sonraki sayfa" });
     await expect(nextBtn).toBeEnabled();
     await nextBtn.click();
 
     // Verify page updated to 2 / 2
-    await expect(menu.getByText("Sayfa 2 / 2")).toBeVisible();
+    await expect(pill.getByText(/2\s*\/\s*2/)).toBeVisible();
     await expect(nextBtn).toBeDisabled();
   });
 

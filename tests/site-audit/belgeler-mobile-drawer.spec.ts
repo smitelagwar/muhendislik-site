@@ -53,7 +53,7 @@ test.describe("Belgeler Mobil Çekmece & Sadeleştirilmiş Üst Bar (v1)", () =>
     await expect(toolbarSlot).toBeHidden();
 
     // Sağ üstte yüzen zoom pill görünür
-    const zoomPill = page.getByTestId("belge-studio-preview-toolbar");
+    const zoomPill = page.getByTestId("belge-studio-mobile-zoom-pill");
     await expect(zoomPill).toBeVisible();
     const zoomText = page.getByTestId("belge-studio-zoom-level");
     await expect(zoomText).toHaveText("%100");
@@ -148,7 +148,7 @@ test.describe("Belgeler Mobil Çekmece & Sadeleştirilmiş Üst Bar (v1)", () =>
   test("6. Çok sayfalı belgede sayfa gezgini yüzen pill içinde görünür ve çalışır", async ({ page }) => {
     await waitForStudioReady(page, MULTIPAGE_PATH);
 
-    const zoomPill = page.getByTestId("belge-studio-preview-toolbar");
+    const zoomPill = page.getByTestId("belge-studio-mobile-zoom-pill");
     await expect(zoomPill).toBeVisible();
 
     // Sayfa göstergesi
@@ -201,5 +201,115 @@ test.describe("Belgeler Mobil Çekmece & Sadeleştirilmiş Üst Bar (v1)", () =>
       return el.scrollWidth > window.innerWidth;
     });
     expect(drawerOverflow).toBe(false);
+  });
+
+  test("9. Çekmece açıkken alttaki PDF pan olmuyor ve konsol uyarısı üretilmiyor (B10)", async ({ page }) => {
+    const consoleWarnings: string[] = [];
+    page.on("console", (msg) => {
+      const text = msg.text();
+      // React / hydration ve Radix aria-describedby uyarılarını yakala
+      if (
+        msg.type() === "error" ||
+        (msg.type() === "warning" && (text.includes("aria-describedby") || text.includes("hydration") || text.includes("Warning: ")))
+      ) {
+        consoleWarnings.push(text);
+      }
+    });
+
+    await waitForStudioReady(page, STUDIO_PATH);
+
+    const canvas = page.getByTestId("belge-studio-preview-canvas");
+    await expect(canvas).toBeVisible();
+    const initialBox = await canvas.boundingBox();
+    expect(initialBox).not.toBeNull();
+
+    // Çekmeceyi aç
+    const headerMoreBtn = page.getByTestId("belge-mobile-header-menu-btn");
+    await headerMoreBtn.click();
+    const drawer = page.getByTestId("belge-mobile-actions-drawer");
+    await expect(drawer).toBeVisible();
+
+    // Çekmece açıkken canvas üzerine fare/dokunma hareketi yapmayı dene (overlay tarafından yakalanmalı)
+    await page.mouse.move(200, 300);
+    await page.mouse.down();
+    await page.mouse.move(100, 200, { steps: 5 });
+    await page.mouse.up();
+
+    // Canvas konumu değişmemiş olmalı (pan gerçekleşmedi)
+    const afterBox = await canvas.boundingBox();
+    expect(afterBox?.x).toBe(initialBox?.x);
+    expect(afterBox?.y).toBe(initialBox?.y);
+
+    // Çekmeceyi kapat
+    await page.keyboard.press("Escape");
+    await expect(drawer).not.toBeVisible();
+
+    // Radix Dialog veya React kaynaklı kritik uyarı olmamalı
+    const criticalWarnings = consoleWarnings.filter(
+      (w) => w.includes("aria-describedby") || w.includes("Hydration") || w.includes("validateDOMNesting")
+    );
+    expect(criticalWarnings).toEqual([]);
+  });
+
+  test("10. 320px ekranda uzun başlıkta başlık truncate olur ve ⋮ butonu görünür kalır (B9)", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await waitForStudioReady(page, "/belgeler/santiye-sefi-taahhutnamesi");
+
+    const header = page.getByTestId("belge-studio-top-header");
+    await expect(header).toBeVisible();
+
+    const headerMoreBtn = page.getByTestId("belge-mobile-header-menu-btn");
+    await expect(headerMoreBtn).toBeVisible();
+
+    const headerBox = await header.boundingBox();
+    const btnBox = await headerMoreBtn.boundingBox();
+    expect(btnBox).not.toBeNull();
+    expect(headerBox).not.toBeNull();
+
+    // ⋮ butonu header sınırları içinde olmalı (taşma yok)
+    expect((btnBox?.x ?? 0) + (btnBox?.width ?? 0)).toBeLessThanOrEqual((headerBox?.width ?? 0) + 2);
+  });
+
+  test("11. Çekmecede 'Form Görünümü' menüsü yer alır ve erişilebilirdir (B3)", async ({ page }) => {
+    await waitForStudioReady(page, STUDIO_PATH);
+
+    // PDF sekmesindeyiz: çekmeceyi aç
+    const headerMoreBtn = page.getByTestId("belge-mobile-header-menu-btn");
+    await headerMoreBtn.click();
+
+    const drawer = page.getByTestId("belge-mobile-actions-drawer");
+    await expect(drawer).toBeVisible();
+
+    // Diğer işlemler akordeonunu aç
+    const otherBtn = drawer.getByRole("button", { name: /Diğer işlemler/i });
+    await otherBtn.click();
+    await expect(otherBtn).toHaveAttribute("aria-expanded", "true");
+
+    // Form görünümü container'ı görünür olmalı
+    const formViewContainer = drawer.getByTestId("belge-drawer-form-view-container");
+    await expect(formViewContainer).toBeVisible();
+    await expect(formViewContainer).toContainText("Form sekmesinde kullanılabilir");
+
+    // Çekmeceyi kapatıp Form sekmesine geç
+    await page.keyboard.press("Escape");
+    await expect(drawer).not.toBeVisible();
+
+    const switchBtn = page.getByRole("button", { name: "Formu Düzenle" });
+    await switchBtn.click();
+
+    // Çekmeceyi tekrar aç
+    await headerMoreBtn.click();
+    await expect(drawer).toBeVisible();
+    await otherBtn.click();
+    await expect(otherBtn).toHaveAttribute("aria-expanded", "true");
+
+    // Şimdi Form Görünümü menüsü aktif olmalı
+    const formViewMenuBtn = drawer.getByTestId("belge-studio-form-view-trigger");
+    await expect(formViewMenuBtn).toBeEnabled();
+    await formViewMenuBtn.click();
+
+    // Dropdown menü içeriği açılmalı
+    const menuContent = page.getByTestId("belge-studio-form-view-menu");
+    await expect(menuContent).toBeVisible();
   });
 });

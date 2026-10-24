@@ -129,17 +129,17 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
           type="button"
           variant="outline"
           onClick={props.onToggleTab}
-          className={`min-h-[44px] min-w-0 flex-1 gap-[6px] whitespace-normal rounded-xl border-border/80 bg-card/90 px-[8px] py-[8px] text-xs font-bold leading-tight hover:border-amber-500/50 dark:bg-zinc-900 cursor-pointer ${
+          className={`min-h-[44px] min-w-0 flex-1 gap-1.5 whitespace-nowrap rounded-xl border-border/80 bg-card/90 px-2 py-2 text-xs font-bold leading-none hover:border-amber-500/50 dark:bg-zinc-900 cursor-pointer ${
             props.activeTab === "preview" ? "belge-form-edit-glow" : ""
           }`}
           aria-label={props.activeTab === "form" ? "Canlı PDF Önizle" : "Formu Düzenle"}
         >
           {props.activeTab === "form" ? (
-            <BelgePreviewEyeIcon className="h-[16px] w-[16px] shrink-0 text-amber-500" />
+            <BelgePreviewEyeIcon className="h-4 w-4 shrink-0 text-amber-500" />
           ) : (
-            <BelgeFormEditIcon className="h-[16px] w-[16px] shrink-0 text-amber-500" />
+            <BelgeFormEditIcon className="h-4 w-4 shrink-0 text-amber-500" />
           )}
-          <span className="min-w-0 wrap-anywhere">
+          <span className="truncate">
             {props.activeTab === "form" ? "PDF Önizle" : "Formu Düzenle"}
           </span>
         </Button>
@@ -149,10 +149,10 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
           type="button"
           onClick={props.onDownload}
           disabled={!ready || downloading}
-          className={`${downloadClass} min-h-[44px] min-w-0 flex-1 gap-[6px] whitespace-normal rounded-xl px-[8px] py-[8px] text-xs font-extrabold leading-tight shadow-sm shadow-amber-500/20 [&_svg]:h-[16px] [&_svg]:w-[16px] cursor-pointer`}
+          className={`${downloadClass} min-h-[44px] min-w-0 flex-1 gap-1.5 whitespace-nowrap rounded-xl px-2 py-2 text-xs font-extrabold leading-none shadow-sm shadow-amber-500/20 [&_svg]:h-4 [&_svg]:w-4 cursor-pointer`}
         >
           {downloadIcon}
-          <span className="min-w-0 wrap-anywhere">PDF İndir</span>
+          <span className="truncate">PDF İndir</span>
         </Button>
       </div>
 

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Edit3, X } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-context";
 import { useBelgeStudioTheme } from "@/hooks/use-belge-studio-theme";
 import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
+import { BelgeStudioFormViewMenu } from "@/components/belge-studio-form-view-menu";
 import {
   BelgeBackIcon,
   BelgeBlankFormIcon,
@@ -65,23 +66,45 @@ export function BelgeStudioMobileActionsSheet({
   const { drawerOpen, closeDrawer, triggerElement, preview, extraActions } = useBelgeStudioMobileContext();
   const { isDark, toggle: toggleTheme } = useBelgeStudioTheme();
   const [otherActionsOpen, setOtherActionsOpen] = useState(false);
+  const [prevDrawerOpen, setPrevDrawerOpen] = useState(drawerOpen);
+  const closeReasonRef = useRef<"inline-edit" | "share" | "print" | "default">("default");
+  const timerRef = useRef<number | null>(null);
+
+  if (prevDrawerOpen !== drawerOpen) {
+    setPrevDrawerOpen(drawerOpen);
+    if (!drawerOpen) {
+      setOtherActionsOpen(false);
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   const handleInlineEditClick = () => {
+    closeReasonRef.current = "inline-edit";
     closeDrawer();
     preview.inlineEdit.setActive(!preview.inlineEdit.active);
   };
 
   const handleShareClick = () => {
+    closeReasonRef.current = "share";
     closeDrawer();
-    // Odak yarışını önlemek için paylaşım dialogu bir sonraki frame'de açılır.
-    window.setTimeout(() => {
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => {
       onShare?.();
     }, 50);
   };
 
   const handlePrintClick = () => {
+    closeReasonRef.current = "print";
     closeDrawer();
-    window.setTimeout(() => {
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => {
       onPrint();
     }, 50);
   };
@@ -108,7 +131,18 @@ export function BelgeStudioMobileActionsSheet({
           data-testid="belge-mobile-actions-drawer"
           className="fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[min(85dvh,640px)] rounded-t-2xl border-t border-border bg-background shadow-2xl outline-none data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom motion-reduce:animate-none"
           onCloseAutoFocus={(e) => {
-            if (triggerElement) {
+            const reason = closeReasonRef.current;
+            closeReasonRef.current = "default";
+            if (reason === "inline-edit") {
+              e.preventDefault();
+              const activeTag = document.activeElement?.tagName;
+              if (activeTag !== "INPUT" && activeTag !== "TEXTAREA") {
+                const canvas = document.querySelector<HTMLElement>('[data-testid="belge-studio-preview-canvas"]');
+                canvas?.focus();
+              }
+            } else if (reason === "share" || reason === "print") {
+              e.preventDefault();
+            } else if (triggerElement) {
               e.preventDefault();
               triggerElement.focus();
             }
@@ -122,7 +156,7 @@ export function BelgeStudioMobileActionsSheet({
           {/* Çekmece Başlığı ve Kapat Butonu */}
           <div className="flex items-center justify-between border-b border-border/60 px-4 py-2 shrink-0">
             <div className="flex items-center gap-2">
-              <span className="text-base" aria-hidden="true">📄</span>
+              <BelgeFormEditIcon className="h-4 w-4 text-amber-500 shrink-0" />
               <DialogPrimitive.Title className="text-sm font-bold text-foreground">
                 Belge İşlemleri
               </DialogPrimitive.Title>
@@ -208,19 +242,22 @@ export function BelgeStudioMobileActionsSheet({
               <button
                 type="button"
                 onClick={toggleTheme}
-                role="switch"
-                aria-checked={isDark}
+                aria-pressed={isDark}
+                aria-label={isDark ? "Açık temaya geç" : "Koyu temaya geç"}
                 data-testid="belge-mobile-theme-card"
-                className="flex flex-col items-center justify-center p-2 rounded-xl border border-border/70 bg-card hover:bg-secondary/50 text-center transition cursor-pointer min-h-[64px] gap-1"
-                title={isDark ? "Aydınlık temaya geç" : "Koyu temaya geç"}
+                className="flex flex-col items-center justify-center p-2 rounded-xl border border-border/70 bg-card hover:bg-secondary/50 text-center transition cursor-pointer min-h-[64px] gap-0.5"
+                title={isDark ? "Açık temaya geç" : "Koyu temaya geç"}
               >
-                {isDark ? (
-                  <BelgeMoonIcon className="h-5 w-5 text-amber-400 shrink-0" />
-                ) : (
-                  <BelgeSunIcon className="h-5 w-5 text-amber-600 shrink-0" />
-                )}
-                <span className="text-[11px] font-semibold text-foreground leading-tight">
-                  {isDark ? "Koyu" : "Açık"}
+                <div className="flex items-center justify-center">
+                  {isDark ? (
+                    <BelgeMoonIcon className="h-5 w-5 text-amber-400 shrink-0" />
+                  ) : (
+                    <BelgeSunIcon className="h-5 w-5 text-amber-600 shrink-0" />
+                  )}
+                </div>
+                <span className="text-[11px] font-bold text-foreground leading-tight">Görünüm</span>
+                <span className="text-[9px] text-muted-foreground leading-none">
+                  {isDark ? "Koyu tema" : "Açık tema"}
                 </span>
               </button>
             </div>
@@ -276,55 +313,46 @@ export function BelgeStudioMobileActionsSheet({
                     </button>
                   )}
 
-                  {/* Form Görünümü (Yalnız Form Sekmesinde Etkili) */}
+                  {/* Form Görünümü (Form sekmesinde etkili - Orijinal BelgeStudioFormViewMenu eşdeğerliği) */}
                   {formView && (
-                    <div className="px-3 py-2 bg-muted/20">
-                      <div className="text-[11px] font-semibold text-muted-foreground mb-1.5">
-                        Form Görünümü (Form sekmesinde etkili)
-                      </div>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            formView.onChooseScale(1);
+                    <div data-testid="belge-drawer-form-view-container" className="px-3 py-2 bg-muted/20">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[11px] font-semibold text-foreground">Form Görünümü</div>
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {activeTab === "form"
+                              ? "Ölçek ve sığdırma seçenekleri"
+                              : "Form sekmesinde kullanılabilir"}
+                          </div>
+                        </div>
+                        <BelgeStudioFormViewMenu
+                          mode={formView.mode}
+                          manualScale={formView.manualScale}
+                          density={formView.density}
+                          appliedScale={formView.appliedScale}
+                          fitStatus={formView.fitStatus}
+                          onChooseScale={(scale) => {
+                            formView.onChooseScale(scale);
                             closeDrawer();
                           }}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border ${
-                            formView.appliedScale === 1
-                              ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                              : "border-border bg-background text-foreground hover:bg-secondary"
-                          }`}
-                        >
-                          %100
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            formView.onFit();
-                            closeDrawer();
-                          }}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border ${
-                            formView.mode === "fit"
-                              ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                              : "border-border bg-background text-foreground hover:bg-secondary"
-                          }`}
-                        >
-                          Ekrana Sığdır
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
+                          onToggleCompact={() => {
                             formView.onToggleCompact();
                             closeDrawer();
                           }}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border ${
-                            formView.density === "compact"
-                              ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                              : "border-border bg-background text-foreground hover:bg-secondary"
-                          }`}
-                        >
-                          Kompakt
-                        </button>
+                          onFit={() => {
+                            formView.onFit();
+                            closeDrawer();
+                          }}
+                          onReset={() => {
+                            formView.onReset();
+                            closeDrawer();
+                          }}
+                          disabled={activeTab !== "form"}
+                          side="top"
+                          align="end"
+                          iconOnly={false}
+                          className="h-8 text-xs px-2.5"
+                        />
                       </div>
                     </div>
                   )}

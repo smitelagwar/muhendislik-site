@@ -94,17 +94,20 @@ test.describe("Belgeler Unified Header — ASAMA_03 Portaled Toolbar & Single St
     await expect(studio.locator('[data-testid="belge-studio-form-scroll"]')).toBeVisible();
   });
 
+  // V1.1 Sözleşmesi: Mobilde (<1024px) toolbar slotu gizlenir (hidden lg:flex),
+  // kontroller yüzen pill (BelgeStudioMobileZoomPill) içindedir ve çift header/boş satır oluşmaz.
   test("Mobile 390x844: Single toolbar in slot, no double header or blank row", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const studio = await waitForStudioReady(page, "/belgeler/santiye-sefi-taahhutnamesi");
 
-    // Exactly 1 toolbar in DOM
-    await expect(page.locator('[data-testid="belge-studio-preview-toolbar"]')).toHaveCount(1);
+    // Mobilde üst bar slotu gizlidir
+    await expect(studio.locator('[data-testid="belge-unified-toolbar-slot"]')).toBeHidden();
 
-    // Inside the header slot
-    await expect(studio.locator('[data-testid="belge-unified-toolbar-slot"] [data-testid="belge-studio-preview-toolbar"]')).toBeVisible();
+    // Mobilde yüzen zoom pill görünürdür ve tek satırdır
+    const pill = studio.locator('[data-testid="belge-studio-mobile-zoom-pill"]');
+    await expect(pill).toBeVisible();
 
-    // No toolbar inside the preview panel
+    // No desktop toolbar inside the preview panel
     await expect(studio.locator('.belge-preview-panel [data-testid="belge-studio-preview-toolbar"]')).toHaveCount(0);
   });
 });

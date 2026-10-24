@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   Building2,
   Dice5,
-  Loader2,
-  X,
 } from "lucide-react";
 import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
 import {
@@ -229,7 +227,7 @@ export function InsaatRuhsatiStudio({
     }
     clearFieldFocusSelection();
     draft.markFormMutated();
-    setUndoData({ ...formData });
+    setUndoData(null);
     const randomIndex = Math.floor(Math.random() * RANDOM_SAMPLES.length);
     const sample = RANDOM_SAMPLES[randomIndex];
     setFormData({ ...sample });
@@ -608,8 +606,8 @@ export function InsaatRuhsatiStudio({
         templateFilename="INSAAT_RUHSATI_DILEKCESI_BOS.pdf"
         formView={formView}
       />
-      <BelgeShareDialog share={shareApi} documentTitle="İnşaat Ruhsatı Dilekçesi" />
-    </div>
+        <BelgeShareDialog share={shareApi} documentTitle="İnşaat Ruhsatı Dilekçesi" />
+      </div>
     </BelgeStudioMobileProvider>
   );
 }

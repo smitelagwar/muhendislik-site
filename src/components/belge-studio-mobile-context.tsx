@@ -88,6 +88,7 @@ export function BelgeStudioMobileProvider({
     const handler = (e: MediaQueryListEvent) => {
       if (e.matches) {
         setDrawerOpen(false);
+        setTriggerElement(null);
       }
     };
     mql.addEventListener("change", handler);

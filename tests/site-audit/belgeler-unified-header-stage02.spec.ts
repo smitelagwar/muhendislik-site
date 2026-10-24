@@ -65,9 +65,9 @@ test.describe("Belgeler Unified Header — ASAMA_02 Semantics & 5 Studio Verific
       const slot = topHeader.locator('[data-testid="belge-unified-toolbar-slot"]');
       await expect(slot).toBeAttached();
 
-      // 5. Draft badge and sync status are visible
+      // 5. Draft badge and sync status are attached (V3 minimal draft: sessiz boş başlangıç durumu)
       const draftBadge = topHeader.locator('[data-testid="belge-draft-status-badge"]');
-      await expect(draftBadge).toBeVisible();
+      await expect(draftBadge).toBeAttached();
 
       // 6. Subtitle is present
       await expect(topHeader.getByText(route.expectedSubtitle)).toBeVisible();
@@ -95,8 +95,8 @@ test.describe("Belgeler Unified Header — ASAMA_02 Semantics & 5 Studio Verific
     const backLink = studio.getByRole("link", { name: "Tüm belgelere dön" });
     await expect(backLink).toBeVisible();
 
-    // Draft badge is visible on mobile
-    await expect(studio.locator('[data-testid="belge-draft-status-badge"]')).toBeVisible();
+    // Draft badge is attached on mobile
+    await expect(studio.locator('[data-testid="belge-draft-status-badge"]')).toBeAttached();
 
     // No horizontal scroll
     const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);

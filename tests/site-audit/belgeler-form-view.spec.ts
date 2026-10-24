@@ -119,8 +119,18 @@ test.describe("Belgeler Form View & UX Regresyon Paketi", () => {
     const switchedLabel = await toggleBtn.getAttribute("aria-label");
     expect(initialLabel).not.toEqual(switchedLabel);
 
-    // Mobil alt barda doğrudan yer alan Form Görünümü tetikleyicisi
-    const formTrigger = page.locator('[data-testid="belge-studio-mobile-actions"] [data-testid="belge-studio-form-view-trigger"]');
+    // V1.1 Sözleşmesi: Mobilde (<1024px) Form Görünümü menüsü alt çekmece ("Belge İşlemleri") içine taşınmıştır.
+    const moreBtn = page.getByTestId("belge-mobile-more-btn");
+    await expect(moreBtn).toBeVisible({ timeout: 5_000 });
+    await moreBtn.click();
+
+    const drawer = page.getByTestId("belge-mobile-actions-drawer");
+    await expect(drawer).toBeVisible({ timeout: 5_000 });
+
+    // Çekmece içi "Diğer işlemler" akordeonunu aç
+    await drawer.getByRole("button", { name: "Diğer işlemler" }).click();
+
+    const formTrigger = drawer.locator('[data-testid="belge-studio-form-view-trigger"]');
     await expect(formTrigger).toBeVisible({ timeout: 5_000 });
 
     // Form görünümü menüsünü aç
@@ -154,8 +164,18 @@ test.describe("Belgeler Form View & UX Regresyon Paketi", () => {
     await expect(formScroll).toBeVisible({ timeout: 10_000 });
     await expect(content).toBeVisible({ timeout: 5_000 });
 
-    // Tablette (< 1024px) alt barda doğrudan yer alan Form Görünümü tetikleyicisini kullan
-    const formTrigger = page.locator('[data-testid="belge-studio-mobile-actions"] [data-testid="belge-studio-form-view-trigger"]');
+    // V1.1 Sözleşmesi: Tablette (< 1024px) Form Görünümü menüsü alt çekmece ("Belge İşlemleri") içine taşınmıştır.
+    const moreBtn = page.getByTestId("belge-mobile-more-btn");
+    await expect(moreBtn).toBeVisible({ timeout: 5_000 });
+    await moreBtn.click();
+
+    const drawer = page.getByTestId("belge-mobile-actions-drawer");
+    await expect(drawer).toBeVisible({ timeout: 5_000 });
+
+    // Çekmece içi "Diğer işlemler" akordeonunu aç
+    await drawer.getByRole("button", { name: "Diğer işlemler" }).click();
+
+    const formTrigger = drawer.locator('[data-testid="belge-studio-form-view-trigger"]');
     await expect(formTrigger).toBeVisible({ timeout: 5_000 });
     await formTrigger.click();
 

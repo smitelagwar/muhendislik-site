@@ -114,7 +114,7 @@ export function BelgeStudioFormViewMenu({
         align={align}
         sideOffset={10}
         collisionPadding={12}
-        className="w-56 max-w-[calc(100vw-1rem)] rounded-xl border border-border bg-popover p-1.5 shadow-xl text-popover-foreground z-50 max-h-[85vh] overflow-y-auto"
+        className="w-56 max-w-[calc(100vw-1rem)] rounded-xl border border-border bg-popover p-1.5 shadow-xl text-popover-foreground z-[60] max-h-[85vh] overflow-y-auto"
         data-testid="belge-studio-form-view-menu"
       >
         <DropdownMenuLabel className="px-2 py-1 text-xs font-bold text-muted-foreground flex items-center justify-between">

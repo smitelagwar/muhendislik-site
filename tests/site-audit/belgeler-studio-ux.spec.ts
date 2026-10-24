@@ -130,6 +130,8 @@ test.describe("Belgeler Stüdyosu — ASAMA_08 Entegre UX ve Stres Paketi", () =
   test("Senaryo 4: Çoklu sekme bağımsız yazım ve storage tutarlılığı", async ({ context }) => {
     const pageA = await context.newPage();
     const pageB = await context.newPage();
+    await pageA.setViewportSize({ width: 1366, height: 850 });
+    await pageB.setViewportSize({ width: 1366, height: 850 });
 
     await pageA.goto("/belgeler/beton-dokum-tutanagi");
     await pageA.evaluate(() => {
@@ -240,7 +242,7 @@ test.describe("Belgeler Stüdyosu — ASAMA_08 Entegre UX ve Stres Paketi", () =
     for (const vp of viewports) {
       await page.setViewportSize(vp);
       await page.goto("/belgeler/beton-dokum-tutanagi");
-      await page.waitForSelector('[data-testid="belge-studio-preview-toolbar"]', { timeout: 15_000 });
+      await page.waitForSelector('[data-testid="belge-studio-preview-toolbar"], [data-testid="belge-studio-mobile-zoom-pill"]', { timeout: 15_000 });
 
       // Yatay taşma olmamalıdır: scrollWidth <= innerWidth
       const isOverflowing = await page.evaluate(() => {

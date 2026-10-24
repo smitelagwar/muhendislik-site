@@ -26,6 +26,7 @@ async function openMobileEditing(page: Page) {
     const drawerBtn = page.locator('[data-testid="belge-drawer-inline-edit-btn"]');
     await expect(drawerBtn).toBeVisible({ timeout: 5_000 });
     await drawerBtn.click();
+    await expect(page.getByTestId("belge-mobile-actions-drawer")).toBeHidden({ timeout: 5_000 });
   }
   const toggle = studio.locator('[data-testid="belge-inline-edit-toggle"]');
   await expect(toggle).toBeVisible({ timeout: 10_000 });

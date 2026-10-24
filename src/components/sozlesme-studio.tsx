@@ -1,11 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  FileCheck2,
-  Loader2,
-  X,
-} from "lucide-react";
+import { FileCheck2 } from "lucide-react";
 import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
 import {
   BELGE_STUDIO_FORM_SCROLL_CLASS,
@@ -283,9 +279,9 @@ export function SozlesmeStudio({
     <BelgeStudioMobileProvider>
       <div
         ref={studioRootRef}
-      data-studio-locked={isModal ? undefined : "true"}
-      className={`flex flex-col bg-background text-foreground w-full max-w-full min-w-0 h-full overflow-hidden ${
-        isModal
+        data-studio-locked={isModal ? undefined : "true"}
+        className={`flex flex-col bg-background text-foreground w-full max-w-full min-w-0 h-full overflow-hidden ${
+          isModal
           ? "max-h-[96vh] rounded-2xl border border-border shadow-2xl"
           : "rounded-none border-0 bg-transparent shadow-none backdrop-blur-none"
       }`}
@@ -667,8 +663,8 @@ export function SozlesmeStudio({
         templateFilename="SANTIYE_SEFI_SOZLESMESI_BOS.pdf"
         formView={formView}
       />
-      <BelgeShareDialog share={shareApi} documentTitle="Şantiye Şefi Hizmet Sözleşmesi" />
-    </div>
+        <BelgeShareDialog share={shareApi} documentTitle="Şantiye Şefi Hizmet Sözleşmesi" />
+      </div>
     </BelgeStudioMobileProvider>
   );
 }

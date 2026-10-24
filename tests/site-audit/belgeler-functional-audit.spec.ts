@@ -233,9 +233,9 @@ test("Belgeler ve beş stüdyoda açık ve koyu temada ciddi erişilebilirlik ih
 
     if (path !== "/belgeler") {
       if (await studio.getByTestId("belge-studio-mobile-actions").isVisible()) {
-        const showPreview = studio.getByRole("button", { name: "Canlı PDF Önizle", exact: true });
+        const showPreview = studio.getByRole("button", { name: /PDF Önizle/i });
         if (await showPreview.isVisible()) await showPreview.click();
-        await expect(studio.getByTestId("belge-studio-preview-toolbar")).toBeVisible({ timeout: 8_000 });
+        await expect(studio.getByTestId("belge-studio-mobile-zoom-pill")).toBeVisible({ timeout: 8_000 });
         await scan(`${path} / PDF [Açık Tema]`);
       }
     }
@@ -338,10 +338,10 @@ test("Mobil stüdyoda 20 kez ardışık sekme geçişi sonrasında form ve canva
 
   for (let i = 0; i < 20; i++) {
     await actions.getByRole("button", { name: "Formu Düzenle", exact: true }).click();
-    await actions.getByRole("button", { name: "Canlı PDF Önizle", exact: true }).click();
+    await actions.getByRole("button", { name: /PDF Önizle/i }).click();
   }
 
-  await expect(studio.getByTestId("belge-studio-preview-toolbar")).toBeVisible();
+  await expect(studio.getByTestId("belge-studio-mobile-zoom-pill")).toBeVisible();
   await expect(studio.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.");
   await expect(canvas).toBeVisible();
 
@@ -434,7 +434,7 @@ test("Klavye odak sırası, screen reader etiketleri ve tema switch Space erişi
   await expect(toolbar).toHaveAttribute("role", "toolbar");
   await expect(toolbar).toHaveAttribute("aria-label", "PDF önizleme araçları");
 
-  const themeToggle = toolbar.getByTestId("belge-theme-toggle");
+  const themeToggle = studio.getByTestId("belge-theme-toggle");
   await expect(themeToggle).toHaveAttribute("role", "switch");
   const initialChecked = await themeToggle.getAttribute("aria-checked");
   expect(initialChecked).not.toBeNull();

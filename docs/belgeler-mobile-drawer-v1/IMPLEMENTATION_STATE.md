@@ -101,3 +101,42 @@ Mobil v1 düzeninde PDF üzerinde düzenleme butonu çekmeceye taşındığı i�
 - `istifa-320x568-preview.png` & `istifa-320x568-form.png`
 - `istifa-360x740-preview.png` & `istifa-360x740-form.png`
 - `istifa-390x844-preview.png` & `istifa-390x844-form.png`
+
+
+---
+
+## V1.1 DÜZELTME — Denetim ve Sertleştirme Raporu
+
+**Tarih:** 2026-10-25  
+**Kapsam:** BELGELER_MOBIL_CEKMECE_DUZELTME_PLANI.md (B1–B10 bulgularının çözümü)  
+**Durum:** ✅ TÜM KAPILAR YEŞİL
+
+### 1. B1–B10 Maddeleri Çözüm Tablosu
+
+| Madde | Konu | Durum | Uygulanan Çözüm ve Doğrulama |
+|---|---|---|---|
+| **B1** | Zoom Pill Çakışması & Boyut | ✅ DÜZELTİLDİ | `belge-studio-mobile-zoom-pill` testid'si verildi. `globals.css` toolbar kuralından ayrıştırıldı. Yükseklik `<=38px`, dokunma hedefi `before:-inset-2` ile `>=44px`. Backdrop-blur kaldırıldı, % butonu sade rozete çevrildi, etkileşimde `opacity-35` uygulandı. |
+| **B2** | Eski Spec'lerin Taşınması | ✅ DÜZELTİLDİ | Eski spec'ler yeni sözleşmeye göre güncellendi. Hiçbir test silinmedi/gevşetilmedi. Tüm spec paketleri yeşile getirildi. |
+| **B3** | Form Görünümü Eşdeğerliği | ✅ DÜZELTİLDİ | Çekmecede el yazması kopya kaldırıldı, `BelgeStudioFormViewMenu` bileşeni doğrudan kullanıldı. Ölçekler ve sıfırlama korundu, PDF sekmesinde devre dışı bırakıldı. |
+| **B4** | Genişletilmiş Test Matrisi | ✅ DÜZELTİLDİ | Tüm doğrulama kapıları gerçek komutlarla koşuldu ve kaydedildi. |
+| **B5** | Alt Bar Metin Kırpılması | ✅ DÜZELTİLDİ | Buton metinlerine `whitespace-nowrap leading-none truncate` uygulandı. 320px ekranda tek satır korundu. |
+| **B6** | Tema Kartı Erişilebilirliği | ✅ DÜZELTİLDİ | "Görünüm" başlığı, durum metni ("Açık/Koyu tema"), switch rolü ve uygun aria-label/aria-checked eklendi. |
+| **B7** | Odak Yönetimi (Canvas Focus) | ✅ DÜZELTİLDİ | `onCloseAutoFocus` içinde aktif eleman `INPUT`/`TEXTAREA` ise canvas'a odak hırsızlığı engellendi; inline edit odağı korundu. |
+| **B8** | Stüdyo Dosyalarında Girinti | ✅ DÜZELTİLDİ | Beş stüdyo dosyasındaki girinti ve JSX düzeni standartlaştırıldı. |
+| **B9** | Emoji / Timer Temizliği | ✅ DÜZELTİLDİ | Emojiler Lucide ikonlarıyla değiştirildi; `timerRef` ve unmount cleanup eklendi. `react-hooks/set-state-in-effect` render ayarı pattern'iyle çözüldü. |
+| **B10**| PDF Pan Engeli | ✅ DÜZELTİLDİ | Çekmece açıkken overlay ile alttaki PDF etkileşimi engellendi, konsol hatası sıfırlandı. |
+
+### 2. Doğrulama Kapıları Gerçek Sonuçları
+
+1. **`npx tsc -p tsconfig.next.json --noEmit`:** 0 hata (PASS)
+2. **`npx eslint <modified>`:** 0 hata, 0 uyarı (PASS)
+3. **`npm run check:belgeler-pdf`:** 486/486 test PASS + 6 sayfa Poppler görsel koruma PASS
+4. **`npm run check:belgeler-inline-mobile`:** 9/9 PASS
+5. **Erişilebilirlik ve Düzen Testleri:**
+   - `tests/site-audit/touch-targets.spec.ts`: 7/7 PASS
+   - `tests/site-audit/responsive-overflow.spec.ts`: 13/13 PASS
+   - `tests/site-audit/theme-consistency.spec.ts`: 6/6 PASS
+   - `tests/site-audit/modal-dialog-scroll-lock.spec.ts`: 2/2 PASS
+   - `tests/site-audit/a11y-wcag.spec.ts`: 25/25 PASS
+6. **Production Build (`npm run build`):** 627/627 sayfa başarıyla derlendi (Exit code: 0).
+7. **Yasak Alan Sızıntı Denetimi (`git diff --stat`):** Yasak alanlara (pdf-engine, CAD/DXF vb.) sızıntı sıfırdır.

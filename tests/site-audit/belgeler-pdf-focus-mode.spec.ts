@@ -177,7 +177,7 @@ test.describe("Belgeler PDF Odak Modu — ASAMA_07", () => {
   test("6. Mobil görünüm (390px): Odak butonu görünmez, sekmeli düzen aktiftir", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/belgeler/beton-dokum-tutanagi");
-    await page.waitForSelector('[data-testid="belge-studio-preview-toolbar"]', { timeout: 15_000 });
+    await page.waitForSelector('[data-testid="belge-studio-preview-toolbar"], [data-testid="belge-studio-mobile-zoom-pill"]', { timeout: 15_000 });
 
     // Odak butonu mobilde görünmez
     const toggle = page.locator('[data-testid="belge-pdf-focus-toggle"]');

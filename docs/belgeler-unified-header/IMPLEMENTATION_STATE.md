@@ -138,7 +138,7 @@ updated_at: "2026-10-24T16:56:00+03:00"
 
 ### 1. Yapılan Değişiklikler
 - **15 Farklı Viewport Uyumluluğu:** 320, 360, 390, 412, 640, 768, 911, 1024, 1093, 1280, 1366, 1440, 1536, 1920, 2560 genişliklerinde sıfır yatay taşma (no horizontal body overflow) ve tek satır header yüksekliği garanti altına alındı (`box-border h-14 lg:h-16`, mobilde <=56px, masaüstünde <=64px).
-- **Responsive Overflow (`⋯`) Menüsü:** `<lg` (<1024px) ekranlarda sağa doğru sığmayan görünüm seçenekleri (Sığdır %100, yeni sekmede aç, aydınlık/koyu tema, form düzeni, mobil çok sayfalı 1/N gezinme ve mobil zoom kontrolleri) tek bir erişilebilir dropdown menüye taşındı.
+- **Responsive Overflow (`⋯`) Menüsü:** `<lg` (<1024px) ekranlarda sağa doğru sığmayan görünüm seçenekleri (Sığdır %100, yeni sekmede aç, aydınlık/koyu tema, form düzeni, mobil çok sayfalı 1/N gezinme ve mobil zoom kontrolleri) tek bir erişilebilir dropdown menüye taşındı. *(Not: V1.1 Mobil Çekmece sözleşmesi uyarınca, tema değiştirici doğrudan üst header'da yalnızca masaüstünde (`hidden lg:flex`) yer alır; mobilde (<1024px) tema geçişi "Belge İşlemleri" alt çekmecesindeki Görünüm kartı üzerinden sağlanır).*
 - **Kompakt Mobil Taslak Rozeti:** `src/components/belge-studio-draft-controls.tsx` içinde dar ekranlarda (<640px) rozet metni gizlenip ikon merkezli 44×44px dokunma alanına dönüştürüldü; pointer-event engeli ve taşma ortadan kaldırıldı.
 - **Doğrudan Dokunma Hedefleri (M2 Kuralı):** 320×568 ve 390×844 mobil ekranlarda tüm doğrudan tıklanabilir butonların (Geri linki, taslak rozeti, overflow tetikleyicisi) min. 44×44px dokunma alanına sahip olduğu doğrulandı.
 

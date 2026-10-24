@@ -35,12 +35,15 @@ test.describe("Belgeler Unified Header — V3 Sözleşme Doğrulaması", () => {
     }
   });
 
+  // V1.1 Sözleşmesi: Mobilde tema butonu header'dan çekmeceye taşınmıştır; header'da ⋮ çekmece butonu yer alır
   test("Mobile 390x844: Header bileşenleri taşma yapmaz ve yatay kaydırma sıfırdır", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     const studio = await waitForStudioReady(page, "/belgeler/santiye-sefi-taahhutnamesi");
 
     const themeToggle = studio.locator('[data-testid="belge-theme-toggle"]');
-    await expect(themeToggle).toBeVisible();
+    await expect(themeToggle).toBeHidden();
+    const menuBtn = studio.locator('[data-testid="belge-mobile-header-menu-btn"]');
+    await expect(menuBtn).toBeVisible();
 
     // Horizontal overflow check
     const docWidth = await page.evaluate(() => document.documentElement.scrollWidth);
