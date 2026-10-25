@@ -68,6 +68,19 @@ export default defineConfig({
         isMobile: true,
       },
     },
+    {
+      name: "webkit-desktop-1366",
+      use: {
+        ...devices["Desktop Safari"],
+        viewport: { width: 1366, height: 768 },
+      },
+    },
+    {
+      name: "webkit-mobile-390",
+      use: {
+        ...devices["iPhone 13"],
+      },
+    },
   ],
   webServer: {
     command: productionServer

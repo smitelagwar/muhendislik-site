@@ -11,11 +11,13 @@ import {
   SlidersHorizontal,
   Compass,
   Clock,
+  Box,
 } from "lucide-react";
 import { ToolIcon } from "@/components/tool-icon";
 import { ToolWatermarkIllustration } from "@/components/tool-watermarks";
 import { type ToolDefinition } from "@/lib/tools-data";
 import { TOOL_REGISTRY } from "@/lib/tool-registry";
+import { SIMULATIONS_HUB_HREF } from "@/lib/simulations/catalog";
 
 export const TIER_CATEGORIES = [
   { id: "all", label: "Tüm Seviyeler" },
@@ -395,6 +397,47 @@ export default function ToolsWorkbenchShowcase({
               </div>
             </div>
           )}
+        </div>
+      </section>
+
+      {/* ── 2B. ETKİLEŞİMLİ BETONARME & DONATI SİMÜLASYON KÜTÜPHANESİ GİRİŞ KARTI ── */}
+      <section
+        data-testid="tools-simulation-library-card"
+        className="relative overflow-hidden rounded-[28px] border border-cyan-500/35 dark:border-cyan-400/30 bg-card/90 dark:bg-gradient-to-r dark:from-[#101c2e] dark:via-[#12132e] dark:to-[#191132] p-6 sm:p-7 shadow-sm backdrop-blur-2xl"
+      >
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/35 bg-cyan-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-300">
+              <Box className="h-3.5 w-3.5 text-cyan-400" />
+              <span>Simülasyon Kütüphanesi · 3B + 2B Eğitim Modülü</span>
+            </div>
+            <h2 className="text-xl font-black tracking-tight text-foreground dark:text-white sm:text-2xl">
+              Etkileşimli Betonarme ve Donatı Kütüphanesi
+            </h2>
+            <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground dark:text-zinc-300">
+              Betonarme taşıyıcı elemanların boyuna donatılarını, etriye sarılma bölgelerini,
+              filiz uzantılarını ve pas payı örtüsünü etkileşimli 3B kafes ve 2B şematik
+              görünümle inceleyin.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <Link
+              href={SIMULATIONS_HUB_HREF}
+              data-testid="open-simulations-hub-link"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-600 via-indigo-600 to-purple-600 hover:from-cyan-500 hover:via-indigo-500 hover:to-purple-500 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]"
+            >
+              <span>Simülasyonları Aç</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href={`${SIMULATIONS_HUB_HREF}/kolon-detayi`}
+              data-testid="open-column-simulation-direct-link"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl border border-border/80 dark:border-white/15 bg-card/80 dark:bg-white/10 hover:border-cyan-500/40 px-4 py-2.5 text-xs font-bold text-foreground dark:text-white transition-all"
+            >
+              <span>Kolon (C1) Sahnesi</span>
+            </Link>
+          </div>
         </div>
       </section>
 

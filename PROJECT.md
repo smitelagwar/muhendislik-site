@@ -194,6 +194,30 @@ Formülleri değiştirme. Sadece UI/UX iyileştirmesi kabul.
 - Klavye kısayolları (`Ctrl+Shift+-`, `PageUp/PageDown/Space/Home/End/Oklar`, `Space` basılı tutma el aracı, `F4` kenar çubuğu, imleç çıpalı `Ctrl+±` zoom) ve mobil dokunmatik ayrımı (`data-chrome-hidden`, kaydırma vs tek/çift dokunma, pinch lastik bant, jest sırasında 400 ms kalkan ve jest sonrası 250 ms programatik kaydırma koruması) `tests/pdf-v4/v5*` paketiyle doğrulanır.
 - Mobilde (≤1023px) PDF üzerinde düzenleme alt sayfa editörüyle yapılır (dokunma toleransı, alanlar arası gezinme, klavyeye duyarlı konum, dondurulmuş fit ölçüsü); ayrıntı ve kabul komutları: `docs/BELGELER_SISTEMI.md` → "Mobil PDF Üzerinde Düzenleme".
 
+### 7. 3B/2B İnteraktif Betonarme Donatı Detay Simülasyon Kütüphanesi
+- Rotalar:
+  - Simülasyon Kataloğu: `/kategori/araclar/simulasyonlar`
+  - Kolon Detayı (C1): `/kategori/araclar/simulasyonlar/kolon-detayi`
+  - Kiriş Detayı (K1): `/kategori/araclar/simulasyonlar/kiris-detayi`
+  - Kolon–Kiriş Dış Birleşimi (D1): `/kategori/araclar/simulasyonlar/kolon-kiris-birlesimi`
+  - Tekil Temel (T1): `/kategori/araclar/simulasyonlar/tekil-temel`
+  - Perde Duvar (P1): `/kategori/araclar/simulasyonlar/perde-detayi`
+  - Radye Temel (R1): `/kategori/araclar/simulasyonlar/radye-temel`
+- Mimari & Sözleşme:
+  - Domain `src/lib/simulations/` altında bağımsız tip ve model üreticileri (`core/types.ts`, `scenes/*`).
+  - Tek veri kaynağından (`DetailModel`) hem Three.js `InstancedMesh` 3B sahnesi hem de ölçekli 2B SVG eşlemesi türetilir (`partId` bazlı kalıcı çift yönlü seçim).
+  - Katman izolasyonu: Beton, Boyuna Donatı, Etriye, Filiz, Çiroz ve Ölçülendirme bağımsız olarak açılıp kapatılabilir.
+  - Kesit düzlemi: Kolonda yatay `Z`, kirişte düşey `X` boyunca sonsuz ince `THREE.Plane` + kapalı beton kapak prizması.
+  - Rehberli öğrenme & patlatma: 5 adımlı montaj anlatımı, açıklayıcı patlatma (`0–100%`, gerçek `mm` ölçülerini değiştirmez), `t=0..1` zaman animasyonu, `prefers-reduced-motion` uyumu.
+  - Kontrollü deney & link paylaşımı: Kolon için doğrulanmış parametre aralıkları (`250–600 mm` kesit, `12–32 mm` çap, `75–200 mm` etriye aralığı); tüm sahnelerde sürümlü (`v=1`, `≤ 2 KB`) izin listeli URL kodlama/çözme.
+  - Dayanıklılık: WebGL bağlam kaybında 1 kez otomatik re-instantiation, 2. kayıpta 2B yedek şema ve "3B'yi Yeniden Dene" butonu; durağan sahnede sıfır render; 12 ardışık route geçişinde sızıntısız temizlik.
+  - Cihaz & Erişilebilirlik: 320/360/390/768/1366/1920 px'te 0 taşma; WebKit (Desktop/Mobile) ve Chromium tam uyumlu; iki tema (açık/koyu).
+- Kalite Kapıları:
+  - Model doğrulaması: `npm run check:simulations:model`
+  - Arayüz ve e2e kabulü: `npm run check:simulations:ui`
+  - Birleşik simülasyon testi: `npm run check:simulations`
+  - Plan ve durum takibi: `docs/simulasyonlar/BIRLESIK_UYGULAMA_PLANI.md` ve `docs/simulasyonlar/UYGULAMA_DURUMU.md`.
+
 ---
 
 ## Mühendislik Standartları (Domain)
@@ -278,7 +302,7 @@ const font = localFont({
 
 ---
 
-*Son güncelleme: Ağustos 2026*
+*Son güncelleme: 25 Ekim 2026 (Simülasyon Kütüphanesi 12/12 Yerel Teslim Tamam)*
 *Bu dosyayı güncel tutmak senin sorumluluğun — değişiklik yapınca ilgili bölümü güncelle.*
 
 
