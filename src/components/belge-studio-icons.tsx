@@ -119,51 +119,25 @@ export function BelgeZoomInIcon({ className = "h-4 w-4", ...props }: IconProps) 
   );
 }
 /**
- * Sığdır (Fit to Page) — Dört köşe pafta vizör kadrajı içinde A4 belge sayfası
+ * Sığdır (Fit to Page) — Dört yöne açılan oklar (sigdir_secenek_6.svg)
  */
 export function BelgeFitPageIcon({ className = "h-4 w-4", ...props }: IconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
       fill="none"
+      stroke="currentColor"
+      strokeWidth={2.2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
       className={className}
       {...props}
     >
-      {/* Merkez A4 sayfa silüeti */}
-      <path
-        d="M8.25 6.75h5.25l2.25 2.25v8.25h-7.5V6.75Z"
-        fill="currentColor"
-        fillOpacity="0.14"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      {/* A4 kıvrık köşe detayı */}
-      <path
-        d="M13.5 6.75V9h2.25"
-        stroke="currentColor"
-        strokeWidth="1.35"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity="0.75"
-      />
-      {/* Dört köşe kadraj braketleri (Blueprint Viewfinder) */}
-      <path
-        d="M3.75 8.25V4.5a.75.75 0 0 1 .75-.75h3.75M15.75 3.75h3.75a.75.75 0 0 1 .75.75v3.75M20.25 15.75v3.75a.75.75 0 0 1-.75.75h-3.75M8.25 20.25H4.5a.75.75 0 0 1-.75-.75v-3.75"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Köşe diyagonal genleşme vektörleri */}
-      <path
-        d="M4.5 4.5l2.1 2.1M19.5 4.5l-2.1 2.1M4.5 19.5l2.1-2.1M19.5 19.5l-2.1-2.1"
-        stroke="currentColor"
-        strokeWidth="1.25"
-        strokeLinecap="round"
-        opacity="0.55"
-      />
+      <path d="M9.25 9.25 4 4m0 5V4h5" />
+      <path d="M14.75 9.25 20 4m-5 0h5v5" />
+      <path d="M9.25 14.75 4 20m0-5v5h5" />
+      <path d="M14.75 14.75 20 20m-5 0h5v-5" />
     </svg>
   );
 }
@@ -175,49 +149,17 @@ export function BelgeFitWidthIcon({ className = "h-4 w-4", ...props }: IconProps
     <svg
       viewBox="0 0 24 24"
       fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
       className={className}
       {...props}
     >
-      {/* Sol ve sağ sınır kılavuzları (Viewport Boundary Lines) */}
-      <path
-        d="M3 4.5v15M21 4.5v15"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      {/* Merkez A4 sayfa silüeti */}
-      <path
-        d="M8 6h5.5l2.5 2.5v9.5H8V6Z"
-        fill="currentColor"
-        fillOpacity="0.14"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-      {/* A4 kıvrık köşe detayı */}
-      <path
-        d="M13.5 6v2.5H16"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity="0.75"
-      />
-      {/* Sol ve sağa doğru genişleme yatay okları */}
-      <path
-        d="M5.5 12h2.5M16 12h2.5"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-      />
-      <path
-        d="M7 10.5L5.5 12 7 13.5M17 10.5l1.5 1.5-1.5 1.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d="M4 6v12M20 6v12" />
+      <path d="m9.4 9.6-2.4 2.4 2.4 2.4M14.6 9.6l2.4 2.4-2.4 2.4" />
+      <path d="M11 12h2" />
     </svg>
   );
 }

@@ -206,20 +206,6 @@ export function BelgeStudioPdfPreview({
   const pendingLayoutRef = useRef(false);
   const panMovedRef = useRef(false);
   const hotspotGeometryValidRef = useRef(false);
-  const pendingBufferSwapRef = useRef<{
-    bufferCanvas: HTMLCanvasElement;
-    bitmapWidth: number;
-    bitmapHeight: number;
-    cssWidth: number;
-    cssHeight: number;
-    renderZoom: number;
-    renderPageNumber: number;
-    containerWidth: number;
-    containerHeight: number;
-    mappedFields: InlineFieldDescriptor[];
-    nextToken: RenderedToken;
-    requestId: number;
-  } | null>(null);
   zoomRef.current = zoomLevel;
   pageRef.current = currentPage;
 
@@ -362,7 +348,7 @@ export function BelgeStudioPdfPreview({
 
   // Genişliğe sığdır modundayken pencere / konteyner boyutu değişirse zoom'u otomatik uyarla
   useEffect(() => {
-    if (fitModeRef.current !== "width" || layoutFreezeRef.current) return;
+    if (fitModeRef.current !== "width" || layoutFreezeRef.current || isTransitioningRef.current) return;
     const container = containerRef.current;
     if (!container || container.clientWidth < 1) return;
     const pageSize = pageSizeRef.current;
@@ -427,6 +413,20 @@ export function BelgeStudioPdfPreview({
       const frame = frameRef.current;
       if (!canvas || !frame) return;
 
+      if (
+        !data.bufferCanvas ||
+        data.bufferCanvas.width <= 0 ||
+        data.bufferCanvas.height <= 0 ||
+        data.bitmapWidth <= 0 ||
+        data.bitmapHeight <= 0
+      ) {
+        console.warn("Geçersiz PDF çizim tamponu, tuval korunuyor.");
+        return;
+      }
+
+      const visibleContext = canvas.getContext("2d");
+      if (!visibleContext) throw new Error("PDF çizim alanı başlatılamadı.");
+
       canvas.width = data.bitmapWidth;
       canvas.height = data.bitmapHeight;
       canvas.style.width = `${data.cssWidth}px`;
@@ -443,8 +443,6 @@ export function BelgeStudioPdfPreview({
         width: data.containerWidth,
         height: data.containerHeight,
       };
-      const visibleContext = canvas.getContext("2d");
-      if (!visibleContext) throw new Error("PDF çizim alanı başlatılamadı.");
       visibleContext.drawImage(data.bufferCanvas, 0, 0);
       canvas.style.opacity = "1";
       setDisplayedPage(data.renderPageNumber);
@@ -652,7 +650,6 @@ export function BelgeStudioPdfPreview({
       };
 
       if (isTransitioningRef.current) {
-        pendingBufferSwapRef.current = bufferData;
         return;
       }
 
@@ -1004,7 +1001,6 @@ export function BelgeStudioPdfPreview({
   const setZoomAroundPoint = useCallback((nextZoom: number, point: Point) => {
     cancelTransition();
     cancelFocusScroll();
-    pendingBufferSwapRef.current = null;
     const container = containerRef.current;
     const canvas = canvasRef.current;
     const frame = frameRef.current;
@@ -1050,7 +1046,6 @@ export function BelgeStudioPdfPreview({
       event.preventDefault();
       event.stopPropagation();
       cancelTransition();
-      pendingBufferSwapRef.current = null;
       if (!documentRef.current || event.deltaY === 0) return;
       const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? container.clientHeight : 1;
       const delta = Math.max(-300, Math.min(300, event.deltaY * unit));
@@ -1098,7 +1093,6 @@ export function BelgeStudioPdfPreview({
     }
     event.preventDefault();
     cancelTransition();
-    pendingBufferSwapRef.current = null;
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = getContainerPoint(event);
     const pointers = [...pointersRef.current.filter((pointer) => pointer.id !== event.pointerId), { id: event.pointerId, point }];
@@ -1293,19 +1287,12 @@ export function BelgeStudioPdfPreview({
       setZoomLevel,
       setFitMode,
       onTransitionStart: () => {
-        pendingBufferSwapRef.current = null;
-        void renderPage();
+        // Animasyon süresince (240ms) mevcut net çizim CSS transform ile akıcı biçimde ölçeklenir;
+        // yarış üreten erken veya gereksiz ara render başlatılmaz.
       },
-      onTransitionEnd: (targetZoom) => {
-        if (
-          pendingBufferSwapRef.current &&
-          pendingBufferSwapRef.current.renderZoom === targetZoom
-        ) {
-          commitRenderedBuffer(pendingBufferSwapRef.current);
-          pendingBufferSwapRef.current = null;
-        } else {
-          void renderPage();
-        }
+      onTransitionEnd: () => {
+        // Geçiş bitiminde hedef yakınlaştırma için tek, temiz ve net nihai raster çizilir.
+        void renderPage();
       },
     });
 
@@ -1350,7 +1337,6 @@ export function BelgeStudioPdfPreview({
   const handleToolbarZoom = (value: number) => {
     cancelTransition();
     cancelFocusScroll();
-    pendingBufferSwapRef.current = null;
     setFitMode("custom");
     if (!isMobileMode) setInlineSelectedField(null);
     setRenderedToken(null);
@@ -1370,7 +1356,6 @@ export function BelgeStudioPdfPreview({
   const handlePageChange = (page: number, isUserInteraction = true) => {
     cancelTransition();
     cancelFocusScroll();
-    pendingBufferSwapRef.current = null;
     if (isUserInteraction) {
       pendingRevealRectRef.current = null;
       userManualPageChoiceRef.current = {

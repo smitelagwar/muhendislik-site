@@ -2066,4 +2066,115 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   transform-origin: 0 0;
 }
 
+/* ==========================================================================
+   Belge Stüdyosu — Kaydetme Durumu Mikro-Animasyonu (Save Status Indicator)
+   ========================================================================== */
+
+:root {
+  --belge-save-active: #0fa348;
+  --belge-save-dim: rgba(16, 163, 75, 0.18);
+  --belge-save-settled: #0fa348;
+  --belge-save-settled-halo: #69ce9a;
+  --belge-save-check: #10a64b;
+}
+
+:is(.dark) {
+  --belge-save-active: #34d399;
+  --belge-save-dim: rgba(52, 211, 153, 0.2);
+  --belge-save-settled: #34d399;
+  --belge-save-settled-halo: rgba(52, 211, 153, 0.7);
+  --belge-save-check: #34d399;
+}
+
+@keyframes belge-save-ray-pulse {
+  0% {
+    opacity: 1;
+    stroke: var(--belge-save-active);
+    stroke-width: 2.9px;
+  }
+  20% {
+    opacity: 0.65;
+    stroke: var(--belge-save-active);
+    stroke-width: 2.7px;
+  }
+  45% {
+    opacity: 0.15;
+    stroke: var(--belge-save-dim);
+    stroke-width: 2.5px;
+  }
+  100% {
+    opacity: 0.15;
+    stroke: var(--belge-save-dim);
+    stroke-width: 2.5px;
+  }
+}
+
+.belge-save-spinning .save-ray-0 { animation: belge-save-ray-pulse 0.88s cubic-bezier(0.4, 0, 0.2, 1) infinite 0s; }
+.belge-save-spinning .save-ray-1 { animation: belge-save-ray-pulse 0.88s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.11s; }
+.belge-save-spinning .save-ray-2 { animation: belge-save-ray-pulse 0.88s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.22s; }
+.belge-save-spinning .save-ray-3 { animation: belge-save-ray-pulse 0.88s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.33s; }
+.belge-save-spinning .save-ray-4 { animation: belge-save-ray-pulse 0.88s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.44s; }
+.belge-save-spinning .save-ray-5 { animation: belge-save-ray-pulse 0.88s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.55s; }
+.belge-save-spinning .save-ray-6 { animation: belge-save-ray-pulse 0.88s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.66s; }
+.belge-save-spinning .save-ray-7 { animation: belge-save-ray-pulse 0.88s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.77s; }
+
+.belge-save-settled-upper {
+  stroke: var(--belge-save-settled);
+  opacity: 0.85;
+  transition: opacity 300ms ease, stroke 300ms ease;
+}
+
+.belge-save-settled-lower {
+  stroke: var(--belge-save-settled-halo);
+  opacity: 0.85;
+  transition: opacity 300ms ease, stroke 300ms ease;
+}
+
+@keyframes belge-save-check-draw {
+  0% {
+    opacity: 0;
+    transform: scale(0.65);
+    stroke-dashoffset: 20;
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    stroke-dashoffset: 0;
+  }
+}
+
+.belge-save-check {
+  transform-origin: 16px 16px;
+  stroke: var(--belge-save-check);
+  stroke-dasharray: 20;
+  stroke-dashoffset: 0;
+  transition: opacity 250ms ease, transform 250ms ease;
+}
+
+.belge-save-check.check-enter {
+  animation: belge-save-check-draw 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.belge-save-check.check-hidden {
+  opacity: 0;
+  transform: scale(0.6);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .belge-save-spinning [class*="save-ray-"] {
+    animation: none !important;
+    opacity: 0.65 !important;
+  }
+  .belge-save-check.check-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}
 
