@@ -221,12 +221,13 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
     await expect(fitButton).toBeVisible();
     await fitButton.click();
 
-    // Mobil V1.1: "PDF'yi yeni sekmede aç" alt çekmecede "Diğer işlemler" altındadır
+    // Mobil V1.1: "PDF'yi yeni sekmede aç" alt çekmecededir
     const moreBtn = studio.getByTestId("belge-studio-mobile-actions").getByTestId("belge-mobile-more-btn");
     await moreBtn.click();
     const drawer = page.getByTestId("belge-mobile-actions-drawer");
     await expect(drawer).toBeVisible();
-    await drawer.getByRole("button", { name: "Diğer işlemler" }).click();
+    const otherBtn = drawer.getByRole("button", { name: "Diğer işlemler" });
+    if (await otherBtn.isVisible()) await otherBtn.click();
     const externalLink = drawer.getByRole("link", { name: /yeni sekmede aç/i });
     await expect(externalLink).toHaveAttribute("target", "_blank");
     await page.keyboard.press("Escape");
@@ -428,8 +429,7 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
       await moreBtn.click();
       const drawer = page.getByTestId("belge-mobile-actions-drawer");
       const otherBtn = drawer.getByRole("button", { name: "Diğer işlemler" });
-      await otherBtn.click();
-      await expect(otherBtn).toHaveAttribute("aria-expanded", "true");
+      if (await otherBtn.isVisible()) await otherBtn.click();
       const pdfLink = drawer.getByRole("link", { name: /yeni sekmede aç/i });
       const pdfUrl = await pdfLink.getAttribute("href");
       expect(pdfUrl).toMatch(/^blob:/);
@@ -661,15 +661,16 @@ test.describe("Belgeler — Mobil stüdyo scroll, viewport ve lifecycle sözleş
 
     await input.fill("ASAMA 04 düzenleme kontrolü");
     await expect(input).toHaveValue("ASAMA 04 düzenleme kontrolü");
-    // Mobil V1.1: Sıfırla ve Geri Al çekmecede "Diğer işlemler" altındadır
+    // Mobil V1.1: Sıfırla ve Geri Al çekmecededir
     await page.getByRole("button", { name: "Diğer belge işlemleri" }).click();
     const drawer = page.getByTestId("belge-mobile-actions-drawer");
-    await drawer.getByRole("button", { name: "Diğer işlemler" }).click();
-    await drawer.getByRole("button", { name: "Örnek verilere sıfırla" }).click();
+    const otherBtn = drawer.getByRole("button", { name: "Diğer işlemler" });
+    if (await otherBtn.isVisible()) await otherBtn.click();
+    await drawer.getByRole("button", { name: /örnek veri|örnek verilere sıfırla/i }).click();
     await expect(input).toHaveValue(initialValue);
     await page.getByRole("button", { name: "Diğer belge işlemleri" }).click();
-    await drawer.getByRole("button", { name: "Diğer işlemler" }).click();
-    await drawer.getByRole("button", { name: "Son işlemi geri al" }).click();
+    if (await otherBtn.isVisible()) await otherBtn.click();
+    await drawer.getByRole("button", { name: /son işlemi geri al/i }).click();
     await expect(input).toHaveValue("ASAMA 04 düzenleme kontrolü");
   });
 

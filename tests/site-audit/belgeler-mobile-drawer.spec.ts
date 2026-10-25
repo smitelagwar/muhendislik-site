@@ -74,27 +74,30 @@ test.describe("Belgeler Mobil Çekmece & Sadeleştirilmiş Üst Bar (v1)", () =>
     await expect(zoomText).toHaveText("%125");
   });
 
-  test("3. Çekmeceden 'PDF Üzerinde Düzenle' hotspot'ları açar ve çip görünür", async ({ page }) => {
+  test("3. PDF önizlemede sağ alttaki 'PDF Üzerinde Düzenle' butonu hep görünür; tıklandığında 'Düzenlemeyi Bitir' olur", async ({ page }) => {
     await waitForStudioReady(page, STUDIO_PATH);
 
+    // Çekmecede inline edit kartı olmamalıdır
     const headerMoreBtn = page.getByTestId("belge-mobile-header-menu-btn");
     await headerMoreBtn.click();
+    await expect(page.getByTestId("belge-drawer-inline-edit-btn")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("belge-mobile-actions-drawer")).not.toBeVisible();
 
-    const inlineEditBtn = page.getByTestId("belge-drawer-inline-edit-btn");
-    await expect(inlineEditBtn).toBeVisible();
-    await inlineEditBtn.click();
+    // Sağ altta yüzen 'PDF Üzerinde Düzenle' butonu hep görünür
+    const toggleBtn = page.getByTestId("belge-inline-edit-toggle");
+    await expect(toggleBtn).toBeVisible();
+    await expect(toggleBtn).toHaveText(/PDF Üzerinde Düzenle/i);
 
-    // Çekmece kapanmalı ve Düzenlemeyi Bitir çipi belirmeli
-    const drawer = page.getByTestId("belge-mobile-actions-drawer");
-    await expect(drawer).not.toBeVisible();
+    // Tıklanınca düzenleme modu açılır ve buton 'Düzenlemeyi Bitir' olur
+    await toggleBtn.click();
+    await expect(toggleBtn).toHaveText(/Düzenlemeyi Bitir/i);
+    await expect(page.locator('[data-testid^="belge-inline-hotspot-"]').first()).toBeVisible({ timeout: 10_000 });
 
-    const finishChip = page.getByTestId("belge-inline-edit-toggle");
-    await expect(finishChip).toBeVisible();
-    await expect(finishChip).toHaveText(/Düzenlemeyi Bitir/i);
-
-    // Çipe basınca düzenleme modu kapanır
-    await finishChip.click();
-    await expect(finishChip).not.toBeVisible();
+    // Tekrar tıklanınca düzenleme kapanır, buton kaybolmaz ve 'PDF Üzerinde Düzenle' döner
+    await toggleBtn.click();
+    await expect(toggleBtn).toBeVisible();
+    await expect(toggleBtn).toHaveText(/PDF Üzerinde Düzenle/i);
   });
 
   test("4. Görünüm (Tema) kartı çekmece açıkken html.dark sınıfını anlık değiştirir", async ({ page }) => {
@@ -164,7 +167,7 @@ test.describe("Belgeler Mobil Çekmece & Sadeleştirilmiş Üst Bar (v1)", () =>
     await expect(page2Indicator).toBeVisible();
   });
 
-  test("7. Ruhsat dilekçesinde 'Örnek Veri' aksiyonu çekmecede erişilebilir durumdadır", async ({ page }) => {
+  test("7. Ruhsat dilekçesinde 'Örnek Veri' aksiyonu çekmecede doğrudan görünür durumdadır", async ({ page }) => {
     await waitForStudioReady(page, RUHSAT_PATH);
 
     const headerMoreBtn = page.getByTestId("belge-mobile-header-menu-btn");
@@ -173,11 +176,7 @@ test.describe("Belgeler Mobil Çekmece & Sadeleştirilmiş Üst Bar (v1)", () =>
     const drawer = page.getByTestId("belge-mobile-actions-drawer");
     await expect(drawer).toBeVisible();
 
-    // Diğer işlemler akordeonunu aç
-    const otherBtn = drawer.getByRole("button", { name: /Diğer işlemler/i });
-    await otherBtn.click();
-
-    const sampleDataBtn = drawer.getByRole("button", { name: /Örnek Veri/i });
+    const sampleDataBtn = drawer.getByRole("button", { name: /Örnek Veri/i }).first();
     await expect(sampleDataBtn).toBeVisible();
   });
 
@@ -270,46 +269,22 @@ test.describe("Belgeler Mobil Çekmece & Sadeleştirilmiş Üst Bar (v1)", () =>
     expect((btnBox?.x ?? 0) + (btnBox?.width ?? 0)).toBeLessThanOrEqual((headerBox?.width ?? 0) + 2);
   });
 
-  test("11. Çekmecede 'Form Görünümü' menüsü yer alır ve erişilebilirdir (B3)", async ({ page }) => {
+  test("11. Çekmecede 'Form Görünümü' ve 'Diğer işlemler' yer almaz; 3 işlem butonu yan yana görünür", async ({ page }) => {
     await waitForStudioReady(page, STUDIO_PATH);
 
-    // PDF sekmesindeyiz: çekmeceyi aç
     const headerMoreBtn = page.getByTestId("belge-mobile-header-menu-btn");
     await headerMoreBtn.click();
 
     const drawer = page.getByTestId("belge-mobile-actions-drawer");
     await expect(drawer).toBeVisible();
 
-    // Diğer işlemler akordeonunu aç
-    const otherBtn = drawer.getByRole("button", { name: /Diğer işlemler/i });
-    await otherBtn.click();
-    await expect(otherBtn).toHaveAttribute("aria-expanded", "true");
+    // Form görünümü ve Diğer işlemler akordeonu mobilde kaldırılmıştır
+    await expect(drawer.getByTestId("belge-drawer-form-view-container")).toHaveCount(0);
+    await expect(drawer.getByRole("button", { name: /Diğer işlemler/i })).toHaveCount(0);
 
-    // Form görünümü container'ı görünür olmalı
-    const formViewContainer = drawer.getByTestId("belge-drawer-form-view-container");
-    await expect(formViewContainer).toBeVisible();
-    await expect(formViewContainer).toContainText("Form sekmesinde kullanılabilir");
-
-    // Çekmeceyi kapatıp Form sekmesine geç
-    await page.keyboard.press("Escape");
-    await expect(drawer).not.toBeVisible();
-
-    const switchBtn = page.getByRole("button", { name: "Formu Düzenle" });
-    await switchBtn.click();
-
-    // Çekmeceyi tekrar aç
-    await headerMoreBtn.click();
-    await expect(drawer).toBeVisible();
-    await otherBtn.click();
-    await expect(otherBtn).toHaveAttribute("aria-expanded", "true");
-
-    // Şimdi Form Görünümü menüsü aktif olmalı
-    const formViewMenuBtn = drawer.getByTestId("belge-studio-form-view-trigger");
-    await expect(formViewMenuBtn).toBeEnabled();
-    await formViewMenuBtn.click();
-
-    // Dropdown menü içeriği açılmalı
-    const menuContent = page.getByTestId("belge-studio-form-view-menu");
-    await expect(menuContent).toBeVisible();
+    // 3 işlem düğmesi (Örnek Veri, Temizle, Geri Al) yan yana görünür
+    await expect(drawer.getByTestId("belge-mobile-reset-btn")).toBeVisible();
+    await expect(drawer.getByTestId("belge-mobile-clear-btn")).toBeVisible();
+    await expect(drawer.getByTestId("belge-mobile-undo-btn")).toBeVisible();
   });
 });

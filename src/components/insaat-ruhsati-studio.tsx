@@ -331,11 +331,12 @@ export function InsaatRuhsatiStudio({
     <button
       type="button"
       onClick={handleRandomize}
-      className="inline-flex min-h-[44px] sm:min-h-[32px] items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300 transition-all cursor-pointer"
+      aria-label="Örnek Veri ile Doldur"
+      className="inline-flex min-h-[44px] sm:min-h-[32px] items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300 transition-all cursor-pointer"
       title="Rastgele örnek bilgileri doldur"
     >
       <Dice5 className="h-3.5 w-3.5" />
-      <span className="hidden sm:inline">Örnek Veri</span>
+      <span>Örnek Veri</span>
     </button>
   );
 

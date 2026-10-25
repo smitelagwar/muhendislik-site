@@ -27,17 +27,8 @@ async function openStudio(page: Page, id: string) {
 
 async function openMobileInlineEdit(page: Page, studio: Locator) {
   const directToggle = studio.locator('[data-testid="belge-inline-edit-toggle"]');
-  if (await directToggle.isVisible()) {
-    await directToggle.click();
-  } else {
-    // V1.1 Mobil Çekmece: mobilde (<1024px) PDF üzerinde düzenle butonu çekmecededir
-    const menuBtn = studio.locator('[data-testid="belge-mobile-header-menu-btn"]');
-    await menuBtn.click();
-    const drawerBtn = page.locator('[data-testid="belge-drawer-inline-edit-btn"]');
-    await expect(drawerBtn).toBeVisible({ timeout: 5_000 });
-    await drawerBtn.click();
-    await expect(page.getByTestId("belge-mobile-actions-drawer")).toBeHidden({ timeout: 5_000 });
-  }
+  await expect(directToggle).toBeVisible({ timeout: 10_000 });
+  await directToggle.click();
 }
 
 test.describe("Belgeler PDF Inline Edit — ASAMA_03 & ASAMA_05 Entegrasyonu", () => {

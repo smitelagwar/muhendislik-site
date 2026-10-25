@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight, Edit3, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-context";
 import { useBelgeStudioTheme } from "@/hooks/use-belge-studio-theme";
 import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
-import { BelgeStudioFormViewMenu } from "@/components/belge-studio-form-view-menu";
 import {
   BelgeBackIcon,
   BelgeBlankFormIcon,
@@ -61,21 +60,11 @@ export function BelgeStudioMobileActionsSheet({
   downloading,
   downloadBlank,
   blankDownloading,
-  formView,
 }: BelgeStudioMobileActionsSheetProps) {
   const { drawerOpen, closeDrawer, triggerElement, preview, extraActions } = useBelgeStudioMobileContext();
   const { isDark, toggle: toggleTheme } = useBelgeStudioTheme();
-  const [otherActionsOpen, setOtherActionsOpen] = useState(false);
-  const [prevDrawerOpen, setPrevDrawerOpen] = useState(drawerOpen);
-  const closeReasonRef = useRef<"inline-edit" | "share" | "print" | "default">("default");
+  const closeReasonRef = useRef<"share" | "print" | "default">("default");
   const timerRef = useRef<number | null>(null);
-
-  if (prevDrawerOpen !== drawerOpen) {
-    setPrevDrawerOpen(drawerOpen);
-    if (!drawerOpen) {
-      setOtherActionsOpen(false);
-    }
-  }
 
   useEffect(() => {
     return () => {
@@ -84,12 +73,6 @@ export function BelgeStudioMobileActionsSheet({
       }
     };
   }, []);
-
-  const handleInlineEditClick = () => {
-    closeReasonRef.current = "inline-edit";
-    closeDrawer();
-    preview.inlineEdit.setActive(!preview.inlineEdit.active);
-  };
 
   const handleShareClick = () => {
     closeReasonRef.current = "share";
@@ -133,14 +116,7 @@ export function BelgeStudioMobileActionsSheet({
           onCloseAutoFocus={(e) => {
             const reason = closeReasonRef.current;
             closeReasonRef.current = "default";
-            if (reason === "inline-edit") {
-              e.preventDefault();
-              const activeTag = document.activeElement?.tagName;
-              if (activeTag !== "INPUT" && activeTag !== "TEXTAREA") {
-                const canvas = document.querySelector<HTMLElement>('[data-testid="belge-studio-preview-canvas"]');
-                canvas?.focus();
-              }
-            } else if (reason === "share" || reason === "print") {
+            if (reason === "share" || reason === "print") {
               e.preventDefault();
             } else if (triggerElement) {
               e.preventDefault();
@@ -175,30 +151,7 @@ export function BelgeStudioMobileActionsSheet({
 
           {/* Kaydırılabilir İçerik Alanı */}
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 space-y-3">
-            {/* 1. PDF Üzerinde Düzenle Kartı */}
-            <button
-              type="button"
-              onClick={handleInlineEditClick}
-              data-testid="belge-drawer-inline-edit-btn"
-              className="w-full flex items-center justify-between p-3 rounded-xl border border-border/80 bg-secondary/30 hover:bg-secondary/60 text-left transition cursor-pointer"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
-                  <Edit3 className="h-5 w-5" />
-                </span>
-                <div className="min-w-0">
-                  <div className="text-xs font-bold text-foreground truncate">
-                    {preview.inlineEdit.active ? "PDF Düzenlemeyi Bitir" : "PDF Üzerinde Düzenle"}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground truncate">
-                    {preview.inlineEdit.active ? "Düzenleme modundan çık" : "Alanlara dokunarak düzenleyin"}
-                  </div>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-            </button>
-
-            {/* 2. Dört Eşit Kart (Paylaş, Yazdır, Boş Form, Görünüm) */}
+            {/* 1. Dört Eşit Kart (Paylaş, Yazdır, Boş Form, Görünüm) */}
             <div className="grid grid-cols-4 gap-2">
               {/* Paylaş */}
               <button
@@ -262,150 +215,100 @@ export function BelgeStudioMobileActionsSheet({
               </button>
             </div>
 
-            {/* 3. Diğer İşlemler Katlanır Bölümü */}
-            <div className="rounded-xl border border-border/70 bg-card/60 overflow-hidden">
+            {/* 2. Üç Eşit İşlem Düğmesi (Örnek Veri, Temizle, Geri Al) */}
+            <div className="grid grid-cols-3 gap-2">
+              {/* Sıfırla / Örnek Veri */}
               <button
                 type="button"
-                onClick={() => setOtherActionsOpen((prev) => !prev)}
-                className="w-full flex items-center justify-between p-3 text-xs font-semibold text-foreground hover:bg-secondary/40 transition cursor-pointer"
-                aria-expanded={otherActionsOpen}
+                onClick={() => {
+                  closeDrawer();
+                  onReset();
+                }}
+                aria-label="Örnek verilere sıfırla"
+                title="Örnek verilere sıfırla"
+                data-testid="belge-mobile-reset-btn"
+                className="flex flex-col items-center justify-center p-2 rounded-xl border border-border/70 bg-card hover:bg-secondary/50 text-center transition cursor-pointer min-h-[58px] gap-1"
               >
-                <span>Diğer işlemler</span>
-                <ChevronDown
-                  className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
-                    otherActionsOpen ? "rotate-180" : ""
-                  }`}
-                />
+                <BelgeResetIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-[11px] font-semibold text-foreground leading-tight">Örnek Veri</span>
               </button>
 
-              {otherActionsOpen && (
-                <div className="border-t border-border/60 divide-y divide-border/50 text-xs">
-                  {/* Belgelere Dön */}
-                  <Link
-                    href="/belgeler"
-                    onClick={closeDrawer}
-                    className="flex min-h-11 items-center gap-2.5 px-3 py-2 text-foreground hover:bg-secondary/50 transition font-medium"
-                  >
-                    <BelgeBackIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span>Belgelere dön</span>
-                  </Link>
+              {/* Temizle */}
+              <button
+                type="button"
+                onClick={() => {
+                  closeDrawer();
+                  onClear();
+                }}
+                aria-label="Tüm alanları temizle"
+                title="Tüm alanları temizle"
+                data-testid="belge-mobile-clear-btn"
+                className="flex flex-col items-center justify-center p-2 rounded-xl border border-border/70 bg-card hover:bg-rose-500/10 text-center transition cursor-pointer min-h-[58px] gap-1 text-rose-600 dark:text-rose-400"
+              >
+                <BelgeClearIcon className="h-4 w-4 shrink-0 text-current" />
+                <span className="text-[11px] font-semibold leading-tight">Temizle</span>
+              </button>
 
-                  {/* PDF'yi Yeni Sekmede Aç */}
-                  {preview.pdfUrl ? (
-                    <a
-                      href={preview.pdfUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={closeDrawer}
-                      className="flex min-h-11 items-center gap-2.5 px-3 py-2 text-foreground hover:bg-secondary/50 transition font-medium"
-                    >
-                      <BelgeOpenExternalIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      <span>PDF&apos;yi yeni sekmede aç</span>
-                    </a>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled
-                      className="w-full flex min-h-11 items-center gap-2.5 px-3 py-2 text-muted-foreground opacity-50 cursor-not-allowed font-medium text-left"
-                    >
-                      <BelgeOpenExternalIcon className="h-4 w-4 shrink-0" />
-                      <span>PDF&apos;yi yeni sekmede aç (hazırlanıyor)</span>
-                    </button>
-                  )}
+              {/* Geri Al */}
+              <button
+                type="button"
+                disabled={!canUndo}
+                onClick={() => {
+                  closeDrawer();
+                  onUndo();
+                }}
+                aria-label="Son işlemi geri al"
+                title="Son işlemi geri al"
+                data-testid="belge-mobile-undo-btn"
+                className="flex flex-col items-center justify-center p-2 rounded-xl border border-border/70 bg-card hover:bg-secondary/50 text-center transition cursor-pointer disabled:pointer-events-none disabled:opacity-40 min-h-[58px] gap-1"
+              >
+                <BelgeUndoIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-[11px] font-semibold text-foreground leading-tight">Geri Al</span>
+              </button>
+            </div>
 
-                  {/* Form Görünümü (Form sekmesinde etkili - Orijinal BelgeStudioFormViewMenu eşdeğerliği) */}
-                  {formView && (
-                    <div data-testid="belge-drawer-form-view-container" className="px-3 py-2 bg-muted/20">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[11px] font-semibold text-foreground">Form Görünümü</div>
-                          <div className="text-[10px] text-muted-foreground truncate">
-                            {activeTab === "form"
-                              ? "Ölçek ve sığdırma seçenekleri"
-                              : "Form sekmesinde kullanılabilir"}
-                          </div>
-                        </div>
-                        <BelgeStudioFormViewMenu
-                          mode={formView.mode}
-                          manualScale={formView.manualScale}
-                          density={formView.density}
-                          appliedScale={formView.appliedScale}
-                          fitStatus={formView.fitStatus}
-                          onChooseScale={(scale) => {
-                            formView.onChooseScale(scale);
-                            closeDrawer();
-                          }}
-                          onToggleCompact={() => {
-                            formView.onToggleCompact();
-                            closeDrawer();
-                          }}
-                          onFit={() => {
-                            formView.onFit();
-                            closeDrawer();
-                          }}
-                          onReset={() => {
-                            formView.onReset();
-                            closeDrawer();
-                          }}
-                          disabled={activeTab !== "form"}
-                          side="top"
-                          align="end"
-                          iconOnly={false}
-                          className="h-8 text-xs px-2.5"
-                        />
-                      </div>
-                    </div>
-                  )}
+            {/* 3. Hızlı Bağlantılar ve Ek Belge İşlemleri (Doğrudan Görünür) */}
+            <div className="rounded-xl border border-border/70 bg-card/60 divide-y divide-border/50 text-xs overflow-hidden">
+              {/* Belgelere Dön */}
+              <Link
+                href="/belgeler"
+                onClick={closeDrawer}
+                className="flex min-h-11 items-center gap-2.5 px-3 py-2 text-foreground hover:bg-secondary/50 transition font-medium"
+              >
+                <BelgeBackIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span>Belgelere dön</span>
+              </Link>
 
-                  {/* Ek Stüdyo Aksiyonları (Örnek: Ruhsat Dilekçesi "Örnek Veri") */}
-                  {extraActions && (
-                    <div className="px-3 py-2">
-                      <div className="text-[11px] font-semibold text-muted-foreground mb-1.5">
-                        Belgeye Özel İşlemler
-                      </div>
-                      <div onClick={closeDrawer}>{extraActions}</div>
-                    </div>
-                  )}
+              {/* PDF'yi Yeni Sekmede Aç */}
+              {preview.pdfUrl ? (
+                <a
+                  href={preview.pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={closeDrawer}
+                  className="flex min-h-11 items-center gap-2.5 px-3 py-2 text-foreground hover:bg-secondary/50 transition font-medium"
+                >
+                  <BelgeOpenExternalIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span>PDF&apos;yi yeni sekmede aç</span>
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full flex min-h-11 items-center gap-2.5 px-3 py-2 text-muted-foreground opacity-50 cursor-not-allowed font-medium text-left"
+                >
+                  <BelgeOpenExternalIcon className="h-4 w-4 shrink-0" />
+                  <span>PDF&apos;yi yeni sekmede aç (hazırlanıyor)</span>
+                </button>
+              )}
 
-                  {/* Sıfırla */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      closeDrawer();
-                      onReset();
-                    }}
-                    className="w-full flex min-h-11 items-center gap-2.5 px-3 py-2 text-foreground hover:bg-secondary/50 transition font-medium text-left cursor-pointer"
-                  >
-                    <BelgeResetIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span>Örnek verilere sıfırla</span>
-                  </button>
-
-                  {/* Temizle */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      closeDrawer();
-                      onClear();
-                    }}
-                    className="w-full flex min-h-11 items-center gap-2.5 px-3 py-2 text-rose-600 hover:bg-rose-500/10 dark:text-rose-400 transition font-medium text-left cursor-pointer"
-                  >
-                    <BelgeClearIcon className="h-4 w-4 shrink-0 text-current" />
-                    <span>Tüm alanları temizle</span>
-                  </button>
-
-                  {/* Geri Al */}
-                  <button
-                    type="button"
-                    disabled={!canUndo}
-                    onClick={() => {
-                      closeDrawer();
-                      onUndo();
-                    }}
-                    className="w-full flex min-h-11 items-center gap-2.5 px-3 py-2 text-foreground hover:bg-secondary/50 transition font-medium text-left disabled:pointer-events-none disabled:opacity-40 cursor-pointer"
-                  >
-                    <BelgeUndoIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span>Son işlemi geri al</span>
-                  </button>
+              {/* Ek Stüdyo Aksiyonları (Örnek: Ruhsat Dilekçesi "Örnek Veri") */}
+              {extraActions && (
+                <div className="px-3 py-2 bg-muted/20">
+                  <div className="text-[11px] font-semibold text-muted-foreground mb-1.5">
+                    Belgeye Özel İşlemler
+                  </div>
+                  <div onClick={closeDrawer}>{extraActions}</div>
                 </div>
               )}
             </div>

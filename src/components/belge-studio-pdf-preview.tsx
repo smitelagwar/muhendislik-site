@@ -1566,37 +1566,31 @@ export function BelgeStudioPdfPreview({
         toolbar
       ) : null}
       {editing && !isMobileSheetOpen && (
-        !isMobileMode ? (
-          <div className="absolute bottom-3 right-3 z-20 pointer-events-auto">
-            <button
-              type="button"
-              onClick={handleToggleInlineEditing}
-              data-testid="belge-inline-edit-toggle"
-              aria-pressed={isInlineEditingActive}
-              className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold shadow-md backdrop-blur transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer ${
-                isInlineEditingActive
-                  ? "border-amber-500 bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 ring-1 ring-amber-500/40"
-                  : "border-border bg-background/95 text-foreground hover:bg-accent/80"
-              }`}
-            >
-              <Edit3 className="h-4 w-4 text-amber-500" />
-              <span>{isInlineEditingActive ? "PDF Düzenlemeyi Kapat" : "PDF Üzerinde Düzenle"}</span>
-            </button>
-          </div>
-        ) : isInlineEditingActive ? (
-          <div className="absolute bottom-3 right-3 z-20 pointer-events-auto">
-            <button
-              type="button"
-              onClick={handleToggleInlineEditing}
-              data-testid="belge-inline-edit-toggle"
-              aria-pressed={true}
-              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-amber-500 bg-amber-500/20 px-3.5 py-2 text-xs font-semibold text-amber-500 shadow-md backdrop-blur ring-1 ring-amber-500/40 hover:bg-amber-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
-            >
-              <Check className="h-4 w-4 text-amber-500" />
-              <span>Düzenlemeyi Bitir</span>
-            </button>
-          </div>
-        ) : null
+        <div className="absolute bottom-3 right-3 z-20 pointer-events-auto">
+          <button
+            type="button"
+            onClick={handleToggleInlineEditing}
+            data-testid="belge-inline-edit-toggle"
+            aria-pressed={isInlineEditingActive}
+            className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold shadow-md backdrop-blur transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer active:scale-95 ${
+              isInlineEditingActive
+                ? "border-amber-500 bg-amber-500/20 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/40 hover:bg-amber-500/30"
+                : "border-border bg-background/95 text-foreground hover:bg-accent/80"
+            }`}
+          >
+            {isInlineEditingActive ? (
+              <>
+                <Check className="h-4 w-4 text-amber-500" />
+                <span>{isMobileMode ? "Düzenlemeyi Bitir" : "PDF Düzenlemeyi Kapat"}</span>
+              </>
+            ) : (
+              <>
+                <Edit3 className="h-4 w-4 text-amber-500" />
+                <span>PDF Üzerinde Düzenle</span>
+              </>
+            )}
+          </button>
+        </div>
       )}
       <div
         ref={containerRef}

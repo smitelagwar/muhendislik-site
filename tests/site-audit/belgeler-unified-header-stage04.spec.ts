@@ -87,8 +87,9 @@ test.describe("Belgeler Unified Header — ASAMA_04 Responsive Priority & Overfl
     const themeOption = drawer.getByTestId("belge-mobile-theme-card");
     await expect(themeOption).toBeVisible();
 
-    // Verify New tab option is present under "Diğer işlemler"
-    await drawer.getByRole("button", { name: "Diğer işlemler" }).click();
+    // Verify New tab option is present in drawer
+    const otherBtn = drawer.getByRole("button", { name: "Diğer işlemler" });
+    if (await otherBtn.isVisible()) await otherBtn.click();
     const externalLink = drawer.getByRole("link", { name: /yeni sekmede aç/i });
     await expect(externalLink).toBeVisible();
 
