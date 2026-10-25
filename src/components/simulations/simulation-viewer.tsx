@@ -221,12 +221,12 @@ export default function SimulationViewer({
 
   return (
     <div className="space-y-4" data-testid="simulation-viewer-root">
-      {/* Üst Araç Çubuğu */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#110e24]/90 p-3 shadow-sm">
+      {/* Üst Araç Çubuğu (Kompakt Stüdyo Çubuğu) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#110e24]/90 p-2 sm:p-2.5 shadow-sm">
         {/* Görünüm Modu (3B+2B Eşzamanlı / 3B Sahne / 2B Şema), Beton ve Kesit */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           <div
-            className="inline-flex flex-wrap rounded-xl border border-border/80 dark:border-white/10 bg-muted/60 dark:bg-[#181432] p-1"
+            className="inline-flex flex-wrap rounded-lg border border-border/80 dark:border-white/10 bg-muted/60 dark:bg-[#181432] p-0.5"
             role="tablist"
             aria-label="Görünüm modu seçimi"
           >
@@ -236,7 +236,7 @@ export default function SimulationViewer({
               aria-selected={viewTab === "split"}
               data-testid="sim-tab-split"
               onClick={() => onChangeViewTab("split")}
-              className={`min-h-[40px] rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
+              className={`min-h-[36px] rounded-md px-2.5 py-1 text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
                 viewTab === "split"
                   ? "bg-purple-600 text-white shadow-sm"
                   : "text-muted-foreground dark:text-zinc-300 hover:text-foreground dark:hover:text-white"
@@ -251,7 +251,7 @@ export default function SimulationViewer({
               aria-selected={viewTab === "3d"}
               data-testid="sim-tab-3d"
               onClick={() => onChangeViewTab("3d")}
-              className={`min-h-[40px] rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
+              className={`min-h-[36px] rounded-md px-2.5 py-1 text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
                 viewTab === "3d"
                   ? "bg-purple-600 text-white shadow-sm"
                   : "text-muted-foreground dark:text-zinc-300 hover:text-foreground dark:hover:text-white"
@@ -266,7 +266,7 @@ export default function SimulationViewer({
               aria-selected={viewTab === "2d"}
               data-testid="sim-tab-2d"
               onClick={() => onChangeViewTab("2d")}
-              className={`min-h-[40px] rounded-lg px-2.5 py-1.5 text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
+              className={`min-h-[36px] rounded-md px-2.5 py-1 text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
                 viewTab === "2d"
                   ? "bg-purple-600 text-white shadow-sm"
                   : "text-muted-foreground dark:text-zinc-300 hover:text-foreground dark:hover:text-white"
@@ -282,7 +282,7 @@ export default function SimulationViewer({
             data-testid="toggle-concrete-btn"
             aria-pressed={!concreteVisible}
             onClick={onToggleConcrete}
-            className={`min-h-[44px] inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-all ${
+            className={`min-h-[38px] inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-bold transition-all ${
               concreteVisible
                 ? "border-purple-500/40 bg-purple-500/15 text-foreground dark:text-purple-100 hover:bg-purple-500/25"
                 : "border-amber-500/50 bg-amber-500/20 text-amber-700 dark:text-amber-200 hover:bg-amber-500/30"
@@ -290,12 +290,12 @@ export default function SimulationViewer({
           >
             {concreteVisible ? (
               <>
-                <EyeOff className="h-4 w-4 text-purple-400" />
+                <EyeOff className="h-3.5 w-3.5 text-purple-400" />
                 <span>Betonu Gizle</span>
               </>
             ) : (
               <>
-                <Eye className="h-4 w-4 text-amber-400" />
+                <Eye className="h-3.5 w-3.5 text-amber-400" />
                 <span>Betonu Göster</span>
               </>
             )}
@@ -306,7 +306,7 @@ export default function SimulationViewer({
             data-testid="toolbar-toggle-section-btn"
             aria-pressed={section.enabled}
             onClick={() => onToggleSection(!section.enabled)}
-            className={`min-h-[44px] inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-all ${
+            className={`min-h-[38px] inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-bold transition-all ${
               section.enabled
                 ? "border-cyan-400 bg-cyan-500/20 text-cyan-800 dark:text-cyan-200"
                 : "border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#171330] text-foreground dark:text-zinc-200 hover:border-cyan-500/40"
@@ -318,7 +318,7 @@ export default function SimulationViewer({
         </div>
 
         {/* Kamera Hazır Bakışları ve Kontroller */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1">
           {CAMERA_PRESETS.map((preset) => (
             <button
               key={preset.id}
@@ -326,9 +326,9 @@ export default function SimulationViewer({
               data-testid={`camera-preset-${preset.id}`}
               onClick={() => handleSelectPreset(preset.id)}
               disabled={!show3DPane || webglStatus !== "ready"}
-              className={`min-h-[40px] rounded-xl px-2.5 py-1.5 text-xs font-bold transition-all disabled:opacity-40 ${
+              className={`min-h-[36px] rounded-lg px-2.5 py-1 text-xs font-bold transition-all disabled:opacity-40 ${
                 activePreset === preset.id && show3DPane
-                  ? "bg-violet-600/90 text-white"
+                  ? "bg-violet-600/90 text-white shadow-sm"
                   : "border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#171330] text-muted-foreground dark:text-zinc-300 hover:text-foreground dark:hover:text-white"
               }`}
             >
@@ -336,7 +336,7 @@ export default function SimulationViewer({
             </button>
           ))}
 
-          <div className="h-5 w-px bg-border/80 dark:bg-white/10 mx-1 hidden sm:block" />
+          <div className="h-4 w-px bg-border/80 dark:bg-white/10 mx-0.5 hidden sm:block" />
 
           <button
             type="button"
@@ -345,9 +345,9 @@ export default function SimulationViewer({
             disabled={!show3DPane || webglStatus !== "ready"}
             aria-label="Yakınlaş"
             title="Yakınlaş"
-            className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-xl border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#171330] text-foreground dark:text-zinc-200 hover:border-purple-500/40 disabled:opacity-40"
+            className="min-h-[36px] min-w-[36px] inline-flex items-center justify-center rounded-lg border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#171330] text-foreground dark:text-zinc-200 hover:border-purple-500/40 disabled:opacity-40"
           >
-            <ZoomIn className="h-4 w-4" />
+            <ZoomIn className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
@@ -356,9 +356,9 @@ export default function SimulationViewer({
             disabled={!show3DPane || webglStatus !== "ready"}
             aria-label="Uzaklaş"
             title="Uzaklaş"
-            className="min-h-[40px] min-w-[40px] inline-flex items-center justify-center rounded-xl border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#171330] text-foreground dark:text-zinc-200 hover:border-purple-500/40 disabled:opacity-40"
+            className="min-h-[36px] min-w-[36px] inline-flex items-center justify-center rounded-lg border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#171330] text-foreground dark:text-zinc-200 hover:border-purple-500/40 disabled:opacity-40"
           >
-            <ZoomOut className="h-4 w-4" />
+            <ZoomOut className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
@@ -367,7 +367,7 @@ export default function SimulationViewer({
             disabled={!show3DPane || webglStatus !== "ready"}
             aria-label="Modele sığdır"
             title="Modele sığdır"
-            className="min-h-[40px] inline-flex items-center gap-1.5 rounded-xl border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#171330] px-2.5 py-1.5 text-xs font-bold text-foreground dark:text-zinc-200 hover:border-purple-500/40 disabled:opacity-40"
+            className="min-h-[36px] inline-flex items-center gap-1 rounded-lg border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#171330] px-2 py-1 text-xs font-bold text-foreground dark:text-zinc-200 hover:border-purple-500/40 disabled:opacity-40"
           >
             <Maximize2 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Sığdır</span>
@@ -376,7 +376,7 @@ export default function SimulationViewer({
             type="button"
             data-testid="simulation-reset-btn"
             onClick={handleReset}
-            className="min-h-[40px] inline-flex items-center gap-1.5 rounded-xl border border-purple-500/40 bg-purple-500/15 px-3 py-1.5 text-xs font-bold text-foreground dark:text-purple-200 hover:bg-purple-500/25"
+            className="min-h-[36px] inline-flex items-center gap-1 rounded-lg border border-purple-500/40 bg-purple-500/15 px-2.5 py-1 text-xs font-bold text-foreground dark:text-purple-200 hover:bg-purple-500/25"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             <span>Sıfırla</span>
@@ -451,7 +451,7 @@ export default function SimulationViewer({
                 data-quality-profile={diagnostics?.qualityProfile ?? "balanced"}
                 data-rendered-frames={diagnostics?.renderedFrames ?? 0}
                 data-canvas-count={diagnostics?.canvasCount ?? 0}
-                className="h-[400px] sm:h-[470px] lg:h-[520px] w-full touch-none select-none cursor-grab active:cursor-grabbing"
+                className="h-[clamp(360px,56dvh,520px)] sm:h-[clamp(440px,58dvh,620px)] lg:h-[clamp(520px,64dvh,740px)] 2xl:h-[clamp(580px,68dvh,860px)] min-h-[320px] max-h-[calc(100dvh-76px)] w-full touch-none select-none cursor-grab active:cursor-grabbing"
               />
 
               {/* Sahne üstü bilgi rozetleri */}
@@ -519,15 +519,67 @@ export default function SimulationViewer({
           </div>
 
           {show2DPane && (
-            <Drawing2DPreview
-              model={model}
-              layers={layers}
-              selectedPartId={selectedPartId}
-              section={section}
-              onSelectPart={onSelectPart}
-              onToggleSection={onToggleSection}
-              onChangeSectionElevation={onChangeSectionElevation}
-            />
+            <div className="space-y-3 pt-1">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#110e24]/90 px-3 py-2 shadow-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  {viewTab === "split" ? (
+                    <>
+                      <Columns2 className="h-4 w-4 text-purple-400" />
+                      <span className="text-xs font-bold text-foreground dark:text-zinc-200">
+                        2B Teknik Çizim (Boykesit &amp; Enkesit)
+                      </span>
+                      <span className="rounded-full bg-purple-500/15 border border-purple-500/30 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-300">
+                        3B Sahne ile Canlı Senkronize
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Layers className="h-4 w-4 text-cyan-400" />
+                      <span className="text-xs font-bold text-foreground dark:text-zinc-200">
+                        2B Teknik Çizim (Tam Ekran Şema)
+                      </span>
+                      <span className="text-[11px] text-muted-foreground dark:text-zinc-400">
+                        (3B motor arka planda korunmaktadır)
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {viewTab === "split" ? (
+                    <button
+                      type="button"
+                      data-testid="expand-2d-to-fullscreen-tab"
+                      onClick={() => onChangeViewTab("2d")}
+                      className="min-h-[32px] inline-flex items-center gap-1.5 rounded-lg border border-border/70 dark:border-white/10 bg-muted/60 dark:bg-[#181432] px-2.5 py-1 text-xs font-bold text-muted-foreground hover:text-foreground dark:text-zinc-300 dark:hover:text-white transition-all"
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                      <span className="hidden sm:inline">Tam 2B Moduna Geç</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      data-testid="return-to-3d-tab"
+                      onClick={() => onChangeViewTab("3d")}
+                      className="min-h-[32px] inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/20 px-2.5 py-1 text-xs font-bold text-cyan-800 dark:text-cyan-200 hover:bg-cyan-500/30 transition-all"
+                    >
+                      <Box className="h-3 w-3" />
+                      <span>3B Sahneye Dön</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <Drawing2DPreview
+                model={model}
+                layers={layers}
+                selectedPartId={selectedPartId}
+                section={section}
+                onSelectPart={onSelectPart}
+                onToggleSection={onToggleSection}
+                onChangeSectionElevation={onChangeSectionElevation}
+              />
+            </div>
           )}
         </div>
       )}

@@ -737,17 +737,128 @@ export function createSimulationThreeScene(options: {
 
   const modelMin = domainMmToThreeMeters(model.boundsMm.min);
   const modelMax = domainMmToThreeMeters(model.boundsMm.max);
+  const boxMin = new THREE.Vector3(
+    Math.min(modelMin.x, modelMax.x),
+    Math.min(modelMin.y, modelMax.y),
+    Math.min(modelMin.z, modelMax.z),
+  );
+  const boxMax = new THREE.Vector3(
+    Math.max(modelMin.x, modelMax.x),
+    Math.max(modelMin.y, modelMax.y),
+    Math.max(modelMin.z, modelMax.z),
+  );
   const modelCenter = new THREE.Vector3(
-    (modelMin.x + modelMax.x) * 0.5,
-    (modelMin.y + modelMax.y) * 0.5,
-    (modelMin.z + modelMax.z) * 0.5,
+    (boxMin.x + boxMax.x) * 0.5,
+    (boxMin.y + boxMax.y) * 0.5,
+    (boxMin.z + boxMax.z) * 0.5,
   );
   const modelSize = new THREE.Vector3(
-    Math.abs(modelMax.x - modelMin.x),
-    Math.abs(modelMax.y - modelMin.y),
-    Math.abs(modelMax.z - modelMin.z),
+    Math.abs(boxMax.x - boxMin.x),
+    Math.abs(boxMax.y - boxMin.y),
+    Math.abs(boxMax.z - boxMin.z),
   );
   const maxDim = Math.max(modelSize.x, modelSize.y, modelSize.z, 1.0);
+
+  function getModelCorners(currentExplode: number): THREE.Vector3[] {
+    const scale = 1 + (Math.max(0, currentExplode) / 100) * 0.4;
+    const halfX = (boxMax.x - boxMin.x) * 0.5 * scale;
+    const halfY = (boxMax.y - boxMin.y) * 0.5 * scale;
+    const halfZ = (boxMax.z - boxMin.z) * 0.5 * scale;
+
+    const corners: THREE.Vector3[] = [];
+    for (const sx of [-1, 1]) {
+      for (const sy of [-1, 1]) {
+        for (const sz of [-1, 1]) {
+          corners.push(
+            new THREE.Vector3(
+              modelCenter.x + sx * halfX,
+              modelCenter.y + sy * halfY,
+              modelCenter.z + sz * halfZ,
+            ),
+          );
+        }
+      }
+    }
+    return corners;
+  }
+
+  function crossProduct(a: THREE.Vector3, b: THREE.Vector3): THREE.Vector3 {
+    return new THREE.Vector3(
+      a.y * b.z - a.z * b.y,
+      a.z * b.x - a.x * b.z,
+      a.x * b.y - a.y * b.x,
+    );
+  }
+
+  function computeFitDistance(dir: THREE.Vector3, currentExplode: number): number {
+    const viewDir = dir.clone().normalize();
+    if (viewDir.length() < 1e-4) {
+      viewDir.set(0.62, 0.35, 0.72).normalize();
+    }
+
+    const worldUp =
+      Math.abs(viewDir.y) > 0.96
+        ? new THREE.Vector3(0, 0, -1)
+        : new THREE.Vector3(0, 1, 0);
+
+    const right = crossProduct(worldUp, viewDir).normalize();
+    const up = crossProduct(viewDir, right).normalize();
+
+    const vFovRad = THREE.MathUtils.degToRad(camera.fov);
+    const vFovTan = Math.tan(vFovRad * 0.5);
+    const aspect = Math.max(camera.aspect, 0.2);
+    const hFovTan = vFovTan * aspect;
+
+    const corners = getModelCorners(currentExplode);
+    let maxDist = 0;
+
+    for (const corner of corners) {
+      const delta = corner.clone().sub(modelCenter);
+      const px = delta.dot(right);
+      const py = delta.dot(up);
+      const pz = delta.dot(viewDir);
+
+      const candX = Math.abs(px) / hFovTan + pz;
+      const candY = Math.abs(py) / vFovTan + pz;
+      const cand = Math.max(candX, candY);
+      if (cand > maxDist) {
+        maxDist = cand;
+      }
+    }
+
+    const safetyFactor = 1.16;
+    return THREE.MathUtils.clamp(
+      maxDist * safetyFactor,
+      controls.minDistance + 0.1,
+      controls.maxDistance - 0.5,
+    );
+  }
+
+  function getPresetDirection(preset: CameraPresetId): THREE.Vector3 {
+    switch (preset) {
+      case "front":
+        return new THREE.Vector3(0, 0, 1);
+      case "right":
+        return new THREE.Vector3(1, 0, 0);
+      case "top":
+        return new THREE.Vector3(0, 1, 0.001).normalize();
+      case "isometric":
+      default:
+        return new THREE.Vector3(0.62, 0.35, 0.72).normalize();
+    }
+  }
+
+  function applyCameraPreset(preset: CameraPresetId) {
+    currentCameraPreset = preset;
+    const dir = getPresetDirection(preset);
+    const dist = computeFitDistance(dir, explodePercent);
+
+    controls.target.copy(modelCenter);
+    camera.position.copy(modelCenter).add(dir.clone().multiplyScalar(dist));
+    camera.lookAt(modelCenter);
+    controls.update();
+    requestRender();
+  }
 
   function computeDiagnostics(): SimulationEngineDiagnostics {
     const offset = new THREE.Vector3().subVectors(camera.position, controls.target);
@@ -790,40 +901,6 @@ export function createSimulationThreeScene(options: {
   function requestRender() {
     if (isDisposed || rafId !== null || document.hidden) return;
     rafId = window.requestAnimationFrame(renderFrame);
-  }
-
-  function applyCameraPreset(preset: CameraPresetId) {
-    currentCameraPreset = preset;
-    controls.target.copy(modelCenter);
-
-    const dist = maxDim * 1.15;
-    switch (preset) {
-      case "front":
-        camera.position.set(modelCenter.x, modelCenter.y, modelCenter.z + dist);
-        break;
-      case "right":
-        camera.position.set(modelCenter.x + dist, modelCenter.y, modelCenter.z);
-        break;
-      case "top":
-        camera.position.set(
-          modelCenter.x,
-          modelCenter.y + dist * 1.1,
-          modelCenter.z + 0.01,
-        );
-        break;
-      case "isometric":
-      default:
-        camera.position.set(
-          modelCenter.x + dist * 0.62,
-          modelCenter.y + dist * 0.35,
-          modelCenter.z + dist * 0.72,
-        );
-        break;
-    }
-
-    camera.lookAt(modelCenter);
-    controls.update();
-    requestRender();
   }
 
   const raycaster = new THREE.Raycaster();
@@ -924,12 +1001,19 @@ export function createSimulationThreeScene(options: {
   };
   renderer.domElement.addEventListener("webglcontextlost", handleContextLost, false);
 
+  let lastObservedW = 0;
+  let lastObservedH = 0;
+
   const resizeObserver = new ResizeObserver((entries) => {
     if (isDisposed) return;
     const entry = entries[0];
     if (!entry) return;
+    if (entry.contentRect.width < 1 || entry.contentRect.height < 1) return;
     const nextW = Math.max(Math.floor(entry.contentRect.width), 120);
     const nextH = Math.max(Math.floor(entry.contentRect.height), 120);
+    if (nextW === lastObservedW && nextH === lastObservedH) return;
+    lastObservedW = nextW;
+    lastObservedH = nextH;
     camera.aspect = nextW / nextH;
     camera.updateProjectionMatrix();
     renderer.setSize(nextW, nextH, false);
@@ -1016,7 +1100,18 @@ export function createSimulationThreeScene(options: {
       applyCameraPreset(preset);
     },
     fitToModel() {
-      applyCameraPreset(currentCameraPreset);
+      const offset = new THREE.Vector3().subVectors(camera.position, controls.target);
+      const dir =
+        offset.length() > 1e-4
+          ? offset.normalize()
+          : getPresetDirection(currentCameraPreset);
+      const dist = computeFitDistance(dir, explodePercent);
+
+      controls.target.copy(modelCenter);
+      camera.position.copy(modelCenter).add(dir.clone().multiplyScalar(dist));
+      camera.lookAt(modelCenter);
+      controls.update();
+      requestRender();
     },
     zoomByStep(direction: "in" | "out") {
       const factor = direction === "in" ? 0.84 : 1.18;

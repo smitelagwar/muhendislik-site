@@ -140,7 +140,7 @@ export function PartInfoPanel({
               </div>
               <div>
                 <dt className="font-bold text-purple-700 dark:text-purple-300">
-                  Görevi nedir?
+                  Ne işe yarar? (Görevi)
                 </dt>
                 <dd
                   data-testid="selected-part-role"

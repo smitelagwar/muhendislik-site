@@ -10,9 +10,13 @@ import {
   Info,
   Layers,
   Link2,
+  Maximize2,
+  Minimize2,
+  PanelRight,
   RotateCcw,
   ShieldAlert,
   Sliders,
+  X,
 } from "lucide-react";
 import type { SimulationCatalogItem } from "@/lib/simulations/catalog";
 import { SIMULATIONS_HUB_HREF } from "@/lib/simulations/catalog";
@@ -94,6 +98,12 @@ export function SimulationWorkspace({
   const [inspectorTab, setInspectorTab] = useState<"parts" | "layers" | "notes">(
     "parts",
   );
+  const [showAbout, setShowAbout] = useState(false);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [focusMode, setFocusMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const studioContainerRef = useRef<HTMLDivElement>(null);
+  const previousInspectorOpenRef = useRef(true);
 
   const initialColumnParams = useMemo(
     () =>
@@ -299,14 +309,82 @@ export function SimulationWorkspace({
     setFocusTrigger((prev) => prev + 1);
   };
 
+  const handleToggleFocusMode = () => {
+    setFocusMode((prev) => {
+      const next = !prev;
+      if (next) {
+        previousInspectorOpenRef.current = inspectorOpen;
+        setInspectorOpen(false);
+      } else {
+        setInspectorOpen(previousInspectorOpenRef.current);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleFullscreen = async () => {
+    if (typeof document === "undefined") return;
+    try {
+      if (!document.fullscreenElement) {
+        if (studioContainerRef.current?.requestFullscreen) {
+          await studioContainerRef.current.requestFullscreen();
+        } else {
+          handleToggleFocusMode();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      }
+    } catch {
+      handleToggleFocusMode();
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+        if (tag === "input" || tag === "textarea" || tag === "select") return;
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (focusMode) {
+          setFocusMode(false);
+          setInspectorOpen(previousInspectorOpenRef.current);
+        }
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [focusMode]);
+
+  const selectedPart = useMemo(() => {
+    if (!viewState.selectedPartId) return null;
+    return activeModel.parts.find((p) => p.id === viewState.selectedPartId) ?? null;
+  }, [activeModel.parts, viewState.selectedPartId]);
+
   return (
-    <div className="space-y-6" data-testid="simulation-workspace">
-      {/* Üst Gezinme, Başlık ve Önayar Seçici */}
-      <header className="rounded-3xl border border-border/80 dark:border-purple-500/25 bg-card/90 dark:bg-[#0f0d22]/90 p-5 sm:p-6 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <div
+      ref={studioContainerRef}
+      className={`space-y-4 ${focusMode ? "simulation-focus-mode" : ""} fullscreen:bg-background fullscreen:p-4 fullscreen:overflow-y-auto`}
+      data-testid="simulation-workspace"
+      data-focus-mode={focusMode ? "true" : "false"}
+      data-fullscreen={isFullscreen ? "true" : "false"}
+    >
+      {/* Üst Gezinme, Başlık ve Önayar Seçici (Kompakt Stüdyo Başlığı) */}
+      <header className="rounded-2xl border border-border/80 dark:border-purple-500/25 bg-card/90 dark:bg-[#0f0d22]/90 p-3 sm:p-4 shadow-sm space-y-3">
+        {/* Üst Şerit: Gezinme, Paylaşım ve Kataloğa Dönüş */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
           <nav
             aria-label="Sayfa konumu"
-            className="flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground dark:text-zinc-400"
+            className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-muted-foreground dark:text-zinc-400"
           >
             <Link
               href={TOOLS_HUB_HREF}
@@ -328,19 +406,90 @@ export function SimulationWorkspace({
             </span>
           </nav>
 
-          <Link
-            href={SIMULATIONS_HUB_HREF}
-            className="min-h-[40px] inline-flex items-center gap-2 rounded-xl border border-border/80 dark:border-white/15 bg-card/80 dark:bg-[#171330] px-3.5 py-2 text-xs font-bold text-foreground dark:text-zinc-200 hover:border-purple-500/40 transition-all"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Simülasyon Kataloğuna Dön</span>
-          </Link>
+          <div data-testid="share-link-bar" className="flex flex-wrap items-center gap-2">
+            <span
+              data-testid="share-camera-note"
+              className="hidden lg:inline text-[11px] text-muted-foreground dark:text-zinc-400"
+            >
+              Serbest orbit açısı paylaşılmaz; seçili hazır kamera yönü taşınır.
+            </span>
+            <button
+              type="button"
+              data-testid="simulation-focus-mode-toggle"
+              onClick={handleToggleFocusMode}
+              aria-pressed={focusMode}
+              aria-label={focusMode ? "Odak modundan çık" : "Odak moduna geç"}
+              title={focusMode ? "Odak modundan çık (ESC)" : "Odak moduna geç (Geniş Sahne)"}
+              className={`min-h-[36px] inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all ${
+                focusMode
+                  ? "border-purple-500 bg-purple-600 text-white shadow-sm"
+                  : "border-border/80 dark:border-white/15 bg-card/80 dark:bg-[#171330] text-foreground dark:text-zinc-200 hover:border-purple-500/40"
+              }`}
+            >
+              {focusMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              <span className="hidden sm:inline">{focusMode ? "Normal Görünüm" : "Odak Modu"}</span>
+            </button>
+            <button
+              type="button"
+              data-testid="simulation-fullscreen-toggle"
+              onClick={handleToggleFullscreen}
+              aria-pressed={isFullscreen}
+              aria-label={isFullscreen ? "Tam ekrandan çık" : "Tam ekran yap"}
+              title={isFullscreen ? "Tam ekrandan çık (ESC)" : "Tam ekran yap"}
+              className="min-h-[36px] inline-flex items-center gap-1.5 rounded-xl border border-border/80 dark:border-white/15 bg-card/80 dark:bg-[#171330] px-3 py-1.5 text-xs font-bold text-foreground dark:text-zinc-200 hover:border-purple-500/40 transition-all"
+            >
+              {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              <span className="hidden sm:inline">{isFullscreen ? "Pencere" : "Tam Ekran"}</span>
+            </button>
+            <button
+              type="button"
+              data-testid="simulation-inspector-toggle"
+              onClick={() => {
+                if (focusMode) setFocusMode(false);
+                setInspectorOpen((prev) => !prev);
+              }}
+              aria-expanded={inspectorOpen}
+              aria-label={inspectorOpen ? "Denetçi panelini gizle" : "Denetçi panelini aç"}
+              className="min-h-[36px] inline-flex items-center gap-1.5 rounded-xl border border-border/80 dark:border-white/15 bg-card/80 dark:bg-[#171330] px-3 py-1.5 text-xs font-bold text-foreground dark:text-zinc-200 hover:border-purple-500/40 transition-all"
+            >
+              <PanelRight className="h-3.5 w-3.5 text-purple-400" />
+              <span className="hidden sm:inline">{inspectorOpen ? "Paneli Gizle" : "Paneli Aç"}</span>
+            </button>
+            <button
+              type="button"
+              data-testid="copy-share-link-btn"
+              data-share-url={currentShareUrl}
+              onClick={handleCopyShareLink}
+              aria-label="Bağlantıyı kopyala"
+              className="min-h-[36px] inline-flex items-center gap-1.5 rounded-xl border border-purple-500/40 bg-purple-500/15 hover:bg-purple-500/25 px-3 py-1.5 text-xs font-bold text-purple-800 dark:text-purple-200 transition-all"
+            >
+              {shareCopied ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>Kopyalandı</span>
+                </>
+              ) : (
+                <>
+                  <Link2 className="h-3.5 w-3.5" />
+                  <span>Paylaş</span>
+                </>
+              )}
+            </button>
+            <Link
+              href={SIMULATIONS_HUB_HREF}
+              className="min-h-[36px] inline-flex items-center gap-1.5 rounded-xl border border-border/80 dark:border-white/15 bg-card/80 dark:bg-[#171330] px-3 py-1.5 text-xs font-bold text-foreground dark:text-zinc-200 hover:border-purple-500/40 transition-all"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Katalog</span>
+            </Link>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-[11px] font-bold text-purple-700 dark:text-purple-200">
-              <Box className="h-3.5 w-3.5 text-purple-400" />
+        {/* Başlık ve Rozet Satırı */}
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-2.5 py-0.5 text-[11px] font-bold text-purple-700 dark:text-purple-200">
+              <Box className="h-3 w-3 text-purple-400" />
               <span>{item.categoryLabel}</span>
               <span>·</span>
               <span className="font-mono" data-testid="active-preset-badge">
@@ -359,59 +508,35 @@ export function SimulationWorkspace({
                             : "Çirozlu Öğretim Önayarı"}
               </span>
             </div>
-
-            <h1
-              data-testid="simulation-scene-title"
-              className="mt-2.5 text-2xl font-black tracking-tight text-foreground dark:text-white sm:text-3xl"
-            >
-              {activeModel.title}
-            </h1>
-            <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground dark:text-zinc-300">
-              {activeModel.subtitle} — {item.description}
-            </p>
-          </div>
-        </div>
-
-        {/* Paylaşım Bağlantısı Çubuğu (Tüm 6 sahnede aktif) */}
-        <div
-          data-testid="share-link-bar"
-          className="flex flex-col gap-2.5 pt-3 border-t border-border/60 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <div className="flex items-center gap-2 text-xs text-muted-foreground dark:text-zinc-300">
-            <Link2 className="h-4 w-4 shrink-0 text-purple-500 dark:text-purple-300" />
-            <span data-testid="share-camera-note">
-              Serbest orbit açısı paylaşılmaz; seçili hazır kamera yönü taşınır.
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              data-testid="copy-share-link-btn"
-              data-share-url={currentShareUrl}
-              onClick={handleCopyShareLink}
-              className="min-h-[40px] inline-flex items-center gap-2 rounded-xl border border-purple-500/40 bg-purple-500/15 hover:bg-purple-500/25 px-3.5 py-2 text-xs font-bold text-purple-800 dark:text-purple-200 transition-all"
+              onClick={() => setShowAbout((prev) => !prev)}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground dark:text-zinc-400 dark:hover:text-white transition-colors"
             >
-              {shareCopied ? (
-                <>
-                  <Check className="h-3.5 w-3.5 text-emerald-500" />
-                  <span>Bağlantı Kopyalandı</span>
-                </>
-              ) : (
-                <>
-                  <Link2 className="h-3.5 w-3.5" />
-                  <span>Bağlantıyı kopyala</span>
-                </>
-              )}
+              <Info className="h-3 w-3" />
+              <span>{showAbout ? "Açıklamayı Kapat" : "Hakkında"}</span>
             </button>
           </div>
+
+          <h1
+            data-testid="simulation-scene-title"
+            className="text-lg sm:text-xl md:text-2xl font-black tracking-tight text-foreground dark:text-white"
+          >
+            {activeModel.title}
+          </h1>
+
+          {showAbout && (
+            <p className="text-xs sm:text-sm leading-relaxed text-muted-foreground dark:text-zinc-300 pt-0.5">
+              {activeModel.subtitle} — {item.description}
+            </p>
+          )}
         </div>
 
         {urlFallbackNotice && (
           <div
             data-testid="url-fallback-notice"
             role="status"
-            className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-800 dark:text-amber-200"
+            className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-2 text-xs text-amber-800 dark:text-amber-200"
           >
             <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
             <span>{urlFallbackNotice}</span>
@@ -420,14 +545,14 @@ export function SimulationWorkspace({
 
         {/* Önayar (Preset) Seçim Çubuğu: Kolon için C1 Referans vs Çirozlu Öğretim Önayarı */}
         {activeModel.slug === "kolon-detayi" && (
-          <div className="space-y-3 pt-2 border-t border-border/60 dark:border-white/10">
+          <div className="space-y-2 pt-2 border-t border-border/60 dark:border-white/10">
             <div
               className="flex flex-wrap items-center gap-2"
               role="group"
               aria-label="Kolon öğretim önayarı seçimi"
             >
-              <span className="text-xs font-extrabold uppercase tracking-wider text-muted-foreground dark:text-zinc-400 mr-1">
-                Örnek Önayar:
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground dark:text-zinc-400 mr-1">
+                Önayar:
               </span>
               {PRESET_OPTIONS.map((preset) => {
                 const active = viewState.presetId === preset.id;
@@ -438,7 +563,7 @@ export function SimulationWorkspace({
                     data-testid={`preset-btn-${preset.id}`}
                     aria-pressed={active}
                     onClick={() => handleSelectPreset(preset.id)}
-                    className={`min-h-[42px] inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-bold transition-all ${
+                    className={`min-h-[36px] inline-flex items-center gap-1.5 rounded-xl border px-3 py-1 text-xs font-bold transition-all ${
                       active
                         ? "border-purple-500 bg-purple-600 text-white shadow-sm"
                         : "border-border/80 dark:border-white/15 bg-muted/40 dark:bg-[#171330] text-foreground dark:text-zinc-200 hover:border-purple-500/40"
@@ -446,7 +571,7 @@ export function SimulationWorkspace({
                   >
                     <span>{preset.label}</span>
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-mono ${
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
                         active
                           ? "bg-white/20 text-white"
                           : "bg-purple-500/15 text-purple-600 dark:text-purple-300"
@@ -462,23 +587,23 @@ export function SimulationWorkspace({
             {/* Yalnız Kolon İçin Kontrollü Parametre Denemesi */}
             <div
               data-testid="column-parameter-experiment-panel"
-              className="rounded-2xl border border-border/80 dark:border-purple-500/25 bg-muted/30 dark:bg-[#141029]/90 p-4 space-y-3"
+              className="rounded-xl border border-border/80 dark:border-purple-500/25 bg-muted/30 dark:bg-[#141029]/90 p-3 space-y-2"
             >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-purple-700 dark:text-purple-200">
-                  <Sliders className="h-4 w-4 text-purple-400" />
+              <div className="flex flex-wrap items-center justify-between gap-1.5">
+                <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-purple-700 dark:text-purple-200">
+                  <Sliders className="h-3.5 w-3.5 text-purple-400" />
                   <span>Kontrollü Kolon Parametre Denemesi</span>
                 </div>
                 <span
                   data-testid="column-params-product-limit-note"
-                  className="text-[11px] font-semibold text-amber-600 dark:text-amber-300"
+                  className="text-[10px] font-semibold text-amber-600 dark:text-amber-300"
                 >
                   UI aralıkları ürün/geometri limitidir, yönetmelik limiti değildir.
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
-                <label className="flex flex-col gap-1 text-[11px] font-bold text-muted-foreground dark:text-zinc-300">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                <label className="flex flex-col gap-0.5 text-[10px] font-bold text-muted-foreground dark:text-zinc-300">
                   <span>
                     Genişlik b<sub>x</sub> ({COLUMN_PARAMETER_LIMITS.sectionWidthMm.min}–
                     {COLUMN_PARAMETER_LIMITS.sectionWidthMm.max} mm)
@@ -491,11 +616,11 @@ export function SimulationWorkspace({
                     step={10}
                     value={draftWidthMm}
                     onChange={(e) => setDraftWidthMm(e.target.value)}
-                    className="min-h-[38px] rounded-xl border border-border/80 dark:border-white/15 bg-background dark:bg-[#0d0a1c] px-2.5 py-1.5 font-mono text-xs font-bold text-foreground dark:text-white"
+                    className="min-h-[34px] rounded-lg border border-border/80 dark:border-white/15 bg-background dark:bg-[#0d0a1c] px-2 py-1 font-mono text-xs font-bold text-foreground dark:text-white"
                   />
                 </label>
 
-                <label className="flex flex-col gap-1 text-[11px] font-bold text-muted-foreground dark:text-zinc-300">
+                <label className="flex flex-col gap-0.5 text-[10px] font-bold text-muted-foreground dark:text-zinc-300">
                   <span>
                     Derinlik b<sub>y</sub> ({COLUMN_PARAMETER_LIMITS.sectionDepthMm.min}–
                     {COLUMN_PARAMETER_LIMITS.sectionDepthMm.max} mm)
@@ -508,11 +633,11 @@ export function SimulationWorkspace({
                     step={10}
                     value={draftDepthMm}
                     onChange={(e) => setDraftDepthMm(e.target.value)}
-                    className="min-h-[38px] rounded-xl border border-border/80 dark:border-white/15 bg-background dark:bg-[#0d0a1c] px-2.5 py-1.5 font-mono text-xs font-bold text-foreground dark:text-white"
+                    className="min-h-[34px] rounded-lg border border-border/80 dark:border-white/15 bg-background dark:bg-[#0d0a1c] px-2 py-1 font-mono text-xs font-bold text-foreground dark:text-white"
                   />
                 </label>
 
-                <label className="flex flex-col gap-1 text-[11px] font-bold text-muted-foreground dark:text-zinc-300">
+                <label className="flex flex-col gap-0.5 text-[10px] font-bold text-muted-foreground dark:text-zinc-300">
                   <span>
                     Boyuna Çap Ø ({COLUMN_PARAMETER_LIMITS.longitudinalDiameterMm.min}–
                     {COLUMN_PARAMETER_LIMITS.longitudinalDiameterMm.max} mm)
@@ -525,11 +650,11 @@ export function SimulationWorkspace({
                     step={2}
                     value={draftBarDiaMm}
                     onChange={(e) => setDraftBarDiaMm(e.target.value)}
-                    className="min-h-[38px] rounded-xl border border-border/80 dark:border-white/15 bg-background dark:bg-[#0d0a1c] px-2.5 py-1.5 font-mono text-xs font-bold text-foreground dark:text-white"
+                    className="min-h-[34px] rounded-lg border border-border/80 dark:border-white/15 bg-background dark:bg-[#0d0a1c] px-2 py-1 font-mono text-xs font-bold text-foreground dark:text-white"
                   />
                 </label>
 
-                <label className="flex flex-col gap-1 text-[11px] font-bold text-muted-foreground dark:text-zinc-300">
+                <label className="flex flex-col gap-0.5 text-[10px] font-bold text-muted-foreground dark:text-zinc-300">
                   <span>
                     Sarılma s<sub>c</sub> ({COLUMN_PARAMETER_LIMITS.confinementSpacingMm.min}–
                     {COLUMN_PARAMETER_LIMITS.confinementSpacingMm.max} mm)
@@ -542,11 +667,11 @@ export function SimulationWorkspace({
                     step={5}
                     value={draftConfinementSpacingMm}
                     onChange={(e) => setDraftConfinementSpacingMm(e.target.value)}
-                    className="min-h-[38px] rounded-xl border border-border/80 dark:border-white/15 bg-background dark:bg-[#0d0a1c] px-2.5 py-1.5 font-mono text-xs font-bold text-foreground dark:text-white"
+                    className="min-h-[34px] rounded-lg border border-border/80 dark:border-white/15 bg-background dark:bg-[#0d0a1c] px-2 py-1 font-mono text-xs font-bold text-foreground dark:text-white"
                   />
                 </label>
 
-                <label className="flex flex-col gap-1 text-[11px] font-bold text-muted-foreground dark:text-zinc-300">
+                <label className="flex flex-col gap-0.5 text-[10px] font-bold text-muted-foreground dark:text-zinc-300">
                   <span>
                     Orta Bölge s<sub>m</sub> ({COLUMN_PARAMETER_LIMITS.middleSpacingMm.min}–
                     {COLUMN_PARAMETER_LIMITS.middleSpacingMm.max} mm)
@@ -559,32 +684,31 @@ export function SimulationWorkspace({
                     step={5}
                     value={draftMiddleSpacingMm}
                     onChange={(e) => setDraftMiddleSpacingMm(e.target.value)}
-                    className="min-h-[38px] rounded-xl border border-border/80 dark:border-white/15 bg-background dark:bg-[#0d0a1c] px-2.5 py-1.5 font-mono text-xs font-bold text-foreground dark:text-white"
+                    className="min-h-[34px] rounded-lg border border-border/80 dark:border-white/15 bg-background dark:bg-[#0d0a1c] px-2 py-1 font-mono text-xs font-bold text-foreground dark:text-white"
                   />
                 </label>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                <span className="text-[11px] text-muted-foreground dark:text-zinc-400">
-                  Çubuk adedi ({activeModel.counts.longitudinalBars} adet) ve kat yüksekliği (
-                  {activeModel.dimensionsMm.concreteHeightZ} mm) seçili önayara bağlıdır.
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                <span className="text-[10px] text-muted-foreground dark:text-zinc-400">
+                  Çubuk adedi ({activeModel.counts.longitudinalBars} adet) ve kat yüksekliği ({activeModel.dimensionsMm.concreteHeightZ} mm) seçili önayara bağlıdır.
                 </span>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <button
                     type="button"
                     data-testid="reset-column-params-btn"
                     onClick={handleResetColumnParamsToPreset}
-                    className="min-h-[38px] inline-flex items-center gap-1.5 rounded-xl border border-border/80 dark:border-white/15 bg-card/80 dark:bg-[#191433] px-3 py-1.5 text-xs font-bold text-foreground dark:text-zinc-200 hover:border-purple-500/40"
+                    className="min-h-[34px] inline-flex items-center gap-1.5 rounded-lg border border-border/80 dark:border-white/15 bg-card/80 dark:bg-[#191433] px-2.5 py-1 text-xs font-bold text-foreground dark:text-zinc-200 hover:border-purple-500/40"
                   >
-                    <RotateCcw className="h-3.5 w-3.5" />
+                    <RotateCcw className="h-3 w-3" />
                     <span>Önayara Sıfırla</span>
                   </button>
                   <button
                     type="button"
                     data-testid="apply-column-params-btn"
                     onClick={handleApplyColumnParams}
-                    className="min-h-[38px] inline-flex items-center gap-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 px-4 py-1.5 text-xs font-extrabold text-white shadow-sm transition-all"
+                    className="min-h-[34px] inline-flex items-center gap-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 px-3.5 py-1 text-xs font-extrabold text-white shadow-sm transition-all"
                   >
                     <span>Uygula</span>
                   </button>
@@ -595,7 +719,7 @@ export function SimulationWorkspace({
                 <div
                   data-testid="column-params-error-banner"
                   role="alert"
-                  className="flex items-start gap-2 rounded-xl border border-rose-500/40 bg-rose-500/15 px-3.5 py-2.5 text-xs font-semibold text-rose-800 dark:text-rose-200"
+                  className="flex items-start gap-2 rounded-lg border border-rose-500/40 bg-rose-500/15 px-3 py-2 text-xs font-semibold text-rose-800 dark:text-rose-200"
                 >
                   <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5 text-rose-500" />
                   <span>{paramErrorReason}</span>
@@ -606,9 +730,46 @@ export function SimulationWorkspace({
         )}
       </header>
 
-      {/* Ana Çalışma Alanı: 3B/2B Sahne + Birleşik Sekmeli / Yan Yana Denetçi */}
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+      {/* Ana Çalışma Alanı: 3B Sahne Öncelikli Grid + Açılıp Kapanabilen Sağ Denetçi */}
+      <div
+        data-testid="simulation-studio-grid"
+        className={
+          inspectorOpen
+            ? "grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_clamp(320px,23vw,380px)]"
+            : "grid grid-cols-1 gap-4"
+        }
+      >
         <div className="min-w-0 space-y-4">
+          <LazySimulationViewer
+            model={activeModel}
+            layers={viewState.layers}
+            selectedPartId={viewState.selectedPartId}
+            section={viewState.section}
+            explodePercent={viewState.explodePercent}
+            activePreset={viewState.cameraPreset}
+            viewTab={viewState.viewTab}
+            focusTrigger={focusTrigger}
+            onToggleConcrete={() => handleToggleLayer("concrete")}
+            onSelectPreset={(cameraPreset) =>
+              dispatch({ type: "SET_CAMERA_PRESET", cameraPreset })
+            }
+            onSelectPart={handleSelectPart}
+            onChangeViewTab={(viewTab) =>
+              dispatch({ type: "SET_VIEW_TAB", viewTab })
+            }
+            onToggleSection={(enabled) =>
+              dispatch({ type: "SET_SECTION_ENABLED", enabled })
+            }
+            onChangeSectionElevation={(elevationZMm) =>
+              dispatch({
+                type: "SET_SECTION_ELEVATION",
+                elevationZMm,
+                model: activeModel,
+              })
+            }
+            onResetAll={handleResetAll}
+          />
+
           <LearningControlsPanel
             model={activeModel}
             learning={viewState.learning}
@@ -643,40 +804,29 @@ export function SimulationWorkspace({
             onFocusSelectedPart={handleFocusSelectedPart}
             onResetAll={handleResetAll}
           />
-
-          <LazySimulationViewer
-            model={activeModel}
-            layers={viewState.layers}
-            selectedPartId={viewState.selectedPartId}
-            section={viewState.section}
-            explodePercent={viewState.explodePercent}
-            activePreset={viewState.cameraPreset}
-            viewTab={viewState.viewTab}
-            focusTrigger={focusTrigger}
-            onToggleConcrete={() => handleToggleLayer("concrete")}
-            onSelectPreset={(cameraPreset) =>
-              dispatch({ type: "SET_CAMERA_PRESET", cameraPreset })
-            }
-            onSelectPart={handleSelectPart}
-            onChangeViewTab={(viewTab) =>
-              dispatch({ type: "SET_VIEW_TAB", viewTab })
-            }
-            onToggleSection={(enabled) =>
-              dispatch({ type: "SET_SECTION_ENABLED", enabled })
-            }
-            onChangeSectionElevation={(elevationZMm) =>
-              dispatch({
-                type: "SET_SECTION_ELEVATION",
-                elevationZMm,
-                model: activeModel,
-              })
-            }
-            onResetAll={handleResetAll}
-          />
         </div>
 
-        {/* Sağ Denetçi: Dar ekranda veya laptopta sıkışmayı önleyen sekmeli yapı */}
-        <aside className="min-w-0 space-y-4">
+        {/* Sağ Denetçi: 1280px+ yan panel, <1280px sahne altı akıllı sekmeli yapı */}
+        <aside
+          data-testid="simulation-inspector-panel"
+          className={inspectorOpen ? "min-w-0 space-y-3" : "hidden"}
+          aria-hidden={!inspectorOpen}
+        >
+          <div className="flex items-center justify-between gap-2 px-1">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground dark:text-zinc-400">
+              Denetçi & Bilgi
+            </span>
+            <button
+              type="button"
+              onClick={() => setInspectorOpen(false)}
+              aria-label="Denetçi panelini kapat"
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[11px] font-bold text-muted-foreground hover:text-foreground dark:text-zinc-400 dark:hover:text-white transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Kapat</span>
+            </button>
+          </div>
+
           <div
             className="grid grid-cols-3 gap-1.5 rounded-2xl border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#110e24]/90 p-1.5"
             role="tablist"
@@ -841,6 +991,51 @@ export function SimulationWorkspace({
           )}
         </aside>
       </div>
+
+      {/* Mobilde parça seçildiğinde gösterilen ergonomik hızlı alt çip (ekranı kapatmayan mikro çip) */}
+      {selectedPart && (
+        <div
+          data-testid="mobile-selected-part-chip"
+          className="xl:hidden fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] md:bottom-8 left-3 right-16 sm:right-4 z-[60] flex items-center justify-between gap-2.5 rounded-2xl border border-purple-500/40 bg-card/95 dark:bg-[#120f26]/95 p-3 shadow-2xl backdrop-blur-md"
+          role="region"
+          aria-label="Seçili parça hızlı eylemleri"
+        >
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-purple-500 animate-pulse" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-300">
+                Seçili Parça
+              </span>
+            </div>
+            <p className="truncate text-xs font-extrabold text-foreground dark:text-white">
+              {selectedPart.label}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              data-testid="mobile-open-detail-btn"
+              onClick={() => {
+                setInspectorOpen(true);
+                setInspectorTab("parts");
+              }}
+              className="min-h-[38px] rounded-xl bg-purple-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-purple-500 transition-colors"
+            >
+              Detayı İncele
+            </button>
+            <button
+              type="button"
+              data-testid="mobile-clear-part-btn"
+              onClick={() => handleSelectPart(null)}
+              aria-label="Seçimi kaldır"
+              className="min-h-[38px] min-w-[38px] inline-flex items-center justify-center rounded-xl border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#181432] text-muted-foreground hover:text-foreground dark:text-zinc-300 dark:hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
