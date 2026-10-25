@@ -25,11 +25,13 @@ export type UseBelgeFieldFocusReturn = {
   fieldKey: string | null;
   lastFocusedFieldKey: string | null;
   focusEventId: number;
+  centerRequestId: number;
   selection: FieldFocusSelection;
   containerProps: {
     onFocusCapture: (event: React.FocusEvent<HTMLElement>) => void;
     onBlurCapture: (event: React.FocusEvent<HTMLElement>) => void;
     onKeyDownCapture: (event: React.KeyboardEvent<HTMLElement>) => void;
+    onPointerDownCapture: (event: React.PointerEvent<HTMLElement>) => void;
   };
   clearSelection: () => void;
   setFocusedField: (fieldKey: string | null) => void;
@@ -148,6 +150,16 @@ export function useBelgeFieldFocus({
     [clearSelection]
   );
 
+  const handlePointerDownCapture = useCallback(
+    (event: React.PointerEvent<HTMLElement>) => {
+      const resolvedKey = resolveFocusedFieldKey(idMap, event.target);
+      if (resolvedKey && resolvedKey === state.fieldKey) {
+        dispatch({ type: "RECENTER", fieldKey: resolvedKey });
+      }
+    },
+    [idMap, state.fieldKey]
+  );
+
   // Catch Escape globally within studio root and monitor focus shifts between preview toolbar and outside actions
   useEffect(() => {
     const root = studioRootRef?.current;
@@ -239,9 +251,17 @@ export function useBelgeFieldFocus({
       fieldKey: state.fieldKey,
       lastFocusedFieldKey: state.lastFocusedFieldKey,
       focusEventId: state.focusEventId,
+      centerRequestId: state.centerRequestId ?? 0,
       clearEventId: state.clearEventId ?? 0,
     }),
-    [documentId, state.fieldKey, state.lastFocusedFieldKey, state.focusEventId, state.clearEventId]
+    [
+      documentId,
+      state.fieldKey,
+      state.lastFocusedFieldKey,
+      state.focusEventId,
+      state.centerRequestId,
+      state.clearEventId,
+    ]
   );
 
   const containerProps = useMemo(
@@ -249,14 +269,16 @@ export function useBelgeFieldFocus({
       onFocusCapture: handleFocusCapture,
       onBlurCapture: handleBlurCapture,
       onKeyDownCapture: handleKeyDownCapture,
+      onPointerDownCapture: handlePointerDownCapture,
     }),
-    [handleFocusCapture, handleBlurCapture, handleKeyDownCapture]
+    [handleFocusCapture, handleBlurCapture, handleKeyDownCapture, handlePointerDownCapture]
   );
 
   return {
     fieldKey: state.fieldKey,
     lastFocusedFieldKey: state.lastFocusedFieldKey,
     focusEventId: state.focusEventId,
+    centerRequestId: state.centerRequestId ?? 0,
     selection,
     containerProps,
     clearSelection,

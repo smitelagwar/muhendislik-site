@@ -196,4 +196,39 @@ describe("ASAMA_05: Belge Stüdyosu V3 — Zoom Geometrik Merkez ve Footer Form 
     assert.ok(html.includes('preview-tool-button-active'), "fitMode === 'width' iken buton aktif sınıfa sahip olmalı");
     assert.ok(html.includes('data-testid="belge-studio-more-view-options"'), "Mobil more seçenekler menü tetikleyicisi bulunmalı");
   });
+
+  it("8. ASAMA_01: Masaüstü araç butonları PDFgear tarzı dikey dizilim (SVG üstte, metin altta) ve aria-pressed sözleşmesine uyar", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(BelgeStudioPreviewToolbar, {
+        zoomLevel: 100,
+        onZoomChange: () => {},
+        onFit: () => {},
+        onFitWidth: () => {},
+        fitMode: "page",
+        pdfUrl: "https://example.com/test.pdf",
+        disabled: false,
+        pdfFocus: { isPdfFocus: false, onTogglePdfFocus: () => {} },
+      })
+    );
+
+    // Dikey dizilim sınıfı ve etiket sınıfları
+    assert.ok(html.includes("preview-tool-button-stacked"), "Masaüstü eylemler preview-tool-button-stacked sınıfına sahip olmalı");
+    assert.ok(html.includes("preview-tool-icon"), "İkonlar preview-tool-icon sınıfına sahip olmalı");
+    assert.ok(html.includes("preview-tool-label"), "Etiketler preview-tool-label sınıfına sahip olmalı");
+
+    // Sığdır aria-pressed
+    assert.ok(html.includes('data-testid="belge-preview-fit-page-btn"'), "Sığdır butonu bulunmalı");
+    assert.ok(html.includes('aria-pressed="true"'), "fitMode === 'page' ve zoom 100 iken Sığdır butonu aria-pressed='true' olmalı");
+
+    // Yeni Sekme görünür metin ve test id
+    assert.ok(html.includes('data-testid="belge-preview-open-external-btn"'), "Yeni Sekme test id'si bulunmalı");
+    assert.ok(html.includes("Yeni Sekme"), "Yeni Sekme açıkça görünür metin içermeli");
+
+    // Odaklanma butonu
+    assert.ok(html.includes('data-testid="belge-pdf-focus-toggle"'), "Odak modu butonu bulunmalı");
+    assert.ok(
+      html.includes("PDF&#x27;ye Odaklan") || html.includes("PDF'ye Odaklan"),
+      "Odak kapalıyken 'PDF'ye Odaklan' yazmalı"
+    );
+  });
 });

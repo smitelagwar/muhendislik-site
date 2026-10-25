@@ -35,6 +35,13 @@ import { BelgeInlineEditSheet, type BelgeInlineSheetNavTarget } from "@/componen
 import { useBelgeInlineMobileMode } from "@/hooks/use-belge-inline-mobile-mode";
 import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-context";
 import { BelgeStudioMobileZoomPill } from "@/components/belge-studio-mobile-zoom-pill";
+import { useBelgeFitTransition } from "@/hooks/use-belge-fit-transition";
+import {
+  calculateBelgeFieldCenterScroll,
+  calculateFocusPadding,
+  calculatePaddingCompensation,
+  easeOutCubic,
+} from "@/lib/belge-studio-focus-center";
 import {
   BELGE_INLINE_TAP_MAX_MOVE,
   BELGE_INLINE_TAP_MAX_MS,
@@ -140,10 +147,15 @@ export function BelgeStudioPdfPreview({
     rect: FieldFocusRect;
     documentId: BelgeDocumentId;
     focusEventId: number;
+    centerRequestId?: number;
     clearEventId: number;
   } | null>(null);
   const lastRevealedEventIdRef = useRef<number>(0);
+  const lastCenteredRequestIdRef = useRef<number>(0);
+  const isFocusPaddedRef = useRef(false);
+  const focusScrollRafRef = useRef<number | null>(null);
   const performRevealRef = useRef<(rect: FieldFocusRect) => void>(() => {});
+  const centerFocusedFieldRef = useRef<(rect: FieldFocusRect) => void>(() => {});
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const surfaceRef = useRef<HTMLDivElement | null>(null);
@@ -194,6 +206,20 @@ export function BelgeStudioPdfPreview({
   const pendingLayoutRef = useRef(false);
   const panMovedRef = useRef(false);
   const hotspotGeometryValidRef = useRef(false);
+  const pendingBufferSwapRef = useRef<{
+    bufferCanvas: HTMLCanvasElement;
+    bitmapWidth: number;
+    bitmapHeight: number;
+    cssWidth: number;
+    cssHeight: number;
+    renderZoom: number;
+    renderPageNumber: number;
+    containerWidth: number;
+    containerHeight: number;
+    mappedFields: InlineFieldDescriptor[];
+    nextToken: RenderedToken;
+    requestId: number;
+  } | null>(null);
   zoomRef.current = zoomLevel;
   pageRef.current = currentPage;
 
@@ -382,6 +408,92 @@ export function BelgeStudioPdfPreview({
     container.scrollTop = next.scrollTop;
   }, []);
 
+  const commitRenderedBuffer = useCallback(
+    (data: {
+      bufferCanvas: HTMLCanvasElement;
+      bitmapWidth: number;
+      bitmapHeight: number;
+      cssWidth: number;
+      cssHeight: number;
+      renderZoom: number;
+      renderPageNumber: number;
+      containerWidth: number;
+      containerHeight: number;
+      mappedFields: InlineFieldDescriptor[];
+      nextToken: RenderedToken;
+      requestId: number;
+    }) => {
+      const canvas = canvasRef.current;
+      const frame = frameRef.current;
+      if (!canvas || !frame) return;
+
+      canvas.width = data.bitmapWidth;
+      canvas.height = data.bitmapHeight;
+      canvas.style.width = `${data.cssWidth}px`;
+      canvas.style.height = `${data.cssHeight}px`;
+      canvas.style.transform = "none";
+      frame.style.width = `${data.cssWidth}px`;
+      frame.style.height = `${data.cssHeight}px`;
+      renderedSizeRef.current = {
+        width: data.cssWidth,
+        height: data.cssHeight,
+        zoom: data.renderZoom,
+      };
+      lastRenderedContainerSizeRef.current = {
+        width: data.containerWidth,
+        height: data.containerHeight,
+      };
+      const visibleContext = canvas.getContext("2d");
+      if (!visibleContext) throw new Error("PDF çizim alanı başlatılamadı.");
+      visibleContext.drawImage(data.bufferCanvas, 0, 0);
+      canvas.style.opacity = "1";
+      setDisplayedPage(data.renderPageNumber);
+
+      if (
+        pendingRevealRectRef.current &&
+        pendingRevealRectRef.current.rect.pageNumber === data.renderPageNumber
+      ) {
+        const pending = pendingRevealRectRef.current;
+        pendingRevealRectRef.current = null;
+        pendingAnchorRef.current = null;
+        requestAnimationFrame(() => {
+          const selection = fieldFocusRef.current;
+          if (
+            data.requestId !== renderRequestRef.current ||
+            isInlineEditingActiveRef.current ||
+            selection?.documentId !== pending.documentId ||
+            selection.focusEventId !== pending.focusEventId ||
+            (selection.clearEventId ?? 0) !== pending.clearEventId ||
+            selection.fieldKey !== pending.rect.fieldKey
+          )
+            return;
+          if (isMobileMode) {
+            performRevealRef.current(pending.rect);
+          } else {
+            centerFocusedFieldRef.current(pending.rect);
+          }
+        });
+      }
+
+      const anchor = pendingAnchorRef.current;
+      if (anchor) {
+        requestAnimationFrame(() => {
+          if (data.requestId !== renderRequestRef.current) return;
+          applyZoomAnchor();
+          pendingAnchorRef.current = null;
+        });
+      }
+
+      setInlineFields(data.mappedFields);
+      if (data.mappedFields.length > 0) setNavFields(orderInlineFields(data.mappedFields));
+      renderedRevisionRef.current = snapshotRef.current?.revision ?? null;
+      renderedTokenRef.current = data.nextToken;
+      setRenderedToken(data.nextToken);
+      report("ready");
+    },
+    [applyZoomAnchor, report]
+  );
+
   const renderPage = useCallback(async (layoutRetryCount = 0) => {
     if (layoutRetryRafRef.current !== null) {
       cancelAnimationFrame(layoutRetryRafRef.current);
@@ -490,52 +602,6 @@ export function BelgeStudioPdfPreview({
       }
       renderTaskRef.current = null;
 
-      canvas.width = bitmapWidth;
-      canvas.height = bitmapHeight;
-      canvas.style.width = `${cssWidth}px`;
-      canvas.style.height = `${cssHeight}px`;
-      canvas.style.transform = "none";
-      frame.style.width = `${cssWidth}px`;
-      frame.style.height = `${cssHeight}px`;
-      renderedSizeRef.current = {
-        width: cssWidth,
-        height: cssHeight,
-        zoom: renderZoom,
-      };
-      lastRenderedContainerSizeRef.current = {
-        width: containerWidth,
-        height: containerHeight,
-      };
-      const visibleContext = canvas.getContext("2d");
-      if (!visibleContext) throw new Error("PDF çizim alanı başlatılamadı.");
-      visibleContext.drawImage(bufferCanvas, 0, 0);
-      canvas.style.opacity = "1";
-      setDisplayedPage(renderPageNumber);
-
-      if (
-        pendingRevealRectRef.current &&
-        pendingRevealRectRef.current.rect.pageNumber === renderPageNumber
-      ) {
-        const pending = pendingRevealRectRef.current;
-        pendingRevealRectRef.current = null;
-        requestAnimationFrame(() => {
-          const selection = fieldFocusRef.current;
-          if (requestId !== renderRequestRef.current || isInlineEditingActiveRef.current ||
-            selection?.documentId !== pending.documentId || selection.focusEventId !== pending.focusEventId ||
-            (selection.clearEventId ?? 0) !== pending.clearEventId || selection.fieldKey !== pending.rect.fieldKey) return;
-          performRevealRef.current(pending.rect);
-        });
-      }
-
-      const anchor = pendingAnchorRef.current;
-      if (anchor) {
-        requestAnimationFrame(() => {
-          if (requestId !== renderRequestRef.current) return;
-          applyZoomAnchor();
-          pendingAnchorRef.current = null;
-        });
-      }
-
       let mappedFields: InlineFieldDescriptor[] = [];
       const currentEditing = editingRef.current;
       if (currentEditing && isInlineEditingActiveRef.current) {
@@ -562,18 +628,35 @@ export function BelgeStudioPdfPreview({
       ) {
         return;
       }
-      setInlineFields(mappedFields);
-      if (mappedFields.length > 0) setNavFields(orderInlineFields(mappedFields));
-      renderedRevisionRef.current = snapshotRef.current?.revision ?? null;
+
       const nextToken: RenderedToken = {
         revision: snapshotRef.current?.revision ?? 0,
         pageNumber: renderPageNumber,
         zoom: renderZoom,
         requestId,
       };
-      renderedTokenRef.current = nextToken;
-      setRenderedToken(nextToken);
-      report("ready");
+
+      const bufferData = {
+        bufferCanvas,
+        bitmapWidth,
+        bitmapHeight,
+        cssWidth,
+        cssHeight,
+        renderZoom,
+        renderPageNumber,
+        containerWidth,
+        containerHeight,
+        mappedFields,
+        nextToken,
+        requestId,
+      };
+
+      if (isTransitioningRef.current) {
+        pendingBufferSwapRef.current = bufferData;
+        return;
+      }
+
+      commitRenderedBuffer(bufferData);
     } catch (error) {
       const cancelled =
         error instanceof Error &&
@@ -782,7 +865,146 @@ export function BelgeStudioPdfPreview({
     return () => window.clearTimeout(timer);
   }, [coach]);
 
+  const cancelFocusScroll = useCallback(() => {
+    if (focusScrollRafRef.current !== null) {
+      cancelAnimationFrame(focusScrollRafRef.current);
+      focusScrollRafRef.current = null;
+    }
+  }, []);
+
+  const clearFocusPadding = useCallback(() => {
+    cancelFocusScroll();
+    if (!isFocusPaddedRef.current) return;
+    const surface = surfaceRef.current;
+    const frame = frameRef.current;
+    const container = containerRef.current;
+    if (!surface || !frame || !container) {
+      isFocusPaddedRef.current = false;
+      return;
+    }
+
+    const prevFrameRect = frame.getBoundingClientRect();
+    frame.style.removeProperty("--belge-frame-margin");
+    surface.style.removeProperty("--belge-focus-pad-left");
+    surface.style.removeProperty("--belge-focus-pad-right");
+    surface.style.removeProperty("--belge-focus-pad-top");
+    surface.style.removeProperty("--belge-focus-pad-bottom");
+    isFocusPaddedRef.current = false;
+
+    // Compensate frame displacement immediately before browser paint
+    const newFrameRect = frame.getBoundingClientRect();
+    const { shiftX, shiftY } = calculatePaddingCompensation(prevFrameRect, newFrameRect);
+    container.scrollLeft += shiftX;
+    container.scrollTop += shiftY;
+  }, [cancelFocusScroll]);
+
+  const centerFocusedField = useCallback((rect: FieldFocusRect) => {
+    cancelFocusScroll();
+    pendingAnchorRef.current = null;
+    const container = containerRef.current;
+    const surface = surfaceRef.current;
+    const frame = frameRef.current;
+    if (!container || !surface || !frame) return;
+
+    // 1. Ensure focus padding is active on surface so edge fields can reach center
+    const pad = calculateFocusPadding(container.clientWidth, container.clientHeight);
+    let effectiveFrameRect: { left: number; top: number; width: number; height: number };
+
+    if (!isFocusPaddedRef.current) {
+      const prevFrameRect = frame.getBoundingClientRect();
+      frame.style.setProperty("--belge-frame-margin", "0");
+      surface.style.setProperty("--belge-focus-pad-left", `${pad.padX}px`);
+      surface.style.setProperty("--belge-focus-pad-right", `${pad.padX}px`);
+      surface.style.setProperty("--belge-focus-pad-top", `${pad.padY}px`);
+      surface.style.setProperty("--belge-focus-pad-bottom", `${pad.padY}px`);
+      isFocusPaddedRef.current = true;
+
+      const newFrameRect = frame.getBoundingClientRect();
+      const { shiftX, shiftY } = calculatePaddingCompensation(prevFrameRect, newFrameRect);
+      container.scrollLeft += shiftX;
+      container.scrollTop += shiftY;
+
+      // scrollLeft/Top compensation maintains the exact visual coordinates of prevFrameRect
+      effectiveFrameRect = {
+        left: prevFrameRect.left,
+        top: prevFrameRect.top,
+        width: newFrameRect.width,
+        height: newFrameRect.height,
+      };
+    } else {
+      effectiveFrameRect = frame.getBoundingClientRect();
+    }
+
+    // 2. Read stabilized geometries
+    const cr = container.getBoundingClientRect();
+    const containerMetrics = {
+      left: cr.left,
+      top: cr.top,
+      clientWidth: container.clientWidth,
+      clientHeight: container.clientHeight,
+      clientLeft: container.clientLeft,
+      clientTop: container.clientTop,
+      scrollLeft: container.scrollLeft,
+      scrollTop: container.scrollTop,
+      scrollWidth: container.scrollWidth,
+      scrollHeight: container.scrollHeight,
+    };
+    const frameMetrics = {
+      left: effectiveFrameRect.left,
+      top: effectiveFrameRect.top,
+      width: effectiveFrameRect.width,
+      height: effectiveFrameRect.height,
+    };
+
+    const centerResult = calculateBelgeFieldCenterScroll({
+      container: containerMetrics,
+      frame: frameMetrics,
+      fieldRect: rect,
+    });
+
+    if (centerResult.isAlreadyCentered) {
+      return;
+    }
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      container.scrollLeft = centerResult.targetScrollLeft;
+      container.scrollTop = centerResult.targetScrollTop;
+      return;
+    }
+
+    // 3. Smooth 280ms RAF animation using easeOutCubic
+    const startLeft = container.scrollLeft;
+    const startTop = container.scrollTop;
+    const deltaLeft = centerResult.targetScrollLeft - startLeft;
+    const deltaTop = centerResult.targetScrollTop - startTop;
+    const duration = 280;
+    const startTime = performance.now();
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const eased = easeOutCubic(progress);
+
+      container.scrollLeft = Math.round(startLeft + deltaLeft * eased);
+      container.scrollTop = Math.round(startTop + deltaTop * eased);
+
+      if (progress < 1) {
+        focusScrollRafRef.current = requestAnimationFrame(step);
+      } else {
+        focusScrollRafRef.current = null;
+      }
+    };
+
+    focusScrollRafRef.current = requestAnimationFrame(step);
+  }, [cancelFocusScroll]);
+
+  centerFocusedFieldRef.current = centerFocusedField;
+
   const setZoomAroundPoint = useCallback((nextZoom: number, point: Point) => {
+    cancelTransition();
+    cancelFocusScroll();
+    pendingBufferSwapRef.current = null;
     const container = containerRef.current;
     const canvas = canvasRef.current;
     const frame = frameRef.current;
@@ -822,10 +1044,13 @@ export function BelgeStudioPdfPreview({
     const container = containerRef.current;
     if (!container) return;
     const handleWheel = (event: WheelEvent) => {
+      cancelFocusScroll();
       if (!(event.ctrlKey || event.metaKey) || container.getClientRects().length === 0 || getComputedStyle(container).visibility === "hidden") return;
       // React wheel olayları pasiftir; tarayıcı zoom'unu yalnız bu yüzeyde iptal et.
       event.preventDefault();
       event.stopPropagation();
+      cancelTransition();
+      pendingBufferSwapRef.current = null;
       if (!documentRef.current || event.deltaY === 0) return;
       const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? container.clientHeight : 1;
       const delta = Math.max(-300, Math.min(300, event.deltaY * unit));
@@ -833,7 +1058,7 @@ export function BelgeStudioPdfPreview({
     };
     container.addEventListener("wheel", handleWheel, { passive: false });
     return () => container.removeEventListener("wheel", handleWheel);
-  }, [setZoomAroundPoint]);
+  }, [setZoomAroundPoint, cancelFocusScroll]);
 
   const getContainerPoint = (event: ReactPointerEvent<HTMLDivElement>): Point => ({
     x: event.clientX,
@@ -864,6 +1089,7 @@ export function BelgeStudioPdfPreview({
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    cancelFocusScroll();
     if (event.pointerType !== "touch" || !snapshot || !documentRef.current) return;
     if (!(event.target instanceof Node) || !event.currentTarget.contains(event.target)) return;
     const target = event.target as HTMLElement | null;
@@ -871,6 +1097,8 @@ export function BelgeStudioPdfPreview({
       return;
     }
     event.preventDefault();
+    cancelTransition();
+    pendingBufferSwapRef.current = null;
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = getContainerPoint(event);
     const pointers = [...pointersRef.current.filter((pointer) => pointer.id !== event.pointerId), { id: event.pointerId, point }];
@@ -1055,33 +1283,49 @@ export function BelgeStudioPdfPreview({
     }
   };
 
-  const handleFit = () => {
+  const { startFitTransition, cancelTransition, isTransitioningRef } =
+    useBelgeFitTransition({
+      containerRef,
+      canvasRef,
+      frameRef,
+      renderedSizeRef,
+      zoomRef,
+      setZoomLevel,
+      setFitMode,
+      onTransitionStart: () => {
+        pendingBufferSwapRef.current = null;
+        void renderPage();
+      },
+      onTransitionEnd: (targetZoom) => {
+        if (
+          pendingBufferSwapRef.current &&
+          pendingBufferSwapRef.current.renderZoom === targetZoom
+        ) {
+          commitRenderedBuffer(pendingBufferSwapRef.current);
+          pendingBufferSwapRef.current = null;
+        } else {
+          void renderPage();
+        }
+      },
+    });
+
+  const handleFit = useCallback(() => {
     if (!isMobileMode) setInlineSelectedField(null);
-    setFitMode("page");
-    // Zaten %100 ise zoom effect'i tekrar çalışmaz; geçerli token'ı silme.
-    if (zoomRef.current !== 100) setRenderedToken(null);
+    clearFocusPadding();
     pendingAnchorRef.current = null;
-    const container = containerRef.current;
-    const canvas = canvasRef.current;
-    const frame = frameRef.current;
-    const rendered = renderedSizeRef.current;
-    if (container) {
-      container.scrollTo({ left: 0, top: 0, behavior: "auto" });
-    }
-    const ratio = 100 / Math.max(1, rendered.zoom);
-    if (canvas) canvas.style.transform = ratio === 1 ? "none" : `scale(${ratio})`;
-    if (frame && rendered.width > 0 && rendered.height > 0) {
-      frame.style.width = `${rendered.width * ratio}px`;
-      frame.style.height = `${rendered.height * ratio}px`;
-    }
-    zoomRef.current = 100;
-    setZoomLevel(100);
-  };
+    startFitTransition({
+      mode: "page",
+      targetZoom: 100,
+    });
+  }, [isMobileMode, startFitTransition, clearFocusPadding]);
 
   const handleFitWidth = useCallback(() => {
     if (!isMobileMode) setInlineSelectedField(null);
+    clearFocusPadding();
     const container = containerRef.current;
     if (!container) return;
+
+    pendingAnchorRef.current = null;
 
     const pageSize = pageSizeRef.current;
     const hasScrollbar = container.scrollHeight > container.clientHeight;
@@ -1097,34 +1341,16 @@ export function BelgeStudioPdfPreview({
       safetyMargin: 2,
     });
 
-    setFitMode("width");
-    if (zoomRef.current !== targetZoom) {
-      setRenderedToken(null);
-    }
-    pendingAnchorRef.current = null;
-
-    const canvas = canvasRef.current;
-    const frame = frameRef.current;
-    const rendered = renderedSizeRef.current;
-
-    if (container) {
-      const currentScrollTop = container.scrollTop;
-      const ratio = targetZoom / Math.max(1, zoomRef.current);
-      container.scrollTo({ left: 0, top: currentScrollTop * ratio, behavior: "auto" });
-    }
-
-    const ratio = targetZoom / Math.max(1, rendered.zoom);
-    if (canvas) canvas.style.transform = ratio === 1 ? "none" : `scale(${ratio})`;
-    if (frame && rendered.width > 0 && rendered.height > 0) {
-      frame.style.width = `${rendered.width * ratio}px`;
-      frame.style.height = `${rendered.height * ratio}px`;
-    }
-
-    zoomRef.current = targetZoom;
-    setZoomLevel(targetZoom);
-  }, [isMobileMode]);
+    startFitTransition({
+      mode: "width",
+      targetZoom,
+    });
+  }, [isMobileMode, startFitTransition, clearFocusPadding]);
 
   const handleToolbarZoom = (value: number) => {
+    cancelTransition();
+    cancelFocusScroll();
+    pendingBufferSwapRef.current = null;
     setFitMode("custom");
     if (!isMobileMode) setInlineSelectedField(null);
     setRenderedToken(null);
@@ -1142,6 +1368,9 @@ export function BelgeStudioPdfPreview({
   const userManualPageChoiceRef = useRef<{ page: number; eventId: number } | null>(null);
 
   const handlePageChange = (page: number, isUserInteraction = true) => {
+    cancelTransition();
+    cancelFocusScroll();
+    pendingBufferSwapRef.current = null;
     if (isUserInteraction) {
       pendingRevealRectRef.current = null;
       userManualPageChoiceRef.current = {
@@ -1310,11 +1539,15 @@ export function BelgeStudioPdfPreview({
   useEffect(() => {
     if (isMobileMode) return;
     const focusEventId = fieldFocus?.focusEventId;
+    const centerRequestId = fieldFocus?.centerRequestId ?? 0;
     if (!focusEventId || !focusDocumentId || !activeFocusRect || isFocusSuppressed) {
       pendingRevealRectRef.current = null;
       return;
     }
-    if (focusEventId === lastRevealedEventIdRef.current) {
+    const hasNewIntent =
+      focusEventId !== lastRevealedEventIdRef.current ||
+      centerRequestId !== lastCenteredRequestIdRef.current;
+    if (!hasNewIntent) {
       return;
     }
 
@@ -1323,10 +1556,12 @@ export function BelgeStudioPdfPreview({
       rect: activeFocusRect,
       documentId: focusDocumentId,
       focusEventId,
+      centerRequestId,
       clearEventId: fieldFocus?.clearEventId ?? 0,
     };
     if (targetPage !== pageRef.current) {
       lastRevealedEventIdRef.current = focusEventId;
+      lastCenteredRequestIdRef.current = centerRequestId;
       pendingRevealRectRef.current = pending;
       handlePageChangeRef.current(targetPage, false);
       return;
@@ -1334,21 +1569,24 @@ export function BelgeStudioPdfPreview({
 
     if (displayedPage === targetPage && localStatus === "ready") {
       lastRevealedEventIdRef.current = focusEventId;
+      lastCenteredRequestIdRef.current = centerRequestId;
       pendingRevealRectRef.current = null;
-      performReveal(activeFocusRect);
+      centerFocusedField(activeFocusRect);
     } else {
       lastRevealedEventIdRef.current = focusEventId;
+      lastCenteredRequestIdRef.current = centerRequestId;
       pendingRevealRectRef.current = pending;
     }
   }, [
     fieldFocus?.focusEventId,
+    fieldFocus?.centerRequestId,
     focusDocumentId,
     fieldFocus?.clearEventId,
     activeFocusRect,
     isFocusSuppressed,
     displayedPage,
     localStatus,
-    performReveal,
+    centerFocusedField,
     isMobileMode,
   ]);
 
@@ -1370,9 +1608,12 @@ export function BelgeStudioPdfPreview({
       setMobileHighlightKey(null);
       pendingRevealRectRef.current = null;
       lastMobileFlashedEventIdRef.current = 0;
+      lastRevealedEventIdRef.current = 0;
+      lastCenteredRequestIdRef.current = 0;
       userManualPageChoiceRef.current = null;
+      clearFocusPadding();
     }
-  }, [currentClearEventId, isSelectionCleared]);
+  }, [currentClearEventId, isSelectionCleared, clearFocusPadding]);
 
   useEffect(() => {
     const container = containerRef.current;

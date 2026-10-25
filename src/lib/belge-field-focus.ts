@@ -120,6 +120,7 @@ export type FieldFocusSelection = {
   fieldKey: string | null;
   lastFocusedFieldKey: string | null;
   focusEventId: number;
+  centerRequestId?: number;
   clearEventId?: number;
 };
 
@@ -127,12 +128,14 @@ export type FocusState = {
   fieldKey: string | null;
   lastFocusedFieldKey: string | null;
   focusEventId: number;
+  centerRequestId?: number;
   clearEventId?: number;
   isFormFocused?: boolean;
 };
 
 export type FocusAction =
   | { type: "FOCUS"; fieldKey: string }
+  | { type: "RECENTER"; fieldKey: string }
   | { type: "FORM_BLUR" }
   | { type: "BLUR_TIMEOUT" }
   | { type: "CLEAR_SELECTION" }
@@ -168,6 +171,16 @@ export function reduceFieldFocus(state: FocusState, action: FocusAction): FocusS
         fieldKey: action.fieldKey,
         lastFocusedFieldKey: action.fieldKey,
         focusEventId: state.focusEventId + 1,
+        isFormFocused: true,
+      };
+    }
+    case "RECENTER": {
+      if (!state.fieldKey || action.fieldKey !== state.fieldKey) {
+        return state;
+      }
+      return {
+        ...state,
+        centerRequestId: (state.centerRequestId ?? 0) + 1,
         isFormFocused: true,
       };
     }

@@ -155,32 +155,34 @@ export function BelgeStudioPreviewToolbar({
 
       {/* Sağ Kolon: Sığdır, Yeni Sekme, PDF Odak ve More Menüsü (Grid Track 3 - minmax(0, 1fr)) */}
       <div className="belge-preview-right flex items-center justify-end gap-[3px] sm:gap-[4px] min-w-0">
-        {/* Masaüstü doğrudan görünüm araçları */}
+        {/* Masaüstü doğrudan görünüm araçları (PDFgear stili: SVG üstte, etiket altta) */}
         <div className="hidden lg:flex items-center gap-[3px] sm:gap-[4px]">
           <button
             type="button"
             aria-label="Sığdır"
+            aria-pressed={fitMode === "page" && displayedZoom === 100}
             onClick={onFit}
             disabled={disabled}
             title="Tüm sayfayı sığdır (Ctrl / Cmd ve 0)"
-            className={`preview-tool-button ${fitMode === "page" && displayedZoom === 100 ? "preview-tool-button-active" : ""}`}
+            className={`preview-tool-button preview-tool-button-stacked ${fitMode === "page" && displayedZoom === 100 ? "preview-tool-button-active" : ""}`}
             data-testid="belge-preview-fit-page-btn"
           >
-            <BelgeFitPageIcon className="h-[17px] w-[17px]" />
-            <span>Sığdır</span>
+            <BelgeFitPageIcon className="preview-tool-icon h-[22px] w-[22px] shrink-0" />
+            <span className="preview-tool-label">Sığdır</span>
           </button>
           {onFitWidth && (
             <button
               type="button"
               aria-label="Genişliğe sığdır"
+              aria-pressed={fitMode === "width"}
               onClick={onFitWidth}
               disabled={disabled}
               title="Genişliğe sığdır (Ctrl / Cmd ve 9)"
-              className={`preview-tool-button ${fitMode === "width" ? "preview-tool-button-active" : ""}`}
+              className={`preview-tool-button preview-tool-button-stacked ${fitMode === "width" ? "preview-tool-button-active" : ""}`}
               data-testid="belge-preview-fit-width-btn"
             >
-              <BelgeFitWidthIcon className="h-[17px] w-[17px]" />
-              <span>Genişliğe Sığdır</span>
+              <BelgeFitWidthIcon className="preview-tool-icon h-[22px] w-[22px] shrink-0" />
+              <span className="preview-tool-label">Genişliğe Sığdır</span>
             </button>
           )}
           <a
@@ -190,11 +192,13 @@ export function BelgeStudioPreviewToolbar({
             target="_blank"
             rel="noopener noreferrer"
             title="PDF'yi yeni sekmede aç"
-            className={`preview-tool-button ${disabled || !pdfUrl ? "pointer-events-none opacity-45" : ""}`}
+            className={`preview-tool-button preview-tool-button-stacked ${disabled || !pdfUrl ? "pointer-events-none opacity-45" : ""}`}
             aria-disabled={disabled || !pdfUrl}
             tabIndex={disabled || !pdfUrl ? -1 : undefined}
+            data-testid="belge-preview-open-external-btn"
           >
-            <BelgeOpenExternalIcon className="h-[17px] w-[17px]" />
+            <BelgeOpenExternalIcon className="preview-tool-icon h-[22px] w-[22px] shrink-0" />
+            <span className="preview-tool-label">Yeni Sekme</span>
           </a>
 
           {/* PDF Odak Modu (Masaüstü ve Tablet) */}
@@ -206,14 +210,14 @@ export function BelgeStudioPreviewToolbar({
               aria-label={pdfFocus.isPdfFocus ? "Formu Göster" : "PDF'ye Odaklan"}
               title={pdfFocus.isPdfFocus ? "Formu Göster" : "PDF'ye Odaklan"}
               onClick={pdfFocus.onTogglePdfFocus}
-              className={`preview-tool-button ${pdfFocus.isPdfFocus ? "preview-tool-button-active" : ""}`}
+              className={`preview-tool-button preview-tool-button-stacked ${pdfFocus.isPdfFocus ? "preview-tool-button-active" : ""}`}
             >
               {pdfFocus.isPdfFocus ? (
-                <BelgePdfFocusExitIcon className="h-[17px] w-[17px]" />
+                <BelgePdfFocusExitIcon className="preview-tool-icon h-[22px] w-[22px] shrink-0" />
               ) : (
-                <BelgePdfFocusEnterIcon className="h-[17px] w-[17px]" />
+                <BelgePdfFocusEnterIcon className="preview-tool-icon h-[22px] w-[22px] shrink-0" />
               )}
-              <span className="hidden sm:inline">
+              <span className="preview-tool-label">
                 {pdfFocus.isPdfFocus ? "Formu Göster" : "PDF'ye Odaklan"}
               </span>
             </button>

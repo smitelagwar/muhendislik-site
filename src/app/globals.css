@@ -1317,6 +1317,69 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
 
+/* PDFgear stili: SVG üstte, kısa metin altta dikey aksiyon düğmeleri */
+[data-testid="belge-studio-preview-toolbar"] .preview-tool-button.preview-tool-button-stacked {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 54px;
+  min-height: 48px;
+  height: 52px;
+  padding: 4px 6px 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--background);
+  color: var(--muted-foreground);
+  text-decoration: none;
+  user-select: none;
+  line-height: 1.15;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+@media (min-width: 1280px) {
+  [data-testid="belge-studio-preview-toolbar"] .preview-tool-button.preview-tool-button-stacked {
+    min-width: 58px;
+    padding: 4px 8px 3px 8px;
+  }
+}
+
+[data-testid="belge-studio-preview-toolbar"] .preview-tool-button.preview-tool-button-stacked .preview-tool-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+[data-testid="belge-studio-preview-toolbar"] .preview-tool-button.preview-tool-button-stacked .preview-tool-label {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
+[data-testid="belge-studio-preview-toolbar"] .preview-tool-button.preview-tool-button-stacked:hover:not(:disabled) {
+  background: var(--secondary);
+  color: var(--foreground);
+  border-color: color-mix(in srgb, #f59e0b 40%, var(--border));
+}
+
+[data-testid="belge-studio-preview-toolbar"] .preview-tool-button.preview-tool-button-stacked.preview-tool-button-active,
+[data-testid="belge-studio-preview-toolbar"] .preview-tool-button.preview-tool-button-stacked[aria-pressed="true"] {
+  border-color: rgb(245 158 11 / 55%);
+  background: rgb(245 158 11 / 10%);
+  color: #b45309;
+}
+
+:is(.dark) [data-testid="belge-studio-preview-toolbar"] .preview-tool-button.preview-tool-button-stacked.preview-tool-button-active,
+:is(.dark) [data-testid="belge-studio-preview-toolbar"] .preview-tool-button.preview-tool-button-stacked[aria-pressed="true"] {
+  border-color: rgb(245 158 11 / 60%);
+  background: rgb(245 158 11 / 15%);
+  color: #fbbf24;
+}
+
 [data-testid="belge-studio-preview-toolbar"] .preview-tool-button.preview-theme-switch {
   padding: 6px;
   gap: 3px;
@@ -1464,7 +1527,7 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   min-height: 100%;
   box-sizing: border-box;
   place-items: center;
-  padding: 8px 8px calc(8px + var(--belge-inline-sheet-overlap, 0px));
+  padding: var(--belge-focus-pad-top, 8px) var(--belge-focus-pad-right, 8px) calc(var(--belge-focus-pad-bottom, 8px) + var(--belge-inline-sheet-overlap, 0px)) var(--belge-focus-pad-left, 8px);
 }
 
 .belge-preview-frame {
@@ -1473,7 +1536,7 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   height: max-content;
   flex: none;
   place-items: start;
-  margin: auto;
+  margin: var(--belge-frame-margin, auto);
 }
 
 /* --- Belgeler Form ↔ PDF Alan Odak Vurgusu Katmanı --- */
@@ -1525,7 +1588,8 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-testid="belge-studio-preview-toolbar"] .preview-tool-button {
+  [data-testid="belge-studio-preview-toolbar"] .preview-tool-button,
+  [data-testid="belge-studio-preview-toolbar"] .preview-tool-button.preview-tool-button-stacked {
     transition: none;
   }
 }

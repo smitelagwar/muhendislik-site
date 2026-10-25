@@ -81,14 +81,14 @@ export function BelgeStudioUnifiedHeader({
         <div className="min-w-0 flex-1">
           {isModal ? (
             <h2
-              className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate lg:max-w-none"
+              className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate lg:max-w-[260px] xl:max-w-[340px] 2xl:max-w-none"
               title={title}
             >
               {title}
             </h2>
           ) : (
             <h1
-              className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate lg:max-w-none"
+              className="text-xs sm:text-sm font-bold text-foreground leading-tight truncate lg:max-w-[260px] xl:max-w-[340px] 2xl:max-w-none"
               title={title}
             >
               {title}
@@ -96,7 +96,7 @@ export function BelgeStudioUnifiedHeader({
           )}
           {subtitle && (
             <p
-              className="text-[10px] text-muted-foreground hidden xl:block truncate"
+              className="text-[10px] text-muted-foreground hidden xl:block truncate max-w-[260px] xl:max-w-[340px] 2xl:max-w-none"
               title={subtitle}
             >
               {subtitle}
