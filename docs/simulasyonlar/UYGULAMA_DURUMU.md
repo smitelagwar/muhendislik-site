@@ -2,11 +2,11 @@
 
 **Plan:** [BIRLESIK_UYGULAMA_PLANI.md](./BIRLESIK_UYGULAMA_PLANI.md) · v1.0
 **Son güncelleme:** 25 Ekim 2026
-**Genel durum:** YEREL_TESLIM_TAMAM
-**Sıradaki aşama:** YOK (12/12 tamamlandı; geliştirme işi kalmadı)
-**Uygulama dalı:** `internal-simulasyon-kutuphanesi-v1` (doğrulandı ve aktif)
-**Başlangıç kaynak revizyonu:** `541c7b134def19809dd047340ec7c6a8cb6c3053`
-**Yayın durumu:** Yayın yapılmadı; yerel geliştirme ve 12/12 kabul tamamlandı.
+**Genel durum:** CANLIYA_ALINDI
+**Sıradaki aşama:** YOK (12/12 tamamlandı; geliştirme ve canlı yayın tamam)
+**Uygulama dalı:** `main` (doğrulandı ve pushlandı)
+**Son kaynak revizyonu:** `55faa6660ce41a7e18987ec8ee7a7608b8b93ea0`
+**Yayın durumu:** CANLIYA_ALINDI (Vercel Production Deployment: `dpl_CwDUehAM9AX1pM2eB3CcqnGwqFt7`, `● Ready`, `https://muhendislik-site.vercel.app`)
 
 ## Aşama çizelgesi
 
@@ -114,12 +114,12 @@ Kalan zorunlu iş yoktur. 12 aşamanın 12'si de tamamlanmıştır.
 - WebGL yedek/bağlam kaybı: WebGL bağlam kaybı (`webglcontextlost`), otomatik kurtarma, 2. kayıpta 2B yedek ve "3B'yi Yeniden Dene" akışı Chromium ve WebKit üzerinde DOĞRULANDI.
 - Teknik kaynakların madde bazlı incelemesi: TS 500 / TBDY 2018 kaynaklı teknik aralıklar, sınırlılıklar ve varsayımlar UI panellerinde açıkça belirtildi; normatif resmi uygunluk veya uzman onayı iddiası barındırmaz.
 - Son production build: Aşama 12 kapsamında son bundle olarak `npm run build` ile derlendi (634/634 statik sayfa, 0 hata) ve production bundle test edildi.
-- Production yayın: YAPILMADI (yerel teslim tamamlandı; `internal-simulasyon-kutuphanesi-v1` dalında hazırdır).
+- Production yayın: CANLIYA ALINDI (Vercel Production Deployment: `dpl_CwDUehAM9AX1pM2eB3CcqnGwqFt7`, durum: `● Ready`, ana etki alanları: `https://muhendislik-site.vercel.app`, canlı katalog ve detay rotaları HTTP 200 doğrulandı).
 
 ## Kapanış
 
-**DURUM: YEREL_TESLIM_TAMAM**
-12/12 aşama başarıyla tamamlanmıştır.
+**DURUM: CANLIYA_ALINDI (12/12 TAMAMLANDI)**
+12/12 aşama başarıyla tamamlanmış ve canlı üretime aktarılmıştır.
 Planın §10 Kesin Bitiş Listesi (14/14 madde) %100 sağlanmıştır:
 1. Altı sahne doğru route'larda açılıyor, katalogda hazır olmayan içerik listelenmiyor. (TAMAM)
 2. Döndürme, zoom, pan, sığdırma ve sıfırlama çalışıyor; model kaybolduğunda geri getirilebiliyor. (TAMAM)
