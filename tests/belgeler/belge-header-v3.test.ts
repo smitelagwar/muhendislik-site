@@ -3,7 +3,7 @@
  *
  * Kapsam:
  * 1. 'Canlı Önizleme Hazır' yazısı ve yeşil nabız rozeti DOM'da kesinlikle bulunmaz.
- * 2. syncStatus === 'updating' sırasında yalnız kısa süreç ('Derleniyor...') gösterilir.
+ * 2. syncStatus === 'updating' sırasında sessiz güncelleme yapılır ('Derleniyor...' veya spinner ile kullanıcı rahatsız edilmez).
  * 3. syncStatus === 'error' durumunda hata bilgisi ('Önizleme Hatası') gösterilir.
  * 4. Taslak durumu: Açılır menü/popover yoktur; başarılı yazımda yalnız sade 'Kaydedildi' gösterilir.
  * 5. Tema Anahtarı: Üst barın en sağındaki son kontroldür; modal kapatma 'X' butonu temanın solunda yer alır.
@@ -59,7 +59,7 @@ describe("ASAMA_04: Minimal Header, Rozet Temizliği ve Tema Anahtarı Testleri"
     assert.equal(html.includes("animate-pulse bg-emerald-500"), false);
   });
 
-  it("2. syncStatus === 'updating' iken Derleniyor... görünür, error iken Önizleme Hatası görünür", () => {
+  it("2. syncStatus === 'updating' iken sessiz kalır (Derleniyor... / spinner görünmez), error iken Önizleme Hatası görünür", () => {
     const draftApi = createMockDraftApi();
 
     const updatingHtml = renderToStaticMarkup(
@@ -69,7 +69,8 @@ describe("ASAMA_04: Minimal Header, Rozet Temizliği ve Tema Anahtarı Testleri"
         syncStatus: "updating",
       })
     );
-    assert.equal(updatingHtml.includes("Derleniyor..."), true);
+    assert.equal(updatingHtml.includes("Derleniyor..."), false, "updating durumunda Derleniyor... görünmemeli");
+    assert.equal(updatingHtml.includes("animate-spin"), false, "updating durumunda spinner görünmemeli");
 
     const errorHtml = renderToStaticMarkup(
       React.createElement(BelgeStudioUnifiedHeader, {

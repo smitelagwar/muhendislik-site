@@ -36,6 +36,7 @@ import { useBelgeInlineMobileMode } from "@/hooks/use-belge-inline-mobile-mode";
 import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-context";
 import { BelgeStudioMobileZoomPill } from "@/components/belge-studio-mobile-zoom-pill";
 import { useBelgeFitTransition } from "@/hooks/use-belge-fit-transition";
+import { useBelgeSmoothZoom } from "@/hooks/use-belge-smooth-zoom";
 import {
   calculateBelgeFieldCenterScroll,
   calculateFocusPadding,
@@ -110,6 +111,7 @@ export function BelgeStudioPdfPreview({
   toolbarTarget,
 }: BelgeStudioPdfPreviewProps) {
   const [zoomLevel, setZoomLevel] = useState(100);
+  const [displayZoom, setDisplayZoom] = useState(100);
   const [fitMode, setFitMode] = useState<"page" | "width" | "custom">("page");
   const fitModeRef = useRef<"page" | "width" | "custom">("page");
   fitModeRef.current = fitMode;
@@ -197,6 +199,7 @@ export function BelgeStudioPdfPreview({
   const snapshotRef = useRef(snapshot);
   snapshotRef.current = snapshot;
   const renderedRevisionRef = useRef<number | null>(null);
+  const renderedInlineEditingRef = useRef(false);
   const renderedTokenRef = useRef<RenderedToken | null>(null);
   renderedTokenRef.current = renderedToken;
   const lastRenderedContainerSizeRef = useRef({ width: 0, height: 0 });
@@ -485,6 +488,7 @@ export function BelgeStudioPdfPreview({
       setInlineFields(data.mappedFields);
       if (data.mappedFields.length > 0) setNavFields(orderInlineFields(data.mappedFields));
       renderedRevisionRef.current = snapshotRef.current?.revision ?? null;
+      renderedInlineEditingRef.current = isInlineEditingActiveRef.current;
       renderedTokenRef.current = data.nextToken;
       setRenderedToken(data.nextToken);
       report("ready");
@@ -516,6 +520,34 @@ export function BelgeStudioPdfPreview({
     const requestId = ++renderRequestRef.current;
     const renderZoom = zoomRef.current;
     const renderPageNumber = pageRef.current;
+
+    const currentToken = renderedTokenRef.current;
+    const currentTransform = canvas.style.transform;
+    const isTransformClean =
+      !currentTransform || currentTransform === "none" || currentTransform === "scale(1)";
+    const lastSize = lastRenderedContainerSizeRef.current;
+    const isContainerSizeSame =
+      Math.abs(container.clientWidth - lastSize.width) < 2 &&
+      Math.abs(container.clientHeight - lastSize.height) < 2;
+    const isFirstRenderOfRevision =
+      renderedRevisionRef.current !== snapshotRef.current?.revision;
+    const isInlineModeChanged =
+      renderedInlineEditingRef.current !== isInlineEditingActiveRef.current;
+
+    if (
+      currentToken !== null &&
+      currentToken.revision === snapshotRef.current?.revision &&
+      currentToken.pageNumber === renderPageNumber &&
+      currentToken.zoom === renderZoom &&
+      renderedSizeRef.current.width > 0 &&
+      isTransformClean &&
+      isContainerSizeSame &&
+      !isFirstRenderOfRevision &&
+      !isInlineModeChanged
+    ) {
+      return;
+    }
+
     if (renderTaskRef.current) {
       try {
         renderTaskRef.current.cancel();
@@ -524,8 +556,6 @@ export function BelgeStudioPdfPreview({
       }
       renderTaskRef.current = null;
     }
-    const isFirstRenderOfRevision =
-      renderedRevisionRef.current !== snapshotRef.current?.revision;
     if (isFirstRenderOfRevision) {
       report("rendering");
     }
@@ -998,62 +1028,81 @@ export function BelgeStudioPdfPreview({
 
   centerFocusedFieldRef.current = centerFocusedField;
 
-  const setZoomAroundPoint = useCallback((nextZoom: number, point: Point) => {
-    cancelTransition();
-    cancelFocusScroll();
-    const container = containerRef.current;
-    const canvas = canvasRef.current;
-    const frame = frameRef.current;
-    const surface = surfaceRef.current;
-    if (!container || !canvas || !frame || !surface) {
-      setZoomLevel(clampBelgeZoom(nextZoom));
-      return;
+  const smoothZoomRef = useRef<ReturnType<typeof useBelgeSmoothZoom> | null>(null);
+
+  const { startFitTransition, cancelTransition, isTransitioningRef, currentVisualZoomRef } =
+    useBelgeFitTransition({
+      containerRef,
+      canvasRef,
+      frameRef,
+      renderedSizeRef,
+      zoomRef,
+      setZoomLevel,
+      setFitMode,
+      onTransitionStart: () => {
+        smoothZoomRef.current?.cancelSmoothZoom();
+        setIsInteracting(true);
+      },
+      onTransitionEnd: (targetZoom) => {
+        setIsInteracting(false);
+        setDisplayZoom(Math.round(targetZoom));
+        void renderPage();
+      },
+    });
+
+  const smoothZoom = useBelgeSmoothZoom({
+    containerRef,
+    canvasRef,
+    frameRef,
+    renderedSizeRef,
+    zoomRef,
+    setZoomLevel,
+    setDisplayZoom,
+    setFitMode,
+    getFitVisualZoom: () => currentVisualZoomRef.current,
+    onAnimationStart: () => {
+      cancelTransition();
+      cancelFocusScroll();
+      setIsInteracting(true);
+    },
+    onAnimationEnd: () => {
+      setIsInteracting(false);
+    },
+    onSettle: (_finalZoom) => {
+      void renderPage();
+    },
+  });
+  smoothZoomRef.current = smoothZoom;
+
+  useEffect(() => {
+    if (!smoothZoom.isSmoothZoomActive() && !isTransitioningRef.current) {
+      setDisplayZoom(Math.round(zoomLevel));
     }
-    const rect = canvas.getBoundingClientRect();
-    const relativeX = Math.max(0, Math.min(1, (point.x - rect.left) / Math.max(1, rect.width)));
-    const relativeY = Math.max(0, Math.min(1, (point.y - rect.top) / Math.max(1, rect.height)));
-    const clampedZoom = clampBelgeZoom(nextZoom);
-    if (clampedZoom === zoomRef.current) return;
-    setFitMode("custom");
-    const size = renderedSizeRef.current;
-    // Canvas son raster ölçeğinde kalır; ardışık tekerlek olayları bu ölçeğe göre hesaplanır.
-    const ratio = clampedZoom / Math.max(1, size.zoom);
-    const nextWidth = size.width * ratio;
-    const nextHeight = size.height * ratio;
-    frame.style.width = `${nextWidth}px`;
-    frame.style.height = `${nextHeight}px`;
-    canvas.style.transformOrigin = "top left";
-    canvas.style.transform = `scale(${nextWidth / Math.max(1, size.width)})`;
-    pendingAnchorRef.current = {
-      relativeX,
-      relativeY,
-      pointerX: point.x,
-      pointerY: point.y,
-    };
-    zoomRef.current = clampedZoom;
-    setRenderedToken(null);
-    applyZoomAnchor();
-    setZoomLevel(clampedZoom);
-  }, [applyZoomAnchor]);
+  }, [zoomLevel, smoothZoom, isTransitioningRef]);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const handleWheel = (event: WheelEvent) => {
       cancelFocusScroll();
-      if (!(event.ctrlKey || event.metaKey) || container.getClientRects().length === 0 || getComputedStyle(container).visibility === "hidden") return;
-      // React wheel olayları pasiftir; tarayıcı zoom'unu yalnız bu yüzeyde iptal et.
-      event.preventDefault();
+      if (
+        !(event.ctrlKey || event.metaKey) ||
+        container.getClientRects().length === 0 ||
+        getComputedStyle(container).visibility === "hidden"
+      ) {
+        return;
+      }
+      if (event.cancelable) {
+        event.preventDefault();
+      }
       event.stopPropagation();
       cancelTransition();
-      if (!documentRef.current || event.deltaY === 0) return;
-      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? container.clientHeight : 1;
-      const delta = Math.max(-300, Math.min(300, event.deltaY * unit));
-      setZoomAroundPoint(zoomRef.current * Math.exp(-delta * 0.002), { x: event.clientX, y: event.clientY });
+      if (!documentRef.current || event.deltaY === 0 || renderedSizeRef.current.width <= 0) return;
+      smoothZoom.addWheelDelta(event, { x: event.clientX, y: event.clientY });
     };
     container.addEventListener("wheel", handleWheel, { passive: false });
     return () => container.removeEventListener("wheel", handleWheel);
-  }, [setZoomAroundPoint, cancelFocusScroll]);
+  }, [cancelTransition, cancelFocusScroll, smoothZoom]);
 
   const getContainerPoint = (event: ReactPointerEvent<HTMLDivElement>): Point => ({
     x: event.clientX,
@@ -1093,6 +1142,7 @@ export function BelgeStudioPdfPreview({
     }
     event.preventDefault();
     cancelTransition();
+    smoothZoom.cancelSmoothZoom();
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = getContainerPoint(event);
     const pointers = [...pointersRef.current.filter((pointer) => pointer.id !== event.pointerId), { id: event.pointerId, point }];
@@ -1181,6 +1231,7 @@ export function BelgeStudioPdfPreview({
       }
       zoomRef.current = nextZoom;
       setZoomLevel(nextZoom);
+      setDisplayZoom(Math.round(nextZoom));
       return;
     }
 
@@ -1218,6 +1269,7 @@ export function BelgeStudioPdfPreview({
       setIsInteracting(false);
       if (pinchingRef.current) {
         pinchingRef.current = false;
+        setDisplayZoom(Math.round(zoomRef.current));
         setGestureEndVersion((version) => version + 1);
         void renderPage();
         return;
@@ -1277,34 +1329,18 @@ export function BelgeStudioPdfPreview({
     }
   };
 
-  const { startFitTransition, cancelTransition, isTransitioningRef } =
-    useBelgeFitTransition({
-      containerRef,
-      canvasRef,
-      frameRef,
-      renderedSizeRef,
-      zoomRef,
-      setZoomLevel,
-      setFitMode,
-      onTransitionStart: () => {
-        // Animasyon süresince (240ms) mevcut net çizim CSS transform ile akıcı biçimde ölçeklenir;
-        // yarış üreten erken veya gereksiz ara render başlatılmaz.
-      },
-      onTransitionEnd: () => {
-        // Geçiş bitiminde hedef yakınlaştırma için tek, temiz ve net nihai raster çizilir.
-        void renderPage();
-      },
-    });
-
   const handleFit = useCallback(() => {
     if (!isMobileMode) setInlineSelectedField(null);
     clearFocusPadding();
     pendingAnchorRef.current = null;
+    const visualZoom = smoothZoom.isSmoothZoomActive() ? smoothZoom.getVisualZoom() : undefined;
+    smoothZoom.cancelSmoothZoom();
     startFitTransition({
       mode: "page",
       targetZoom: 100,
+      initialVisualZoom: visualZoom,
     });
-  }, [isMobileMode, startFitTransition, clearFocusPadding]);
+  }, [isMobileMode, startFitTransition, clearFocusPadding, smoothZoom]);
 
   const handleFitWidth = useCallback(() => {
     if (!isMobileMode) setInlineSelectedField(null);
@@ -1328,33 +1364,66 @@ export function BelgeStudioPdfPreview({
       safetyMargin: 2,
     });
 
+    const visualZoom = smoothZoom.isSmoothZoomActive() ? smoothZoom.getVisualZoom() : undefined;
+    smoothZoom.cancelSmoothZoom();
     startFitTransition({
       mode: "width",
       targetZoom,
+      initialVisualZoom: visualZoom,
     });
-  }, [isMobileMode, startFitTransition, clearFocusPadding]);
+  }, [isMobileMode, startFitTransition, clearFocusPadding, smoothZoom]);
 
   const handleToolbarZoom = (value: number) => {
     cancelTransition();
+    smoothZoom.cancelSmoothZoom();
     cancelFocusScroll();
     setFitMode("custom");
     if (!isMobileMode) setInlineSelectedField(null);
     setRenderedToken(null);
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) {
-      setZoomLevel(value);
-      return;
+    const clamped = clampBelgeZoom(value);
+    zoomRef.current = clamped;
+    setZoomLevel(clamped);
+    setDisplayZoom(clamped);
+
+    const canvas = canvasRef.current;
+    const frame = frameRef.current;
+    const container = containerRef.current;
+    if (canvas && frame && container && renderedSizeRef.current.width > 0) {
+      const size = renderedSizeRef.current;
+      const ratio = clamped / Math.max(1, size.zoom);
+      const nextWidth = size.width * ratio;
+      const nextHeight = size.height * ratio;
+      frame.style.width = `${nextWidth}px`;
+      frame.style.height = `${nextHeight}px`;
+      canvas.style.transformOrigin = "top left";
+      canvas.style.transform = ratio === 1 ? "none" : `scale(${ratio})`;
+
+      const containerRect = container.getBoundingClientRect();
+      const frameRect = frame.getBoundingClientRect();
+      const viewportLeft = containerRect.left + container.clientLeft;
+      const viewportTop = containerRect.top + container.clientTop;
+      const nextScroll = getBelgeZoomAnchorScroll({
+        frameLeft: frameRect.left - viewportLeft + container.scrollLeft,
+        frameTop: frameRect.top - viewportTop + container.scrollTop,
+        nextWidth,
+        nextHeight,
+        relativeX: 0.5,
+        relativeY: 0.5,
+        pointerX: container.clientWidth / 2,
+        pointerY: container.clientHeight / 2,
+        scrollLeft: container.scrollLeft,
+        scrollTop: container.scrollTop,
+      });
+      container.scrollLeft = nextScroll.scrollLeft;
+      container.scrollTop = nextScroll.scrollTop;
     }
-    setZoomAroundPoint(value, {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height / 2,
-    });
   };
 
   const userManualPageChoiceRef = useRef<{ page: number; eventId: number } | null>(null);
 
   const handlePageChange = (page: number, isUserInteraction = true) => {
     cancelTransition();
+    smoothZoom.cancelSmoothZoom();
     cancelFocusScroll();
     if (isUserInteraction) {
       pendingRevealRectRef.current = null;
@@ -1384,6 +1453,11 @@ export function BelgeStudioPdfPreview({
 
   const showLoading = generationPending || localStatus === "loading" || localStatus === "rendering";
   const visibleError = localStatus === "error" || generationError !== null;
+  const hasValidRenderedBitmap = Boolean(
+    displayedPage !== null &&
+      renderedRevisionRef.current !== null &&
+      renderedSizeRef.current.width > 0
+  );
 
   const isOverlayTokenValid = Boolean(
     renderedToken &&
@@ -1851,7 +1925,7 @@ export function BelgeStudioPdfPreview({
 
   const toolbar = (
     <BelgeStudioPreviewToolbar
-      zoomLevel={zoomLevel}
+      zoomLevel={displayZoom}
       onZoomChange={handleToolbarZoom}
       onFit={handleFit}
       onFitWidth={handleFitWidth}
@@ -1868,7 +1942,7 @@ export function BelgeStudioPdfPreview({
     <section className={`${BELGE_STUDIO_PREVIEW_PANEL_CLASS} relative`} aria-label="PDF canlı önizlemesi">
       {isMobileMode ? (
         <BelgeStudioMobileZoomPill
-          zoomLevel={zoomLevel}
+          zoomLevel={displayZoom}
           onZoomChange={handleToolbarZoom}
           onFit={handleFit}
           onFitWidth={handleFitWidth}
@@ -1915,7 +1989,7 @@ export function BelgeStudioPdfPreview({
         role="region"
         aria-label="PDF sayfası; Ctrl veya Cmd ve fare tekerleğiyle ya da iki parmakla yakınlaştırın"
         title="Ctrl / Cmd + fare tekerleği: PDF yakınlaştırma. Normal kaydırma: sayfa içinde gezinme."
-        aria-busy={showLoading}
+        aria-busy={showLoading && !hasValidRenderedBitmap}
         data-testid="belge-studio-preview-canvas"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -1976,7 +2050,7 @@ export function BelgeStudioPdfPreview({
             PDF oluşturuluyor.
           </div>
         )}
-        {showLoading && (
+        {showLoading && !hasValidRenderedBitmap && (
           <div className="pointer-events-none absolute inset-x-0 top-2 z-10 mx-auto flex w-fit items-center gap-2 rounded-full border border-border bg-background/95 px-3 py-1.5 text-xs text-muted-foreground shadow">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             {generationPending ? "Belge güncelleniyor…" : "Önizleme hazırlanıyor…"}

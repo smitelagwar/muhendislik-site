@@ -43,7 +43,6 @@ export function useBelgeFitTransition({
     }
     transitionIdRef.current++;
     isTransitioningRef.current = false;
-    currentVisualZoomRef.current = null;
   }, []);
 
   const startFitTransition = useCallback(
@@ -52,6 +51,7 @@ export function useBelgeFitTransition({
       targetZoom: number;
       targetScrollLeft?: number;
       targetScrollTop?: number;
+      initialVisualZoom?: number;
     }) => {
       const container = containerRef.current;
       const canvas = canvasRef.current;
@@ -70,7 +70,7 @@ export function useBelgeFitTransition({
         rafIdRef.current = null;
       }
 
-      const currentZoom = currentVisualZoomRef.current ?? zoomRef.current;
+      const currentZoom = params.initialVisualZoom ?? currentVisualZoomRef.current ?? zoomRef.current;
       const targetZoom = params.targetZoom;
       const startScrollLeft = container.scrollLeft;
       const startScrollTop = container.scrollTop;

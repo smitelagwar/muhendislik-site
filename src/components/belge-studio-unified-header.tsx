@@ -2,7 +2,7 @@
 
 import type { ReactNode, Ref } from "react";
 import Link from "next/link";
-import { AlertCircle, Loader2, MoreVertical, X } from "lucide-react";
+import { AlertCircle, MoreVertical, X } from "lucide-react";
 import { BelgeBackIcon } from "@/components/belge-studio-icons";
 import { BelgeStudioDraftStatusBadge } from "@/components/belge-studio-draft-controls";
 import { BelgeStudioThemeToggle } from "@/components/belge-studio-theme-toggle";
@@ -116,16 +116,6 @@ export function BelgeStudioUnifiedHeader({
       <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
         {extraActions && <div className="hidden lg:flex items-center">{extraActions}</div>}
         <BelgeStudioDraftStatusBadge draftApi={draftApi} />
-
-        {syncStatus === "updating" && (
-          <span
-            className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400"
-            role="status"
-          >
-            <Loader2 className="h-3 w-3 animate-spin shrink-0" />
-            <span className="hidden sm:inline">Derleniyor...</span>
-          </span>
-        )}
 
         {syncStatus === "error" && (
           <span

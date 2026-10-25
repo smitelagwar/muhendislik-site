@@ -3,6 +3,9 @@ export const MAX_BELGE_ZOOM = 400;
 export const BELGE_ZOOM_STEP = 25;
 export const BELGE_PREVIEW_MAX_RASTER_PIXELS = 8_000_000;
 export const BELGE_PREVIEW_MAX_RASTER_SIDE = 4096;
+export const DEFAULT_BELGE_WHEEL_SENSITIVITY = 0.0006;
+export const DEFAULT_BELGE_ZOOM_TAU_MS = 65;
+export const BELGE_ZOOM_SETTLE_THRESHOLD = 0.15;
 
 export function clampBelgeZoom(value: number): number {
   return Math.min(MAX_BELGE_ZOOM, Math.max(MIN_BELGE_ZOOM, value));
@@ -127,4 +130,41 @@ export function getBelgeZoomAnchorScroll(input: {
       input.frameTop + input.relativeY * input.nextHeight - input.pointerY
     ),
   };
+}
+
+export function normalizeWheelDelta(
+  event: { deltaY: number; deltaMode: number },
+  containerHeight = 800
+): number {
+  if (!Number.isFinite(event.deltaY)) return 0;
+  let unit = 1;
+  if (event.deltaMode === 1) {
+    unit = 16;
+  } else if (event.deltaMode === 2) {
+    unit = Math.max(100, containerHeight);
+  }
+  const delta = event.deltaY * unit;
+  return Math.max(-300, Math.min(300, delta));
+}
+
+export function calculateNextTargetZoom(
+  currentZoom: number,
+  normalizedDelta: number,
+  sensitivity = DEFAULT_BELGE_WHEEL_SENSITIVITY
+): number {
+  if (!Number.isFinite(currentZoom) || currentZoom <= 0) return 100;
+  if (!Number.isFinite(normalizedDelta) || normalizedDelta === 0) return clampBelgeZoom(currentZoom);
+  const next = currentZoom * Math.exp(-normalizedDelta * sensitivity);
+  if (!Number.isFinite(next)) return clampBelgeZoom(currentZoom);
+  return clampBelgeZoom(next);
+}
+
+export function calculateZoomFollowAlpha(
+  dtMs: number,
+  tauMs = DEFAULT_BELGE_ZOOM_TAU_MS
+): number {
+  if (!Number.isFinite(dtMs) || dtMs <= 0) return 0;
+  const safeTau = Math.max(1, tauMs);
+  const safeDt = Math.max(0, Math.min(100, dtMs));
+  return 1 - Math.exp(-safeDt / safeTau);
 }
