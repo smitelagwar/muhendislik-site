@@ -168,6 +168,60 @@ export function BelgeFitPageIcon({ className = "h-4 w-4", ...props }: IconProps)
   );
 }
 /**
+ * Genişliğe Sığdır (Fit to Width) — Sol ve sağ kılavuz sınırları arasında genişleyen A4 pafta silüeti ve yatay oklar
+ */
+export function BelgeFitWidthIcon({ className = "h-4 w-4", ...props }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+      {...props}
+    >
+      {/* Sol ve sağ sınır kılavuzları (Viewport Boundary Lines) */}
+      <path
+        d="M3 4.5v15M21 4.5v15"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      {/* Merkez A4 sayfa silüeti */}
+      <path
+        d="M8 6h5.5l2.5 2.5v9.5H8V6Z"
+        fill="currentColor"
+        fillOpacity="0.14"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      {/* A4 kıvrık köşe detayı */}
+      <path
+        d="M13.5 6v2.5H16"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.75"
+      />
+      {/* Sol ve sağa doğru genişleme yatay okları */}
+      <path
+        d="M5.5 12h2.5M16 12h2.5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+      <path
+        d="M7 10.5L5.5 12 7 13.5M17 10.5l1.5 1.5-1.5 1.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+/**
  * PDF'yi Yeni Sekmede Aç — A4 teknik pafta içinden çıkan diyagonal portal oku
  */
 export function BelgeOpenExternalIcon({ className = "h-4 w-4", ...props }: IconProps) {

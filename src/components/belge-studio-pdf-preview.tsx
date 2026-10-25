@@ -9,7 +9,13 @@ import { getSharedBrowserPdfWorker, loadBrowserPdfJs, type BrowserPdfJs } from "
 import { BelgeStudioPreviewToolbar, type BelgeStudioPdfFocusApi } from "@/components/belge-studio-preview-toolbar";
 import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
 import { BELGE_STUDIO_PREVIEW_CANVAS_CLASS, BELGE_STUDIO_PREVIEW_PANEL_CLASS } from "@/lib/belge-studio-layout";
-import { clampBelgeZoom, getBelgePreviewRasterScale, getBelgeZoomAnchorScroll } from "@/lib/belge-studio-zoom";
+import {
+  clampBelgeZoom,
+  getBelgePreviewRasterScale,
+  getBelgeZoomAnchorScroll,
+  calculateBelgeFitWidthZoom,
+  getBrowserScrollbarWidth,
+} from "@/lib/belge-studio-zoom";
 import {
   mapPdfAnnotationsToInlineFields,
   type BelgeDocumentId,
@@ -97,6 +103,10 @@ export function BelgeStudioPdfPreview({
   toolbarTarget,
 }: BelgeStudioPdfPreviewProps) {
   const [zoomLevel, setZoomLevel] = useState(100);
+  const [fitMode, setFitMode] = useState<"page" | "width" | "custom">("page");
+  const fitModeRef = useRef<"page" | "width" | "custom">("page");
+  fitModeRef.current = fitMode;
+  const pageSizeRef = useRef({ width: 595.28, height: 841.89 });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageCount, setPageCount] = useState(0);
   const [localStatus, setLocalStatus] = useState<BelgePreviewStatus>("loading");
@@ -324,6 +334,29 @@ export function BelgeStudioPdfPreview({
     };
   }, []);
 
+  // Genişliğe sığdır modundayken pencere / konteyner boyutu değişirse zoom'u otomatik uyarla
+  useEffect(() => {
+    if (fitModeRef.current !== "width" || layoutFreezeRef.current) return;
+    const container = containerRef.current;
+    if (!container || container.clientWidth < 1) return;
+    const pageSize = pageSizeRef.current;
+    const hasScrollbar = container.scrollHeight > container.clientHeight;
+    const nextZoom = calculateBelgeFitWidthZoom({
+      containerWidth: container.clientWidth,
+      containerHeight: container.clientHeight,
+      pageWidth: pageSize.width,
+      pageHeight: pageSize.height,
+      hasVerticalScrollbar: hasScrollbar,
+      scrollbarWidth: getBrowserScrollbarWidth(),
+      padding: 16,
+      safetyMargin: 2,
+    });
+    if (nextZoom !== zoomRef.current) {
+      zoomRef.current = nextZoom;
+      setZoomLevel(nextZoom);
+    }
+  }, [layoutVersion]);
+
   const applyZoomAnchor = useCallback(() => {
     const anchor = pendingAnchorRef.current;
     const container = containerRef.current;
@@ -399,6 +432,7 @@ export function BelgeStudioPdfPreview({
         return;
       }
       const unscaled = page.getViewport({ scale: 1 });
+      pageSizeRef.current = { width: unscaled.width, height: unscaled.height };
       const frozenSize = layoutFreezeRef.current;
       const containerWidth = frozenSize ? frozenSize.width : container.clientWidth;
       const containerHeight = frozenSize ? frozenSize.height : container.clientHeight;
@@ -762,6 +796,7 @@ export function BelgeStudioPdfPreview({
     const relativeY = Math.max(0, Math.min(1, (point.y - rect.top) / Math.max(1, rect.height)));
     const clampedZoom = clampBelgeZoom(nextZoom);
     if (clampedZoom === zoomRef.current) return;
+    setFitMode("custom");
     const size = renderedSizeRef.current;
     // Canvas son raster ölçeğinde kalır; ardışık tekerlek olayları bu ölçeğe göre hesaplanır.
     const ratio = clampedZoom / Math.max(1, size.zoom);
@@ -918,6 +953,7 @@ export function BelgeStudioPdfPreview({
         applyZoomAnchor();
       }
       if (nextZoom !== zoomRef.current) {
+        setFitMode("custom");
         renderedTokenRef.current = null;
         setRenderedToken(null);
       }
@@ -1002,6 +1038,9 @@ export function BelgeStudioPdfPreview({
     } else if (event.key === "0") {
       event.preventDefault();
       handleFit();
+    } else if (event.key === "9" || (event.key === "0" && event.shiftKey)) {
+      event.preventDefault();
+      handleFitWidth();
     }
   };
 
@@ -1018,6 +1057,7 @@ export function BelgeStudioPdfPreview({
 
   const handleFit = () => {
     if (!isMobileMode) setInlineSelectedField(null);
+    setFitMode("page");
     // Zaten %100 ise zoom effect'i tekrar çalışmaz; geçerli token'ı silme.
     if (zoomRef.current !== 100) setRenderedToken(null);
     pendingAnchorRef.current = null;
@@ -1038,7 +1078,54 @@ export function BelgeStudioPdfPreview({
     setZoomLevel(100);
   };
 
+  const handleFitWidth = useCallback(() => {
+    if (!isMobileMode) setInlineSelectedField(null);
+    const container = containerRef.current;
+    if (!container) return;
+
+    const pageSize = pageSizeRef.current;
+    const hasScrollbar = container.scrollHeight > container.clientHeight;
+
+    const targetZoom = calculateBelgeFitWidthZoom({
+      containerWidth: container.clientWidth,
+      containerHeight: container.clientHeight,
+      pageWidth: pageSize.width,
+      pageHeight: pageSize.height,
+      hasVerticalScrollbar: hasScrollbar,
+      scrollbarWidth: getBrowserScrollbarWidth(),
+      padding: 16,
+      safetyMargin: 2,
+    });
+
+    setFitMode("width");
+    if (zoomRef.current !== targetZoom) {
+      setRenderedToken(null);
+    }
+    pendingAnchorRef.current = null;
+
+    const canvas = canvasRef.current;
+    const frame = frameRef.current;
+    const rendered = renderedSizeRef.current;
+
+    if (container) {
+      const currentScrollTop = container.scrollTop;
+      const ratio = targetZoom / Math.max(1, zoomRef.current);
+      container.scrollTo({ left: 0, top: currentScrollTop * ratio, behavior: "auto" });
+    }
+
+    const ratio = targetZoom / Math.max(1, rendered.zoom);
+    if (canvas) canvas.style.transform = ratio === 1 ? "none" : `scale(${ratio})`;
+    if (frame && rendered.width > 0 && rendered.height > 0) {
+      frame.style.width = `${rendered.width * ratio}px`;
+      frame.style.height = `${rendered.height * ratio}px`;
+    }
+
+    zoomRef.current = targetZoom;
+    setZoomLevel(targetZoom);
+  }, [isMobileMode]);
+
   const handleToolbarZoom = (value: number) => {
+    setFitMode("custom");
     if (!isMobileMode) setInlineSelectedField(null);
     setRenderedToken(null);
     const rect = containerRef.current?.getBoundingClientRect();
@@ -1541,6 +1628,8 @@ export function BelgeStudioPdfPreview({
       zoomLevel={zoomLevel}
       onZoomChange={handleToolbarZoom}
       onFit={handleFit}
+      onFitWidth={handleFitWidth}
+      fitMode={fitMode}
       pdfUrl={generationPending ? null : snapshot?.blobUrl ?? null}
       page={{ current: currentPage, total: pageCount, onChange: handlePageChange }}
       disabled={!snapshot || generationPending || visibleError}
@@ -1556,6 +1645,8 @@ export function BelgeStudioPdfPreview({
           zoomLevel={zoomLevel}
           onZoomChange={handleToolbarZoom}
           onFit={handleFit}
+          onFitWidth={handleFitWidth}
+          fitMode={fitMode}
           page={{ current: currentPage, total: pageCount, onChange: handlePageChange }}
           disabled={!snapshot || generationPending || visibleError}
           isInteracting={isInteracting}

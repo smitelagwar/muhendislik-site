@@ -5,12 +5,60 @@ import {
   clampBelgeZoom,
   getBelgePreviewRasterScale,
   getBelgeZoomAnchorScroll,
+  calculateBelgeFitWidthZoom,
 } from "../../src/lib/belge-studio-zoom";
 import { normalizeBelgelerSearchText } from "../../src/lib/belgeler-search";
 
 assert.equal(clampBelgeZoom(0), 50);
 assert.equal(clampBelgeZoom(125), 125);
 assert.equal(clampBelgeZoom(999), 400);
+
+// Genişliğe sığdır (Fit to Width) hesaplama testleri
+{
+  // Standart masaüstü geniş ekran (860x650 konteyner, A4 595.28x841.89)
+  const desktopZoom = calculateBelgeFitWidthZoom({
+    containerWidth: 860,
+    containerHeight: 650,
+    pageWidth: 595.28,
+    pageHeight: 841.89,
+    hasVerticalScrollbar: false,
+    scrollbarWidth: 16,
+    padding: 16,
+    safetyMargin: 2,
+  });
+  // Sayfa dikeyde taştığı için dikey scrollbar hesaba katılarak ~%184 hesaplanmalı
+  assert.equal(desktopZoom, 184);
+
+  // Zaten dikey kaydırma çubuğu açıkken (hasVerticalScrollbar: true, clientWidth = 844)
+  const withScrollbarZoom = calculateBelgeFitWidthZoom({
+    containerWidth: 844,
+    containerHeight: 650,
+    pageWidth: 595.28,
+    pageHeight: 841.89,
+    hasVerticalScrollbar: true,
+    scrollbarWidth: 16,
+    padding: 16,
+    safetyMargin: 2,
+  });
+  assert.equal(withScrollbarZoom, 184);
+
+  // Dar mobil ekran (390x600 konteyner, A4 595.28x841.89)
+  const mobileZoom = calculateBelgeFitWidthZoom({
+    containerWidth: 390,
+    containerHeight: 600,
+    pageWidth: 595.28,
+    pageHeight: 841.89,
+    hasVerticalScrollbar: false,
+    scrollbarWidth: 0,
+    padding: 16,
+    safetyMargin: 2,
+  });
+  // Mobilde sayfa zaten dikeyde dar olduğundan fitScale = availableWidth/pageWidth olur, zoom ~%99-%100
+  assert.ok(mobileZoom >= 98 && mobileZoom <= 100);
+
+  // Geçersiz/0 boyutlarda güvenli fallback %100 dönmeli
+  assert.equal(calculateBelgeFitWidthZoom({ containerWidth: 0, containerHeight: 0, pageWidth: 595, pageHeight: 842 }), 100);
+}
 
 for (const [width, height, dpr] of [
   [900, 1200, 1],

@@ -176,4 +176,24 @@ describe("ASAMA_05: Belge Stüdyosu V3 — Zoom Geometrik Merkez ve Footer Form 
     assert.ok(BELGE_STUDIO_PREVIEW_TOOLBAR_CLASS.includes("w-full"), "Toolbar tam genişlikte (w-full) olmalı");
     assert.ok(BELGE_STUDIO_PREVIEW_TOOLBAR_CLASS.includes("belge-preview-controls"), "Toolbar .belge-preview-controls sınıfını içermeli");
   });
+
+  it("7. BelgeStudioPreviewToolbar: Genişliğe Sığdır butonu sağ kolonda ve mobil açılır menüde yer alır", () => {
+    let fitWidthCalled = false;
+    const html = renderToStaticMarkup(
+      React.createElement(BelgeStudioPreviewToolbar, {
+        zoomLevel: 100,
+        onZoomChange: () => {},
+        onFit: () => {},
+        onFitWidth: () => { fitWidthCalled = true; },
+        fitMode: "width",
+        pdfUrl: "https://example.com/test.pdf",
+        disabled: false,
+      })
+    );
+
+    assert.ok(html.includes('data-testid="belge-preview-fit-width-btn"'), "Masaüstü 'Genişliğe Sığdır' butonu bulunmalı");
+    assert.ok(html.includes("Genişliğe Sığdır"), "'Genişliğe Sığdır' metni bulunmalı");
+    assert.ok(html.includes('preview-tool-button-active'), "fitMode === 'width' iken buton aktif sınıfa sahip olmalı");
+    assert.ok(html.includes('data-testid="belge-studio-more-view-options"'), "Mobil more seçenekler menü tetikleyicisi bulunmalı");
+  });
 });

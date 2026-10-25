@@ -2,6 +2,7 @@
 
 import {
   BelgeFitPageIcon,
+  BelgeFitWidthIcon,
   BelgeNextPageIcon,
   BelgePrevPageIcon,
   BelgeZoomInIcon,
@@ -18,6 +19,8 @@ export interface BelgeStudioMobileZoomPillProps {
   zoomLevel: number;
   onZoomChange: (zoomLevel: number) => void;
   onFit: () => void;
+  onFitWidth?: () => void;
+  fitMode?: "page" | "width" | "custom";
   page?: { current: number; total: number; onChange: (page: number) => void };
   disabled?: boolean;
   isInteracting?: boolean;
@@ -27,6 +30,8 @@ export function BelgeStudioMobileZoomPill({
   zoomLevel,
   onZoomChange,
   onFit,
+  onFitWidth,
+  fitMode,
   page,
   disabled = false,
   isInteracting = false,
@@ -116,10 +121,27 @@ export function BelgeStudioMobileZoomPill({
           disabled={disabled}
           aria-label="Sayfayı Sığdır"
           title="Sayfayı Sığdır (%100)"
-          className="relative flex h-7 w-7 items-center justify-center rounded-full text-foreground/80 hover:bg-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-40 cursor-pointer before:absolute before:-inset-2 before:content-['']"
+          className={`relative flex h-7 w-7 items-center justify-center rounded-full text-foreground/80 hover:bg-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-40 cursor-pointer before:absolute before:-inset-2 before:content-[''] ${
+            fitMode === "page" && displayedZoom === 100 ? "text-amber-600 dark:text-amber-400 bg-amber-500/15" : ""
+          }`}
         >
           <BelgeFitPageIcon className="h-3.5 w-3.5 shrink-0" />
         </button>
+
+        {onFitWidth && (
+          <button
+            type="button"
+            onClick={onFitWidth}
+            disabled={disabled}
+            aria-label="Genişliğe Sığdır"
+            title="Genişliğe Sığdır"
+            className={`relative flex h-7 w-7 items-center justify-center rounded-full text-foreground/80 hover:bg-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-40 cursor-pointer before:absolute before:-inset-2 before:content-[''] ${
+              fitMode === "width" ? "text-amber-600 dark:text-amber-400 bg-amber-500/15" : ""
+            }`}
+          >
+            <BelgeFitWidthIcon className="h-3.5 w-3.5 shrink-0" />
+          </button>
+        )}
       </div>
     </div>
   );

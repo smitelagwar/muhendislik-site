@@ -14,6 +14,7 @@ import { BELGE_UX_FLAGS } from "@/lib/belge-ux-config";
 import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
 import {
   BelgeFitPageIcon,
+  BelgeFitWidthIcon,
   BelgeMoreIcon,
   BelgeNextPageIcon,
   BelgeOpenExternalIcon,
@@ -33,6 +34,8 @@ type BelgeStudioPreviewToolbarProps = {
   zoomLevel: number;
   onZoomChange: (zoomLevel: number) => void;
   onFit: () => void;
+  onFitWidth?: () => void;
+  fitMode?: "page" | "width" | "custom";
   pdfUrl: string | null;
   page?: { current: number; total: number; onChange: (page: number) => void };
   disabled?: boolean;
@@ -48,13 +51,15 @@ type BelgeStudioPreviewToolbarProps = {
  * 1. 3 kolonlu simetrik CSS Grid (`minmax(0, 1fr) max-content minmax(0, 1fr)`).
  * 2. Orta kolon (`.belge-preview-center`) SADECE [− % +] zoom kontrollerini barındırır.
  *    Toolbar merkezinden sapma payı: ±2 CSS px (matematiksel grid simetrisi ile 0px).
- * 3. `Sığdır` ve `Yeni sekme` sağ kolonda (`.belge-preview-right`) yer alır.
+ * 3. `Sığdır`, `Genişliğe Sığdır` ve `Yeni sekme` sağ kolonda (`.belge-preview-right`) yer alır.
  * 4. Tema kontrolü ve Form Görünümü menüsü bu araç çubuğunda YER ALMAZ.
  */
 export function BelgeStudioPreviewToolbar({
   zoomLevel,
   onZoomChange,
   onFit,
+  onFitWidth,
+  fitMode,
   pdfUrl,
   page,
   disabled = false,
@@ -158,11 +163,26 @@ export function BelgeStudioPreviewToolbar({
             onClick={onFit}
             disabled={disabled}
             title="Tüm sayfayı sığdır (Ctrl / Cmd ve 0)"
-            className="preview-tool-button"
+            className={`preview-tool-button ${fitMode === "page" && displayedZoom === 100 ? "preview-tool-button-active" : ""}`}
+            data-testid="belge-preview-fit-page-btn"
           >
             <BelgeFitPageIcon className="h-[17px] w-[17px]" />
             <span>Sığdır</span>
           </button>
+          {onFitWidth && (
+            <button
+              type="button"
+              aria-label="Genişliğe sığdır"
+              onClick={onFitWidth}
+              disabled={disabled}
+              title="Genişliğe sığdır (Ctrl / Cmd ve 9)"
+              className={`preview-tool-button ${fitMode === "width" ? "preview-tool-button-active" : ""}`}
+              data-testid="belge-preview-fit-width-btn"
+            >
+              <BelgeFitWidthIcon className="h-[17px] w-[17px]" />
+              <span>Genişliğe Sığdır</span>
+            </button>
+          )}
           <a
             href={pdfUrl ?? undefined}
             role="link"
@@ -237,6 +257,19 @@ export function BelgeStudioPreviewToolbar({
                 <BelgeFitPageIcon className="h-4 w-4" />
                 Sayfayı Sığdır
               </DropdownMenuItem>
+
+              {/* Genişliğe Sığdır */}
+              {onFitWidth && (
+                <DropdownMenuItem
+                  onSelect={onFitWidth}
+                  disabled={disabled}
+                  className="min-h-11 gap-2 rounded-lg cursor-pointer"
+                  data-testid="belge-preview-mobile-fit-width-item"
+                >
+                  <BelgeFitWidthIcon className="h-4 w-4" />
+                  Genişliğe Sığdır
+                </DropdownMenuItem>
+              )}
 
               {/* Yeni Sekmede Aç */}
               {disabled || !pdfUrl ? (
