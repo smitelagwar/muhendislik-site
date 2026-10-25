@@ -1,0 +1,202 @@
+{
+  "1920x1080": {
+    "kolon-detayi": {
+      "scrollHeight": 1625,
+      "clientHeight": 1080,
+      "excessScrollY": 545,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "excessScrollX": 0
+    },
+    "kiris-detayi": {
+      "scrollHeight": 1433,
+      "clientHeight": 1080,
+      "excessScrollY": 353,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "excessScrollX": 0
+    },
+    "kolon-kiris-birlesimi": {
+      "scrollHeight": 1433,
+      "clientHeight": 1080,
+      "excessScrollY": 353,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "excessScrollX": 0
+    },
+    "tekil-temel": {
+      "scrollHeight": 1433,
+      "clientHeight": 1080,
+      "excessScrollY": 353,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "excessScrollX": 0
+    },
+    "perde-detayi": {
+      "scrollHeight": 1433,
+      "clientHeight": 1080,
+      "excessScrollY": 353,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "excessScrollX": 0
+    },
+    "radye-temel": {
+      "scrollHeight": 1433,
+      "clientHeight": 1080,
+      "excessScrollY": 353,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "excessScrollX": 0
+    }
+  },
+  "1366x768": {
+    "kolon-detayi": {
+      "scrollHeight": 1512,
+      "clientHeight": 768,
+      "excessScrollY": 744,
+      "scrollWidth": 1366,
+      "clientWidth": 1366,
+      "excessScrollX": 0
+    },
+    "kiris-detayi": {
+      "scrollHeight": 1325,
+      "clientHeight": 768,
+      "excessScrollY": 557,
+      "scrollWidth": 1366,
+      "clientWidth": 1366,
+      "excessScrollX": 0
+    },
+    "kolon-kiris-birlesimi": {
+      "scrollHeight": 1325,
+      "clientHeight": 768,
+      "excessScrollY": 557,
+      "scrollWidth": 1366,
+      "clientWidth": 1366,
+      "excessScrollX": 0
+    },
+    "tekil-temel": {
+      "scrollHeight": 1325,
+      "clientHeight": 768,
+      "excessScrollY": 557,
+      "scrollWidth": 1366,
+      "clientWidth": 1366,
+      "excessScrollX": 0
+    },
+    "perde-detayi": {
+      "scrollHeight": 1325,
+      "clientHeight": 768,
+      "excessScrollY": 557,
+      "scrollWidth": 1366,
+      "clientWidth": 1366,
+      "excessScrollX": 0
+    },
+    "radye-temel": {
+      "scrollHeight": 1325,
+      "clientHeight": 768,
+      "excessScrollY": 557,
+      "scrollWidth": 1366,
+      "clientWidth": 1366,
+      "excessScrollX": 0
+    }
+  },
+  "1024x768": {
+    "kolon-detayi": {
+      "scrollHeight": 1654,
+      "clientHeight": 768,
+      "excessScrollY": 886,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "excessScrollX": 0
+    },
+    "kiris-detayi": {
+      "scrollHeight": 1494,
+      "clientHeight": 768,
+      "excessScrollY": 726,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "excessScrollX": 0
+    },
+    "kolon-kiris-birlesimi": {
+      "scrollHeight": 1511,
+      "clientHeight": 768,
+      "excessScrollY": 743,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "excessScrollX": 0
+    },
+    "tekil-temel": {
+      "scrollHeight": 1514,
+      "clientHeight": 768,
+      "excessScrollY": 746,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "excessScrollX": 0
+    },
+    "perde-detayi": {
+      "scrollHeight": 1494,
+      "clientHeight": 768,
+      "excessScrollY": 726,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "excessScrollX": 0
+    },
+    "radye-temel": {
+      "scrollHeight": 1530,
+      "clientHeight": 768,
+      "excessScrollY": 762,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "excessScrollX": 0
+    }
+  },
+  "390x844": {
+    "kolon-detayi": {
+      "scrollHeight": 3183,
+      "clientHeight": 844,
+      "excessScrollY": 2339,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "excessScrollX": 0
+    },
+    "kiris-detayi": {
+      "scrollHeight": 2822,
+      "clientHeight": 844,
+      "excessScrollY": 1978,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "excessScrollX": 0
+    },
+    "kolon-kiris-birlesimi": {
+      "scrollHeight": 2878,
+      "clientHeight": 844,
+      "excessScrollY": 2034,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "excessScrollX": 0
+    },
+    "tekil-temel": {
+      "scrollHeight": 2846,
+      "clientHeight": 844,
+      "excessScrollY": 2002,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "excessScrollX": 0
+    },
+    "perde-detayi": {
+      "scrollHeight": 2862,
+      "clientHeight": 844,
+      "excessScrollY": 2018,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "excessScrollX": 0
+    },
+    "radye-temel": {
+      "scrollHeight": 2911,
+      "clientHeight": 844,
+      "excessScrollY": 2067,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "excessScrollX": 0
+    }
+  }
+}

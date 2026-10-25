@@ -57,14 +57,14 @@ export default async function SimulationDetailPage({
   const model = await loadSimulationSceneModel(slug);
 
   return (
-    <div className="tool-page-shell py-3 pb-20 md:py-5 md:pb-12">
+    <div className="tool-page-shell py-1 lg:py-1.5 pb-16 md:pb-6 lg:pb-1 min-h-0">
       <SoftwareApplicationJsonLd
         name={item.title}
         description={item.description}
         pathname={item.href}
         section={{ title: "Simülasyonlar", href: SIMULATIONS_HUB_HREF }}
       />
-      <div className="mx-auto w-full max-w-[2400px] px-3 sm:px-4 lg:px-6 2xl:px-8 min-w-0">
+      <div className="mx-auto w-full max-w-[2400px] px-2 sm:px-3 lg:px-4 min-w-0">
         <SimulationWorkspace item={item} model={model} />
       </div>
     </div>

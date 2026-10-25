@@ -482,6 +482,9 @@ declare module "three/examples/jsm/controls/OrbitControls.js" {
     maxDistance: number;
     maxPolarAngle: number;
     minPolarAngle: number;
+    rotateSpeed: number;
+    zoomSpeed: number;
+    panSpeed: number;
     update(): boolean;
     dispose(): void;
     addEventListener(type: string, listener: (event?: unknown) => void): void;

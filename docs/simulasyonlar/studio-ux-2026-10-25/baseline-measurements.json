@@ -1,0 +1,458 @@
+{
+  "timestamp": "2026-10-25T18:34:05.109Z",
+  "gitHead": "6bdda9a3028200e61027b98aefffcb9cf57b47ca",
+  "scenes": {
+    "kolon-detayi": {
+      "diagnostics": {
+        "drawCalls": 14,
+        "triangles": 54904,
+        "geometries": 11,
+        "textures": 0,
+        "renderedFrames": 3,
+        "ownedGeometryCount": 13,
+        "ownedMaterialCount": 13,
+        "qualityProfile": "balanced",
+        "concreteVisible": true,
+        "layerVisibility": {
+          "concrete": true,
+          "longitudinal": true,
+          "stirrup": true,
+          "dowel": true,
+          "crosstie": true,
+          "dimensions": true
+        },
+        "selectedPartId": null,
+        "sectionEnabled": false,
+        "sectionElevationZMm": 1575,
+        "concreteCapVisible": false,
+        "explodePercent": 0,
+        "cameraPreset": "isometric",
+        "orbitPolarRad": 1.2179,
+        "orbitAzimuthRad": 0.7109,
+        "cameraDistanceM": 6.936,
+        "canvasCount": 1,
+        "rafPending": false,
+        "instancedPartMapSize": 980,
+        "isDisposed": false
+      },
+      "canvasBoundingBox": {
+        "x": 33,
+        "y": 552,
+        "width": 1458,
+        "height": 734.390625
+      },
+      "excessScrollY": 1525
+    },
+    "kiris-detayi": {
+      "diagnostics": {
+        "drawCalls": 17,
+        "triangles": 60608,
+        "geometries": 12,
+        "textures": 0,
+        "renderedFrames": 3,
+        "ownedGeometryCount": 14,
+        "ownedMaterialCount": 10,
+        "qualityProfile": "balanced",
+        "concreteVisible": true,
+        "layerVisibility": {
+          "concrete": true,
+          "longitudinal": true,
+          "stirrup": true,
+          "dowel": true,
+          "crosstie": true,
+          "dimensions": true
+        },
+        "selectedPartId": null,
+        "sectionEnabled": false,
+        "sectionElevationZMm": 1950,
+        "concreteCapVisible": false,
+        "explodePercent": 0,
+        "cameraPreset": "isometric",
+        "orbitPolarRad": 1.2179,
+        "orbitAzimuthRad": 0.7109,
+        "cameraDistanceM": 4.678,
+        "canvasCount": 1,
+        "rafPending": false,
+        "instancedPartMapSize": 1081,
+        "isDisposed": false
+      },
+      "canvasBoundingBox": {
+        "x": 33,
+        "y": 341.5,
+        "width": 1458,
+        "height": 734.390625
+      },
+      "excessScrollY": 1153
+    },
+    "kolon-kiris-birlesimi": {
+      "diagnostics": {
+        "drawCalls": 14,
+        "triangles": 72064,
+        "geometries": 9,
+        "textures": 0,
+        "renderedFrames": 3,
+        "ownedGeometryCount": 11,
+        "ownedMaterialCount": 9,
+        "qualityProfile": "balanced",
+        "concreteVisible": true,
+        "layerVisibility": {
+          "concrete": true,
+          "longitudinal": true,
+          "stirrup": true,
+          "dowel": true,
+          "crosstie": true,
+          "dimensions": true
+        },
+        "selectedPartId": null,
+        "sectionEnabled": false,
+        "sectionElevationZMm": 1500,
+        "concreteCapVisible": false,
+        "explodePercent": 0,
+        "cameraPreset": "isometric",
+        "orbitPolarRad": 1.2179,
+        "orbitAzimuthRad": 0.7109,
+        "cameraDistanceM": 6.303,
+        "canvasCount": 1,
+        "rafPending": false,
+        "instancedPartMapSize": 1286,
+        "isDisposed": false
+      },
+      "canvasBoundingBox": {
+        "x": 33,
+        "y": 341.5,
+        "width": 1458,
+        "height": 734.390625
+      },
+      "excessScrollY": 1314
+    },
+    "tekil-temel": {
+      "diagnostics": {
+        "drawCalls": 29,
+        "triangles": 33992,
+        "geometries": 19,
+        "textures": 0,
+        "renderedFrames": 3,
+        "ownedGeometryCount": 23,
+        "ownedMaterialCount": 9,
+        "qualityProfile": "balanced",
+        "concreteVisible": true,
+        "layerVisibility": {
+          "concrete": true,
+          "longitudinal": true,
+          "stirrup": true,
+          "dowel": true,
+          "crosstie": true,
+          "dimensions": true
+        },
+        "selectedPartId": null,
+        "sectionEnabled": false,
+        "sectionElevationZMm": 310,
+        "concreteCapVisible": false,
+        "explodePercent": 0,
+        "cameraPreset": "isometric",
+        "orbitPolarRad": 1.2179,
+        "orbitAzimuthRad": 0.7109,
+        "cameraDistanceM": 4.773,
+        "canvasCount": 1,
+        "rafPending": false,
+        "instancedPartMapSize": 604,
+        "isDisposed": false
+      },
+      "canvasBoundingBox": {
+        "x": 33,
+        "y": 341.5,
+        "width": 1458,
+        "height": 734.390625
+      },
+      "excessScrollY": 1303
+    },
+    "perde-detayi": {
+      "diagnostics": {
+        "drawCalls": 11,
+        "triangles": 81896,
+        "geometries": 7,
+        "textures": 0,
+        "renderedFrames": 3,
+        "ownedGeometryCount": 9,
+        "ownedMaterialCount": 9,
+        "qualityProfile": "balanced",
+        "concreteVisible": true,
+        "layerVisibility": {
+          "concrete": true,
+          "longitudinal": true,
+          "stirrup": true,
+          "dowel": true,
+          "crosstie": true,
+          "dimensions": true
+        },
+        "selectedPartId": null,
+        "sectionEnabled": false,
+        "sectionElevationZMm": 1500,
+        "concreteCapVisible": false,
+        "explodePercent": 0,
+        "cameraPreset": "isometric",
+        "orbitPolarRad": 1.2179,
+        "orbitAzimuthRad": 0.7109,
+        "cameraDistanceM": 6.536,
+        "canvasCount": 1,
+        "rafPending": false,
+        "instancedPartMapSize": 1462,
+        "isDisposed": false
+      },
+      "canvasBoundingBox": {
+        "x": 33,
+        "y": 341.5,
+        "width": 1458,
+        "height": 734.390625
+      },
+      "excessScrollY": 1238
+    },
+    "radye-temel": {
+      "diagnostics": {
+        "drawCalls": 17,
+        "triangles": 29192,
+        "geometries": 11,
+        "textures": 0,
+        "renderedFrames": 3,
+        "ownedGeometryCount": 15,
+        "ownedMaterialCount": 9,
+        "qualityProfile": "light",
+        "concreteVisible": true,
+        "layerVisibility": {
+          "concrete": true,
+          "longitudinal": true,
+          "stirrup": true,
+          "dowel": true,
+          "crosstie": true,
+          "dimensions": true
+        },
+        "selectedPartId": null,
+        "sectionEnabled": false,
+        "sectionElevationZMm": 340,
+        "concreteCapVisible": false,
+        "explodePercent": 0,
+        "cameraPreset": "isometric",
+        "orbitPolarRad": 1.2179,
+        "orbitAzimuthRad": 0.7109,
+        "cameraDistanceM": 5.375,
+        "canvasCount": 1,
+        "rafPending": false,
+        "instancedPartMapSize": 910,
+        "isDisposed": false
+      },
+      "canvasBoundingBox": {
+        "x": 33,
+        "y": 341.5,
+        "width": 1458,
+        "height": 734.390625
+      },
+      "excessScrollY": 1260
+    }
+  },
+  "viewports": {
+    "1920x1080": {
+      "windowInnerWidth": 1920,
+      "windowInnerHeight": 1080,
+      "scrollHeight": 2233,
+      "clientHeight": 1080,
+      "excessScrollY": 1153,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "excessScrollX": 0,
+      "headerBottom": 84,
+      "inspectorVisible": true,
+      "inspectorBox": {
+        "x": 1508,
+        "y": 260.5,
+        "width": 380,
+        "height": 1924.265625
+      },
+      "canvasBoundingBox": {
+        "x": 33,
+        "y": 341.5,
+        "width": 1458,
+        "height": 734.390625
+      }
+    },
+    "1366x768": {
+      "windowInnerWidth": 1366,
+      "windowInnerHeight": 768,
+      "scrollHeight": 2244,
+      "clientHeight": 768,
+      "excessScrollY": 1476,
+      "scrollWidth": 1366,
+      "clientWidth": 1366,
+      "excessScrollX": 0,
+      "headerBottom": 84,
+      "inspectorVisible": true,
+      "inspectorBox": {
+        "x": 1022,
+        "y": 260.5,
+        "width": 320,
+        "height": 1935.453125
+      },
+      "canvasBoundingBox": {
+        "x": 25,
+        "y": 385.5,
+        "width": 980,
+        "height": 520
+      }
+    },
+    "1024x768": {
+      "windowInnerWidth": 1024,
+      "windowInnerHeight": 768,
+      "scrollHeight": 2818,
+      "clientHeight": 768,
+      "excessScrollY": 2050,
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "excessScrollX": 0,
+      "headerBottom": 84,
+      "inspectorVisible": true,
+      "inspectorBox": {
+        "x": 24,
+        "y": 2237.953125,
+        "width": 976,
+        "height": 532.5
+      },
+      "canvasBoundingBox": {
+        "x": 25,
+        "y": 411.5,
+        "width": 974,
+        "height": 520
+      }
+    },
+    "390x844": {
+      "windowInnerWidth": 390,
+      "windowInnerHeight": 844,
+      "scrollHeight": 4186,
+      "clientHeight": 844,
+      "excessScrollY": 3342,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "excessScrollX": 0,
+      "headerBottom": 76,
+      "inspectorVisible": true,
+      "inspectorBox": {
+        "x": 12,
+        "y": 3465.109375,
+        "width": 366,
+        "height": 569
+      },
+      "canvasBoundingBox": {
+        "x": 13,
+        "y": 516,
+        "width": 364,
+        "height": 472.625
+      }
+    },
+    "844x390": {
+      "windowInnerWidth": 844,
+      "windowInnerHeight": 390,
+      "scrollHeight": 3027,
+      "clientHeight": 390,
+      "excessScrollY": 2637,
+      "scrollWidth": 844,
+      "clientWidth": 844,
+      "excessScrollX": 0,
+      "headerBottom": 80,
+      "inspectorVisible": true,
+      "inspectorBox": {
+        "x": 16,
+        "y": 2446.703125,
+        "width": 812,
+        "height": 532.5
+      },
+      "canvasBoundingBox": {
+        "x": 17,
+        "y": 407.5,
+        "width": 810,
+        "height": 320
+      }
+    }
+  },
+  "interactions": {
+    "kiris-detayi": {
+      "initialAzimuth": 0.7109,
+      "initialPolar": 1.2179,
+      "initialDistanceM": 4.678,
+      "drag50px_deltaAzimuth": -0.428,
+      "drag100px_deltaAzimuth": -0.856,
+      "wheel1_distanceM": 4.925,
+      "wheel1_deltaM": 0.247,
+      "wheel3_distanceM": 5.457,
+      "wheel3_deltaM": 0.779,
+      "wheel10_distanceM": 4.678,
+      "wheel10_deltaM": 0,
+      "zoomIn1_distanceM": 3.93,
+      "zoomIn1_ratio": 0.8401,
+      "zoomIn2_distanceM": 3.301,
+      "zoomIn2_ratio": 0.8399,
+      "zoomOut1_distanceM": 5.52,
+      "zoomOut1_ratio": 1.18,
+      "zoomOut2_distanceM": 6.514,
+      "zoomOut2_ratio": 1.1801
+    },
+    "kolon-detayi": {
+      "initialAzimuth": 0.7109,
+      "initialPolar": 1.2179,
+      "initialDistanceM": 6.936,
+      "drag50px_deltaAzimuth": -0.428,
+      "drag100px_deltaAzimuth": -0.856,
+      "wheel1_distanceM": 7.301,
+      "wheel1_deltaM": 0.365,
+      "wheel3_distanceM": 8.089,
+      "wheel3_deltaM": 1.153,
+      "wheel10_distanceM": 6.936,
+      "wheel10_deltaM": 0,
+      "zoomIn1_distanceM": 5.826,
+      "zoomIn1_ratio": 0.84,
+      "zoomIn2_distanceM": 4.894,
+      "zoomIn2_ratio": 0.84,
+      "zoomOut1_distanceM": 8.184,
+      "zoomOut1_ratio": 1.1799,
+      "zoomOut2_distanceM": 9.657,
+      "zoomOut2_ratio": 1.18
+    },
+    "radye-temel": {
+      "initialAzimuth": 0.7109,
+      "initialPolar": 1.2179,
+      "initialDistanceM": 5.375,
+      "drag50px_deltaAzimuth": -0.428,
+      "drag100px_deltaAzimuth": -0.856,
+      "wheel1_distanceM": 5.658,
+      "wheel1_deltaM": 0.283,
+      "wheel3_distanceM": 6.269,
+      "wheel3_deltaM": 0.894,
+      "wheel10_distanceM": 5.375,
+      "wheel10_deltaM": 0,
+      "zoomIn1_distanceM": 4.515,
+      "zoomIn1_ratio": 0.84,
+      "zoomIn2_distanceM": 3.793,
+      "zoomIn2_ratio": 0.8401,
+      "zoomOut1_distanceM": 6.342,
+      "zoomOut1_ratio": 1.1799,
+      "zoomOut2_distanceM": 7.484,
+      "zoomOut2_ratio": 1.1801
+    }
+  },
+  "concreteHiddenInvestigation": {
+    "slug": "kiris-detayi",
+    "beforeHidden": {
+      "concreteVisible": true,
+      "distanceM": 4.678,
+      "triangles": 60608,
+      "drawCalls": 17
+    },
+    "afterHidden": {
+      "concreteVisible": false,
+      "distanceM": 4.678,
+      "triangles": 60536,
+      "drawCalls": 8
+    },
+    "afterFitWithHidden": {
+      "distanceM": 4.678
+    },
+    "analysis": "Beton gizlendiğinde cameraDistanceM (6.321 m) değişmiyor çünkü fitToModel otomatik tetiklenmiyor. Ayrıca fitToModel çağrıldığında computeFitDistance tüm modelin sınır kutusunu (model.boundsMm) baz alıyor; bu sınır kutusu mesnetleri ve beton gövdesini (X: 0..4000 mm) kapsadığı için ince donatı çubukları 6.3 metre uzaktan ekranda oldukça ince ve kayıp gibi kalıyor. Kullanıcı mouse ile döndürmeye kalktığında varsayılan rotateSpeed=1 ile model aniden dönüp kadrajdan çıkabiliyor."
+  }
+}

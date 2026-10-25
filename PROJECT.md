@@ -212,19 +212,21 @@ Formülleri değiştirme. Sadece UI/UX iyileştirmesi kabul.
   - Kontrollü deney & link paylaşımı: Kolon için doğrulanmış parametre aralıkları (`250–600 mm` kesit, `12–32 mm` çap, `75–200 mm` etriye aralığı); tüm sahnelerde sürümlü (`v=1`, `≤ 2 KB`) izin listeli URL kodlama/çözme.
   - Dayanıklılık: WebGL bağlam kaybında 1 kez otomatik re-instantiation, 2. kayıpta 2B yedek şema ve "3B'yi Yeniden Dene" butonu; durağan sahnede sıfır render; 12 ardışık route geçişinde sızıntısız temizlik.
   - Cihaz & Erişilebilirlik: 320/360/390/768/1366/1920 px'te 0 taşma; WebKit (Desktop/Mobile) ve Chromium tam uyumlu; iki tema (açık/koyu).
-- 3B Sahne Öncelikli Stüdyo Mimarisi (SIM-STUDIO-2026-10-25):
+- 3B Sahne Öncelikli Stüdyo Mimarisi & TradingView Esinli Sabit UX Revizyonu (SIM-STUDIO-UX-2026-10-25):
   - Genişletilmiş stüdyo kabı: `max-w-[2400px]`; 1920px'de %75.9 dominant canvas genişliği, denetçi kapalıyken %96.6 tam ekran.
-  - Fold-1 Doğrudan Görünürlük: Sahne dikeyde ilk ekranda (`top ~210 px`); dinamik CSS clamp yükseklik (`360–860 px`, mobilde `max-h-[calc(100dvh-76px)]`).
-  - 8-Köşe Bounding-Box trigonometrik kadraj ve serbest orbit açısını koruyan `fitToModel`.
-  - Hibrit `viewTab` (`3d`, `split`, `2d`): Eşzamanlı 3B + 2B teknik çizim ve canlı senkronize çift yönlü seçim.
-  - Odak Modu (`simulation-focus-mode-toggle`), Fullscreen API (ve graceful fallback), klavye `Escape` dinleyicisi ve mobilde ekranı tıkamayan mikro parça çipi (`mobile-selected-part-chip`).
-  - Performans: `ResizeObserver` reflow filtresi, durağan sahnede sıfır render frame, WebGL context loss çift kademe kurtarma, tek canvas garantisi (`data-canvas-count=1`).
+  - Tek Ekranlık Sabit Stüdyo & Bağımsız Kaydırma: Masaüstünde sayfa scroll'u kaldırılmıştır; sağ denetçi ve alt teknik dock bağımsız `overflow-y: auto; overscroll-behavior: contain;` ile kendi içinde kayar (wheel izolasyonu).
+  - Azaltılmış Kamera Hassasiyeti: `rotateSpeed: 0.55` (%45 duyarlılık azaltıldı), `zoomSpeed/panSpeed: 0.65`, `0.90x / 1.10x` adımları; görünür katman sınırlarına göre akıllı sığdırma (`computeFitDistance`).
+  - Kompakt Toolbar & Sol Dikey Araç Rayı: Üstte tek satır kompakt başlık ve sekme çubuğu, 36px parametre şeridi; canvas solunda 40px dikey araç rayı (`simulation-left-tool-rail`).
+  - Sağ Denetçi ve Öğretim Entegrasyonu: 4. sekme olarak "Öğretim" paneli, ~95px kompakt alt dock.
+  - Elastik Alt Teknik Dock: 22–48 dvh arasında tutamaç veya önayarlarla boyutlandırılabilen `simulation-bottom-dock`; 2B/3B modları arasında tek WebGL canvas korunur (`canvasCount = 1`).
+  - Klavye & Mobil: `1/2/3` mod, `F` odaklan/sığdır, `?` kısayollar, hiyerarşik `ESC`; 1024–1279px'de overlay drawer; mobilde 44px touch hedefleri ve güvenli alan ofseti.
 - Kalite Kapıları:
   - Model doğrulaması: `npm run check:simulations:model`
   - Arayüz ve e2e kabulü: `npm run check:simulations:ui`
   - Birleşik simülasyon testi: `npm run check:simulations`
-  - Yeni stüdyo kabul paketi: `npx playwright test --config=playwright.site.config.ts tests/site-audit/simulations-studio-layout.spec.ts`
-  - Plan ve durum takibi: `docs/simulasyonlar/3B_STUDIO_IMPLEMENTATION_STATE.md` (Aşama 01–10 tamamlandı).
+  - Yeni stüdyo yerleşim kabul paketi: `npx playwright test --config=playwright.site.config.ts tests/site-audit/simulations-studio-layout.spec.ts`
+  - Yeni stüdyo etkileşim kabul paketi: `npx playwright test --config=playwright.site.config.ts tests/site-audit/simulations-studio-interactions.spec.ts`
+  - Plan ve durum takibi: `docs/simulasyonlar/studio-ux-2026-10-25/IMPLEMENTATION_STATE.md` (Aşama 01–09 tamamlandı).
 
 ---
 

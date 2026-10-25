@@ -1,0 +1,40 @@
+{
+  "kiris-detayi": {
+    "initialDistanceM": 4.678,
+    "initialAzimuth": 0.7109,
+    "drag50px_deltaAzimuth": -0.2354,
+    "drag100px_deltaAzimuth": -0.4708,
+    "wheel1_deltaM": 0.159,
+    "zoomIn1_ratio": 0.9,
+    "zoomIn2_ratio": 0.9,
+    "zoomOut1_ratio": 1.1,
+    "zoomOut2_ratio": 1.1001
+  },
+  "kolon-detayi": {
+    "initialDistanceM": 7,
+    "initialAzimuth": 0.7109,
+    "drag50px_deltaAzimuth": -0.2354,
+    "drag100px_deltaAzimuth": -0.4708,
+    "wheel1_deltaM": 0.238,
+    "zoomIn1_ratio": 0.9,
+    "zoomIn2_ratio": 0.9,
+    "zoomOut1_ratio": 1.1,
+    "zoomOut2_ratio": 1.1
+  },
+  "radye-temel": {
+    "initialDistanceM": 5.399,
+    "initialAzimuth": 0.7109,
+    "drag50px_deltaAzimuth": -0.2354,
+    "drag100px_deltaAzimuth": -0.4708,
+    "wheel1_deltaM": 0.183,
+    "zoomIn1_ratio": 0.9,
+    "zoomIn2_ratio": 0.9,
+    "zoomOut1_ratio": 1.1,
+    "zoomOut2_ratio": 1.1
+  },
+  "kiris_beton_gizli_fit": {
+    "distanceM": 4.412,
+    "triangles": 60536,
+    "drawCalls": 8
+  }
+}

@@ -101,6 +101,43 @@ export default function SimulationViewer({
   const [retryToken, setRetryToken] = useState(0);
   const autoRestoreAttemptedRef = useRef(false);
 
+  const [dockHeightDvh, setDockHeightDvh] = useState<number>(34);
+  const [isDraggingDock, setIsDraggingDock] = useState(false);
+  const dragStartYRef = useRef(0);
+  const dragStartHeightRef = useRef(34);
+
+  const handleDockResizeStart = (e: React.PointerEvent) => {
+    e.preventDefault();
+    setIsDraggingDock(true);
+    dragStartYRef.current = e.clientY;
+    dragStartHeightRef.current = dockHeightDvh;
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
+  };
+
+  const handleDockResizeMove = (e: React.PointerEvent) => {
+    if (!isDraggingDock) return;
+    const deltaY = dragStartYRef.current - e.clientY;
+    const deltaDvh =
+      (deltaY / (typeof window !== "undefined" ? window.innerHeight || 1 : 1)) *
+      100;
+    const newDvh = Math.max(
+      22,
+      Math.min(48, dragStartHeightRef.current + deltaDvh),
+    );
+    setDockHeightDvh(Math.round(newDvh));
+  };
+
+  const handleDockResizeEnd = (e: React.PointerEvent) => {
+    if (isDraggingDock) {
+      setIsDraggingDock(false);
+      try {
+        (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {}
+    }
+  };
+
   const isDark = resolvedTheme !== "light";
   const concreteVisible = layers.concrete;
 
@@ -220,38 +257,23 @@ export default function SimulationViewer({
   const show2DPane = viewTab === "split" || viewTab === "2d";
 
   return (
-    <div className="space-y-4" data-testid="simulation-viewer-root">
-      {/* Üst Araç Çubuğu (Kompakt Stüdyo Çubuğu) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#110e24]/90 p-2 sm:p-2.5 shadow-sm">
-        {/* Görünüm Modu (3B+2B Eşzamanlı / 3B Sahne / 2B Şema), Beton ve Kesit */}
+    <div className="flex flex-col h-full min-h-0 space-y-2" data-testid="simulation-viewer-root">
+      {/* Üst Araç Çubuğu (Kompakt Stüdyo Çubuğu - Tek Sıra Düzen) */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#110e24]/90 p-1.5 sm:p-2 shadow-sm flex-shrink-0">
+        {/* Görünüm Modu (3B Sahne / 2B+3B / 2B Çizim), Beton ve Kesit */}
         <div className="flex flex-wrap items-center gap-1.5">
           <div
-            className="inline-flex flex-wrap rounded-lg border border-border/80 dark:border-white/10 bg-muted/60 dark:bg-[#181432] p-0.5"
+            className="inline-flex rounded-lg border border-border/80 dark:border-white/10 bg-muted/60 dark:bg-[#181432] p-0.5"
             role="tablist"
             aria-label="Görünüm modu seçimi"
           >
             <button
               type="button"
               role="tab"
-              aria-selected={viewTab === "split"}
-              data-testid="sim-tab-split"
-              onClick={() => onChangeViewTab("split")}
-              className={`min-h-[36px] rounded-md px-2.5 py-1 text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
-                viewTab === "split"
-                  ? "bg-purple-600 text-white shadow-sm"
-                  : "text-muted-foreground dark:text-zinc-300 hover:text-foreground dark:hover:text-white"
-              }`}
-            >
-              <Columns2 className="h-3.5 w-3.5" />
-              <span>2B + 3B</span>
-            </button>
-            <button
-              type="button"
-              role="tab"
               aria-selected={viewTab === "3d"}
               data-testid="sim-tab-3d"
               onClick={() => onChangeViewTab("3d")}
-              className={`min-h-[36px] rounded-md px-2.5 py-1 text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
+              className={`min-h-[32px] rounded-md px-2.5 py-1 text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
                 viewTab === "3d"
                   ? "bg-purple-600 text-white shadow-sm"
                   : "text-muted-foreground dark:text-zinc-300 hover:text-foreground dark:hover:text-white"
@@ -263,10 +285,25 @@ export default function SimulationViewer({
             <button
               type="button"
               role="tab"
+              aria-selected={viewTab === "split"}
+              data-testid="sim-tab-split"
+              onClick={() => onChangeViewTab("split")}
+              className={`min-h-[32px] rounded-md px-2.5 py-1 text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
+                viewTab === "split"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-muted-foreground dark:text-zinc-300 hover:text-foreground dark:hover:text-white"
+              }`}
+            >
+              <Columns2 className="h-3.5 w-3.5" />
+              <span>2B + 3B</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
               aria-selected={viewTab === "2d"}
               data-testid="sim-tab-2d"
               onClick={() => onChangeViewTab("2d")}
-              className={`min-h-[36px] rounded-md px-2.5 py-1 text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
+              className={`min-h-[32px] rounded-md px-2.5 py-1 text-xs font-bold transition-all inline-flex items-center gap-1.5 ${
                 viewTab === "2d"
                   ? "bg-purple-600 text-white shadow-sm"
                   : "text-muted-foreground dark:text-zinc-300 hover:text-foreground dark:hover:text-white"
@@ -282,7 +319,7 @@ export default function SimulationViewer({
             data-testid="toggle-concrete-btn"
             aria-pressed={!concreteVisible}
             onClick={onToggleConcrete}
-            className={`min-h-[38px] inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-bold transition-all ${
+            className={`min-h-[34px] inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold transition-all ${
               concreteVisible
                 ? "border-purple-500/40 bg-purple-500/15 text-foreground dark:text-purple-100 hover:bg-purple-500/25"
                 : "border-amber-500/50 bg-amber-500/20 text-amber-700 dark:text-amber-200 hover:bg-amber-500/30"
@@ -306,7 +343,7 @@ export default function SimulationViewer({
             data-testid="toolbar-toggle-section-btn"
             aria-pressed={section.enabled}
             onClick={() => onToggleSection(!section.enabled)}
-            className={`min-h-[38px] inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-bold transition-all ${
+            className={`min-h-[34px] inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold transition-all ${
               section.enabled
                 ? "border-cyan-400 bg-cyan-500/20 text-cyan-800 dark:text-cyan-200"
                 : "border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#171330] text-foreground dark:text-zinc-200 hover:border-cyan-500/40"
@@ -317,66 +354,13 @@ export default function SimulationViewer({
           </button>
         </div>
 
-        {/* Kamera Hazır Bakışları ve Kontroller */}
-        <div className="flex flex-wrap items-center gap-1">
-          {CAMERA_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              data-testid={`camera-preset-${preset.id}`}
-              onClick={() => handleSelectPreset(preset.id)}
-              disabled={!show3DPane || webglStatus !== "ready"}
-              className={`min-h-[36px] rounded-lg px-2.5 py-1 text-xs font-bold transition-all disabled:opacity-40 ${
-                activePreset === preset.id && show3DPane
-                  ? "bg-violet-600/90 text-white shadow-sm"
-                  : "border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#171330] text-muted-foreground dark:text-zinc-300 hover:text-foreground dark:hover:text-white"
-              }`}
-            >
-              {preset.label}
-            </button>
-          ))}
-
-          <div className="h-4 w-px bg-border/80 dark:bg-white/10 mx-0.5 hidden sm:block" />
-
-          <button
-            type="button"
-            data-testid="camera-zoom-in"
-            onClick={() => handleZoom("in")}
-            disabled={!show3DPane || webglStatus !== "ready"}
-            aria-label="Yakınlaş"
-            title="Yakınlaş"
-            className="min-h-[36px] min-w-[36px] inline-flex items-center justify-center rounded-lg border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#171330] text-foreground dark:text-zinc-200 hover:border-purple-500/40 disabled:opacity-40"
-          >
-            <ZoomIn className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            data-testid="camera-zoom-out"
-            onClick={() => handleZoom("out")}
-            disabled={!show3DPane || webglStatus !== "ready"}
-            aria-label="Uzaklaş"
-            title="Uzaklaş"
-            className="min-h-[36px] min-w-[36px] inline-flex items-center justify-center rounded-lg border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#171330] text-foreground dark:text-zinc-200 hover:border-purple-500/40 disabled:opacity-40"
-          >
-            <ZoomOut className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            data-testid="camera-fit-btn"
-            onClick={handleFit}
-            disabled={!show3DPane || webglStatus !== "ready"}
-            aria-label="Modele sığdır"
-            title="Modele sığdır"
-            className="min-h-[36px] inline-flex items-center gap-1 rounded-lg border border-border/80 dark:border-white/10 bg-card/80 dark:bg-[#171330] px-2 py-1 text-xs font-bold text-foreground dark:text-zinc-200 hover:border-purple-500/40 disabled:opacity-40"
-          >
-            <Maximize2 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Sığdır</span>
-          </button>
+        {/* Sağ: Sıfırla Butonu */}
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             data-testid="simulation-reset-btn"
             onClick={handleReset}
-            className="min-h-[36px] inline-flex items-center gap-1 rounded-lg border border-purple-500/40 bg-purple-500/15 px-2.5 py-1 text-xs font-bold text-foreground dark:text-purple-200 hover:bg-purple-500/25"
+            className="min-h-[34px] inline-flex items-center gap-1 rounded-lg border border-purple-500/40 bg-purple-500/15 px-2.5 py-1 text-xs font-bold text-foreground dark:text-purple-200 hover:bg-purple-500/25 transition-all"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             <span>Sıfırla</span>
@@ -433,6 +417,73 @@ export default function SimulationViewer({
             aria-hidden={!show3DPane}
           >
             <div className="relative overflow-hidden rounded-2xl border border-border/80 dark:border-purple-500/25 bg-[#f4f5f8] dark:bg-[#0b0a18] shadow-inner">
+              {/* Kompakt Düşey Araç Rayı (TradingView / CAD Tool Rail) */}
+              <aside
+                aria-label="Stüdyo 3B Kamera ve Kadraj Rayı"
+                className="absolute left-2.5 top-2.5 z-10 flex flex-col items-center gap-1 rounded-xl border border-border/80 dark:border-white/10 bg-background/90 dark:bg-[#110e24]/90 p-1 shadow-md backdrop-blur-md"
+              >
+                {/* Sığdır */}
+                <button
+                  type="button"
+                  data-testid="camera-fit-btn"
+                  onClick={handleFit}
+                  disabled={!show3DPane || webglStatus !== "ready"}
+                  aria-label="Modele sığdır"
+                  title="Modele sığdır"
+                  className="min-h-[32px] min-w-[32px] inline-flex items-center justify-center rounded-lg text-foreground dark:text-zinc-200 hover:bg-muted dark:hover:bg-white/10 hover:border-purple-500/40 transition-all disabled:opacity-40"
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                </button>
+
+                <div className="h-px w-5 bg-border/70 dark:bg-white/10 my-0.5" />
+
+                {/* Hazır Kamera Bakışları */}
+                {CAMERA_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    data-testid={`camera-preset-${preset.id}`}
+                    onClick={() => handleSelectPreset(preset.id)}
+                    disabled={!show3DPane || webglStatus !== "ready"}
+                    title={`${preset.label} Görünüş`}
+                    aria-label={`${preset.label} Görünüş`}
+                    className={`min-h-[28px] min-w-[28px] px-1 inline-flex items-center justify-center rounded-lg text-[10px] font-bold transition-all disabled:opacity-40 ${
+                      activePreset === preset.id && show3DPane
+                        ? "bg-purple-600 text-white shadow-xs font-extrabold"
+                        : "text-muted-foreground dark:text-zinc-300 hover:bg-muted dark:hover:bg-white/10 hover:text-foreground dark:hover:text-white"
+                    }`}
+                  >
+                    {preset.id === "isometric" ? "İzo" : preset.label}
+                  </button>
+                ))}
+
+                <div className="h-px w-5 bg-border/70 dark:bg-white/10 my-0.5" />
+
+                {/* Zoom Kontrolleri */}
+                <button
+                  type="button"
+                  data-testid="camera-zoom-in"
+                  onClick={() => handleZoom("in")}
+                  disabled={!show3DPane || webglStatus !== "ready"}
+                  aria-label="Yakınlaş"
+                  title="Yakınlaş"
+                  className="min-h-[28px] min-w-[28px] inline-flex items-center justify-center rounded-lg text-foreground dark:text-zinc-200 hover:bg-muted dark:hover:bg-white/10 disabled:opacity-40"
+                >
+                  <ZoomIn className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  data-testid="camera-zoom-out"
+                  onClick={() => handleZoom("out")}
+                  disabled={!show3DPane || webglStatus !== "ready"}
+                  aria-label="Uzaklaş"
+                  title="Uzaklaş"
+                  className="min-h-[28px] min-w-[28px] inline-flex items-center justify-center rounded-lg text-foreground dark:text-zinc-200 hover:bg-muted dark:hover:bg-white/10 disabled:opacity-40"
+                >
+                  <ZoomOut className="h-3.5 w-3.5" />
+                </button>
+              </aside>
+
               <div
                 ref={containerRef}
                 data-testid="simulation-canvas-host"
@@ -454,35 +505,37 @@ export default function SimulationViewer({
                 className="h-[clamp(360px,56dvh,520px)] sm:h-[clamp(440px,58dvh,620px)] lg:h-[clamp(520px,64dvh,740px)] 2xl:h-[clamp(580px,68dvh,860px)] min-h-[320px] max-h-[calc(100dvh-76px)] w-full touch-none select-none cursor-grab active:cursor-grabbing"
               />
 
-              {/* Sahne üstü bilgi rozetleri */}
-              <div className="pointer-events-none absolute left-3 top-3 right-3 flex flex-wrap items-center justify-between gap-2">
-                <span className="rounded-xl border border-border/70 dark:border-white/10 bg-background/85 dark:bg-[#110e24]/85 px-2.5 py-1 text-[11px] font-bold text-foreground dark:text-zinc-200 backdrop-blur-md">
+              {/* Sahne üstü durum çipleri (Kompakt ve Temiz Çipler - Sağ Üst) */}
+              <div className="pointer-events-none absolute right-3 top-3 z-10 flex flex-wrap items-center gap-1.5">
+                <span
+                  data-testid="concrete-state-badge"
+                  className="rounded-xl border border-purple-500/30 bg-background/85 dark:bg-[#110e24]/85 px-2.5 py-1 font-mono text-[11px] font-bold text-purple-700 dark:text-purple-200 backdrop-blur-md shadow-xs"
+                >
+                  {concreteVisible ? "Beton: Görünür" : "Beton: Gizli"}
+                </span>
+                {section.enabled && (
+                  <span
+                    data-testid="section-state-badge"
+                    className="rounded-xl border border-cyan-500/40 bg-background/85 dark:bg-[#110e24]/85 px-2.5 py-1 font-mono text-[11px] font-bold text-cyan-800 dark:text-cyan-200 backdrop-blur-md shadow-xs"
+                  >
+                    Kesit A–A: Z={section.elevationZMm} mm
+                  </span>
+                )}
+                {explodePercent > 0 && (
+                  <span
+                    data-testid="explode-state-badge"
+                    className="rounded-xl border border-amber-500/40 bg-background/85 dark:bg-[#110e24]/85 px-2.5 py-1 font-mono text-[11px] font-bold text-amber-800 dark:text-amber-200 backdrop-blur-md shadow-xs"
+                  >
+                    Patlatma: %{explodePercent}
+                  </span>
+                )}
+              </div>
+
+              {/* Sahne etkileşim ipucu (Sade İpucu - Masaüstü) */}
+              <div className="pointer-events-none absolute left-14 top-3 hidden md:block">
+                <span className="rounded-xl border border-border/60 dark:border-white/10 bg-background/70 dark:bg-[#110e24]/70 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground dark:text-zinc-300 backdrop-blur-md">
                   Sol sürükle: Döndür · Tıkla: Seç · Sağ sürükle: Kaydır
                 </span>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span
-                    data-testid="concrete-state-badge"
-                    className="rounded-xl border border-purple-500/30 bg-purple-500/15 px-2.5 py-1 font-mono text-[11px] font-bold text-purple-700 dark:text-purple-200 backdrop-blur-md"
-                  >
-                    {concreteVisible ? "Beton: Görünür" : "Beton: Gizli"}
-                  </span>
-                  {section.enabled && (
-                    <span
-                      data-testid="section-state-badge"
-                      className="rounded-xl border border-cyan-500/40 bg-cyan-500/20 px-2.5 py-1 font-mono text-[11px] font-bold text-cyan-800 dark:text-cyan-200 backdrop-blur-md"
-                    >
-                      Kesit A–A: Z={section.elevationZMm} mm
-                    </span>
-                  )}
-                  {explodePercent > 0 && (
-                    <span
-                      data-testid="explode-state-badge"
-                      className="rounded-xl border border-amber-500/40 bg-amber-500/20 px-2.5 py-1 font-mono text-[11px] font-bold text-amber-800 dark:text-amber-200 backdrop-blur-md"
-                    >
-                      Patlatma: %{explodePercent} (parçalar açıklama amacıyla ayrılmıştır)
-                    </span>
-                  )}
-                </div>
               </div>
 
               {/* Renk lejandı */}
@@ -518,67 +571,170 @@ export default function SimulationViewer({
             </div>
           </div>
 
-          {show2DPane && (
-            <div className="space-y-3 pt-1">
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#110e24]/90 px-3 py-2 shadow-xs">
+          {/* Bölünmüş Mod: Alt Teknik Dock (viewTab === "split") */}
+          {show2DPane && viewTab === "split" && (
+            <div
+              data-testid="simulation-bottom-dock"
+              className="flex flex-col rounded-2xl border border-border/80 dark:border-purple-500/25 bg-card/90 dark:bg-[#110e24]/90 shadow-sm overflow-hidden mt-1.5"
+            >
+              {/* Resize Handle (Drag & Keyboard) */}
+              <div
+                role="separator"
+                aria-orientation="horizontal"
+                aria-label="Alt dock yükseklik ayarı"
+                aria-valuenow={dockHeightDvh}
+                aria-valuemin={22}
+                aria-valuemax={48}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowUp")
+                    setDockHeightDvh((h) => Math.min(48, h + 2));
+                  else if (e.key === "ArrowDown")
+                    setDockHeightDvh((h) => Math.max(22, h - 2));
+                }}
+                onPointerDown={handleDockResizeStart}
+                onPointerMove={handleDockResizeMove}
+                onPointerUp={handleDockResizeEnd}
+                onPointerCancel={handleDockResizeEnd}
+                className="group relative flex h-2.5 w-full cursor-ns-resize items-center justify-center transition-colors hover:bg-purple-500/15 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-purple-500 select-none py-1"
+              >
+                <div className="h-1 w-12 rounded-full bg-border/80 dark:bg-white/20 group-hover:bg-purple-400 transition-colors" />
+              </div>
+
+              {/* Dock Header Bar */}
+              <div className="flex-shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 border-b border-border/60 dark:border-white/10 bg-muted/40 dark:bg-[#16122d]">
                 <div className="flex flex-wrap items-center gap-2">
-                  {viewTab === "split" ? (
-                    <>
-                      <Columns2 className="h-4 w-4 text-purple-400" />
-                      <span className="text-xs font-bold text-foreground dark:text-zinc-200">
-                        2B Teknik Çizim (Boykesit &amp; Enkesit)
-                      </span>
-                      <span className="rounded-full bg-purple-500/15 border border-purple-500/30 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-300">
-                        3B Sahne ile Canlı Senkronize
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Layers className="h-4 w-4 text-cyan-400" />
-                      <span className="text-xs font-bold text-foreground dark:text-zinc-200">
-                        2B Teknik Çizim (Tam Ekran Şema)
-                      </span>
-                      <span className="text-[11px] text-muted-foreground dark:text-zinc-400">
-                        (3B motor arka planda korunmaktadır)
-                      </span>
-                    </>
+                  <Columns2 className="h-3.5 w-3.5 text-purple-400" />
+                  <span className="text-xs font-bold text-foreground dark:text-zinc-200">
+                    2B Teknik Çizim &amp; Kesit Dock
+                  </span>
+                  <span className="rounded-full bg-purple-500/15 border border-purple-500/30 px-2 py-0.5 text-[10px] font-bold text-purple-700 dark:text-purple-300">
+                    3B ile Canlı Senkron
+                  </span>
+                  {section.enabled && (
+                    <span className="rounded-full bg-cyan-500/15 border border-cyan-500/30 px-2 py-0.5 text-[10px] font-bold text-cyan-700 dark:text-cyan-300">
+                      Kesit: Z={section.elevationZMm} mm
+                    </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {viewTab === "split" ? (
-                    <button
-                      type="button"
-                      data-testid="expand-2d-to-fullscreen-tab"
-                      onClick={() => onChangeViewTab("2d")}
-                      className="min-h-[32px] inline-flex items-center gap-1.5 rounded-lg border border-border/70 dark:border-white/10 bg-muted/60 dark:bg-[#181432] px-2.5 py-1 text-xs font-bold text-muted-foreground hover:text-foreground dark:text-zinc-300 dark:hover:text-white transition-all"
-                    >
-                      <Maximize2 className="h-3 w-3" />
-                      <span className="hidden sm:inline">Tam 2B Moduna Geç</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      data-testid="return-to-3d-tab"
-                      onClick={() => onChangeViewTab("3d")}
-                      className="min-h-[32px] inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/20 px-2.5 py-1 text-xs font-bold text-cyan-800 dark:text-cyan-200 hover:bg-cyan-500/30 transition-all"
-                    >
-                      <Box className="h-3 w-3" />
-                      <span>3B Sahneye Dön</span>
-                    </button>
-                  )}
+                <div className="flex items-center gap-1.5">
+                  {/* Kademeli Yükseklik Önayarları */}
+                  <div className="hidden sm:flex items-center gap-1 mr-1">
+                    {[
+                      { dvh: 24, label: "Kompakt" },
+                      { dvh: 34, label: "Orta" },
+                      { dvh: 44, label: "Geniş" },
+                    ].map((preset) => (
+                      <button
+                        key={preset.dvh}
+                        type="button"
+                        onClick={() => setDockHeightDvh(preset.dvh)}
+                        aria-label={`Dock yüksekliği ${preset.label}`}
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-mono font-bold transition-colors ${
+                          Math.abs(dockHeightDvh - preset.dvh) <= 2
+                            ? "bg-purple-600 text-white"
+                            : "text-muted-foreground hover:bg-muted dark:hover:bg-white/10"
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    data-testid="expand-2d-to-fullscreen-tab"
+                    onClick={() => onChangeViewTab("2d")}
+                    aria-label="Tam 2B moduna geç"
+                    title="Tam 2B Moduna Geç"
+                    className="min-h-[28px] inline-flex items-center gap-1 rounded-lg border border-border/70 dark:border-white/10 bg-muted/60 dark:bg-[#181432] px-2 py-0.5 text-[11px] font-bold text-muted-foreground hover:text-foreground dark:text-zinc-300 dark:hover:text-white transition-all"
+                  >
+                    <Maximize2 className="h-3 w-3" />
+                    <span className="hidden sm:inline">Tam 2B</span>
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="close-dock-btn"
+                    onClick={() => onChangeViewTab("3d")}
+                    aria-label="Dock'u kapat ve 3B sahneye dön"
+                    title="Dock'u Kapat (3B)"
+                    className="min-h-[28px] inline-flex items-center gap-1 rounded-lg border border-border/70 dark:border-white/10 bg-muted/60 dark:bg-[#181432] px-2 py-0.5 text-[11px] font-bold text-muted-foreground hover:text-foreground dark:text-zinc-300 dark:hover:text-white transition-all"
+                  >
+                    <EyeOff className="h-3 w-3 text-purple-400" />
+                    <span className="hidden sm:inline">Kapat</span>
+                  </button>
                 </div>
               </div>
 
-              <Drawing2DPreview
-                model={model}
-                layers={layers}
-                selectedPartId={selectedPartId}
-                section={section}
-                onSelectPart={onSelectPart}
-                onToggleSection={onToggleSection}
-                onChangeSectionElevation={onChangeSectionElevation}
-              />
+              {/* Dock İçeriği: Bağımsız İç Scroller (Overscroll-contain) */}
+              <div
+                className="overflow-y-auto overscroll-contain p-2 sm:p-3"
+                style={{
+                  height: `${dockHeightDvh}dvh`,
+                  minHeight: "240px",
+                  maxHeight: "48dvh",
+                }}
+              >
+                <Drawing2DPreview
+                  model={model}
+                  layers={layers}
+                  selectedPartId={selectedPartId}
+                  section={section}
+                  onSelectPart={onSelectPart}
+                  onToggleSection={onToggleSection}
+                  onChangeSectionElevation={onChangeSectionElevation}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Tam 2B Modu (viewTab === "2d") */}
+          {show2DPane && viewTab === "2d" && (
+            <div className="space-y-3 pt-1">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#110e24]/90 px-3 py-2 shadow-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Layers className="h-4 w-4 text-cyan-400" />
+                  <span className="text-xs font-bold text-foreground dark:text-zinc-200">
+                    2B Teknik Çizim (Tam Ekran Şema)
+                  </span>
+                  <span className="text-[11px] text-muted-foreground dark:text-zinc-400">
+                    (3B motor arka planda korunmaktadır)
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    data-testid="return-to-3d-tab"
+                    onClick={() => onChangeViewTab("3d")}
+                    className="min-h-[32px] inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/20 px-2.5 py-1 text-xs font-bold text-cyan-800 dark:text-cyan-200 hover:bg-cyan-500/30 transition-all"
+                  >
+                    <Box className="h-3 w-3" />
+                    <span>3B Sahneye Dön</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onChangeViewTab("split")}
+                    className="min-h-[32px] inline-flex items-center gap-1.5 rounded-lg border border-border/70 dark:border-white/10 bg-muted/60 dark:bg-[#181432] px-2.5 py-1 text-xs font-bold text-muted-foreground hover:text-foreground dark:text-zinc-300 dark:hover:text-white transition-all"
+                  >
+                    <Columns2 className="h-3 w-3" />
+                    <span>Bölünmüş (2B+3B)</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-border/80 dark:border-purple-500/20 bg-card/90 dark:bg-[#110e24]/90 p-3 sm:p-4 shadow-sm">
+                <Drawing2DPreview
+                  model={model}
+                  layers={layers}
+                  selectedPartId={selectedPartId}
+                  section={section}
+                  onSelectPart={onSelectPart}
+                  onToggleSection={onToggleSection}
+                  onChangeSectionElevation={onChangeSectionElevation}
+                />
+              </div>
             </div>
           )}
         </div>

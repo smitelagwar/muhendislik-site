@@ -292,6 +292,9 @@ export function createSimulationThreeScene(options: {
   controls.minDistance = 0.25;
   controls.maxDistance = 18;
   controls.maxPolarAngle = Math.PI * 0.95;
+  controls.rotateSpeed = 0.55;
+  controls.zoomSpeed = 0.65;
+  controls.panSpeed = 0.65;
 
   const ambientLight = new THREE.AmbientLight(0xffffff, isDarkTheme ? 0.88 : 0.96);
   scene.add(ambientLight);
@@ -438,6 +441,11 @@ export function createSimulationThreeScene(options: {
     mesh.userData = { partId: part.id, layerId: "concrete" };
     mesh.renderOrder = 3;
     concreteMeshes.push(mesh);
+
+    partBoundsMap.set(part.id, {
+      min: new THREE.Vector3(center.x - sx * 0.5, center.y - sy * 0.5, center.z - sz * 0.5),
+      max: new THREE.Vector3(center.x + sx * 0.5, center.y + sy * 0.5, center.z + sz * 0.5),
+    });
 
     const isPrimaryConcreteBody =
       part.id === "concrete-column-body" ||
@@ -759,11 +767,59 @@ export function createSimulationThreeScene(options: {
   );
   const maxDim = Math.max(modelSize.x, modelSize.y, modelSize.z, 1.0);
 
-  function getModelCorners(currentExplode: number): THREE.Vector3[] {
-    const scale = 1 + (Math.max(0, currentExplode) / 100) * 0.4;
-    const halfX = (boxMax.x - boxMin.x) * 0.5 * scale;
-    const halfY = (boxMax.y - boxMin.y) * 0.5 * scale;
-    const halfZ = (boxMax.z - boxMin.z) * 0.5 * scale;
+  function getEffectiveModelBounds(): {
+    min: THREE.Vector3;
+    max: THREE.Vector3;
+    center: THREE.Vector3;
+  } {
+    let minX = Infinity;
+    let minY = Infinity;
+    let minZ = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let maxZ = -Infinity;
+    let hasGeometry = false;
+
+    // Görünür katmanlardaki parçaları partBoundsMap üzerinden topla (beton ve donatılar dahil)
+    for (const part of model.parts) {
+      if (layerVisibility[part.layerId]) {
+        const bounds = partBoundsMap.get(part.id);
+        if (bounds) {
+          const lPos = layerGroups[part.layerId].position;
+          minX = Math.min(minX, bounds.min.x + lPos.x);
+          minY = Math.min(minY, bounds.min.y + lPos.y);
+          minZ = Math.min(minZ, bounds.min.z + lPos.z);
+          maxX = Math.max(maxX, bounds.max.x + lPos.x);
+          maxY = Math.max(maxY, bounds.max.y + lPos.y);
+          maxZ = Math.max(maxZ, bounds.max.z + lPos.z);
+          hasGeometry = true;
+        }
+      }
+    }
+
+    if (!hasGeometry || !Number.isFinite(minX) || !Number.isFinite(maxX)) {
+      return {
+        min: boxMin.clone(),
+        max: boxMax.clone(),
+        center: modelCenter.clone(),
+      };
+    }
+
+    const min = new THREE.Vector3(minX, minY, minZ);
+    const max = new THREE.Vector3(maxX, maxY, maxZ);
+    const center = new THREE.Vector3().addVectors(min, max).multiplyScalar(0.5);
+    return { min, max, center };
+  }
+
+  function getModelCorners(currentExplode: number): {
+    corners: THREE.Vector3[];
+    center: THREE.Vector3;
+  } {
+    const { min, max, center } = getEffectiveModelBounds();
+    const scale = 1 + (Math.max(0, currentExplode) / 100) * 0.3;
+    const halfX = Math.max((max.x - min.x) * 0.5 * scale, 0.15);
+    const halfY = Math.max((max.y - min.y) * 0.5 * scale, 0.15);
+    const halfZ = Math.max((max.z - min.z) * 0.5 * scale, 0.15);
 
     const corners: THREE.Vector3[] = [];
     for (const sx of [-1, 1]) {
@@ -771,15 +827,15 @@ export function createSimulationThreeScene(options: {
         for (const sz of [-1, 1]) {
           corners.push(
             new THREE.Vector3(
-              modelCenter.x + sx * halfX,
-              modelCenter.y + sy * halfY,
-              modelCenter.z + sz * halfZ,
+              center.x + sx * halfX,
+              center.y + sy * halfY,
+              center.z + sz * halfZ,
             ),
           );
         }
       }
     }
-    return corners;
+    return { corners, center };
   }
 
   function crossProduct(a: THREE.Vector3, b: THREE.Vector3): THREE.Vector3 {
@@ -790,7 +846,10 @@ export function createSimulationThreeScene(options: {
     );
   }
 
-  function computeFitDistance(dir: THREE.Vector3, currentExplode: number): number {
+  function computeFitDistance(
+    dir: THREE.Vector3,
+    currentExplode: number,
+  ): { dist: number; center: THREE.Vector3 } {
     const viewDir = dir.clone().normalize();
     if (viewDir.length() < 1e-4) {
       viewDir.set(0.62, 0.35, 0.72).normalize();
@@ -809,11 +868,11 @@ export function createSimulationThreeScene(options: {
     const aspect = Math.max(camera.aspect, 0.2);
     const hFovTan = vFovTan * aspect;
 
-    const corners = getModelCorners(currentExplode);
+    const { corners, center } = getModelCorners(currentExplode);
     let maxDist = 0;
 
     for (const corner of corners) {
-      const delta = corner.clone().sub(modelCenter);
+      const delta = corner.clone().sub(center);
       const px = delta.dot(right);
       const py = delta.dot(up);
       const pz = delta.dot(viewDir);
@@ -827,11 +886,12 @@ export function createSimulationThreeScene(options: {
     }
 
     const safetyFactor = 1.16;
-    return THREE.MathUtils.clamp(
+    const dist = THREE.MathUtils.clamp(
       maxDist * safetyFactor,
       controls.minDistance + 0.1,
       controls.maxDistance - 0.5,
     );
+    return { dist, center };
   }
 
   function getPresetDirection(preset: CameraPresetId): THREE.Vector3 {
@@ -851,11 +911,11 @@ export function createSimulationThreeScene(options: {
   function applyCameraPreset(preset: CameraPresetId) {
     currentCameraPreset = preset;
     const dir = getPresetDirection(preset);
-    const dist = computeFitDistance(dir, explodePercent);
+    const { dist, center } = computeFitDistance(dir, explodePercent);
 
-    controls.target.copy(modelCenter);
-    camera.position.copy(modelCenter).add(dir.clone().multiplyScalar(dist));
-    camera.lookAt(modelCenter);
+    controls.target.copy(center);
+    camera.position.copy(center).add(dir.clone().multiplyScalar(dist));
+    camera.lookAt(center);
     controls.update();
     requestRender();
   }
@@ -967,14 +1027,19 @@ export function createSimulationThreeScene(options: {
     const dx = ev.clientX - pointerDownPos.x;
     const dy = ev.clientY - pointerDownPos.y;
     pointerDownPos = null;
-    if (Math.hypot(dx, dy) > 5) return;
+    const dragThreshold = ev.pointerType === "touch" ? 8 : 6;
+    if (Math.hypot(dx, dy) > dragThreshold) return;
 
     const picked = pickPartAtClientPoint(ev.clientX, ev.clientY);
     onPartPicked?.(picked);
   };
+  const handlePointerCancel = () => {
+    pointerDownPos = null;
+  };
 
   renderer.domElement.addEventListener("pointerdown", handlePointerDown);
   renderer.domElement.addEventListener("pointerup", handlePointerUp);
+  renderer.domElement.addEventListener("pointercancel", handlePointerCancel);
 
   const handleControlsChange = () => {
     requestRender();
@@ -1105,19 +1170,23 @@ export function createSimulationThreeScene(options: {
         offset.length() > 1e-4
           ? offset.normalize()
           : getPresetDirection(currentCameraPreset);
-      const dist = computeFitDistance(dir, explodePercent);
+      const { dist, center } = computeFitDistance(dir, explodePercent);
 
-      controls.target.copy(modelCenter);
-      camera.position.copy(modelCenter).add(dir.clone().multiplyScalar(dist));
-      camera.lookAt(modelCenter);
+      controls.target.copy(center);
+      camera.position.copy(center).add(dir.clone().multiplyScalar(dist));
+      camera.lookAt(center);
       controls.update();
       requestRender();
     },
     zoomByStep(direction: "in" | "out") {
-      const factor = direction === "in" ? 0.84 : 1.18;
+      const factor = direction === "in" ? 0.90 : 1.10;
       const offset = new THREE.Vector3().subVectors(camera.position, controls.target);
+      const currentLen = offset.length();
+      if (!Number.isFinite(currentLen) || currentLen <= 1e-4) return;
+      const targetLen = currentLen * factor;
+      if (!Number.isFinite(targetLen) || targetLen <= 0) return;
       const nextLen = THREE.MathUtils.clamp(
-        offset.length() * factor,
+        targetLen,
         controls.minDistance,
         controls.maxDistance,
       );
@@ -1165,6 +1234,7 @@ export function createSimulationThreeScene(options: {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
       renderer.domElement.removeEventListener("pointerup", handlePointerUp);
+      renderer.domElement.removeEventListener("pointercancel", handlePointerCancel);
       renderer.domElement.removeEventListener("webglcontextlost", handleContextLost);
       controls.removeEventListener("change", handleControlsChange);
       controls.dispose();
