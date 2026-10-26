@@ -42,6 +42,8 @@ import {
   calculateFocusPadding,
   calculatePaddingCompensation,
   easeOutCubic,
+  isPreviewFittedToViewport,
+  isPreviewWidthFitted,
 } from "@/lib/belge-studio-focus-center";
 import {
   BELGE_INLINE_TAP_MAX_MOVE,
@@ -112,9 +114,13 @@ export function BelgeStudioPdfPreview({
 }: BelgeStudioPdfPreviewProps) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [displayZoom, setDisplayZoom] = useState(100);
-  const [fitMode, setFitMode] = useState<"page" | "width" | "custom">("page");
+  const [fitMode, setFitModeState] = useState<"page" | "width" | "custom">("page");
   const fitModeRef = useRef<"page" | "width" | "custom">("page");
-  fitModeRef.current = fitMode;
+
+  const setFitMode = useCallback((mode: "page" | "width" | "custom") => {
+    fitModeRef.current = mode;
+    setFitModeState(mode);
+  }, []);
   const pageSizeRef = useRef({ width: 595.28, height: 841.89 });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageCount, setPageCount] = useState(0);
@@ -972,22 +978,49 @@ export function BelgeStudioPdfPreview({
     const frame = frameRef.current;
     if (!container || !surface || !frame) return;
 
-    // 1. Ensure focus padding is active on surface so edge fields can reach center
-    const pad = calculateFocusPadding(container.clientWidth, container.clientHeight);
+    const fr = frame.getBoundingClientRect();
+
+    // 1. Sığdır / Viewport Fit: When "Sığdır" is active or PDF fits completely on screen,
+    // preview remains completely static and fixed without centering scroll or padding.
+    const isPageFitMode = fitModeRef.current === "page";
+    const isPageFitted =
+      isPageFitMode ||
+      isPreviewFittedToViewport(fr.width, fr.height, container.clientWidth, container.clientHeight);
+
+    if (isPageFitted) {
+      clearFocusPadding();
+      return;
+    }
+
+    // 2. Genişliğe Sığdır / Width Fit: When in "width" fit mode, lock horizontal motion
+    // to prevent side-to-side sway or jumping from the left; animate vertical scroll smoothly.
+    const isWidthFitMode = fitModeRef.current === "width";
+
+    const pad = calculateFocusPadding(container.clientWidth, container.clientHeight, {
+      lockHorizontal: isWidthFitMode,
+    });
     let effectiveFrameRect: { left: number; top: number; width: number; height: number };
 
     if (!isFocusPaddedRef.current) {
       const prevFrameRect = frame.getBoundingClientRect();
-      frame.style.setProperty("--belge-frame-margin", "0");
-      surface.style.setProperty("--belge-focus-pad-left", `${pad.padX}px`);
-      surface.style.setProperty("--belge-focus-pad-right", `${pad.padX}px`);
+      if (isWidthFitMode) {
+        frame.style.removeProperty("--belge-frame-margin");
+        surface.style.setProperty("--belge-focus-pad-left", "0px");
+        surface.style.setProperty("--belge-focus-pad-right", "0px");
+      } else {
+        frame.style.setProperty("--belge-frame-margin", "0");
+        surface.style.setProperty("--belge-focus-pad-left", `${pad.padX}px`);
+        surface.style.setProperty("--belge-focus-pad-right", `${pad.padX}px`);
+      }
       surface.style.setProperty("--belge-focus-pad-top", `${pad.padY}px`);
       surface.style.setProperty("--belge-focus-pad-bottom", `${pad.padY}px`);
       isFocusPaddedRef.current = true;
 
       const newFrameRect = frame.getBoundingClientRect();
       const { shiftX, shiftY } = calculatePaddingCompensation(prevFrameRect, newFrameRect);
-      container.scrollLeft += shiftX;
+      if (!isWidthFitMode) {
+        container.scrollLeft += shiftX;
+      }
       container.scrollTop += shiftY;
 
       // scrollLeft/Top compensation maintains the exact visual coordinates of prevFrameRect
@@ -1001,7 +1034,7 @@ export function BelgeStudioPdfPreview({
       effectiveFrameRect = frame.getBoundingClientRect();
     }
 
-    // 2. Read stabilized geometries
+    // 3. Read stabilized geometries
     const cr = container.getBoundingClientRect();
     const containerMetrics = {
       left: cr.left,
@@ -1026,6 +1059,7 @@ export function BelgeStudioPdfPreview({
       container: containerMetrics,
       frame: frameMetrics,
       fieldRect: rect,
+      lockHorizontal: isWidthFitMode,
     });
 
     if (centerResult.isAlreadyCentered) {
@@ -1034,15 +1068,17 @@ export function BelgeStudioPdfPreview({
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduceMotion) {
-      container.scrollLeft = centerResult.targetScrollLeft;
+      if (!isWidthFitMode) {
+        container.scrollLeft = centerResult.targetScrollLeft;
+      }
       container.scrollTop = centerResult.targetScrollTop;
       return;
     }
 
-    // 3. Smooth 280ms RAF animation using easeOutCubic
+    // 4. Smooth 280ms RAF animation using easeOutCubic
     const startLeft = container.scrollLeft;
     const startTop = container.scrollTop;
-    const deltaLeft = centerResult.targetScrollLeft - startLeft;
+    const deltaLeft = isWidthFitMode ? 0 : centerResult.targetScrollLeft - startLeft;
     const deltaTop = centerResult.targetScrollTop - startTop;
     const duration = 280;
     const startTime = performance.now();
@@ -1052,7 +1088,9 @@ export function BelgeStudioPdfPreview({
       const progress = Math.min(1, elapsed / duration);
       const eased = easeOutCubic(progress);
 
-      container.scrollLeft = Math.round(startLeft + deltaLeft * eased);
+      if (!isWidthFitMode && deltaLeft !== 0) {
+        container.scrollLeft = Math.round(startLeft + deltaLeft * eased);
+      }
       container.scrollTop = Math.round(startTop + deltaTop * eased);
 
       if (progress < 1) {
@@ -1063,7 +1101,7 @@ export function BelgeStudioPdfPreview({
     };
 
     focusScrollRafRef.current = requestAnimationFrame(step);
-  }, [cancelFocusScroll]);
+  }, [cancelFocusScroll, clearFocusPadding]);
 
   centerFocusedFieldRef.current = centerFocusedField;
 
@@ -1380,6 +1418,7 @@ export function BelgeStudioPdfPreview({
   };
 
   const handleFit = useCallback(() => {
+    setFitMode("page");
     if (!isMobileMode) setInlineSelectedField(null);
     clearFocusPadding();
     pendingAnchorRef.current = null;
@@ -1390,9 +1429,10 @@ export function BelgeStudioPdfPreview({
       targetZoom: 100,
       initialVisualZoom: visualZoom,
     });
-  }, [isMobileMode, startFitTransition, clearFocusPadding, smoothZoom]);
+  }, [setFitMode, isMobileMode, startFitTransition, clearFocusPadding, smoothZoom]);
 
   const handleFitWidth = useCallback(() => {
+    setFitMode("width");
     if (!isMobileMode) setInlineSelectedField(null);
     clearFocusPadding();
     const container = containerRef.current;
@@ -1421,12 +1461,13 @@ export function BelgeStudioPdfPreview({
       targetZoom,
       initialVisualZoom: visualZoom,
     });
-  }, [isMobileMode, startFitTransition, clearFocusPadding, smoothZoom]);
+  }, [setFitMode, isMobileMode, startFitTransition, clearFocusPadding, smoothZoom]);
 
   const handleToolbarZoom = (value: number) => {
     cancelTransition();
     smoothZoom.cancelSmoothZoom();
     cancelFocusScroll();
+    clearFocusPadding();
     setFitMode("custom");
     if (!isMobileMode) setInlineSelectedField(null);
     setRenderedToken(null);

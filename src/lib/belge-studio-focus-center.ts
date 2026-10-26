@@ -40,6 +40,7 @@ export type CalculateFieldCenterParams = {
   frame: FrameMetrics;
   fieldRect: FieldFocusRectLike;
   sheetOverlap?: number;
+  lockHorizontal?: boolean;
 };
 
 export type CalculateFieldCenterResult = {
@@ -61,7 +62,7 @@ export type CalculateFieldCenterResult = {
 export function calculateBelgeFieldCenterScroll(
   params: CalculateFieldCenterParams
 ): CalculateFieldCenterResult {
-  const { container, frame, fieldRect, sheetOverlap = 0 } = params;
+  const { container, frame, fieldRect, sheetOverlap = 0, lockHorizontal = false } = params;
 
   // Field geometric center in client coordinates
   const fieldCenterX = frame.left + (fieldRect.left + fieldRect.width / 2) * frame.width;
@@ -76,13 +77,16 @@ export function calculateBelgeFieldCenterScroll(
   const viewportCenterY =
     container.top + container.clientTop + effectiveClientHeight / 2;
 
-  const deltaX = fieldCenterX - viewportCenterX;
+  const deltaX = lockHorizontal ? 0 : fieldCenterX - viewportCenterX;
   const deltaY = fieldCenterY - viewportCenterY;
 
-  const targetScrollLeft = Math.round(container.scrollLeft + deltaX);
+  const targetScrollLeft = lockHorizontal
+    ? container.scrollLeft
+    : Math.round(container.scrollLeft + deltaX);
   const targetScrollTop = Math.round(container.scrollTop + deltaY);
 
-  const isAlreadyCentered = Math.abs(deltaX) <= 2 && Math.abs(deltaY) <= 2;
+  const isAlreadyCentered =
+    (lockHorizontal || Math.abs(deltaX) <= 2) && Math.abs(deltaY) <= 2;
 
   return {
     fieldCenterX,
@@ -102,14 +106,47 @@ export function calculateBelgeFieldCenterScroll(
  * (including top-left (0,0) and bottom-right (1,1)) to reach viewport center
  * without being constrained by native scroll container bounds.
  */
-export function calculateFocusPadding(containerWidth: number, containerHeight: number): {
+export function calculateFocusPadding(
+  containerWidth: number,
+  containerHeight: number,
+  options?: { lockHorizontal?: boolean }
+): {
   padX: number;
   padY: number;
 } {
   return {
-    padX: Math.max(8, Math.ceil(containerWidth)),
+    padX: options?.lockHorizontal ? 0 : Math.max(8, Math.ceil(containerWidth)),
     padY: Math.max(8, Math.ceil(containerHeight)),
   };
+}
+
+/**
+ * Checks whether the PDF preview frame fits entirely within the container viewport
+ * in both dimensions. In this state, preview is static and centering scroll is disabled.
+ */
+export function isPreviewFittedToViewport(
+  frameWidth: number,
+  frameHeight: number,
+  containerWidth: number,
+  containerHeight: number,
+  tolerance = 8
+): boolean {
+  return (
+    frameWidth <= containerWidth + tolerance &&
+    frameHeight <= containerHeight + tolerance
+  );
+}
+
+/**
+ * Checks whether the PDF preview frame fits horizontally within the container.
+ * In this state, horizontal scrolling/padding is locked to prevent unnatural side-to-side sway.
+ */
+export function isPreviewWidthFitted(
+  frameWidth: number,
+  containerWidth: number,
+  tolerance = 4
+): boolean {
+  return frameWidth <= containerWidth + tolerance;
 }
 
 /**

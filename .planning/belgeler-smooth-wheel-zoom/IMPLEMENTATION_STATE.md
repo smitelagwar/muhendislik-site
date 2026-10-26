@@ -7,6 +7,7 @@ next_stage: null
 completed_stages:
   - ASAMA_01
   - ASAMA_01_PARLAMA_REPAIR
+  - ASAMA_03_FOCUS_CENTER_REPAIR
 release_status: VERIFIED
 commit_sha: "ad9d8ab81e1e40a0ca671ae4ff854a86f91d575d"
 deployment_id: "https://muhendislik-site-cfdaqi09o-huseying5713-2819s-projects.vercel.app"
@@ -47,5 +48,21 @@ evidence:
     tests:
       - "tests/site-audit/belgeler-smooth-zoom.spec.ts Test 6: 0 intermediate canvas width/height mutations during multi-notch in/out zoom"
       - "Live Production Smoke: intermediate canvas mutations = 0, post-settle mutations = 1, inkRatio = 0.0912, 0 page errors."
+  - stage: ASAMA_03_FOCUS_CENTER_REPAIR
+    description: "Sığdır Modunda Odak Ortalamasının Kapatılması ve Genişliğe Sığdırda Yatay Sıçramanın Giderilmesi"
+    root_cause:
+      - "Sığdır açıkken veya sayfa pencereye sığıyorken bile calculateFocusPadding çalıştırılıp padding: clientWidth ekleniyor ve PDF gereksiz yere kaydırılıyordu."
+      - "Genişliğe sığdır modunda paddingLeft: clientWidth eklenip margin: auto sıfırlanınca calculatePaddingCompensation nedeniyle sayfa 900+ px sağa itilip ardından alan koordinatlarına göre soldan sağa yatayda ani savrulma (scrollLeft sıçraması) yapıyordu."
+    fixes:
+      - "isPreviewFittedToViewport ve isPreviewWidthFitted yardımcı fonksiyonları eklendi."
+      - "Sığdır modunda (fitMode === 'page') veya sayfa viewport içine sığdığında centerFocusedField erken çıkış yaparak padding ve scroll işlemlerini atlar; PDF önizleme tamamen sabit kalır."
+      - "Genişliğe Sığdır modunda (fitMode === 'width'), lockHorizontal: true bayrağı ile yatay padding sıfırlanır (padX = 0), margin: auto korunur, container.scrollLeft = 0 sabit kalır; alanlar arası geçiş yalnızca pürüzsüz dikey kaydırma (scrollTop) ile akar."
+      - "Serbest yüksek zoomda (fitMode === 'custom') iki eksenli merkezleme tam hassasiyetle çalışmaya devam eder."
+    tests:
+      - "tests/belgeler/belge-studio-focus-center.test.ts: 13/13 pass"
+      - "tests/site-audit/belgeler-focus-center-stage03.spec.ts: 6/6 pass"
+      - "tests/site-audit/belgeler-field-focus.spec.ts: 18/18 pass"
+      - "npx tsc -p tsconfig.next.json --noEmit: 0 error"
+      - "npm run build: 635/635 pages compiled and statically generated"
 blockers: []
-updated_at: "2026-10-26T10:50:00+03:00"
+updated_at: "2026-10-26T11:40:00+03:00"

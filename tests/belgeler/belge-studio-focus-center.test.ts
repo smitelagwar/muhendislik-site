@@ -5,6 +5,8 @@ import {
   calculateFocusPadding,
   easeOutCubic,
   calculatePaddingCompensation,
+  isPreviewFittedToViewport,
+  isPreviewWidthFitted,
 } from "../../src/lib/belge-studio-focus-center";
 
 describe("ASAMA_03: belge-studio-focus-center — Saf Matematik ve Odak Merkezleme Hesapları", () => {
@@ -145,6 +147,53 @@ describe("ASAMA_03: belge-studio-focus-center — Saf Matematik ve Odak Merkezle
       assert.equal(resultWithOverlap.fieldCenterY, 200);
       assert.equal(resultWithOverlap.deltaY, -100);
     });
+    it("lockHorizontal true iken deltaX=0 olmalı ve targetScrollLeft container.scrollLeft değerini korumalıdır", () => {
+      const container = {
+        left: 0,
+        top: 0,
+        clientWidth: 800,
+        clientHeight: 600,
+        clientLeft: 0,
+        clientTop: 0,
+        scrollLeft: 50,
+        scrollTop: 100,
+        scrollWidth: 800,
+        scrollHeight: 2000,
+      };
+
+      const frame = {
+        left: 0,
+        top: 0,
+        width: 800,
+        height: 2000,
+      };
+
+      // Field is at x = 0.2 (left-aligned)
+      const fieldRect = {
+        left: 0.2,
+        top: 0.4,
+        width: 0.1,
+        height: 0.1,
+      };
+
+      const result = calculateBelgeFieldCenterScroll({
+        container,
+        frame,
+        fieldRect,
+        lockHorizontal: true,
+      });
+
+      // Horizontal lock ensures zero deltaX and zero scrollLeft change
+      assert.equal(result.deltaX, 0);
+      assert.equal(result.targetScrollLeft, 50);
+
+      // Vertical calculation still operates normally
+      // fieldCenterY = 0 + (0.4 + 0.05) * 2000 = 900
+      // viewportCenterY = 300
+      // deltaY = 900 - 300 = 600
+      assert.equal(result.deltaY, 600);
+      assert.equal(result.targetScrollTop, 700);
+    });
   });
 
   describe("2. calculateFocusPadding", () => {
@@ -158,6 +207,12 @@ describe("ASAMA_03: belge-studio-focus-center — Saf Matematik ve Odak Merkezle
       const padding = calculateFocusPadding(5, 5);
       assert.equal(padding.padX, 8);
       assert.equal(padding.padY, 8);
+    });
+
+    it("lockHorizontal true iken padX=0 olmalıdır (yatay sıçrama engeli)", () => {
+      const padding = calculateFocusPadding(1200, 800, { lockHorizontal: true });
+      assert.equal(padding.padX, 0);
+      assert.equal(padding.padY, 800);
     });
   });
 
@@ -230,6 +285,30 @@ describe("ASAMA_03: belge-studio-focus-center — Saf Matematik ve Odak Merkezle
         fieldKey: "tarih",
       });
       assert.equal(state4.centerRequestId, 2);
+    });
+  });
+
+  describe("6. isPreviewFittedToViewport & isPreviewWidthFitted", () => {
+    it("Önizleme hem en hem boy olarak sığıyorsa isPreviewFittedToViewport true dönmelidir", () => {
+      // Container 1000x800, Frame 600x750 -> Fits
+      assert.equal(isPreviewFittedToViewport(600, 750, 1000, 800), true);
+      // Container 1000x800, Frame 1005x750 -> Fits within 8px tolerance
+      assert.equal(isPreviewFittedToViewport(1005, 750, 1000, 800), true);
+      // Container 1000x800, Frame 1020x750 -> Exceeds tolerance
+      assert.equal(isPreviewFittedToViewport(1020, 750, 1000, 800), false);
+      // Container 1000x800, Frame 600x850 -> Exceeds height
+      assert.equal(isPreviewFittedToViewport(600, 850, 1000, 800), false);
+    });
+
+    it("Önizleme yatayda sığıyorsa isPreviewWidthFitted true dönmelidir", () => {
+      // Container 900, Frame 880 -> Fits
+      assert.equal(isPreviewWidthFitted(880, 900), true);
+      // Container 900, Frame 903 -> Fits within 4px tolerance
+      assert.equal(isPreviewWidthFitted(903, 900), true);
+      // Container 900, Frame 910 -> Exceeds tolerance
+      assert.equal(isPreviewWidthFitted(910, 900), false);
+      // Container 900, Frame 1200 -> Exceeds tolerance (high zoom)
+      assert.equal(isPreviewWidthFitted(1200, 900), false);
     });
   });
 });

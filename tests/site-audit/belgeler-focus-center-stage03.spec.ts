@@ -253,4 +253,99 @@ test.describe("ASAMA_03: İki Eksende Tam Merkezli Form Alanı Navigasyonu ve Zo
       path: path.join(outputDir, "focus-stage03-04-reduced-motion-center.png"),
     });
   });
+
+  test("5. Sığdır modu: Alan odaklamada önizleme tamamen sabit kalmalı, scrollLeft ve scrollTop sıfır olmalıdır", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    const { studio, toolbar } = await waitForStudioReady(page, "/belgeler/santiye-sefi-sozlesmesi");
+
+    // Click "Sığdır" (Fit to page)
+    const fitPageBtn = toolbar.locator('button[aria-label="Sığdır"]');
+    await fitPageBtn.click();
+    await page.waitForTimeout(400);
+
+    const initialScroll = await page.evaluate(() => {
+      const container = document.querySelector('[data-testid="belge-studio-preview-canvas"]')!;
+      return { left: container.scrollLeft, top: container.scrollTop };
+    });
+
+    // Focus on muteahhit_unvan
+    const input1 = studio.locator("#sozlesme-muteahhit_unvan");
+    await input1.focus();
+    await page.waitForTimeout(400);
+
+    const scrollAfterFocus1 = await page.evaluate(() => {
+      const container = document.querySelector('[data-testid="belge-studio-preview-canvas"]')!;
+      const surface = document.querySelector(".belge-preview-surface")!;
+      return {
+        left: container.scrollLeft,
+        top: container.scrollTop,
+        padLeft: getComputedStyle(surface).paddingLeft,
+      };
+    });
+
+    // In fit-to-page mode, canvas must stay completely static and unpadded
+    expect(scrollAfterFocus1.left).toBe(initialScroll.left);
+    expect(scrollAfterFocus1.top).toBe(initialScroll.top);
+    expect(scrollAfterFocus1.padLeft).toBe("8px");
+
+    // Focus on ucret
+    const input2 = studio.locator("#sozlesme-ucret");
+    await input2.focus();
+    await page.waitForTimeout(400);
+
+    const scrollAfterFocus2 = await page.evaluate(() => {
+      const container = document.querySelector('[data-testid="belge-studio-preview-canvas"]')!;
+      return { left: container.scrollLeft, top: container.scrollTop };
+    });
+
+    expect(scrollAfterFocus2.left).toBe(initialScroll.left);
+    expect(scrollAfterFocus2.top).toBe(initialScroll.top);
+
+    await page.screenshot({
+      path: path.join(outputDir, "focus-stage03-05-fit-page-static.png"),
+    });
+  });
+
+  test("6. Genişliğe Sığdır: Müteahhit -> Ücret geçişinde yatay sıçrama olmamalı (scrollLeft=0), sadece dikey geçiş olmalıdır", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    const { studio, toolbar } = await waitForStudioReady(page, "/belgeler/santiye-sefi-sozlesmesi");
+
+    // Click "Genişliğe Sığdır"
+    const fitWidthBtn = toolbar.locator('button[aria-label="Genişliğe sığdır"]');
+    await fitWidthBtn.click();
+    await page.waitForTimeout(400);
+
+    // Focus on muteahhit_unvan (at top of page 1)
+    const input1 = studio.locator("#sozlesme-muteahhit_unvan");
+    await input1.focus();
+    await page.waitForTimeout(450);
+
+    const metrics1 = await page.evaluate(() => {
+      const container = document.querySelector('[data-testid="belge-studio-preview-canvas"]')!;
+      return { left: container.scrollLeft, top: container.scrollTop };
+    });
+
+    // Horizontal scroll MUST stay 0 (no horizontal jump from the left)
+    expect(metrics1.left).toBe(0);
+
+    // Now focus on ucret (lower down on page 1)
+    const input2 = studio.locator("#sozlesme-ucret");
+    await input2.focus();
+    await page.waitForTimeout(450);
+
+    const metrics2 = await page.evaluate(() => {
+      const container = document.querySelector('[data-testid="belge-studio-preview-canvas"]')!;
+      return { left: container.scrollLeft, top: container.scrollTop };
+    });
+
+    // Horizontal scroll MUST stay 0 (no horizontal jump from the left)
+    expect(metrics2.left).toBe(0);
+
+    // Vertical scroll should have moved downwards naturally from field 1 to field 2
+    expect(metrics2.top).toBeGreaterThan(metrics1.top);
+
+    await page.screenshot({
+      path: path.join(outputDir, "focus-stage03-06-fit-width-vertical-flow.png"),
+    });
+  });
 });
