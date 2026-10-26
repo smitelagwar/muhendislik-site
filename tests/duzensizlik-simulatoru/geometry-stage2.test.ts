@@ -29,8 +29,8 @@ test("A1 slab corner follows the SAME rotation as its surrounding joints",()=>{
     assert.ok(Number.isFinite(slab.yaw),`A1 yaw not finite at phase ${phase}: ${JSON.stringify({slab,center,q:jointAt([center[0]+1,center[1],center[2]],"A1",phase,1)})}`);
     for(const corner of corners){
       const dx=corner[0]-center[0],dz=corner[2]-center[2];
-      const worldX=slab.position[0]+dx*Math.cos(slab.yaw)+dz*Math.sin(slab.y);
-      const worldZ=slab.position[2]-dx*Math.sin(slab.y)+dz*Math.cos(slab.y);
+      const worldX=slab.position[0]+dx*Math.cos(slab.yaw)+dz*Math.sin(slab.yaw);
+      const worldZ=slab.position[2]-dx*Math.sin(slab.yaw)+dz*Math.cos(slab.yaw);
       const expected=jointAt(corner,"A1",phase,1);
       near(worldX,expected[0],1e-5);
       near(worldZ,expected[2],1e-5);
