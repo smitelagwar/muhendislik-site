@@ -1,6 +1,6 @@
 # hsynCAD — Uygulama durumu
 
-> Bu ilerleme kaydı ilk planın tamamlanmış aşamalarını izler. `PLAN.md` orijinal plan kopyasıdır. ASAMA_04 mobil/tablet panel geçişi kod checkpoint'i tamamlandı. ASAMA_05 yalnız yeni `devam` talimatıyla başlar.
+> Bu ilerleme kaydı ilk planın tamamlanmış aşamalarını izler. `PLAN.md` orijinal plan kopyasıdır. ASAMA_05 test/Preview kalite kapısı tamamlandı. ASAMA_06 Production yalnız yeni `devam` komutuyla başlar.
 
 ```yaml
 plan_id: HSYNCAD_IMMERSIVE_VIEWPORT_2026_10_26
@@ -8,8 +8,8 @@ plan_revision: 1
 planning_status: PLAN_HAZIR
 execution_status: DEVAM_EDIYOR
 active_stage: null
-next_stage: ASAMA_05
-completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04]
+next_stage: ASAMA_06
+completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04, ASAMA_05]
 evidence:
   - stage: ASAMA_01
     check: main_HEAD
@@ -89,8 +89,38 @@ evidence:
     check: vercel_deployment
     result: NOT_RUN
     detail: "No preview or production deploy in stage 04."
+  - stage: ASAMA_05
+    check: targeted_eslint
+    result: PASS
+    proof: "GitHub Actions 40331196927; Chromium regression job"
+  - stage: ASAMA_05
+    check: deployable_typescript_and_production_build
+    result: PASS
+    proof: "GitHub Actions 40331197236; validate job succeeded"
+  - stage: ASAMA_05
+    check: playwright_chromium
+    result: PASS
+    tests: 12
+    passed: 12
+    failed: 0
+    proof: "https://github.com/smitelagwar/muhendislik-site/actions/runs/40331196927"
+  - stage: ASAMA_05
+    check: preview_deployment_final
+    result: PASS
+    deployment_id: dpl_87nXJYKGu8wPzvbKRjhDcnA5Wp18
+    source_sha: 051d81e1aa8fdcaccdedcdda512d8d58eb72074e
+    state: READY
+    minimum_observation_seconds: 180
+  - stage: ASAMA_05
+    check: preview_server_route_smoke
+    result: PASS
+    detail: "hsyncad, tools, donati-hesabi HTTP 200; hsynCAD app shell without site header; other routes retain navbar"
+  - stage: ASAMA_05
+    check: repo_wide_health_informational
+    result: FAIL_BASELINE
+    detail: "Existing unrelated test/script typechecking debt; no hsynCAD runtime typecheck errors"
 blockers: []
-updated_at: "2026-10-26T15:28:19+03:00"
+updated_at: "2026-10-26T16:37:51+03:00"
 ```
 
 ## Kaynak ve erişim tabanı
@@ -165,3 +195,19 @@ Yalnız bu iki plan/durum belgesi tek dokümantasyon checkpoint'inde kaydedilir;
 - Chromium 40329477958: **11/12 PASS**, mobil viewport kayması dahil düzeldi. Son kalan örnek hacim düşümü `0.6315` yarım ondalık sınırına ilişkin gösterimdir. Hesap motoru `calculateQuantities` / `resolveJunctions` korunarak sadece `number()` metinsel yuvarlama sekiz basamak ara ondalık sabitlemesi ve signed half-up ile düzeltildi. Yeni CI henüz sonucu vermedi.
 
 - QA görsel inceleme: Başarılı 12/12 testin masaüstü ekran görüntüsünde mobil 2B/3B/Metraj butonları yanlışlıkla görünüyordu (CSS `.hcad-workspace-bar > div` özgüllük üstünlüğü). Yalnız mobilde görünür olacak yüksek özgüllüklü selector eklendi; masaüstü Chromium testinde görünmezlik denetimi eklendi. Yeniden 12/12 testi koşulacak.
+
+## ASAMA_05 — Gerçek CI, Preview ve kabul (2026-10-26T16:37:51+03:00)
+
+- Nihai **uygulama/test kodu SHA**: `051d81e1aa8fdcaccdedcdda512d8d58eb72074e` (bu durum dosyası için yazılan dokümantasyon-only `[skip ci]` commit'i bu SHA'nın üzerine gelebilir; kod nesneleri değişmez).
+- **Hedefli lint PASS:** GitHub Actions hsynCAD responsive viewport gate: https://github.com/smitelagwar/muhendislik-site/actions/runs/40331196927.
+- **Chromium Playwright PASS 12/12:** SiteShell masaüstü/mobil rota dönüşü, 320×568/360×740/390×844/430×932/768×1024/844×390 mobil görünüm, masaüstü 1920×1080 dahil çoklu viewport, CAD çizim/metraj/JSON/persistence/3B orbit/touch ve drawer focus/scroll. Test çıktısı ve ekran görüntüleri aynı GitHub Actions artifact içinde.
+- **Production build ve TypeScript PASS:** GitHub Actions `vercel-preflight`, `validate` job: https://github.com/smitelagwar/muhendislik-site/actions/runs/40331197236. Ayrı `repository-health` bilgilendirme kontrolü eski repo-geneli script/test TypeScript borcu nedeniyle FAIL (yeni hsynCAD runtime hatası değildir). Eski bağımsız `Deprem Content Infrastructure` ve `dok-mobile-plan-validation` işleri bu görevden ayrı değerlendirildi.
+- **Preview bütçesi:** 3 kontrollü Preview oluşturuldu (maksimum plan kotası 4): 
+  1. İlk SHA `761dff5`: `dpl_9oGY3QdT3vp7zLXxesyyBk6Y85qM`, READY, ilk canlı kullanıcı akışı incelemesi; önce 180 saniye kuralı uygulandı.
+  2. Ara SHA `583228a`: `dpl_3g9yFoVDL7yWHDNPVEMMBrsLJZFx`, READY, 180 saniye kuralı uygulandı.
+  3. **Nihai SHA `051d81e1aa8fdcaccdedcdda512d8d58eb72074e`**: `dpl_87nXJYKGu8wPzvbKRjhDcnA5Wp18`, READY ve `t0+193s` anında yeniden kontrol; **minimum 180 saniye doğrulandı**.
+- **Nihai Preview URL:** https://muhendislik-site-q1n2jx7r2-huseying5713-2819s-projects.vercel.app/kategori/araclar/hsyncad (Vercel authentication koruması altında olabilir; Vercel bağlantısı hesabına ait share URL oluşturabilir).
+- **Sunucu smoke PASS** (nihai Preview): `/kategori/araclar/hsyncad`, `/kategori/araclar`, `/kategori/araclar/donati-hesabi` hepsi HTTP 200; sadece CAD'de genel navbar HTML'i yok, diğer iki rota onu render ediyor.
+- **Tarayıcıda Preview incelemesi:** İlk Preview sürümünde bağımsız tarayıcı ajanı 17 PASS / 1 NOT TESTED raporladı. Bu nihai commit'e ait değildir; nihai commit'in 12/12 Chromium CI sonuçları bağımsız regresyon kanıtıdır. Son uygulama ekran görüntüleri incelendi; masaüstünde mobil 2B/3B/Metraj anahtarı gizli, mobilde görünüyor.
+- Kalan kesin sınırlamalar: Edge/Safari gerçek browser matrisi çalıştırılmadı; mobil sanal klavye dış cihaz kabulü ayrıca yapılmadı. Tam depo script/test baseline borcu devam ediyor.
+- `main` ve Production hiç değiştirilmedi. PR #47 **draft** kalacak. **ASAMA_06 için yeni `devam` gereklidir**; o aşamada tek squash merge / tek production ve yeniden 180 saniye gözlem uygulanır. Bu aşamada asla production deploy tetiklenmeyecek.
