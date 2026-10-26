@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import type { CameraView } from "./building-viewer";
+import { IrregularityFallback2D } from "./irregularity-fallback-2d";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, PanelRightClose, PanelRightOpen, Play, Pause, Layers, RotateCcw } from "lucide-react";
 
@@ -28,8 +29,9 @@ export function IrregularityStudioShell() {
   const [showSlabs, setShowSlabs] = useState(true);
   const [lessonStep, setLessonStep] = useState(0);
   const [viewerRetry, setViewerRetry] = useState(0);
+  const [viewMode, setViewMode] = useState<"3d" | "2d">("3d");
   const current = SCENARIOS[selected];
-  const selectScenario = (index: number) => { setSelected(index); setPlaying(false); setLessonStep(0); setViewerFailed(false); };
+  const selectScenario = (index: number) => { setSelected(index); setPlaying(false); setLessonStep(0); };
   useEffect(() => {
     if (!panelOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -63,26 +65,30 @@ export function IrregularityStudioShell() {
             {SCENARIOS.map((scenario, index) => <button type="button" key={scenario.id} onClick={() => selectScenario(index)} aria-pressed={selected === index} className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${selected === index ? "border-cyan-400/70 bg-cyan-400/15 text-cyan-100" : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"}`}>{scenario.id} · {scenario.title}</button>)}
           </div>
           <div className="relative z-[1] min-h-0 flex-1">
-            {viewerFailed ? (
-              <div role="alert" className="flex h-full flex-col items-center justify-center gap-4 p-5 text-center text-sm text-slate-300"><p>3B görüntüleme kullanılamıyor. Senaryonun açıklamasını sağ panelden inceleyebilirsin.</p><button type="button" className="rounded-lg border border-cyan-300/40 px-4 py-2 text-cyan-200" onClick={() => { setViewerFailed(false); setViewerRetry(v => v + 1); }}>Tekrar dene</button></div>
+            {(viewMode === "2d" || viewerFailed) ? (
+              <IrregularityFallback2D scenario={current.id} />
             ) : (
-              <BuildingViewer key={viewerRetry} view={cameraView} resetToken={cameraReset} scenario={current.id} playing={playing} speed={speed} showSlabs={showSlabs} onFailure={() => setViewerFailed(true)} />
+              <BuildingViewer key={viewerRetry} view={cameraView} resetToken={cameraReset} scenario={current.id} playing={playing} speed={speed} showSlabs={showSlabs} onFailure={() => {setViewerFailed(true); setPlaying(false); setViewMode("2d");}} />
+            )}
+            {viewerFailed && (
+              <button type="button" className="absolute bottom-3 right-3 z-10 rounded-lg border border-cyan-300/50 bg-[#11253b] px-3 py-2 text-xs text-cyan-100" onClick={() => {setViewerFailed(false); setViewerRetry(v => v+1); setViewMode("3d");}}>3B'yi tekrar dene</button>
             )}
             <div className="absolute right-3 top-3 rounded-full border border-cyan-300/25 bg-[#0d1928]/85 px-3 py-1.5 text-[11px] font-semibold tracking-wide text-cyan-200 backdrop-blur-sm">EĞİTSEL MODEL · {current.id}</div>
-            <div role="group" aria-label="Kamera görünümleri" className="absolute bottom-3 left-3 flex flex-wrap gap-1 rounded-xl border border-white/10 bg-[#0d1928]/90 p-1.5 backdrop-blur-sm">
+            {viewMode === "3d" && !viewerFailed && <div role="group" aria-label="Kamera görünümleri" className="absolute bottom-3 left-3 flex flex-wrap gap-1 rounded-xl border border-white/10 bg-[#0d1928]/90 p-1.5 backdrop-blur-sm">
               {([{ id: "perspective", label: "3B" }, { id: "front", label: "Ön" }, { id: "side", label: "Yan" }, { id: "top", label: "Üst" }] as const).map(v => (
                 <button type="button" key={v.id} onClick={() => setCameraView(v.id)} aria-pressed={cameraView === v.id} className={`rounded-md px-3 py-2 text-xs font-semibold ${cameraView === v.id ? "bg-cyan-400 text-[#09111d]" : "text-slate-200 hover:bg-white/10"}`}>{v.label}</button>
               ))}
-            </div>
+            </div>}
           </div>
           <div className="relative z-[1] flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-[#0d1928]/95 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             <span className="text-[11px] text-slate-400">Eğitsel gösterim · Hesap sonucu değildir</span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" aria-label={viewMode === "3d" ? "2B çizime geç" : "3B sahneye geç"} onClick={() => {setViewMode(m => m === "3d" ? "2d" : "3d"); setPlaying(false);}} className="inline-flex h-9 items-center rounded-lg border border-white/15 px-3 text-xs font-semibold hover:bg-white/10">{viewMode === "3d" ? "2B" : "3B"}</button>
               <button type="button" onClick={() => { setPlaying(false); setLessonStep(0); setCameraView("perspective"); setCameraReset(v => v + 1); }} className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/15 px-3 text-xs hover:bg-white/10"><RotateCcw size={15}/> Sıfırla</button>
               <button type="button" aria-pressed={showSlabs} onClick={() => setShowSlabs(v => !v)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/15 px-3 text-xs hover:bg-white/10"><Layers size={15}/><span className="hidden sm:inline">Döşeme</span></button>
               <label className="sr-only" htmlFor="irregularity-speed">Hareket hızı</label>
               <select id="irregularity-speed" value={speed} onChange={event => setSpeed(Number(event.target.value))} className="h-9 rounded-lg border border-white/15 bg-[#10243a] px-2 text-xs" aria-label="Hareket hızı"><option value={0.5}>0,5×</option><option value={1}>1×</option><option value={1.5}>1,5×</option></select>
-              <button type="button" onClick={() => setPlaying(v => !v)} aria-pressed={playing} className="inline-flex h-9 items-center gap-2 rounded-lg bg-cyan-400 px-3 text-xs font-bold text-[#0b1624] hover:bg-cyan-300">{playing ? <Pause size={15}/> : <Play size={15}/>} {playing ? "Duraklat" : "Depremi başlat"}</button>
+              <button type="button" disabled={viewMode === "2d" || viewerFailed} onClick={() => setPlaying(v => !v)} aria-pressed={playing} className="inline-flex h-9 items-center gap-2 rounded-lg bg-cyan-400 px-3 text-xs font-bold text-[#0b1624] hover:bg-cyan-300">{playing ? <Pause size={15}/> : <Play size={15}/>} {playing ? "Duraklat" : "Depremi başlat"}</button>
             </div>
           </div>
         </main>
