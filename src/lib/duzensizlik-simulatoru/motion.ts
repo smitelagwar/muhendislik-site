@@ -4,6 +4,15 @@ export type V3 = readonly [number, number, number];
 export const LEVEL_HEIGHT = 1.6;
 export const LEVELS = 5;
 export const FRAME_SPAN = 3.2;
+// Model-space proportions for schematic concrete members (not real dimensions).
+export const COLUMN_SECTION = 0.26;
+export const BEAM_SECTION = 0.24;
+export const SLAB_THICKNESS = 0.12;
+// Keep slabs just above beams: no coplanar beam/slab surfaces or z-fighting.
+export const SLAB_LIFT = BEAM_SECTION / 2 + SLAB_THICKNESS / 2 + 0.005;
+export const WALL_BAY_DEPTH = FRAME_SPAN;
+// A small overlap avoids a hairline gap at the column face during motion.
+export const BEAM_FACE_TRIM = COLUMN_SECTION / 2 - 0.02;
 
 export interface Segment {
   a: V3;
@@ -42,14 +51,32 @@ export function jointAt(base: V3, scenario: ScenarioId, phase: number, strength 
   const dx = x + 0.7, dz = z; // offset rotation centre
   return [-0.7 + co * dx - si * dz + shift * wave, y, si * dx + co * dz];
 }
-export function segmentPose(a: V3, b: V3) {
+export function segmentPose(a: V3, b: V3, trimStart = 0, trimEnd = 0) {
   const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2];
   const length = Math.hypot(dx, dy, dz);
-  if (!Number.isFinite(length) || length < 1e-7) return null;
+  const visibleLength = length - trimStart - trimEnd;
+  if (!Number.isFinite(length) || !Number.isFinite(visibleLength) ||
+      !Number.isFinite(trimStart) || !Number.isFinite(trimEnd) ||
+      trimStart < 0 || trimEnd < 0 || visibleLength < 1e-7) return null;
+  const direction: V3 = [dx/length, dy/length, dz/length];
+  const shift = (trimStart - trimEnd) / 2;
   return {
-    mid: [(a[0]+b[0])/2, (a[1]+b[1])/2, (a[2]+b[2])/2] as V3,
-    direction: [dx/length, dy/length, dz/length] as V3,
-    length,
+    mid: [(a[0]+b[0])/2 + direction[0]*shift,
+          (a[1]+b[1])/2 + direction[1]*shift,
+          (a[2]+b[2])/2 + direction[2]*shift] as V3,
+    direction,
+    length: visibleLength,
+  };
+}
+
+/** A slab uses the SAME floor transform as its framing joints. Three.js
+ * positive Y rotation moves +X toward -Z; jointAt uses the opposite sense. */
+export function slabPose(center: V3, scenario: ScenarioId, phase: number, strength = 1) {
+  const p = jointAt(center, scenario, phase, strength);
+  const q = jointAt([center[0]+1,center[1],center[2]], scenario, phase, strength);
+  return {
+    position: [p[0],p[1]+SLAB_LIFT,p[2]] as V3,
+    yaw: -Math.atan2(q[2]-p[2], q[0]-p[0]),
   };
 }
 const v = (x: number,y: number,z: number): V3 => [x,y,z];
@@ -107,10 +134,10 @@ export function makeBlueprint(id: ScenarioId): Blueprint {
       }
     }
     if (id === "A1") {
-      add(v(-FRAME_SPAN,y0,-1.3),v(-FRAME_SPAN,y1,-1.3),"wall",level);
+      add(v(-FRAME_SPAN,y0,-FRAME_SPAN/2),v(-FRAME_SPAN,y1,-FRAME_SPAN/2),"wall",level);
     }
     if (id === "B2" && level > 1) {
-      add(v(0,y0,-1.3),v(0,y1,-1.3),"wall",level);
+      add(v(0,y0,-FRAME_SPAN/2),v(0,y1,-FRAME_SPAN/2),"wall",level);
     }
     if (id === "B1" && level === 1) {
       // Introductory *section emphasis*, not verified capacity.
@@ -118,7 +145,8 @@ export function makeBlueprint(id: ScenarioId): Blueprint {
     }
   }
   return {segments,slabs,bounds:{
-    min: [-3.55,-.45,-3.55],
-    max: [id==="A3"?6.75:3.55, LEVELS*LEVEL_HEIGHT+.35,3.55],
+    min: [id==="A3"?-3.8:-3.55,-.45,-3.55],
+    // Includes B2 first-storey offset and the animated A3 wing tip.
+    max: [id==="A3"?7:id==="B2"?3.9:3.55, LEVELS*LEVEL_HEIGHT+.35,3.55],
   }};
 }

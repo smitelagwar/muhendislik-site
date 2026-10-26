@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { makeBlueprint, jointAt, segmentPose, type V3 } from "@/lib/duzensizlik-simulatoru/motion";
+import { makeBlueprint, jointAt, segmentPose, slabPose, COLUMN_SECTION, BEAM_SECTION, SLAB_THICKNESS, WALL_BAY_DEPTH, BEAM_FACE_TRIM, SLAB_LIFT, type V3 } from "@/lib/duzensizlik-simulatoru/motion";
 import type { ScenarioId } from "@/lib/duzensizlik-simulatoru/scenarios";
 
 export type CameraView = "perspective" | "front" | "side" | "left" | "top";
@@ -76,10 +76,14 @@ export default function BuildingViewer(props: Props) {
     controls.maxPolarAngle = Math.PI * .93;
     controls.screenSpacePanning = true;
     const unit = new THREE.BoxGeometry(1, 1, 1);
+    const slabEdges = new THREE.EdgesGeometry(unit);
+    const slabEdgeMaterial = new THREE.LineBasicMaterial({
+      color: "#bddae9", transparent: true, opacity: .43, depthWrite: false,
+    });
     const mat = {
       column: new THREE.MeshStandardMaterial({color:"#8dbbd0",metalness:.12,roughness:.69}),
       beam: new THREE.MeshStandardMaterial({color:"#638da9",metalness:.09,roughness:.73}),
-      slab: new THREE.MeshStandardMaterial({color:"#a4c9d9",transparent:true,opacity:.22,depthWrite:false,roughness:.84}),
+      slab: new THREE.MeshStandardMaterial({color:"#a4c9d9",transparent:true,opacity:.30,depthWrite:false,roughness:.84}),
       wall: new THREE.MeshStandardMaterial({color:"#e8a766",metalness:.07,roughness:.72,transparent:true,opacity:.82}),
       highlight: new THREE.MeshStandardMaterial({color:"#fa746c",emissive:"#62211f",emissiveIntensity:.27,roughness:.7}),
       transfer: new THREE.MeshStandardMaterial({color:"#f3b05f",emissive:"#623d17",emissiveIntensity:.15}),
@@ -103,56 +107,105 @@ export default function BuildingViewer(props: Props) {
     rim.position.set(-11,9,-8);
     scene.add(rim);
 
-    type Part = { mesh: THREE.Mesh; a: V3; b: V3; kind: "column" | "beam" | "wall" | "highlight" | "transfer" };
-    type Surface = { mesh: THREE.Mesh; x:number; z:number; y:number };
+    type Part = { mesh: THREE.Mesh; a: V3; b: V3; kind: "column" | "beam" | "wall" | "highlight" | "transfer";
+      trimA: number; trimB: number; wallRest?: Float32Array };
+    type Surface = { mesh: THREE.Mesh; rim: THREE.LineSegments; x:number; z:number; y:number };
+    const pointKey = (v:V3) => v.map(x => x.toFixed(5)).join(":");
     let segments: Part[] = [];
     let surfaces: Surface[] = [];
     let modelBounds = makeBlueprint(scenario).bounds;
     const updateSegment = (part: Part, phase: number, intensity: number) => {
+      if (part.wallRest) {
+        // A shear wall must follow BOTH floor outlines, not merely rotate a tall
+        // box around its centre (which detaches its corners during A1 torsion).
+        const attribute = part.mesh.geometry.getAttribute("position") as THREE.BufferAttribute;
+        for (let i=0; i<attribute.count; i++) {
+          const j = i*3;
+          const p = jointAt([part.wallRest[j],part.wallRest[j+1],part.wallRest[j+2]],scenario,phase,intensity);
+          attribute.setXYZ(i,...p);
+        }
+        attribute.needsUpdate = true;
+        part.mesh.geometry.computeVertexNormals();
+        part.mesh.visible = latest.current.showMembers;
+        return;
+      }
       const a = jointAt(part.a,scenario,phase,intensity);
       const b = jointAt(part.b,scenario,phase,intensity);
-      const pose = segmentPose(a,b);
+      const pose = segmentPose(a,b,part.trimA,part.trimB);
       if (!pose) { part.mesh.visible = false; return; }
       part.mesh.position.set(...pose.mid);
       part.mesh.quaternion.setFromUnitVectors(axis,new THREE.Vector3(...pose.direction));
-      const cross = part.kind==="column" ? (scenario==="B1" && part.a[1]===0 ? .19 : .26) : part.kind==="highlight" ? .13 : part.kind==="wall" ? .20 : part.kind==="transfer" ? .38 : .24;
-      const depth = part.kind==="wall" ? 2.5 : part.kind==="transfer" ? .35 : cross;
+      const cross = part.kind==="column" ? (scenario==="B1" && part.a[1]===0 ? .19 : COLUMN_SECTION)
+        : part.kind==="highlight" ? (scenario==="B1" ? .30 : .12)
+        : part.kind==="transfer" ? .38 : BEAM_SECTION;
+      const depth = part.kind==="transfer" ? .35 : cross;
       part.mesh.scale.set(cross,pose.length,depth);
+      if (part.kind==="highlight" && (scenario==="A2" || scenario==="A3")) {
+        // Annotation runs along the slab section, not below the opening rim.
+        part.mesh.position.y += SLAB_LIFT;
+      }
       part.mesh.visible = part.kind==="highlight" ? latest.current.showHighlights : latest.current.showMembers;
     };
     const updateModel = (phase: number,intensity: number) => {
       for(const part of segments) updateSegment(part,phase,intensity);
       for(const surface of surfaces) {
-        const origin:V3=[surface.x,surface.y,surface.z];
-        const p=jointAt(origin,scenario,phase,intensity);
-        const q=jointAt([surface.x+1,surface.y,surface.z],scenario,phase,intensity);
-        surface.mesh.position.set(...p);
-        surface.mesh.rotation.set(0,Math.atan2(q[2]-p[2],q[0]-p[0]),0);
+        const pose = slabPose([surface.x,surface.y,surface.z],scenario,phase,intensity);
+        surface.mesh.position.set(...pose.position);
+        surface.mesh.rotation.set(0,pose.yaw,0);
         surface.mesh.visible=latest.current.showSlabs;
+        surface.rim.position.copy(surface.mesh.position);
+        surface.rim.rotation.copy(surface.mesh.rotation);
+        surface.rim.visible=latest.current.showSlabs;
       }
     };
     const rebuild = (next: ScenarioId) => {
       scenario = next;
-      for(const p of segments) frame.remove(p.mesh);
-      for(const s of surfaces) frame.remove(s.mesh);
+      for(const p of segments) {
+        frame.remove(p.mesh);
+        if(p.wallRest) p.mesh.geometry.dispose();
+      }
+      for(const s of surfaces) { frame.remove(s.mesh); frame.remove(s.rim); }
       segments=[];
       surfaces=[];
       const blueprint=makeBlueprint(scenario);
       modelBounds=blueprint.bounds;
       pad.position.x=(modelBounds.min[0]+modelBounds.max[0])/2;
       pad.scale.x=modelBounds.max[0]-modelBounds.min[0]+.8;
+      const columnNodes = new Set<string>();
+      for(const seg of blueprint.segments) if(seg.kind==="column") {
+        columnNodes.add(pointKey(seg.a));
+        columnNodes.add(pointKey(seg.b));
+      }
       for (const segment of blueprint.segments) {
         const kind=segment.kind;
-        const mesh=new THREE.Mesh(unit,mat[kind]);
+        // A small per-wall geometry is intentionally unique: its 24 vertices
+        // follow each floor's deformation, including A1 plan rotation.
+        let wallRest:Float32Array|undefined;
+        let geometry:THREE.BufferGeometry=unit;
+        if(kind==="wall") {
+          geometry=new THREE.BoxGeometry(.20,segment.b[1]-segment.a[1],WALL_BAY_DEPTH);
+          geometry.translate(segment.a[0],(segment.a[1]+segment.b[1])/2,segment.a[2]);
+          wallRest=Float32Array.from(geometry.getAttribute("position").array);
+        }
+        const mesh=new THREE.Mesh(geometry,mat[kind]);
+        if(wallRest) mesh.frustumCulled=false; // Animated custom positions have dynamic bounds.
         mesh.userData.kind=kind;
+        mesh.userData.storey=segment.storey;
         frame.add(mesh);
-        segments.push({mesh,a:segment.a,b:segment.b,kind});
+        const trimmed=kind==="beam"||kind==="transfer";
+        segments.push({mesh,a:segment.a,b:segment.b,kind,wallRest,
+          trimA:trimmed&&columnNodes.has(pointKey(segment.a))?BEAM_FACE_TRIM:0,
+          trimB:trimmed&&columnNodes.has(pointKey(segment.b))?BEAM_FACE_TRIM:0});
       }
       for (const slab of blueprint.slabs) {
         const mesh=new THREE.Mesh(unit,mat.slab);
-        mesh.scale.set(slab.width,.11,slab.depth);
+        mesh.scale.set(slab.width,SLAB_THICKNESS,slab.depth);
         frame.add(mesh);
-        surfaces.push({mesh,x:slab.cx,z:slab.cz,y:slab.level*1.6});
+        const rim=new THREE.LineSegments(slabEdges,slabEdgeMaterial);
+        rim.scale.copy(mesh.scale);
+        rim.renderOrder=2;
+        frame.add(rim);
+        surfaces.push({mesh,rim,x:slab.cx,z:slab.cz,y:slab.level*1.6});
       }
       elapsed=0;
       blend=0;
@@ -270,6 +323,9 @@ export default function BuildingViewer(props: Props) {
       renderer.domElement.removeEventListener("webglcontextlost",onLoss);
       renderer.domElement.remove();
       renderer.dispose();
+      for(const p of segments) if(p.wallRest) p.mesh.geometry.dispose();
+      slabEdges.dispose();
+      slabEdgeMaterial.dispose();
       unit.dispose();
       grid.geometry.dispose();
       if(Array.isArray(grid.material)) grid.material.forEach(m=>m.dispose());
