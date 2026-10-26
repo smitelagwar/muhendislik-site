@@ -446,6 +446,28 @@ export default function ToolsWorkbenchShowcase({
         </div>
       </section>
 
+      {/* Ayrı 3B düzensizlik aracı, hesap motoru envanterinden bağımsızdır. */}
+      <section aria-label="3B bina düzensizlikleri aracı" className="rounded-2xl border border-cyan-500/25 bg-cyan-500/[0.06] p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="flex items-center gap-2 text-sm font-bold text-foreground sm:text-base">
+              <Box className="h-5 w-5 text-cyan-500" aria-hidden="true" />
+              3B Bina Düzensizliği Simülatörü
+            </h2>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              TBDY 2018 A1–A3 ve B1–B3 düzensizliklerini hareketli 3B sahnelerle keşfedin.
+            </p>
+          </div>
+          <Link
+            href="/kategori/araclar/duzensizlik-simulatoru"
+            data-testid="open-irregularity-studio-link"
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl bg-cyan-600 px-4 py-2 text-xs font-bold text-white hover:bg-cyan-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400"
+          >
+            Simülatörü Aç <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
+
       {/* ── 3. CANLI FİLTRE & ARAMA BAR-I ── */}
       <div className="space-y-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
