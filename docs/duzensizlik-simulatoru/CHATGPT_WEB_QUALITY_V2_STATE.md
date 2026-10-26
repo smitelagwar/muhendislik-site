@@ -6,15 +6,17 @@ plan_revision: 1
 planning_status: PLAN_HAZIR
 execution_status: DEVAM_EDIYOR
 active_stage: null
-next_stage: ASAMA_02
-completed_stages: [ASAMA_01]
+next_stage: ASAMA_03
+completed_stages: [ASAMA_01, ASAMA_02]
 base_sha: 93d734042a2e9f47737898312d839c179cd9a746
 working_branch: internal-tbdy3d-quality-v2
-updated_at: 2026-10-26T18:24:21.553Z
+updated_at: 2026-10-26T19:00:00Z
 evidence:
   - ASAMA_01: main SHA and Vercel production READY checked
   - ASAMA_01: GitHub sources / checks and desktop browser interaction reviewed
   - ASAMA_01: phase-2 risk register and acceptance baseline documented below
+  - ASAMA_02: commit 456321f92b59ce8a1fd249247ecdfc7ac0e2389e, 13/13 geometry tests, lint/typecheck/build PASS
+  - ASAMA_02: CI Playwright 30/30 desktop/mobile/WebKit PASS; reviewed 15 screenshot artifacts
 blockers: []
 ```
 
@@ -82,3 +84,42 @@ blockers: []
 - [ ] ASAMA_02: geometriyi geliştir, geometri/görsel testleri uygula (**henüz başlamadı**).
 
 **Durma:** Bu aşama sonunda yalnız ASAMA_01 tamamlandı; kullanıcı **“devam”** derse sadece ASAMA_02 uygulanır. Kalan aşamalar kendiliğinden başlatılmaz. Bu aşama için Production deploy yapılmaz.
+
+## ASAMA_02 — 3B geometri ve birleşim kalitesi (2026-10-26)
+
+**Durum: TAMAMLANDI.** Test edilmiş kaynak SHA: `456321f92b59ce8a1fd249247ecdfc7ac0e2389e`.
+Yeni taslak PR: https://github.com/smitelagwar/muhendislik-site/pull/50 (henüz merge yok).
+
+### Uygulananlar
+
+- Kolon–kiriş ve B3 aktarma kirişi birleşimlerinde, gerçek dikey kolon düğümü olan uçlarda içe gömülen kısa mesafe payı; desteksiz düğümlerde keyfî uç kesimi yok.
+- Döşemeler kirişlerin üst yüzeyine taşıdı, kalınlık `SLAB_THICKNESS` ile merkez-kenar uyumlu; paylaşılan kontur geometrisiyle kat sınırlarının okunurluğu artırıldı.
+- A1'in slab yaw yönü `jointAt` floor rotation ile matematiksel olarak eşleştirildi; A1 köşe testinde farklı fazlarda 1e-5 tolerans.
+- A1/B2 perdeleri iki aks arasındaki tam açıklığı kaplıyor; düz kutu olarak eğilmek yerine yalnız perdeye ait 24 köşe/face vertex'i iki katın aynı `jointAt` hareketinden güncelleniyor. Shared geometry/material diğer elemanlarda korunuyor; unique perde geometrileri rebuild/unmount sırasında dispose ediliyor.
+- B2 ters yönde hareket ederken bounds'dan çıkmıyor. B1 dayanım ≠ B2 rijitlik farkı ve A2/B3 senaryo geometrileri korunuyor.
+- E2E workflow sırası optimize edildi: geometri/lint/type/build kontrolleri Playwright tarayıcılarının ağır kurulumundan **önce** yapılır; tarayıcılar ancak erken gate başarılıysa kurulur.
+
+### Kanıt
+
+| Kontrol | Sonuç |
+|---|---|
+| Simülatör ESLint | PASS |
+| `tsc -p tsconfig.next.json --noEmit --incremental false` | PASS |
+| Saf TS geometri testleri, mevcut ve yeni test dosyaları | **13/13 PASS** |
+| `npm run build` (Linux CI, Vercel üretim komutu) | PASS |
+| Playwright desktop Chromium / 320-390 mobil / 768 tablet / WebKit mobile | **30/30 PASS** |
+| Senaryo bazlı görsel artefaktlar | 15 ekran görüntüsü alındı; masaüstü, mobil ve üç senaryo yakın görselleri elle gözden geçirildi |
+| Vercel Preview/Production deploy | YOK; `main` ilk SHA'da ve Production READY |
+| Genel `quality`, `repository-health` workflow'ları | FAIL; bu hatlar simülatör odaklı gate değildir. Genel içerik kalite bağımsız borçları ayrı raporlanmalı, değişiklikten kaynaklandığı kanıtlanmadan simülatör hatası sayılamaz |
+
+- Simülatöre özel CI run: https://github.com/smitelagwar/muhendislik-site/actions/runs/40381937165
+- Ekran görüntüsü artefaktı: `irregularity-quality-evidence` (GitHub artifact `12678489995`).
+- Fotoğraflar mevcut değişikliğin statik ekranlarını gösteriyor; eşdeğer kamera/ışık/viewport ile bir önceki sürümün piksel karşılaştırması **yapılmadı**. Donanıma özgü FPS, bellek ve gerçek mobil dokunma testleri **ASAMA_04/05** kapsamına bırakıldı.
+- Otomatik testler buton fonksiyonlarını/sayfa davranışını doğruluyor. Bütün çizgilerin mikroskobik yüzey çakışmasını veya her olası animasyon açısında görüntünün kusursuzluğunu matematiksel olarak garanti etmez; kapsamın tamamlayıcı görsel regresyonu ASAMA_05'te tekrar değerlendirilecek.
+- Çalışan render mimarisi korundu; ürün simülasyonu FEA/depreme göre hesap değildir.
+
+### Sonraki aşama
+
+`ASAMA_03`: A1–B3 teknik öğreticilik, sahneyle ilişkili kusur vurguları ve küçük **“Neden Problemli?”** bağlamsal kartı.
+
+**Kesin durma:** ASAMA_02 tamamlandı. Kullanıcıdan yeni `devam` almadan ASAMA_03'ü başlatma; `main` push, PR merge veya Vercel deployment yapma.
