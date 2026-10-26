@@ -130,6 +130,7 @@ test.describe("TBDY 3B stüdyo kalite kapısı",()=>{
       expect(rect.x+rect.width).toBeLessThanOrEqual(vp.width+2);
       expect(rect.y+rect.height).toBeLessThanOrEqual(vp.height+2);
     }
+    await page.keyboard.press("Escape");
     await page.getByTestId("irregularity-mode").click();
     await expect(page.getByTestId("irregularity-2d-diagram")).toBeVisible();
     await expect(card).toContainText("iki uçtan mesnetli");
