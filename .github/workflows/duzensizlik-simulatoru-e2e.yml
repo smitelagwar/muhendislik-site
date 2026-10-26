@@ -28,7 +28,11 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Typecheck
         run: npx tsc -p tsconfig.next.json --noEmit --incremental false
+      - name: Build application for stable E2E runtime
+        run: npm run build
       - name: Test irregularity studio
+        env:
+          PLAYWRIGHT_PRODUCTION_SERVER: "1"
         run: npx playwright test --config=playwright.site.config.ts tests/site-audit/irregularity-studio.spec.ts --project=chromium-desktop-1366 --project=chromium-mobile-390
       - name: Upload failures
         if: failure()
