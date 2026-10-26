@@ -10,16 +10,3 @@
   overflow: hidden;
   overscroll-behavior: none;
 }
-
-/* Scoped to the CAD route: block mobile layout-viewport expansion and scroll.
-   All other routes keep their ordinary html/body scrolling behavior. */
-:global(html:has([data-testid="hsyncad-app-shell"])),
-:global(body:has([data-testid="hsyncad-app-shell"])) {
-  inline-size: 100%;
-  block-size: 100vh;
-  block-size: 100dvh;
-  min-block-size: 0;
-  max-block-size: 100dvh;
-  overflow: clip;
-  overscroll-behavior: none;
-}
