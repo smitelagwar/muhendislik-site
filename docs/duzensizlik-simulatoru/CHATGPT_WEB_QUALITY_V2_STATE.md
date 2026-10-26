@@ -4,13 +4,13 @@
 plan_id: TBDY3D_CHATGPT_WEB_QUALITY_V2_20261026
 plan_revision: 1
 planning_status: PLAN_HAZIR
-execution_status: DEVAM_EDIYOR
-active_stage: ASAMA_05
-next_stage: ASAMA_05
-completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04]
+execution_status: TAMAMLANDI
+active_stage: null
+next_stage: null
+completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04, ASAMA_05]
 base_sha: 93d734042a2e9f47737898312d839c179cd9a746
 working_branch: internal-tbdy3d-quality-v2
-updated_at: 2026-10-26T20:42:10.374Z
+updated_at: 2026-10-26T20:52:47.447Z
 evidence:
   - ASAMA_01: main SHA and Vercel production READY checked
   - ASAMA_01: GitHub sources / checks and desktop browser interaction reviewed
@@ -202,7 +202,7 @@ Taslak PR: https://github.com/smitelagwar/muhendislik-site/pull/50. `main` merge
 
 ## ASAMA_05 — Son kabul ve tek seferlik Production release adımı
 
-**Durum: YAYINA HAZIR / CANLI YAYIN DOĞRULAMASI BEKLENİYOR.** Son test edilen ürün SHA: `f51d773c0348d8378bbf7888f7da4308ab8b336a`. Tek Production release commit'i squash merge sırasında oluşacaktır.
+**Durum: TAMAMLANDI / CANLI PRODUCTION DOĞRULANDI.** Son test edilen ürün SHA: `f51d773c0348d8378bbf7888f7da4308ab8b336a`. Tek Production release commit'i squash merge sırasında oluşacaktır.
 
 ### Kabul kanıtı
 
@@ -222,3 +222,17 @@ Simülatöre özel testler ve genel runtime `validate` yeşildir. Genel `quality
 ### Tek yayın protokolü
 
 PR #50, `main` tabanına göre bütünleşik; yalnız bir **squash merge** ve Vercel Git ile otomatik **tek Production** build yapılır. Merge SHA, deployment `READY` ve canlı URL smoke sonucu ayrıca doğrulanacaktır. Bu kayıt anında henüz merge/deploy **yapılmadı**. Doğrulama ardından uygulama durumu, kullanıcıya ve güvenli çalışma dalındaki son kayıt üzerinden tamamlandı olarak bildirilir.
+
+### ASAMA_05 kapanış ve yayın gerçeği (2026-10-26)
+
+**TAMAMLANDI: Bundan sonra `devam` için yeni aşama YOK.**
+
+- PR #50 **tek squash merge** ile `main`e taşındı: https://github.com/smitelagwar/muhendislik-site/pull/50
+- Production Git merge SHA: `c4fa59d134c027beeae60b928c4ef2a2fde9f965`. Canlı: https://muhendislik-site.vercel.app/kategori/araclar/duzensizlik-simulatoru
+- Vercel Production deployment: `dpl_5zZ6sevKwj6QqgYLYbE8HnnwsEdi` — **READY**, commit SHA GitHub `main` ile aynı. Prod alias `muhendislik-site.vercel.app` bu deployment'a bağlı.
+- Son kaynak simülatör testleri: **19/19 saf test, 65/65 Playwright, ESLint, TypeScript, build PASS**: https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995823
+- Canlı browser smoke: https://agent.tinyfish.ai/runs/10a54959-0132-49c3-ba26-3137a4fd7f27 — A1–B3, kart, sahne vurguları, B3 aktarma kirişi, kamera önayarları, oynatma kontrolü, 2B/3B ve rehber PASS; kritik görsel/erişim sorunu gözlenmedi. Browser otomasyonu her kamera matrisini bağımsız ölçmedi, fakat Playwright gerçek kamera telemetri testleri bunu ayrı doğruladı.
+- Vercel proje runtime error ve deployment-specific `error/fatal` log taraması (son 30 dakika): **bulgu yok**; kullanıcı client-side WebGL sorunlarının tamamını bu ölçüm garanti etmez.
+- Yayın sayısı: bu aşamada **tek** Production Git deployment. Preview/CLI ile tekrarlanan deployment YOK. Önceki çalışan Production sürümü Vercel geçmişinde geri dönüş adaylığına sahip.
+- Genel sitede mevcut `quality`/ `repository-health` borçları ve fiziksel cihaz/grafik işlemcisi karşılaştırmalı benchmark eksikliği devam ediyor; simülatör görev kapsamı dışında.
+- **Kapanış dosyası güvenli çalışma dalına işleniyor**: `main` üzerindeki release-öncesi state dokümanı kasıtlı olarak sonradan ayrı Production deployment oluşturmak için güncellenmiyor. `internal-*` dalı sadece nihai durum kaydıdır; ürünün yayınlanan source commit'i `c4fa59d134c027beeae60b928c4ef2a2fde9f965`.
