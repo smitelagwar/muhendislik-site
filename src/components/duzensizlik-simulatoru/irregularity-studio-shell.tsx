@@ -52,6 +52,21 @@ export function IrregularityStudioShell() {
     return () => { window.cancelAnimationFrame(frame); window.cancelAnimationFrame(motionFrame); media.removeEventListener("change",update); };
   }, []);
   useEffect(()=>{
+    // A desktop guide can be visible by default, but it must not become a
+    // blocking mobile drawer after window resize or device rotation.
+    let wasDesktop=window.innerWidth>=1024;
+    const reconcileLayout=()=>{
+      const isDesktop=window.innerWidth>=1024;
+      if(wasDesktop && !isDesktop){
+        setPanelOpen(false);
+        setSettingsOpen(false);
+      }
+      wasDesktop=isDesktop;
+    };
+    window.addEventListener("resize",reconcileLayout);
+    return ()=>window.removeEventListener("resize",reconcileLayout);
+  },[]);
+  useEffect(()=>{
     if(!panelOpen && !settingsOpen) return;
     const onKey=(e:KeyboardEvent)=>{
       if(e.key==="Tab"&&panelOpen&&window.innerWidth<1024&&!settingsOpen){

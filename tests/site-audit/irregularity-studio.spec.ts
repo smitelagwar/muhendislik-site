@@ -210,6 +210,9 @@ test.describe("TBDY 3B stüdyo kalite kapısı",()=>{
       expect(d.excessHeight,`vertical scroll at ${size.width}`).toBeLessThanOrEqual(4);
       expect(d.scene,`scene lost at ${size.width}`).toBeGreaterThan(130);
       await expect(page.getByTestId("irregularity-why-card")).toBeVisible();
+      if(size.width<1024) {
+        await expect(page.getByTestId("irregularity-toggle-panel")).toHaveAttribute("aria-expanded","false");
+      }
       await page.getByTestId("irregularity-scenario-A3").click();
       await expect(page.getByTestId("irregularity-scenario-A3")).toHaveAttribute("aria-pressed","true");
     }
