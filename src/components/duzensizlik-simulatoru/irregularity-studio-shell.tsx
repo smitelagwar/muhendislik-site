@@ -67,7 +67,7 @@ export function IrregularityStudioShell() {
         </button>
       </header>
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
-        <main aria-label="3B simülasyon sahnesi" className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        <section aria-label="3B simülasyon sahnesi" className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_38%,#18344c_0%,#09111d_68%)]" />
           <div className="relative z-[1] flex shrink-0 gap-2 overflow-x-auto border-b border-white/10 p-2 sm:p-3 [scrollbar-width:thin]" aria-label="Düzensizlik senaryoları">
             {SCENARIOS.map((scenario, index) => <button type="button" key={scenario.id} onClick={() => selectScenario(index)} aria-pressed={selected === index} className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${selected === index ? "border-cyan-400/70 bg-cyan-400/15 text-cyan-100" : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"}`}>{scenario.id} · {scenario.title}</button>)}
@@ -99,7 +99,7 @@ export function IrregularityStudioShell() {
               <button type="button" disabled={viewMode === "2d" || viewerFailed} onClick={() => setPlaying(v => !v)} aria-pressed={playing} className="inline-flex h-9 items-center gap-2 rounded-lg bg-cyan-400 px-3 text-xs font-bold text-[#0b1624] hover:bg-cyan-300">{playing ? <Pause size={15}/> : <Play size={15}/>} {playing ? "Duraklat" : "Depremi başlat"}</button>
             </div>
           </div>
-        </main>
+        </section>
         {panelOpen && <button type="button" aria-label="Öğretici paneli kapat" className="absolute inset-0 z-10 bg-black/55 lg:hidden" onClick={() => setPanelOpen(false)} />}
         <aside id="irregularity-learning-panel" aria-label="Öğretici panel" hidden={!panelOpen} className={`${panelOpen ? "flex" : "hidden"} absolute bottom-0 right-0 top-0 z-20 w-[min(90vw,340px)] flex-col border-l border-white/10 bg-[#101d2d] shadow-2xl lg:static lg:top-auto lg:w-[min(29vw,350px)] lg:shadow-none`}>
           <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4"><span className="flex items-center gap-2 text-sm font-bold"><BookOpen size={17} className="text-cyan-300"/> Öğrenme rehberi</span><button type="button" onClick={() => setPanelOpen(false)} aria-label="Paneli kapat" className="rounded p-2 hover:bg-white/10"><ChevronRight size={18}/></button></div>
