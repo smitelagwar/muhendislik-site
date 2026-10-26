@@ -33,7 +33,10 @@ jobs:
       - name: Production build
         run: npm run build
       - name: Install browser runtimes
-        run: npx playwright install --with-deps chromium webkit
+        # Browser downloads must not hang the full pipeline in the distro's apt resolver.
+        # ubuntu-latest supplies shared libraries; test execution still fails if a lib is missing.
+        timeout-minutes: 9
+        run: npx playwright install chromium webkit
       - name: Chromium desktop and mobile + WebKit mobile
         env: { PLAYWRIGHT_PRODUCTION_SERVER: "1" }
         run: >
