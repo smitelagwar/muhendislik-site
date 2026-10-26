@@ -220,6 +220,24 @@
   .root :global(.hcad-ribbon-group) { padding-right: 10px; }
 }
 
+/* A flex-column child must not impose its unscrolled content's min width
+   on the mobile layout viewport. Ribbon/tool/status overflow stays INTERNAL. */
+.root > :global(*) {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.root :global(.hcad-topbar),
+.root :global(.hcad-tabs),
+.root :global(.hcad-ribbon),
+.root :global(.hcad-workspace-bar),
+.root :global(.hcad-command),
+.root :global(.hcad-message),
+.root :global(.hcad-statusbar) {
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
 /* Compact-only controls are present without changing desktop editing semantics. */
 .root :global(.hcad-compact-switch),
 .root :global(.hcad-coordinate-toggle),

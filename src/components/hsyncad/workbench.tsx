@@ -24,7 +24,14 @@ const TOOLS = [
   { id: "wall", name: "Perde", Icon: Square, detail: "İki nokta" },
   { id: "slab", name: "Döşeme", Icon: Layers, detail: "Kapalı alan" },
 ] as const;
-const number = (value: number | null | undefined, digits = 3) => value == null ? "—" : value.toLocaleString("tr-TR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+// Formatting should not round 0.6314999999999999 downward because of
+// binary floating-point noise at decimal half-steps.
+const number = (value: number | null | undefined, digits = 3) => {
+  if (value == null) return "—";
+  const factor = 10 ** digits;
+  const rounded = Math.round((value + Number.EPSILON * Math.max(1, Math.abs(value)) * 8) * factor) / factor;
+  return rounded.toLocaleString("tr-TR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+};
 type Dimensions = { width: number; depth: number; height: number; thickness: number };
 const DEFAULTS: Record<CadElement["type"], Dimensions> = {
   axis: { width: 0.4, depth: 0.4, height: 3, thickness: 0.2 },

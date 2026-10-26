@@ -9,4 +9,5 @@
   min-block-size: 0;
   overflow: hidden;
   overscroll-behavior: none;
+  contain: layout paint;
 }
