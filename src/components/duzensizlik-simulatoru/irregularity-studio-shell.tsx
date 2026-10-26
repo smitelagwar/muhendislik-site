@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Eye, PanelRightClose, PanelRightOpen, Play, RotateCcw } from "lucide-react";
 
@@ -17,9 +17,17 @@ export function IrregularityStudioShell() {
   const [selected, setSelected] = useState(0);
   const [panelOpen, setPanelOpen] = useState(true);
   const current = SCENARIOS[selected];
+  useEffect(() => {
+    if (!panelOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPanelOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [panelOpen]);
 
   return (
-    <div data-testid="irregularity-studio" className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#09111d] text-slate-100">
+    <div data-testid="irregularity-studio" className="isolate flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-[#09111d] text-slate-100">
       <header className="z-10 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#0d1928] px-3 sm:px-5">
         <div className="flex min-w-0 items-center gap-3">
           <Link href="/kategori/araclar" aria-label="Araçlara geri dön" className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-white/15 transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400">
@@ -35,10 +43,10 @@ export function IrregularityStudioShell() {
           <span className="hidden sm:inline">Öğretici panel</span>
         </button>
       </header>
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <main aria-label="3B simülasyon sahnesi" className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_38%,#18344c_0%,#09111d_68%)]" />
-          <div className="relative z-[1] flex shrink-0 gap-2 overflow-x-auto border-b border-white/10 p-3 [scrollbar-width:thin]" aria-label="Düzensizlik senaryoları">
+          <div className="relative z-[1] flex shrink-0 gap-2 overflow-x-auto border-b border-white/10 p-2 sm:p-3 [scrollbar-width:thin]" aria-label="Düzensizlik senaryoları">
             {SCENARIOS.map((scenario, index) => <button type="button" key={scenario.id} onClick={() => setSelected(index)} aria-pressed={selected === index} className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${selected === index ? "border-cyan-400/70 bg-cyan-400/15 text-cyan-100" : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"}`}>{scenario.id} · {scenario.title}</button>)}
           </div>
           <div data-testid="irregularity-scene-placeholder" className="relative z-[1] flex min-h-0 flex-1 items-center justify-center p-6 text-center">
@@ -49,7 +57,7 @@ export function IrregularityStudioShell() {
               <p className="mt-3 text-sm leading-6 text-slate-400">3B bina modeli ve deprem hareketleri sonraki aşamalarda burada çalışacak.</p>
             </div>
           </div>
-          <div className="relative z-[1] flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-[#0d1928]/95 p-3">
+          <div className="relative z-[1] flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-[#0d1928]/95 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             <span className="text-[11px] text-slate-400">Eğitsel gösterim · Hesap sonucu değildir</span>
             <div className="flex items-center gap-2">
               <button type="button" disabled title="3B motor kurulduktan sonra kullanılacak" className="inline-flex h-9 cursor-not-allowed items-center gap-2 rounded-lg border border-white/15 px-3 text-xs opacity-50"><RotateCcw size={15}/> Sıfırla</button>
@@ -57,7 +65,8 @@ export function IrregularityStudioShell() {
             </div>
           </div>
         </main>
-        <aside id="irregularity-learning-panel" aria-label="Öğretici panel" hidden={!panelOpen} className={`${panelOpen ? "flex" : "hidden"} absolute bottom-0 right-0 top-14 z-20 w-[min(90vw,340px)] flex-col border-l border-white/10 bg-[#101d2d] shadow-2xl lg:static lg:top-auto lg:w-[min(29vw,350px)] lg:shadow-none`}>
+        {panelOpen && <button type="button" aria-label="Öğretici paneli kapat" className="absolute inset-0 z-10 bg-black/55 lg:hidden" onClick={() => setPanelOpen(false)} />}
+        <aside id="irregularity-learning-panel" aria-label="Öğretici panel" hidden={!panelOpen} className={`${panelOpen ? "flex" : "hidden"} absolute bottom-0 right-0 top-0 z-20 w-[min(90vw,340px)] flex-col border-l border-white/10 bg-[#101d2d] shadow-2xl lg:static lg:top-auto lg:w-[min(29vw,350px)] lg:shadow-none`}>
           <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4"><span className="flex items-center gap-2 text-sm font-bold"><BookOpen size={17} className="text-cyan-300"/> Öğrenme rehberi</span><button type="button" onClick={() => setPanelOpen(false)} aria-label="Paneli kapat" className="rounded p-2 hover:bg-white/10"><ChevronRight size={18}/></button></div>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6">
             <span className="text-xs font-bold tracking-widest text-cyan-300">SENARYO {selected + 1} / 6</span>
