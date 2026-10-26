@@ -37,8 +37,8 @@ jobs:
         run: npx eslint src/components/hsyncad src/components/site-shell.tsx src/components/global-overlays.tsx tests/hsyncad
       - name: Typecheck deployable runtime
         run: npx tsc --noEmit --incremental false -p tsconfig.next.json
-      - name: Install browser dependencies
-        run: npx playwright install --with-deps chromium
+      - name: Verify runner's preinstalled Chrome browser
+        run: google-chrome --version
       - name: Start local CAD app without triggering Vercel
         shell: bash
         run: |
@@ -56,6 +56,7 @@ jobs:
       - name: Chromium CAD full regression (desktop/mobile)
         env:
           HSYNCAD_TEST_URL: "http://127.0.0.1:3127"
+          HSYNCAD_BROWSER_CHANNEL: "chrome"
         run: npx playwright test --config=playwright.hsyncad.config.ts
       - name: Upload screenshots and logs
         if: always()

@@ -153,3 +153,5 @@ Yalnız bu iki plan/durum belgesi tek dokümantasyon checkpoint'inde kaydedilir;
 - CI sonuçları bekleniyor. `main` ve Production değişmedi. CI yeşil olmadan `execution_status: TAMAMLANDI` yazılmaz.
 
 - AŞAMA_05 CI düzeltmesi: `tests/hsyncad/viewport-desktop.spec.ts:43` için `prefer-const` ESLint hatası `const m` ile düzeltildi. Kaynak çalışma ağacında hata veren 1 satır dışında test mantığı değişmedi. GitHub Actions yeniden koşturuluyor; sonuç PASS ilan edilmedi.
+
+- QA runner iyileştirmesi: Playwright `--with-deps` dış Chromium kurulumu çok uzun sürdüğünden, `playwright.hsyncad.config.ts` yalnız `HSYNCAD_BROWSER_CHANNEL=chrome` durumunda GitHub Ubuntu runner'ın ön yüklü Google Chrome'sunu kullanacak şekilde değiştirildi. Yerel testlerde varsayılan Playwright Chromium korunur. Bu çözüm yeni Vercel deployment değil yalnız GH Actions yeniden çalıştırma gerektirir.
