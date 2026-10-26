@@ -329,7 +329,7 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
   const solidCount = model.elements.filter((element) => element.type !== "axis" && !hiddenLayers.includes(element.layer)).length;
 
   return (
-    <section className="hcad-scene3d" data-testid="hsyncad-3d" data-solid-count={solidCount} style={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: 320, height: "100%", background: "var(--hc-panel, #18232e)", overflow: "hidden" }} aria-label="3B Perspektif Penceresi">
+    <section className="hcad-scene3d" data-testid="hsyncad-3d" data-solid-count={solidCount} style={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, height: "100%", background: "var(--hc-panel, #18232e)", overflow: "hidden" }} aria-label="3B Perspektif Penceresi">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "9px 12px", borderBottom: "1px solid var(--hc-border, #34414d)", color: "var(--hc-text, #edf1f4)" }}>
         <div style={{ minWidth: 0 }}>
           <h2 style={{ fontSize: 12, fontWeight: 650, margin: 0 }}>3B Perspektif Penceresi</h2>
@@ -337,7 +337,7 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
         </div>
         <button type="button" data-testid="hsyncad-3d-fit" onClick={() => runtimeRef.current?.fit()} style={{ padding: "7px 9px", minHeight: 36, fontSize: 11, borderRadius: 6, border: "1px solid var(--hc-border, #34414d)", color: "inherit", background: "transparent", cursor: "pointer", flexShrink: 0 }}>Modeli sığdır</button>
       </div>
-      <div ref={viewportRef} data-testid="hsyncad-3d-viewport" style={{ flex: 1, minHeight: 260, position: "relative", overflow: "hidden", background: "#18232e" }}>
+      <div ref={viewportRef} data-testid="hsyncad-3d-viewport" style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden", background: "#18232e" }}>
         {renderError && <p role="alert" style={{ position: "absolute", zIndex: 1, inset: 20, padding: 16, color: "#ffe0b3", background: "#243440", borderRadius: 8, fontSize: 13 }}>{renderError}</p>}
         {!renderError && solidCount === 0 && <div style={{ pointerEvents: "none", position: "absolute", zIndex: 1, inset: 0, display: "grid", placeItems: "center", padding: 24, color: "#b8c9d8", textAlign: "center", fontSize: 12 }}>2B pencerede oluşturduğunuz yapı burada yükselir.</div>}
         <div style={{ pointerEvents: "none", position: "absolute", zIndex: 1, bottom: 12, left: 12, color: "#b8c9d8", fontFamily: "monospace", fontSize: 10, display: "flex", gap: 10 }}>

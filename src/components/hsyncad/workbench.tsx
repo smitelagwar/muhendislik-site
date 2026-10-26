@@ -292,6 +292,7 @@ export default function HsynCadWorkbench() {
     </div>
     <div className="hcad-workspace-bar"><div><span className="hcad-section-eyebrow">ÇALIŞMA ALANI</span><ChevronRight size={13} /><label><span className="sr-only">Aktif kat</span><select data-testid="active-floor" value={floor.id} onChange={(e) => { setFloorId(e.target.value); setSelectedId(null); setPending([]); }}>{model.floors.map((f) => <option key={f.id} value={f.id}>{f.name} · +{number(f.elevation, 2)} m</option>)}</select></label></div><div className="hcad-workspace-tools"><button type="button" className={snapping ? "active" : ""} aria-pressed={snapping} onClick={() => setSnapping(!snapping)} data-testid="snap-toggle">Yakalama {snapping ? "açık" : "kapalı"}</button><button type="button" className={ortho ? "active" : ""} aria-pressed={ortho} onClick={() => setOrtho(!ortho)}>Dik çizim</button><label><span className="sr-only">Izgara aralığı</span><select aria-label="Izgara aralığı" value={gridStep} onChange={(e) => setGridStep(Number(e.target.value))}><option value={0.1}>Izgara 0,10 m</option><option value={0.25}>Izgara 0,25 m</option><option value={0.5}>Izgara 0,50 m</option><option value={1}>Izgara 1,00 m</option></select></label></div></div>
     {tool === "axis" && (
+      <div className="hcad-axis-options-slot" data-testid="hsyncad-axis-options-slot">
       <AxisOptions
         options={axisOptions}
         onChange={setAxisOptions}
@@ -305,6 +306,7 @@ export default function HsynCadWorkbench() {
           }
         }}
       />
+      </div>
     )}
     <div className="hcad-body">
       <nav className="hcad-side-tools" aria-label="Dikey çizim araçları">{[{ id: "select", name: "Seç", Icon: MousePointer2 }, { id: "move", name: "Taşı", Icon: Move }, { id: "pan", name: "Kaydır", Icon: Hand }].map(({ id, name, Icon }) => <button type="button" key={id} data-testid={`tool-${id}`} title={name} aria-label={name} className={tool === id ? "active" : ""} onClick={() => selectTool(id as Tool)}><Icon size={19} /><small>{name}</small></button>)}<span className="hcad-toolbar-rule" /><button type="button" aria-label="Seçili elemanı sil" title="Sil (Delete)" onClick={deleteSelected} disabled={!selected}><Trash2 size={18} /><small>Sil</small></button><button type="button" aria-label="Çizimi iptal et" title="İptal (Esc)" onClick={cancel} disabled={!pending.length}><X size={18} /><small>İptal</small></button><button type="button" aria-label="Çizimi sığdır" title="Çizimi sığdır" onClick={() => setFitKey((n) => n + 1)}><Maximize2 size={18} /><small>Sığdır</small></button></nav>
