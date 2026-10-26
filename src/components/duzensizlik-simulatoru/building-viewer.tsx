@@ -101,10 +101,13 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
     let stopped = false;
     let elapsed = 0;
     let previous = 0;
+    let dirty = true;
+    let contextLost = false;
     let motionBlend = 0;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const target = new THREE.Vector3(0, 4, 0);
     const applyView = (v: CameraView) => {
+      dirty = true;
       const positions: Record<CameraView, [number, number, number]> = { perspective: [15, 14, 18], front: [0, 5, 23], side: [23, 5, 0], top: [.01, 24, 0] };
       camera.position.set(...positions[v]);
       camera.up.set(0, 1, 0);
@@ -112,7 +115,7 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
       camera.lookAt(target);
       controls?.update();
     };
-    const lost = (event: Event) => { event.preventDefault(); onFailureRef.current(); };
+    const lost = (event: Event) => { event.preventDefault(); contextLost = true; onFailureRef.current(); };
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
@@ -127,13 +130,14 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
       controls.panSpeed = .65;
       controls.minDistance = 9;
       controls.maxDistance = 42;
+      controls.addEventListener('change', () => { dirty = true; });
       const resize = () => {
         if (!renderer || !el || stopped) return;
         const w = Math.max(1, el.clientWidth), h = Math.max(1, el.clientHeight);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
         renderer.setSize(w, h, false);
-        renderer.render(scene, camera);
+        if (!contextLost) renderer.render(scene, camera);
       };
       observer = new ResizeObserver(resize);
       observer.observe(el);
@@ -154,9 +158,16 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
           floor.position.z = Math.cos(elapsed * 2.4) * .06 * h * motionBlend;
           floor.rotation.y = scenario === "A1" ? wave * h * .045 : 0;
         });
-        slabs.forEach(slab => { slab.visible = live.current.showSlabs; });
-        controls?.update();
-        renderer?.render(scene, camera);
+        let layerChanged = false;
+        slabs.forEach(slab => {
+          if (slab.visible !== live.current.showSlabs) {
+            slab.visible = live.current.showSlabs;
+            layerChanged = true;
+          }
+        });
+        const cameraChanged = controls?.update() ?? false;
+        if (!contextLost && (active || motionBlend > .002 || dirty || layerChanged || cameraChanged)) renderer?.render(scene, camera);
+        dirty = false;
         frame = requestAnimationFrame(tick);
       };
       frame = requestAnimationFrame(tick);
@@ -165,6 +176,7 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
     }
     return () => {
       stopped = true;
+      cameraController.current = () => {};
       cancelAnimationFrame(frame);
       observer?.disconnect();
       controls?.dispose();
