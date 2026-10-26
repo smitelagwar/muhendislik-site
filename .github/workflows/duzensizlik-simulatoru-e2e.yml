@@ -24,8 +24,6 @@ jobs:
         with: { persist-credentials: false }
       - name: Install locked dependencies
         run: npm ci
-      - name: Install browser runtimes
-        run: npx playwright install --with-deps chromium webkit
       - name: Lint changed simulator
         run: npx eslint src/components/duzensizlik-simulatoru src/lib/duzensizlik-simulatoru tests/site-audit/irregularity-studio.spec.ts tests/duzensizlik-simulatoru
       - name: Typecheck
@@ -34,6 +32,8 @@ jobs:
         run: npx tsx --test tests/duzensizlik-simulatoru/*.test.ts
       - name: Production build
         run: npm run build
+      - name: Install browser runtimes
+        run: npx playwright install --with-deps chromium webkit
       - name: Chromium desktop and mobile + WebKit mobile
         env: { PLAYWRIGHT_PRODUCTION_SERVER: "1" }
         run: >
