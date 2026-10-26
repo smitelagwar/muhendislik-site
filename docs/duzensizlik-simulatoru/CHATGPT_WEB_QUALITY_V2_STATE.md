@@ -5,12 +5,12 @@ plan_id: TBDY3D_CHATGPT_WEB_QUALITY_V2_20261026
 plan_revision: 1
 planning_status: PLAN_HAZIR
 execution_status: DEVAM_EDIYOR
-active_stage: null
+active_stage: ASAMA_04
 next_stage: ASAMA_04
 completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03]
 base_sha: 93d734042a2e9f47737898312d839c179cd9a746
 working_branch: internal-tbdy3d-quality-v2
-updated_at: 2026-10-26T20:01:11.036Z
+updated_at: 2026-10-26T20:04:34.578Z
 evidence:
   - ASAMA_01: main SHA and Vercel production READY checked
   - ASAMA_01: GitHub sources / checks and desktop browser interaction reviewed
@@ -168,3 +168,15 @@ Taslak PR: https://github.com/smitelagwar/muhendislik-site/pull/50. `main` merge
 - `main` ve Vercel Production değiştirilmedi, deploy yok.
 
 **Durma ve sonraki aşama:** `ASAMA_04`, yalnız kullanıcıdan gelen son “devam” komutuyla bu A3 kabulü ardından açıldı; A4 dışında iş yapılmaz.
+
+## ASAMA_04 — Kamera, tam ekran UX ve performans olgunlaştırma
+
+**Durum: KODLANDI; CI KABULÜ DEVAM EDİYOR.**
+- Kaynak commit: `f23bd717d2f76f51e03f31917be0345ccfed5bc0`.
+- Kamera yatay/düşey izdüşüm ayrı hesaplanarak mobilde daha yakın fakat emniyet paylı fit sağlandı; kamera easing C2 smootherStep, kullanıcının drag/zoom hassasiyeti daha düşük ve damping daha doğal.
+- Serbest sürükleme sonrası bir preset veya reset otomatik sığdırmayı geri açıyor; kullanıcı yeni manuel harekete başladığında tercihine karışılmıyor.
+- RAF'teki gereksiz `THREE.Vector3` ayırımı paylaşılan scratch vektörle kaldırıldı; `matchMedia` kurma tekrarı kaldırıldı, WebGL/renderer cleanup ve tek canvas korunuyor.
+- Gerçek kamera koordinatları ile WebGL geometri sayısı render'dan üretilen test telemetrisi olarak sunuluyor. Playwright'a gerçek pozisyon/animasyon hareketi ve kart/dock mobil çakışma testi eklendi.
+- Mobil “Detay” rehber modalinde doğru klavye odağı sağlandı; Escape ve focus trap korunuyor.
+- Test hattı: https://github.com/smitelagwar/muhendislik-site/actions/runs/40392212665. Simülatör lint, typecheck, saf test, build, Chromium/WebKit E2E kesin sonuçları henüz bekleniyor; PASS kaydı sonuca bağlı.
+- Vercel Production ve GitHub `main` değişmedi; Aşama 4 boyunca deploy YOK.
