@@ -60,7 +60,7 @@ export function IrregularityStudioShell() {
             {viewerFailed ? (
               <div role="alert" className="flex h-full items-center justify-center p-5 text-center text-sm text-slate-300">Bu cihazda 3B görüntüleme kullanılamıyor. 2B öğretici görünüm sonraki aşamada eklenecek.</div>
             ) : (
-              <BuildingViewer view={cameraView} resetToken={cameraReset} onFailure={() => setViewerFailed(true)} />
+              <BuildingViewer view={cameraView} resetToken={cameraReset} scenario={current.id} onFailure={() => setViewerFailed(true)} />
             )}
             <div role="group" aria-label="Kamera görünümleri" className="absolute bottom-3 left-3 flex flex-wrap gap-1 rounded-xl border border-white/10 bg-[#0d1928]/90 p-1.5 backdrop-blur-sm">
               {([{ id: "perspective", label: "3B" }, { id: "front", label: "Ön" }, { id: "side", label: "Yan" }, { id: "top", label: "Üst" }] as const).map(v => (
