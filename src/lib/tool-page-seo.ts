@@ -5,6 +5,11 @@ export type ToolPageSeoEntry = {
 };
 
 export const TOOL_PAGE_SEO: Record<string, ToolPageSeoEntry> = {
+  hsyncad: {
+    title: "hsynCAD — 2B / 3B Yapı Modelleme ve Metraj",
+    description: "Aks, kolon, kiriş, perde ve döşeme çizin; eşzamanlı 3B modeli, beton hacmini ve kalıp alanını tarayıcınızda görün.",
+    keywords: ["hsynCAD", "yapı modelleme", "beton metrajı", "kalıp metrajı", "2B 3B çizim"],
+  },
   "donati-hesabi": {
     title: "Donatı Hesabı",
     description: "Donatı çapı ve adet girerek toplam donatı alanını ve eşdeğer donatı alternatiflerini hesaplayın.",

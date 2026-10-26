@@ -11,8 +11,6 @@
     "node_modules",
     "scratch",
     "scripts",
-    "tests",
-    "src/components/hsyncad",
-    "src/lib/hsyncad"
+    "tests"
   ]
 }

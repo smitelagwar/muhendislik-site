@@ -27,6 +27,19 @@ export interface ToolImplementationRecord {
 }
 
 export const TOOL_REGISTRY: Record<string, ToolImplementationRecord> = {
+  "hsyncad": {
+    id: "hsyncad",
+    name: "hsynCAD",
+    status: "implemented",
+    verificationState: "verified",
+    kind: "dedicated-route",
+    route: "/kategori/araclar/hsyncad",
+    enginePath: "src/lib/hsyncad/quantities.ts",
+    componentPath: "src/components/hsyncad/workbench.tsx",
+    normativeReference: "Geometrik metraj; normatif statik hesap içermez",
+    tier: "C",
+    hasDedicatedPage: true,
+  },
   "donati-hesabi": {
     id: "donati-hesabi",
     name: "Donatı Hesabı",

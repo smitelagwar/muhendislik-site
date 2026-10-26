@@ -1,0 +1,235 @@
+.root {
+  --hc-bg: #eff3f6;
+  --hc-panel: #fff;
+  --hc-raised: #e8edf2;
+  --hc-text: #253444;
+  --hc-muted: #66798a;
+  --hc-border: #d4dde5;
+  --hc-accent: #b87514;
+  --hc-highlight: #f4c87925;
+  --hc-grid: #dce3e9;
+  color: var(--hc-text);
+  background: var(--hc-bg);
+  border: 1px solid var(--hc-border);
+  border-radius: 12px;
+  margin: 18px auto 36px;
+  width: calc(100% - 32px);
+  max-width: 1880px;
+  box-shadow: 0 20px 65px #00000018;
+  overflow: hidden;
+  font-size: 12px;
+  font-family: var(--font-sans), Arial, sans-serif;
+  scroll-margin-top: 90px;
+  outline: none;
+}
+:global(.dark) .root {
+  --hc-bg: #141c25;
+  --hc-panel: #1b2530;
+  --hc-raised: #222e3a;
+  --hc-text: #e5ebf1;
+  --hc-muted: #95a7b7;
+  --hc-border: #303f4c;
+  --hc-accent: #edb95e;
+  --hc-grid: #22303d;
+}
+.root *, .root *::before, .root *::after { box-sizing: border-box; }
+.root button, .root input, .root select { font: inherit; }
+.root button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--hc-border); border-radius: 5px; padding: 7px 10px; background: var(--hc-panel); color: var(--hc-text); cursor: pointer; min-height: 32px; white-space: nowrap; transition: background .15s, color .15s; }
+.root button:hover:not(:disabled) { background: var(--hc-raised); border-color: var(--hc-muted); }
+.root button:disabled { opacity: .38; cursor: not-allowed; }
+.root button:focus-visible, .root input:focus-visible, .root select:focus-visible, .root a:focus-visible, .root summary:focus-visible { outline: 2px solid var(--hc-accent); outline-offset: 2px; }
+.root button:global(.active) { background: var(--hc-highlight); color: var(--hc-accent); border-color: var(--hc-accent); }
+.root input, .root select { background: var(--hc-bg); color: var(--hc-text); border: 1px solid var(--hc-border); border-radius: 4px; padding: 6px 8px; min-width: 0; min-height: 31px; }
+.root input[type="checkbox"] { accent-color: #d99a31; min-height: 14px; width: 14px; height: 14px; }
+.root :global(.hcad-topbar) { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 18px; background: var(--hc-panel); }
+.root :global(.hcad-brand) { display: flex; align-items: center; gap: 10px; }
+.root :global(.hcad-brand a) { color: var(--hc-muted); margin-right: 6px; padding: 6px; }
+.root :global(.hcad-brand-icon) { display: grid; place-items: center; background: #e6ac4820; color: var(--hc-accent); border: 1px solid #d59c4740; border-radius: 8px; width: 35px; height: 35px; }
+.root h1 { font-size: 24px; font-weight: 750; letter-spacing: -1px; margin: 0; }
+.root h1 span { color: var(--hc-accent); }
+.root :global(.hcad-badge) { font-size: 8px; font-weight: 650; letter-spacing: 1.3px; color: var(--hc-muted); padding: 3px 5px; border: 1px solid var(--hc-border); border-radius: 3px; }
+.root :global(.hcad-project-name) { text-align: center; font-size: 12px; font-weight: 550; }
+.root :global(.hcad-project-name span) { display: block; color: var(--hc-muted); font-size: 8px; letter-spacing: 1.4px; margin-top: 3px; }
+.root :global(.hcad-file-actions) { display: flex; gap: 8px; }
+.root :global(.hcad-tabs) { display: flex; align-items: center; padding: 0 18px; gap: 5px; background: var(--hc-panel); border-bottom: 1px solid var(--hc-border); }
+.root :global(.hcad-tabs button) { border: 0; border-radius: 0; background: transparent; font-size: 12px; padding: 10px 18px; border-bottom: 2px solid transparent; }
+.root :global(.hcad-tabs button[aria-selected="true"]) { border-bottom-color: var(--hc-accent); color: var(--hc-accent); }
+.root :global(.hcad-save-state) { display: flex; gap: 6px; align-items: center; color: var(--hc-muted); font-size: 10px; margin-left: auto; }
+.root :global(.hcad-ribbon) { display: flex; align-items: center; gap: 18px; min-height: 104px; padding: 10px 18px; background: var(--hc-panel); border-bottom: 1px solid var(--hc-border); overflow-x: auto; }
+.root :global(.hcad-ribbon-group) { display: flex; flex-shrink: 0; align-items: center; gap: 6px; border-right: 1px solid var(--hc-border); padding-right: 18px; min-height: 76px; }
+.root :global(.hcad-ribbon-group:last-child) { border: 0; }
+.root :global(.hcad-tool) { flex-direction: column; gap: 3px; border: 1px solid transparent; background: transparent; min-width: 72px; padding: 6px 8px; }
+.root :global(.hcad-tool strong) { font-size: 11px; font-weight: 600; }
+.root :global(.hcad-tool small) { font-size: 9px; color: var(--hc-muted); }
+.root :global(.hcad-edit-tools) { display: grid; grid-template-columns: repeat(2, auto); gap: 4px; }
+.root :global(.hcad-edit-tools button) { font-size: 10px; padding: 5px 8px; border-color: transparent; }
+.root :global(.hcad-dimensions) { display: block; min-width: 240px; padding: 6px 0; }
+.root :global(.hcad-dimensions .hcad-fields) { display: flex; margin-top: 5px; }
+.root :global(.hcad-dimensions .hcad-field) { width: 82px; }
+.root :global(.hcad-section-eyebrow) { color: var(--hc-muted); font-size: 9px; font-weight: 650; letter-spacing: 1.1px; }
+.root :global(.hcad-ribbon-note) { display: flex; align-items: center; gap: 12px; color: var(--hc-accent); padding-top: 12px; font-size: 13px; }
+.root :global(.hcad-ribbon-note small) { display: block; font-size: 10px; color: var(--hc-muted); margin-top: 5px; }
+.root :global(.hcad-field) { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.root :global(.hcad-field > span) { font-size: 10px; color: var(--hc-muted); }
+.root :global(.hcad-field input), .root :global(.hcad-field select) { width: 100%; font-family: var(--font-mono), monospace; font-size: 11px; }
+.root :global(.hcad-fields) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.root :global(.hcad-toggle) { display: flex; align-items: center; gap: 6px; font-size: 11px; white-space: nowrap; }
+.root :global(.hcad-layer-list) { flex-wrap: wrap; max-width: 340px; gap: 10px 16px; }
+.root :global(.hcad-floor-form) { display: flex; align-items: flex-end; gap: 10px; }
+.root :global(.hcad-floor-form .hcad-field) { width: 120px; }
+.root :global(.hcad-workspace-bar) { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 14px; border-bottom: 1px solid var(--hc-border); background: var(--hc-bg); }
+.root :global(.hcad-workspace-bar > div) { display: flex; gap: 8px; align-items: center; }
+.root :global(.hcad-workspace-bar select), .root :global(.hcad-workspace-bar button) { font-size: 10px; min-height: 28px; padding: 4px 7px; }
+.root :global(.hcad-workspace-bar select) { max-width: 190px; }
+.root :global(.hcad-body) { display: grid; grid-template-columns: 52px minmax(0, 1fr) 290px; height: clamp(540px, 65vh, 800px); }
+.root :global(.hcad-side-tools) { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 4px; border-right: 1px solid var(--hc-border); background: var(--hc-panel); }
+.root :global(.hcad-side-tools button) { flex-direction: column; border-color: transparent; width: 42px; padding: 7px 0; gap: 4px; }
+.root :global(.hcad-side-tools small) { font-size: 8px; }
+.root :global(.hcad-toolbar-rule) { display: block; width: 25px; border-bottom: 1px solid var(--hc-border); margin: 5px 0; }
+.root :global(.hcad-views) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-width: 0; min-height: 0; }
+.root :global(.hcad-plan-wrap) { position: relative; border-right: 1px solid var(--hc-border); min-width: 0; min-height: 0; }
+.root :global(.hcad-view) { height: 100%; display: flex; flex-direction: column; }
+.root :global(.hcad-view-heading) { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 56px; padding: 10px 12px; border-bottom: 1px solid var(--hc-border); background: var(--hc-panel); font-size: 12px; font-weight: 600; }
+.root :global(.hcad-view-heading > span:first-child) { display: flex; align-items: center; gap: 7px; }
+.root :global(.hcad-dot), .root :global(.hcad-live i) { display: inline-block; width: 5px; height: 5px; background: #35b6a1; border-radius: 50%; }
+.root :global(.hcad-view-tag) { font-size: 8px; letter-spacing: .7px; color: var(--hc-muted); font-weight: 400; }
+.root :global(.hcad-plan-stage) { flex: 1; min-height: 0; position: relative; overflow: hidden; background: var(--hc-bg); }
+.root :global(.hcad-plan-stage > svg) { display: block; }
+.root :global(.hcad-grid) { stroke: var(--hc-grid); stroke-width: 1; }
+.root :global(.hcad-origin) { stroke: var(--hc-muted); stroke-width: .8; opacity: .35; stroke-dasharray: 4 4; }
+.root :global(.hcad-ruler) { fill: var(--hc-muted); font-size: 8px; font-family: var(--font-mono), monospace; }
+.root :global(.hcad-empty-plan) { position: absolute; left: 15%; right: 15%; top: 50%; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; pointer-events: none; color: var(--hc-muted); }
+.root :global(.hcad-empty-plan span) { font-size: 15px; color: var(--hc-text); }
+.root :global(.hcad-empty-plan small) { font-size: 11px; line-height: 1.7; }
+.root :global(.hcad-coordinate-box) { position: absolute; top: 70px; left: 13px; width: 164px; padding: 8px; border: 1px solid var(--hc-border); border-radius: 7px; background: var(--hc-panel); box-shadow: 0 4px 16px #0000001a; }
+.root :global(.hcad-coordinate-box > div) { display: flex; align-items: center; gap: 5px; color: var(--hc-muted); padding-bottom: 7px; font-size: 9px; }
+.root :global(.hcad-coordinate-box > div > span) { margin-left: auto; }
+.root :global(.hcad-coordinate-box label) { display: flex; align-items: center; gap: 7px; font-size: 10px; margin-bottom: 4px; font-family: var(--font-mono), monospace; }
+.root :global(.hcad-coordinate-box input) { width: 100%; min-height: 25px; padding: 3px 6px; font-size: 11px; }
+.root :global(.hcad-coordinate-box button) { font-size: 9px; width: 100%; min-height: 26px; padding: 3px 6px; background: var(--hc-raised); }
+.root :global(.hcad-coordinate-box small) { display: block; font-size: 8px; color: var(--hc-muted); margin-top: 5px; font-family: var(--font-mono), monospace; }
+.root :global(.hcad-canvas-controls) { position: absolute; right: 10px; bottom: 40px; display: flex; flex-direction: column; gap: 4px; }
+.root :global(.hcad-canvas-controls button) { padding: 6px; min-height: 30px; background: var(--hc-panel); }
+.root :global(.hcad-plan-hint) { position: absolute; right: 12px; bottom: 23px; font-size: 8px; color: var(--hc-muted); pointer-events: none; }
+.root :global(.hcad-finish-slab) { position: absolute; bottom: 62px; left: 50%; transform: translateX(-50%); border-color: var(--hc-accent); color: var(--hc-accent); box-shadow: 0 3px 12px #0004; font-size: 11px; }
+.root :global(.hcad-inspector) { border-left: 1px solid var(--hc-border); background: var(--hc-panel); display: flex; flex-direction: column; overflow: hidden; }
+.root :global(.hcad-inspector-tabs) { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--hc-border); min-height: 45px; }
+.root :global(.hcad-inspector-tabs button) { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; }
+.root :global(.hcad-inspector-tabs button.active) { border-bottom-color: var(--hc-accent); color: var(--hc-accent); }
+.root :global(.hcad-inspector-content) { padding: 16px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--hc-border) transparent; flex: 1; min-height: 0; }
+.root :global(.hcad-panel-heading) { display: flex; justify-content: space-between; align-items: center; }
+.root :global(.hcad-live) { display: inline-flex; gap: 5px; align-items: center; color: #41b9a7; font-size: 9px; }
+.root :global(.hcad-metric) { padding: 20px 0 13px; border-bottom: 1px solid var(--hc-border); }
+.root :global(.hcad-metric > span) { color: var(--hc-muted); font-size: 11px; }
+.root :global(.hcad-metric > div) { display: flex; align-items: baseline; gap: 7px; margin-top: 2px; }
+.root :global(.hcad-metric strong) { font-size: 35px; font-weight: 500; font-family: var(--font-mono), monospace; color: var(--hc-accent); letter-spacing: -1.5px; }
+.root :global(.hcad-metric > div > span) { font-size: 15px; color: var(--hc-muted); }
+.root :global(.hcad-metric small) { font-size: 9px; color: var(--hc-muted); }
+.root :global(.hcad-metric-secondary) { padding-top: 13px; }
+.root :global(.hcad-metric-secondary strong) { font-size: 25px; color: var(--hc-text); letter-spacing: -.8px; }
+.root :global(.hcad-quantity-table) { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 15px; }
+.root :global(.hcad-quantity-table caption) { text-align: left; color: var(--hc-muted); font-size: 9px; margin-bottom: 8px; }
+.root :global(.hcad-quantity-table th) { font-size: 9px; color: var(--hc-muted); font-weight: 500; text-align: right; padding: 6px 0; }
+.root :global(.hcad-quantity-table td) { padding: 9px 0; text-align: right; border-top: 1px solid var(--hc-border); font-family: var(--font-mono), monospace; }
+.root :global(.hcad-quantity-table th:first-child), .root :global(.hcad-quantity-table td:first-child) { text-align: left; }
+.root :global(.hcad-quantity-table i), .root :global(.hcad-element-list i) { display: inline-block; width: 5px; height: 5px; margin-right: 5px; border-radius: 1px; }
+.root :global(.hcad-deduction) { display: flex; flex-direction: column; gap: 7px; padding: 11px 0; font-size: 9px; color: var(--hc-muted); border-top: 1px solid var(--hc-border); }
+.root :global(.hcad-deduction span) { display: flex; justify-content: space-between; }
+.root :global(.hcad-deduction b) { font-weight: 500; font-family: var(--font-mono), monospace; }
+.root :global(.hcad-assumptions) { padding: 11px; background: var(--hc-bg); border: 1px solid var(--hc-border); border-radius: 5px; }
+.root summary { cursor: pointer; font-size: 11px; }
+.root :global(.hcad-assumptions p) { font-size: 10px; line-height: 1.6; color: var(--hc-muted); margin: 9px 0 0; }
+.root :global(.hcad-scope-note), .root :global(.hcad-warning) { font-size: 10px; line-height: 1.6; color: var(--hc-muted); margin-top: 12px; }
+.root :global(.hcad-warning) { color: var(--hc-accent); border-left: 2px solid var(--hc-accent); padding-left: 8px; }
+.root :global(.hcad-property-form) { display: flex; flex-direction: column; gap: 13px; }
+.root :global(.hcad-selected-title) { display: flex; justify-content: space-between; font-size: 12px; border-bottom: 1px solid var(--hc-border); padding-bottom: 10px; }
+.root :global(.hcad-selected-title b) { color: var(--hc-accent); font-family: var(--font-mono), monospace; }
+.root :global(.hcad-primary) { background: var(--hc-highlight); color: var(--hc-accent); border-color: var(--hc-accent); }
+.root :global(.hcad-danger) { color: #e27872; background: transparent; border-color: #e2787244; }
+.root :global(.hcad-fine) { font-size: 10px; color: var(--hc-muted); line-height: 1.6; margin: 0; }
+.root :global(.hcad-inspector-empty) { display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 35px 10px; color: var(--hc-muted); text-align: center; }
+.root :global(.hcad-inspector-empty p) { font-size: 11px; line-height: 1.7; }
+.root :global(.hcad-element-list) { margin-top: 15px; border-top: 1px solid var(--hc-border); padding-top: 12px; }
+.root :global(.hcad-element-list summary) { margin-bottom: 10px; }
+.root :global(.hcad-element-list summary svg) { display: inline; margin: 0 5px; }
+.root :global(.hcad-element-list button) { display: flex; width: 100%; margin-bottom: 4px; font-size: 10px; justify-content: flex-start; }
+.root :global(.hcad-element-list small) { margin-left: auto; color: var(--hc-muted); font-size: 8px; }
+.root :global(.hcad-command) { display: flex; align-items: center; gap: 9px; padding: 9px 14px; border-top: 1px solid var(--hc-border); background: var(--hc-panel); color: var(--hc-accent); }
+.root :global(.hcad-command > label) { font-size: 11px; }
+.root :global(.hcad-command form) { flex: 1; display: flex; gap: 7px; min-width: 0; }
+.root :global(.hcad-command input) { flex: 1; min-width: 0; font-family: var(--font-mono), monospace; font-size: 11px; border-color: transparent; background: transparent; }
+.root :global(.hcad-command button) { min-height: 28px; padding: 2px 9px; }
+.root :global(.hcad-message) { display: flex; align-items: center; gap: 7px; min-height: 32px; padding: 7px 16px; border-top: 1px solid var(--hc-border); color: var(--hc-muted); font-size: 11px; line-height: 1.6; }
+.root :global(.hcad-statusbar) { display: flex; align-items: center; gap: 0; min-height: 29px; border-top: 1px solid var(--hc-border); background: var(--hc-panel); color: var(--hc-muted); font-size: 9px; font-family: var(--font-mono), monospace; }
+.root :global(.hcad-statusbar > span) { display: flex; gap: 6px; align-items: center; padding: 0 14px; border-right: 1px solid var(--hc-border); }
+.root :global(.hcad-statusbar b) { font-weight: 400; }
+.root :global(.hcad-statusbar .hcad-unit) { margin-left: auto; }
+.root :global(.hcad-bottom-help) { display: flex; align-items: center; justify-content: space-between; padding: 9px 14px; color: var(--hc-muted); font-size: 10px; border-top: 1px solid var(--hc-border); }
+.root :global(.hcad-bottom-help > span) { display: flex; gap: 6px; align-items: center; }
+.root :global(.hcad-bottom-help button) { border: 0; background: transparent; padding: 2px; min-height: 25px; font-size: 10px; color: var(--hc-accent); }
+.root :global(.hcad-loading) { display: grid; place-items: center; min-height: 320px; color: var(--hc-muted); }
+@media (max-width: 1200px) {
+  .root :global(.hcad-body) { grid-template-columns: 48px minmax(0, 1fr) 250px; }
+  .root :global(.hcad-view-tag) { display: none; }
+  .root :global(.hcad-inspector-content) { padding: 12px; }
+  .root :global(.hcad-ribbon) { gap: 10px; }
+  .root :global(.hcad-ribbon-group) { padding-right: 10px; }
+}
+@media (max-width: 1000px) {
+  .root :global(.hcad-body) { grid-template-columns: 48px minmax(0, 1fr); height: auto; }
+  .root :global(.hcad-views) { height: 510px; }
+  .root :global(.hcad-inspector) { grid-column: 2; border-top: 1px solid var(--hc-border); border-left: 0; max-height: 460px; }
+  .root :global(.hcad-side-tools) { grid-row: span 2; }
+  .root :global(.hcad-inspector-content) { padding: 18px; }
+  .root :global(.hcad-metric strong) { font-size: 30px; }
+  .root :global(.hcad-project-name) { display: none; }
+  .root :global(.hcad-save-state) { max-width: 190px; overflow: hidden; white-space: nowrap; }
+  .root :global(.hcad-workspace-bar .hcad-section-eyebrow) { display: none; }
+}
+@media (max-width: 700px) {
+  .root { width: calc(100% - 16px); margin-top: 10px; border-radius: 8px; }
+  .root :global(.hcad-topbar) { padding: 10px; gap: 6px; }
+  .root :global(.hcad-brand) { gap: 5px; }
+  .root :global(.hcad-brand a) { padding: 4px; margin-right: 2px; }
+  .root :global(.hcad-brand-icon) { width: 29px; height: 29px; }
+  .root h1 { font-size: 21px; }
+  .root :global(.hcad-badge) { display: none; }
+  .root :global(.hcad-file-actions) { gap: 5px; }
+  .root :global(.hcad-file-actions button) { padding: 8px; min-height: 36px; }
+  .root :global(.hcad-file-actions span) { display: none; }
+  .root :global(.hcad-tabs) { padding: 0 6px; gap: 0; }
+  .root :global(.hcad-tabs button) { padding: 10px 13px; min-height: 42px; }
+  .root :global(.hcad-save-state) { display: none; }
+  .root :global(.hcad-ribbon) { padding: 8px; min-height: 105px; }
+  .root :global(.hcad-ribbon:has(.hcad-element-tools)) { flex-wrap: wrap; gap: 8px; }
+  .root :global(.hcad-ribbon:has(.hcad-element-tools) .hcad-ribbon-group) { border-right: 0; min-height: auto; }
+  .root :global(.hcad-ribbon:has(.hcad-element-tools) .hcad-edit-tools) { display: flex; padding: 0; }
+  .root :global(.hcad-ribbon:has(.hcad-element-tools) .hcad-dimensions) { flex: 1; min-width: 230px; }
+  .root :global(.hcad-tool) { min-width: 58px; padding: 6px 4px; }
+  .root :global(.hcad-element-tools) { gap: 1px; }
+  .root :global(.hcad-tool small) { font-size: 8px; }
+  .root :global(.hcad-workspace-bar) { flex-direction: column; align-items: stretch; padding: 7px 8px; }
+  .root :global(.hcad-workspace-bar > div) { justify-content: space-between; }
+  .root :global(.hcad-workspace-bar > div:first-child) { justify-content: flex-start; }
+  .root :global(.hcad-workspace-bar button), .root :global(.hcad-workspace-bar select) { min-height: 34px; }
+  .root :global(.hcad-body) { grid-template-columns: 1fr; }
+  .root :global(.hcad-side-tools) { flex-direction: row; grid-row: auto; gap: 8px; padding: 5px 10px; border: 0; border-bottom: 1px solid var(--hc-border); overflow-x: auto; }
+  .root :global(.hcad-side-tools button) { min-width: 36px; flex-direction: row; padding: 7px; min-height: 36px; }
+  .root :global(.hcad-side-tools small) { display: none; }
+  .root :global(.hcad-toolbar-rule) { height: 23px; width: 1px; border: 0; border-left: 1px solid var(--hc-border); }
+  .root :global(.hcad-views) { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .root :global(.hcad-plan-wrap) { height: 440px; border-right: 0; border-bottom: 1px solid var(--hc-border); }
+  .root :global(.hcad-views .hcad-scene3d) { height: 350px !important; min-height: 350px !important; }
+  .root :global(.hcad-inspector) { grid-column: auto; max-height: 560px; }
+  .root :global(.hcad-inspector-tabs button) { min-height: 44px; }
+  .root :global(.hcad-coordinate-box) { width: 146px; }
+  .root :global(.hcad-coordinate-box input), .root :global(.hcad-coordinate-box button) { min-height: 30px; }
+  .root :global(.hcad-plan-hint) { max-width: 230px; text-align: right; font-size: 8px; }
+  .root :global(.hcad-bottom-help) { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .root :global(.hcad-statusbar) { flex-wrap: wrap; gap: 7px 0; padding: 7px 0; }
+  .root :global(.hcad-statusbar > span) { padding: 0 9px; }
+  .root :global(.hcad-statusbar .hcad-unit) { margin-left: 0; }
+  .root :global(.hcad-command) { padding: 6px; gap: 4px; }
+  .root :global(.hcad-command input) { font-size: 10px; }
+  .root :global(.hcad-property-form input), .root :global(.hcad-property-form select), .root :global(.hcad-property-form button) { min-height: 40px; }
+}

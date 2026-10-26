@@ -37,6 +37,11 @@ export interface ToolMeta {
 }
 
 const TOOL_EXTRA_META: Record<string, ToolMeta> = {
+  hsyncad: {
+    standardNorm: "Geometrik Metraj · MVP",
+    calcType: "2B / 3B Yapı Modelleme",
+    accentColor: "#d99a31",
+  },
   "donati-hesabi": {
     standardNorm: "TS 500 & TS 708",
     calcType: "Donatı Eşdeğerliği",

@@ -7,9 +7,9 @@ console.log("=================================================================="
 console.log("FAZ B — MÜHENDİSLİK ARAÇLARI REGISTRY & LIVE-STATE BÜTÜNLÜĞÜ");
 console.log("==================================================================\n");
 
-// 1. 30/30 Registry Eşleşmesi
-console.log(`[1] Registry Kayıt Sayısı: ${Object.keys(TOOL_REGISTRY).length} / 30`);
-assert.equal(Object.keys(TOOL_REGISTRY).length, 30, "Registry tam 30 araç içermelidir.");
+// 1. Registry ve katalog eşleşmesi
+console.log(`[1] Registry Kayıt Sayısı: ${Object.keys(TOOL_REGISTRY).length} / ${TOOLS.length}`);
+assert.equal(Object.keys(TOOL_REGISTRY).length, TOOLS.length, "Registry ve katalog aynı araçları içermelidir.");
 
 for (const tool of TOOLS) {
   const record = getToolImplementation(tool.id);
@@ -26,7 +26,7 @@ for (const tool of TOOLS) {
   assert.ok(evidence, `Evidence tanımı eksik: ${tool.id}`);
 }
 
-console.log("  ✓ Tüm 30 araç katalog ve registry ile %100 senkronize.");
+console.log(`  ✓ Tüm ${TOOLS.length} araç katalog ve registry ile %100 senkronize.`);
 
 // 2. Statü Sayımları
 const verifiedTools = TOOLS.filter((t) => isToolVerified(t.id));
@@ -34,9 +34,9 @@ const implementedTools = TOOLS.filter((t) => isToolImplemented(t.id));
 const pendingTools = TOOLS.filter((t) => !isToolVerified(t.id));
 
 console.log("\n[2] Statü Dağılımı:");
-console.log(`  - Geliştirilmiş (Implemented):          ${implementedTools.length} / 30 (100%)`);
-console.log(`  - Doğrulanmış / Baseline (Verified):     ${verifiedTools.length} / 30`);
-console.log(`  - Düzeltme Bekleyen (Pending Fix):     ${pendingTools.length} / 30`);
+console.log(`  - Geliştirilmiş (Implemented):          ${implementedTools.length} / ${TOOLS.length}`);
+console.log(`  - Doğrulanmış / Baseline (Verified):     ${verifiedTools.length} / ${TOOLS.length}`);
+console.log(`  - Düzeltme Bekleyen (Pending Fix):     ${pendingTools.length} / ${TOOLS.length}`);
 
 // 3. Canlılık Değişmezliği (Live Invariant Testi)
 console.log("\n[3] Canlılık Değişmezliği Kontrolü:");

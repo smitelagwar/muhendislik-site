@@ -16,6 +16,18 @@ export interface ToolVerificationEvidence {
 }
 
 export const TOOL_EVIDENCE_REQUIREMENTS: Record<string, ToolVerificationEvidence> = {
+  hsyncad: {
+    toolId: "hsyncad",
+    tier: "C",
+    enginePath: "src/lib/hsyncad/quantities.ts",
+    componentPath: "src/components/hsyncad/workbench.tsx",
+    engineTestFiles: ["src/lib/hsyncad/model.test.ts", "tests/hsyncad/editor-state.test.ts"],
+    referenceFixtureSource: "docs/hsyncad-test.md — bağımsız elle metraj karşılaştırması",
+    hasAdversarialCoverage: true,
+    hasBrowserSmokeCoverage: true,
+    requiresNormativeSource: false,
+    provenanceDocument: "docs/hsyncad-inceleme.md",
+  },
   "donati-hesabi": {
     toolId: "donati-hesabi",
     tier: "B",

@@ -13,10 +13,10 @@ const toolIds = Object.keys(TOOLS_PUBLIC_METADATA);
 const errors: string[] = [];
 
 // 1. Araç sayısı kontrolü
-if (toolIds.length !== 30) {
-  errors.push('[HATA] Beklenen 30 araç yerine ' + toolIds.length + ' araç metadata kaydı bulundu!');
+if (toolIds.length !== TOOLS.length) {
+  errors.push('[HATA] Katalogdaki ' + TOOLS.length + ' araç yerine ' + toolIds.length + ' araç metadata kaydı bulundu!');
 } else {
-  console.log('✓ [1/7] Araç Sayısı Doğrulandı: 30 / 30');
+  console.log(`✓ [1/7] Araç Sayısı Doğrulandı: ${toolIds.length} / ${TOOLS.length}`);
 }
 
 // 2. Duplicate id kontrolü
@@ -24,7 +24,7 @@ const uniqueIds = new Set(toolIds);
 if (uniqueIds.size !== toolIds.length) {
   errors.push('[HATA] Metadata içinde mükerrer (duplicate) tool ID tespit edildi!');
 } else {
-  console.log('✓ [2/7] Benzersiz ID Kontrolü: 30 benzersiz kayıt');
+  console.log(`✓ [2/7] Benzersiz ID Kontrolü: ${uniqueIds.size} benzersiz kayıt`);
 }
 
 // 3. tools-data.ts ve tool-registry.ts eşleşmesi
@@ -82,7 +82,7 @@ for (const [id, evidence] of Object.entries(TOOL_EVIDENCE_REQUIREMENTS)) {
     errors.push('[HATA] ' + id + ' engine dosyası diskte bulunamadı: ' + evidence.enginePath);
   }
 }
-console.log('✓ [6/7] 30/30 Component ve Engine Dosyası Diskte Doğrulandı');
+console.log(`✓ [6/7] ${toolIds.length} Araç İçin Component ve Engine Dosyası Diskte Doğrulandı`);
 
 // 7. Sonuç Raporu
 console.log('------------------------------------------------------------------');

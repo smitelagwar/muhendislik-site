@@ -1,0 +1,209 @@
+{
+  "recordedAt": "2026-10-25",
+  "tool": "mcp__rea__inspect_pe_resources",
+  "evidenceId": "ev_5756763f7757b0a2a78bc84b5bdb5416294438729a347abee48618669981910b",
+  "artifact": {
+    "path": "C:\\Program Files\\ideCAD\\ideCAD Statik 11 Deneme\\ideCAD_Statik_11_Deneme.exe",
+    "sha256": "a4dcabe8680507c1444a4cb40a2f908f9bf51120929a8f763b425b60ff2cbdd3",
+    "bytes": 213281352
+  },
+  "provider": {
+    "id": "rea-pe-resources",
+    "name": "REA PE resource parser",
+    "version": "1"
+  },
+  "coverage": {
+    "status": "complete",
+    "examined_entries": 9243,
+    "resources": 4613
+  },
+  "authority": "shipped-artifact",
+  "confidence": "observed",
+  "method": "REA envanterinin doğrulanmış offsetlerinde RT_DIALOG/DIALOGEX ve RT_STRING salt okunur Win32 çözümü; yalnız UI alan adları ve yardım kimlikleri incelendi. Uygulama çalıştırılmadı; algoritma veya tescilli dosya biçimi çıkarılmadı.",
+  "resources": [
+    {
+      "index": 2172,
+      "typeId": 5,
+      "nameId": 106,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 209579644,
+        "bytes": 1208
+      },
+      "payloadSha256": "cca4d5d6bb64a92debc9751e5da0c2940e9c6c1d3044f43c984b2defcf4b5f34"
+    },
+    {
+      "index": 2184,
+      "typeId": 5,
+      "nameId": 127,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 209594868,
+        "bytes": 1312
+      },
+      "payloadSha256": "4d6090a1e9cf7cf89b674289c200dfaee1ecf48e2d42589669a555fa8f8ea8b7"
+    },
+    {
+      "index": 2187,
+      "typeId": 5,
+      "nameId": 132,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 209597808,
+        "bytes": 2064
+      },
+      "payloadSha256": "cf4d437c2a3e41569036101bdbaac16900e8170576a0bbed5c007109ea54169c"
+    },
+    {
+      "index": 2189,
+      "typeId": 5,
+      "nameId": 137,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 209601204,
+        "bytes": 1484
+      },
+      "payloadSha256": "ed734c71076b84fdc932dcf3636fed69e96b977c079670c34608311cefae5e59"
+    },
+    {
+      "index": 2212,
+      "typeId": 5,
+      "nameId": 174,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 209631248,
+        "bytes": 1364
+      },
+      "payloadSha256": "4fed1817e83317dca92bc9e37e025d6709b6d687b7f285816307f66ad3b5843d"
+    },
+    {
+      "index": 2286,
+      "typeId": 5,
+      "nameId": 593,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 209715856,
+        "bytes": 342
+      },
+      "payloadSha256": "6bd5dd0b36b3d03db3dc121ca3544f25db0d7fb927207705e842b8047da967a0"
+    },
+    {
+      "index": 2292,
+      "typeId": 5,
+      "nameId": 604,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 209720152,
+        "bytes": 1486
+      },
+      "payloadSha256": "8b3dad76b3eaef95c5e03934c70a1372dbd9f35c9611582b900508c0a6793afc"
+    },
+    {
+      "index": 2620,
+      "typeId": 5,
+      "nameId": 10470,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 210098584,
+        "bytes": 1006
+      },
+      "payloadSha256": "47f4d12c12e21f9841d1732380f7b7f087c684f642b875158c08cc4ea7dd99f9"
+    },
+    {
+      "index": 2669,
+      "typeId": 5,
+      "nameId": 13740,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 210150620,
+        "bytes": 2442
+      },
+      "payloadSha256": "c32ff74d339f859ef51c902a18d3eed7fb3d694e7b5de6bf9060029f6bd25b89"
+    },
+    {
+      "index": 3227,
+      "typeId": 6,
+      "nameId": 704,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 210557400,
+        "bytes": 120
+      },
+      "payloadSha256": "b229f06a4490472689e133116eaf77f3d76780064b83ff85503d1b45a64b6413"
+    },
+    {
+      "index": 3232,
+      "typeId": 6,
+      "nameId": 710,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 210560144,
+        "bytes": 474
+      },
+      "payloadSha256": "71f8ce42c6beb4f68ac313825ff4a7deb82c632098a528c8317d82699ec958cb"
+    },
+    {
+      "index": 3240,
+      "typeId": 6,
+      "nameId": 721,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 210561828,
+        "bytes": 140
+      },
+      "payloadSha256": "e492e7eee3f3d3e460ef3f03eb99197abd26ef911a9133c95a8d0f7ed7f77d1b"
+    },
+    {
+      "index": 3298,
+      "typeId": 6,
+      "nameId": 788,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 210587952,
+        "bytes": 412
+      },
+      "payloadSha256": "b50cc0cf8d69b5718efde2ed001be92836b0607aa2630fe22b3c379016f2023a"
+    },
+    {
+      "index": 3422,
+      "typeId": 6,
+      "nameId": 938,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 210636012,
+        "bytes": 144
+      },
+      "payloadSha256": "19f10dcbc51ac83e96dea8884f5b2a9874409e8753bc21928eb32ffe5d3eec19"
+    },
+    {
+      "index": 3430,
+      "typeId": 6,
+      "nameId": 951,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 210637624,
+        "bytes": 294
+      },
+      "payloadSha256": "b1d6d4b0dcf2bb662a1a4f65af711cf0beba06f1cda2d639c1de21d0fea010b6"
+    },
+    {
+      "index": 3889,
+      "typeId": 6,
+      "nameId": 2515,
+      "languageId": 1055,
+      "payloadLocation": {
+        "offset": 210757784,
+        "bytes": 2284
+      },
+      "payloadSha256": "187b4676bbdd337c658ddd95857f0709c2387ef414bd9094c1ac706bfc9d7956"
+    }
+  ],
+  "limitations": [
+    "Static PE32/PE32+ type/name/language resource inventory; payloads other than RT_GROUP_ICON remain opaque.",
+    "Icon candidates are resource-table relationships. Language fallback, image decoding and actual shell/window loading are not observed.",
+    "Exact shared byte ranges are retained; non-identical overlapping resource structures or payloads are rejected.",
+    "UI etiketleri gerçek çalışma zamanı davranışını veya metraj birleşim algoritmasını kanıtlamaz.",
+    "Ana ekrandaki görsel yerleşimin kaynağı kullanıcı tarafından sağlanan ekran görüntüsüdür.",
+    "Resmî yardım sayfaları yerel idehelp.txt üzerinden belirlendi; yardım sürümü ile kurulu exe davranışının eşitliği çalıştırılarak doğrulanmadı."
+  ]
+}

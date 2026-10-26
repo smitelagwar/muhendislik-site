@@ -19,6 +19,16 @@ export interface ToolPublicMeta {
 }
 
 export const TOOLS_PUBLIC_METADATA: Record<string, ToolPublicMeta> = {
+  hsyncad: {
+    id: 'hsyncad',
+    title: 'hsynCAD',
+    shortDescription: 'Tarayıcıda 2B/3B yapı elemanı modelleme ve geometrik beton–kalıp metrajı.',
+    calculationKind: 'quantity',
+    tier: 'C',
+    scope: ['Aks, kolon, kiriş, perde ve döşeme', 'Eşzamanlı 2B/3B model', 'Geometrik beton hacmi ve brüt kalıp alanı'],
+    limitations: ['Statik, deprem, dinamik veya TBDY uygunluk hesabı içermez', 'Beton çakışma düşümü eksenlere paralel dikdörtgen katılarla sınırlıdır', 'Kalıp temas yüzeyleri düşülmez'],
+    sourceLabels: ['Geometrik hacim ve alan formülleri'],
+  },
   'donati-hesabi': {
     id: 'donati-hesabi',
     title: 'Donatı Hesabı',

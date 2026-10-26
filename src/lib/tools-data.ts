@@ -46,6 +46,17 @@ export const TOOLS_HUB_HREF = "/kategori/araclar";
 
 export const TOOLS: ToolDefinition[] = [
   {
+    id: "hsyncad",
+    name: "hsynCAD",
+    href: "/kategori/araclar/hsyncad",
+    description: "Aks, kolon, kiriş, perde ve döşeme çizin; 2B/3B modeli ve beton–kalıp metrajını eşzamanlı görün.",
+    iconKey: "frame",
+    discipline: "Şantiye & Metraj",
+    featured: false,
+    status: "live",
+    order: 0,
+  },
+  {
     id: "donati-hesabi",
     name: "Donatı Hesabı",
     href: "/kategori/araclar/donati-hesabi",

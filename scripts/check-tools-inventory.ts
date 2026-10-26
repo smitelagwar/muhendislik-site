@@ -16,7 +16,7 @@ console.log("==================================================================\
 // 1. Katalog Sayı Kontrolü
 const catalogCount = TOOLS.length;
 console.log(`[1] Katalog Araç Sayısı: ${catalogCount}`);
-assert.equal(catalogCount, 30, `Katalogda tam 30 araç olmalı, bulunan: ${catalogCount}`);
+assert.equal(catalogCount, 31, `Mevcut 30 araç ve hsynCAD katalogda olmalı, bulunan: ${catalogCount}`);
 
 // 2. ID Benzersizliği
 const ids = TOOLS.map((t) => t.id);
@@ -39,13 +39,13 @@ for (const tool of TOOLS) {
 
 // 4. Sıralama ve Live Durumu
 const liveTools = getLiveTools();
-assert.equal(liveTools.length, 30, "getLiveTools() 30 aracı getirmelidir.");
+assert.equal(liveTools.length, catalogCount, "getLiveTools() katalogdaki araçları getirmelidir.");
 
 // 5. Dinamik Fallback Rota Varlığı
 assert.ok(fs.existsSync(DYNAMIC_SLUG_PATH), "[slug]/page.tsx fallback rotası fiziksel olarak bulunmalıdır!");
 
 // 6. Registry ve Manifest Türetimi
-console.log("\n[4] 30 Araçlık Detaylı Rota, Motor ve Evidence Envanteri:\n");
+console.log(`\n[4] ${catalogCount} Araçlık Detaylı Rota, Motor ve Evidence Envanteri:\n`);
 console.log("| #  | ID | Rota | Component | Engine | Evidence State |");
 console.log("|:---|:---|:---:|:---:|:---:|:---:|");
 
@@ -106,11 +106,11 @@ for (let i = 0; i < TOOLS.length; i++) {
 
 console.log("\n------------------------------------------------------------------");
 console.log("ENVANTER VE EVIDENCE DENETİM ÖZETİ:");
-console.log(`- Toplam Katalog Araç Sayısı:  ${catalogCount} / 30`);
-console.log(`- Dedicated Statik Rota:       ${dedicatedCount} / 30`);
-console.log(`- Dynamic [slug] Fallback:     ${dynamicSlugCount} / 30`);
-console.log(`- Implemented Kod:             ${implementedCount} / 30 (100%)`);
-console.log(`- Baseline / Protected:        ${verifiedCount} / 30`);
-console.log(`- Verification Pending (P0/P1): ${pendingCount} / 30`);
+console.log(`- Toplam Katalog Araç Sayısı:  ${catalogCount}`);
+console.log(`- Dedicated Statik Rota:       ${dedicatedCount} / ${catalogCount}`);
+console.log(`- Dynamic [slug] Fallback:     ${dynamicSlugCount} / ${catalogCount}`);
+console.log(`- Implemented Kod:             ${implementedCount} / ${catalogCount}`);
+console.log(`- Baseline / Protected:        ${verifiedCount} / ${catalogCount}`);
+console.log(`- Verification Pending (P0/P1): ${pendingCount} / ${catalogCount}`);
 console.log("------------------------------------------------------------------");
 console.log("✅ FAZ B ENVANTER VE EVIDENCE TÜRETİMİ BAŞARIYLA TAMAMLANDI.\n");
