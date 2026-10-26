@@ -3,7 +3,8 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 export type CameraView = "perspective" | "front" | "side" | "top";
-export default function BuildingViewer({ view, resetToken, onFailure }: { view: CameraView; resetToken: number; onFailure: () => void }) {
+export type IrregularityScenario = "A1" | "A2" | "A3" | "B1" | "B2" | "B3";
+export default function BuildingViewer({ view, resetToken, scenario, onFailure }: { view: CameraView; resetToken: number; scenario: IrregularityScenario; onFailure: () => void }) {
   const host = useRef<HTMLDivElement>(null);
   const cameraController = useRef<(v: CameraView) => void>(() => {});
   const onFailureRef = useRef(onFailure);
@@ -20,6 +21,7 @@ export default function BuildingViewer({ view, resetToken, onFailure }: { view: 
       new THREE.MeshStandardMaterial({ color: "#537b9c", roughness: .76 }),
       new THREE.MeshStandardMaterial({ color: "#bbd7e8", transparent: true, opacity: .22, depthWrite: false }),
       new THREE.MeshStandardMaterial({ color: "#f4a76a", roughness: .7 }),
+      new THREE.MeshStandardMaterial({ color: "#f16f68", roughness: .68 }),
     ];
     const group = new THREE.Group();
     scene.add(group);
@@ -29,15 +31,53 @@ export default function BuildingViewer({ view, resetToken, onFailure }: { view: 
       part.scale.set(w, h, d);
       group.add(part);
     };
-    add(0, -.25, 0, 8, .5, 8, 1);
+    // Distinct *illustrative* static geometry for each TBDY irregularity.
+    // No color or deformation here is a calculated structural response.
+    const offset = scenario === "A3" ? 1.8 : 0;
+    add(offset / 2, -.25, 0, 8 + offset, .5, 8, 1);
     for (let floor = 0; floor < 5; floor++) {
       const y = floor * 1.6;
-      for (const x of [-3.3, 0, 3.3]) for (const z of [-3.3, 0, 3.3]) add(x, y + .8, z, .25, 1.6, .25, 0);
-      for (const x of [-3.3, 0, 3.3]) add(x, y + 1.55, 0, .22, .26, 6.8, 1);
-      for (const z of [-3.3, 0, 3.3]) add(0, y + 1.55, z, 6.8, .26, .22, 1);
-      add(0, y + 1.61, 0, 6.8, .12, 6.8, 2);
+      for (const x of [-3.3, 0, 3.3]) for (const z of [-3.3, 0, 3.3]) {
+        // B3: one lower-level column terminates; show a highlighted transfer beam.
+        if (scenario === "B3" && floor === 0 && x === 3.3 && z === 3.3) continue;
+        // B1: red identifies an illustrative reduced-strength storey, NOT calculated capacity.
+        const material = scenario === "B1" && floor === 0 ? 4 : 0;
+        add(x, y + .8, z, .25, 1.6, .25, material);
+      }
+      for (const x of [-3.3, 0, 3.3]) add(x, y + 1.55, 0, .22, .26, 6.8, scenario === "B3" && floor === 0 && x === 3.3 ? 3 : 1);
+      for (const z of [-3.3, 0, 3.3]) add(0, y + 1.55, z, 6.8, .26, .22, scenario === "B3" && floor === 0 && z === 3.3 ? 3 : 1);
+      if (scenario === "A2") {
+        // Four slab strips surround a visible opening near the center.
+        add(-2.25, y + 1.61, 0, 2.3, .12, 6.8, 2);
+        add(2.25, y + 1.61, 0, 2.3, .12, 6.8, 2);
+        add(0, y + 1.61, -2.25, 2.2, .12, 2.3, 2);
+        add(0, y + 1.61, 2.25, 2.2, .12, 2.3, 2);
+        if (floor === 2) add(0, y + 1.61, -1.1, 2.2, .14, .2, 4);
+      } else {
+        add(0, y + 1.61, 0, 6.8, .12, 6.8, 2);
+      }
+      if (scenario === "A3") {
+        // A coherent projecting bay gives a clear re-entrant plan corner.
+        add(4.25, y + .8, -3.3, .25, 1.6, .25, 0);
+        add(4.25, y + .8, 0, .25, 1.6, .25, 0);
+        add(4.25, y + 1.61, -1.65, 1.9, .12, 3.4, 2);
+        add(3.8, y + 1.55, -3.3, 1.5, .26, .22, 1);
+        add(3.8, y + 1.55, 0, 1.5, .26, .22, 1);
+        if (floor === 2) add(3.3, y + 1.61, 0, .28, .14, .8, 4);
+      }
+      if (scenario === "B2" && floor === 0) {
+        // Emphasize the open ground-storey mechanism, not computed drift.
+        for (const x of [-3.3, 3.3]) add(x, y + .75, -3.1, .35, 1.45, .13, 3);
+      }
     }
-    add(0, 4, 0, .23, 8, 1.5, 3);
+    if (scenario === "A1") {
+      // Eccentric wall denotes stiffness asymmetry; torsional motion comes later.
+      add(-2.7, 4, 0, .22, 8, 2.5, 3);
+    } else if (scenario === "B3") {
+      add(3.3, 2.5, 3.3, .25, 1.6, .25, 4);
+    } else if (scenario !== "B2" && scenario !== "B1") {
+      add(0, 4, 0, .23, 8, 1.5, 3);
+    }
     scene.add(new THREE.HemisphereLight("#d7ecff", "#172130", 2));
     const light = new THREE.DirectionalLight("#ffffff", 3);
     light.position.set(8, 16, 10);
@@ -112,7 +152,7 @@ export default function BuildingViewer({ view, resetToken, onFailure }: { view: 
       if (Array.isArray(grid.material)) grid.material.forEach(m => m.dispose());
       else grid.material.dispose();
     };
-  }, []);
+  }, [scenario]);
   useEffect(() => { cameraController.current(view); }, [view]);
   useEffect(() => { if (resetToken > 0) cameraController.current("perspective"); }, [resetToken]);
   return <div ref={host} data-testid="irregularity-three-canvas" className="h-full w-full touch-none" />;
