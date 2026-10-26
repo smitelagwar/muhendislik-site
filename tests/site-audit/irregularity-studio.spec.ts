@@ -27,8 +27,10 @@ test.describe("TBDY 3B düzensizlik stüdyosu regresyonları", () => {
   test("Mobil ekran sabit, panel kapatılabilir ve kontroller erişilebilir", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(PATH, { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Öğretici paneli kapat" }).first().click();
     await page.getByRole("button", { name: "2B çizime geç" }).click();
     await expect(page.getByTestId("irregularity-2d-diagram")).toBeVisible();
+    await page.getByRole("button", { name: "Öğretici paneli aç" }).click();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("button", { name: "Öğretici paneli aç" })).toBeVisible();
     const dimensions = await page.evaluate(() => ({
