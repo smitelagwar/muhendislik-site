@@ -44,11 +44,11 @@ jobs:
           --project=chromium-mobile-320
           --project=chromium-tablet-768
           --project=webkit-mobile-390
-      - name: Upload failures
-        if: failure()
+      - name: Upload visual and failure reports
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: irregularity-quality-failures
+          name: irregularity-quality-evidence
           path: |
             test-results/site-audit
             playwright-report/site-audit

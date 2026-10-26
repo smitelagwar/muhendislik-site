@@ -33,6 +33,7 @@ test.describe("TBDY 3B stüdyo kalite kapısı",()=>{
   test("Kamera, animasyon, katman, hız ve sıfırlama düğmeleri",async ({page})=>{
     for(const preset of ["front","side","left","top","perspective"]){
       await page.getByTestId("irregularity-camera-"+preset).click();
+      await page.getByTestId("irregularity-camera-"+preset).click();
       await expect(page.getByTestId("irregularity-camera-"+preset)).toHaveAttribute("aria-pressed","true");
     }
     await page.getByTestId("irregularity-playback").click();
@@ -81,6 +82,19 @@ test.describe("TBDY 3B stüdyo kalite kapısı",()=>{
       await page.keyboard.press("Escape");
     }
   });
+  test("3B sahne kanıt ekran görüntüleri",async ({page},testInfo)=>{
+    if(!["chromium-desktop-1366","chromium-mobile-390","webkit-mobile-390"].includes(testInfo.project.name))return;
+    for(const id of ["A1","A2","A3","B2","B3"]){
+      await page.getByTestId("irregularity-scenario-"+id).click();
+      await expect(page.getByTestId("irregularity-scenario-"+id)).toHaveAttribute("aria-pressed","true");
+      await page.waitForTimeout(450);
+      await testInfo.attach(id+"-"+testInfo.project.name,{
+        body:await page.screenshot({animations:"disabled"}),
+        contentType:"image/png",
+      });
+    }
+  });
+
   test("Azaltılmış hareket, oynatma durumunda yanıltıcı davranmıyor",async ({page})=>{
     await page.emulateMedia({reducedMotion:"reduce"});
     await expect(page.getByTestId("irregularity-playback")).toBeDisabled();

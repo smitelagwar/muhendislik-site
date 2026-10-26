@@ -28,12 +28,14 @@ export function IrregularityStudioShell() {
   const [showMembers, setShowMembers] = useState(true);
   const [showHighlights, setShowHighlights] = useState(true);
   const [resetToken, setResetToken] = useState(0);
+  const [cameraPulse, setCameraPulse] = useState(0);
   const [viewerKey, setViewerKey] = useState(0);
   const [viewerFailed, setViewerFailed] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const rail = useRef<HTMLDivElement>(null);
   const panelButton = useRef<HTMLButtonElement>(null);
   const closePanel = useRef<HTMLButtonElement>(null);
+  const guidePanel = useRef<HTMLElement>(null);
   const settingsButton = useRef<HTMLButtonElement>(null);
   const data = SCENARIOS[scenario];
 
@@ -51,6 +53,14 @@ export function IrregularityStudioShell() {
   useEffect(()=>{
     if(!panelOpen && !settingsOpen) return;
     const onKey=(e:KeyboardEvent)=>{
+      if(e.key==="Tab"&&panelOpen&&window.innerWidth<1024&&!settingsOpen){
+        const items=Array.from(guidePanel.current?.querySelectorAll<HTMLElement>("a[href],button:not([disabled])")??[]);
+        const first=items[0],last=items[items.length-1];
+        if(first&&last){
+          if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+          if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+        }
+      }
       if(e.key!=="Escape")return;
       if(settingsOpen){setSettingsOpen(false);settingsButton.current?.focus();}
       else {setPanelOpen(false);panelButton.current?.focus();}
@@ -75,6 +85,7 @@ export function IrregularityStudioShell() {
     setShowMembers(true);
     setShowHighlights(true);
     setView("perspective");
+    setCameraPulse(n=>n+1);
     setLessonStep(0);
     setSettingsOpen(false);
     setResetToken(n=>n+1);
@@ -116,7 +127,7 @@ export function IrregularityStudioShell() {
 
           <div className="relative min-h-0 flex-1 bg-[radial-gradient(ellipse_at_50%_30%,#1b3447,#0b1725_70%)]" data-testid="irregularity-scene-area">
             <div className={"absolute inset-0 transition-opacity duration-150 "+(mode==="2d"||viewerFailed?"pointer-events-none opacity-0":"opacity-100")} aria-hidden={mode!=="3d"||viewerFailed}>
-              <Viewer key={viewerKey} scenario={scenario} view={view} resetToken={resetToken}
+              <Viewer key={viewerKey} scenario={scenario} view={view} resetToken={resetToken} cameraPulse={cameraPulse}
                 playing={playing} speed={speed} showSlabs={showSlabs} showMembers={showMembers}
                 showHighlights={showHighlights} active={mode==="3d"&&!viewerFailed}
                 onFailure={()=>{setViewerFailed(true);setMode("2d");setPlaying(false);}} />
@@ -128,7 +139,7 @@ export function IrregularityStudioShell() {
             {viewerFailed && <button type="button" data-testid="irregularity-retry" onClick={()=>{setViewerFailed(false);setMode("3d");setViewerKey(n=>n+1);}} className="absolute bottom-16 right-3 z-10 rounded-lg border border-sky-300/40 bg-[#18324a] px-4 py-2 text-xs font-semibold">3B&apos;yi tekrar dene</button>}
             {mode==="3d"&&!viewerFailed&&(
               <div role="group" aria-label="Kamera görünümleri" className="absolute bottom-3 left-2 z-10 flex max-w-[calc(100%-16px)] gap-1 rounded-xl border border-white/10 bg-[#102235]/90 p-1 shadow-xl backdrop-blur-md sm:left-3">
-                {views.map(item=><button type="button" key={item.value} data-testid={"irregularity-camera-"+item.value} onClick={()=>setView(item.value)} aria-pressed={view===item.value} className={"min-h-9 rounded-lg px-2.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 "+(view===item.value?"bg-sky-300 text-[#0b1420]":"text-slate-200 hover:bg-white/10")}>{item.label}</button>)}
+                {views.map(item=><button type="button" key={item.value} data-testid={"irregularity-camera-"+item.value} onClick={()=>{setView(item.value);setCameraPulse(n=>n+1);}} aria-pressed={view===item.value} className={"min-h-9 rounded-lg px-2.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 "+(view===item.value?"bg-sky-300 text-[#0b1420]":"text-slate-200 hover:bg-white/10")}>{item.label}</button>)}
               </div>
             )}
             {viewerFailed && <div role="status" className="absolute right-3 top-12 rounded bg-amber-950/70 px-2 py-1 text-xs text-amber-100">3B desteklenemedi; 2B görünüm açık</div>}
@@ -172,7 +183,7 @@ export function IrregularityStudioShell() {
         </section>
 
         {panelOpen && <button type="button" aria-label="Öğretici paneli kapat" onClick={()=>{setPanelOpen(false);panelButton.current?.focus();}} className="absolute inset-0 z-30 bg-black/55 lg:hidden"/>}
-        <aside id="irregularity-learning-panel" aria-label="Öğretici panel" aria-hidden={!panelOpen} className={(panelOpen?"flex":"hidden")+" absolute inset-y-0 right-0 z-40 w-[min(88vw,330px)] flex-col border-l border-white/10 bg-[#132233] shadow-2xl lg:static lg:z-20 lg:w-[min(28vw,338px)] lg:shadow-none"}>
+        <aside ref={guidePanel} id="irregularity-learning-panel" aria-label="Öğretici panel" aria-hidden={!panelOpen} className={(panelOpen?"flex":"hidden")+" absolute inset-y-0 right-0 z-40 w-[min(88vw,330px)] flex-col border-l border-white/10 bg-[#132233] shadow-2xl lg:static lg:z-20 lg:w-[min(28vw,338px)] lg:shadow-none"}>
           <div className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-4">
             <span className="flex items-center gap-2 text-sm font-bold"><BookOpen size={17} className="text-sky-300"/> Kısa rehber</span>
             <button ref={closePanel} type="button" onClick={()=>{setPanelOpen(false);panelButton.current?.focus();}} aria-label="Paneli kapat" className="grid h-10 w-10 place-items-center rounded-lg hover:bg-white/10"><X size={18}/></button>

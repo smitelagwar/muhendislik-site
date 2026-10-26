@@ -11,6 +11,7 @@ interface Props {
   scenario: ScenarioId;
   view: CameraView;
   resetToken: number;
+  cameraPulse: number;
   playing: boolean;
   speed: number;
   showSlabs: boolean;
@@ -206,8 +207,9 @@ export default function BuildingViewer(props: Props) {
       const allowed=!window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       const running=latest.current.playing && allowed;
       if(running) elapsed+=dt*Math.max(.25,Math.min(2,latest.current.speed))*3.1;
-      blend+=(Number(running)-blend)*Math.min(1,dt*5.5);
-      const moving=running||blend>.002;
+      if(running) blend+=(1-blend)*Math.min(1,dt*5.5);
+      if(!allowed && blend>0){blend=0;elapsed=0;updateModel(0,0);dirty=true;}
+      const moving=running;
       if(moving) updateModel(elapsed,blend);
       if(cameraTween){
         const f=Math.min(1,(now-cameraTween.start)/cameraTween.duration);
@@ -271,7 +273,7 @@ export default function BuildingViewer(props: Props) {
     };
   }, []);
   useEffect(()=>{runtime.current?.changeScenario(props.scenario);},[props.scenario]);
-  useEffect(()=>{runtime.current?.view(props.view);},[props.view]);
+  useEffect(()=>{runtime.current?.view(props.view);},[props.view,props.cameraPulse]);
   useEffect(()=>{if(props.resetToken>0)runtime.current?.reset();},[props.resetToken]);
   return <div ref={root} data-testid="irregularity-three-canvas" data-scenario={props.scenario} className="h-full w-full touch-none" />;
 }
