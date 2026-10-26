@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import type { CameraView } from "./building-viewer";
 import Link from "next/link";
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, PanelRightClose, PanelRightOpen, Play, RotateCcw } from "lucide-react";
+import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, PanelRightClose, PanelRightOpen, Play, Pause, Layers, RotateCcw } from "lucide-react";
 
 const BuildingViewer = dynamic(() => import("./building-viewer"), { ssr: false });
 
@@ -23,7 +23,11 @@ export function IrregularityStudioShell() {
   const [cameraView, setCameraView] = useState<CameraView>("perspective");
   const [cameraReset, setCameraReset] = useState(0);
   const [viewerFailed, setViewerFailed] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const [showSlabs, setShowSlabs] = useState(true);
   const current = SCENARIOS[selected];
+  const selectScenario = (index: number) => { setSelected(index); setPlaying(false); };
   useEffect(() => {
     if (!panelOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -54,14 +58,15 @@ export function IrregularityStudioShell() {
         <main aria-label="3B simülasyon sahnesi" className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_38%,#18344c_0%,#09111d_68%)]" />
           <div className="relative z-[1] flex shrink-0 gap-2 overflow-x-auto border-b border-white/10 p-2 sm:p-3 [scrollbar-width:thin]" aria-label="Düzensizlik senaryoları">
-            {SCENARIOS.map((scenario, index) => <button type="button" key={scenario.id} onClick={() => setSelected(index)} aria-pressed={selected === index} className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${selected === index ? "border-cyan-400/70 bg-cyan-400/15 text-cyan-100" : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"}`}>{scenario.id} · {scenario.title}</button>)}
+            {SCENARIOS.map((scenario, index) => <button type="button" key={scenario.id} onClick={() => selectScenario(index)} aria-pressed={selected === index} className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${selected === index ? "border-cyan-400/70 bg-cyan-400/15 text-cyan-100" : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"}`}>{scenario.id} · {scenario.title}</button>)}
           </div>
           <div className="relative z-[1] min-h-0 flex-1">
             {viewerFailed ? (
               <div role="alert" className="flex h-full items-center justify-center p-5 text-center text-sm text-slate-300">Bu cihazda 3B görüntüleme kullanılamıyor. 2B öğretici görünüm sonraki aşamada eklenecek.</div>
             ) : (
-              <BuildingViewer view={cameraView} resetToken={cameraReset} scenario={current.id} onFailure={() => setViewerFailed(true)} />
+              <BuildingViewer view={cameraView} resetToken={cameraReset} scenario={current.id} playing={playing} speed={speed} showSlabs={showSlabs} onFailure={() => setViewerFailed(true)} />
             )}
+            <div className="absolute right-3 top-3 rounded-full border border-cyan-300/25 bg-[#0d1928]/85 px-3 py-1.5 text-[11px] font-semibold tracking-wide text-cyan-200 backdrop-blur-sm">EĞİTSEL MODEL · {current.id}</div>
             <div role="group" aria-label="Kamera görünümleri" className="absolute bottom-3 left-3 flex flex-wrap gap-1 rounded-xl border border-white/10 bg-[#0d1928]/90 p-1.5 backdrop-blur-sm">
               {([{ id: "perspective", label: "3B" }, { id: "front", label: "Ön" }, { id: "side", label: "Yan" }, { id: "top", label: "Üst" }] as const).map(v => (
                 <button type="button" key={v.id} onClick={() => setCameraView(v.id)} aria-pressed={cameraView === v.id} className={`rounded-md px-3 py-2 text-xs font-semibold ${cameraView === v.id ? "bg-cyan-400 text-[#09111d]" : "text-slate-200 hover:bg-white/10"}`}>{v.label}</button>
@@ -71,8 +76,11 @@ export function IrregularityStudioShell() {
           <div className="relative z-[1] flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-[#0d1928]/95 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             <span className="text-[11px] text-slate-400">Eğitsel gösterim · Hesap sonucu değildir</span>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={() => { setCameraView("perspective"); setCameraReset(v => v + 1); }} className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/15 px-3 text-xs hover:bg-white/10"><RotateCcw size={15}/> Sıfırla</button>
-              <button type="button" disabled title="Animasyon sonraki aşamada eklenecek" className="inline-flex h-9 cursor-not-allowed items-center gap-2 rounded-lg bg-cyan-400 px-3 text-xs font-bold text-[#0b1624] opacity-50"><Play size={15}/> Depremi başlat</button>
+              <button type="button" onClick={() => { setPlaying(false); setCameraView("perspective"); setCameraReset(v => v + 1); }} className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/15 px-3 text-xs hover:bg-white/10"><RotateCcw size={15}/> Sıfırla</button>
+              <button type="button" aria-pressed={showSlabs} onClick={() => setShowSlabs(v => !v)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/15 px-3 text-xs hover:bg-white/10"><Layers size={15}/><span className="hidden sm:inline">Döşeme</span></button>
+              <label className="sr-only" htmlFor="irregularity-speed">Hareket hızı</label>
+              <select id="irregularity-speed" value={speed} onChange={event => setSpeed(Number(event.target.value))} className="h-9 rounded-lg border border-white/15 bg-[#10243a] px-2 text-xs" aria-label="Hareket hızı"><option value={0.5}>0,5×</option><option value={1}>1×</option><option value={1.5}>1,5×</option></select>
+              <button type="button" onClick={() => setPlaying(v => !v)} aria-pressed={playing} className="inline-flex h-9 items-center gap-2 rounded-lg bg-cyan-400 px-3 text-xs font-bold text-[#0b1624] hover:bg-cyan-300">{playing ? <Pause size={15}/> : <Play size={15}/>} {playing ? "Duraklat" : "Depremi başlat"}</button>
             </div>
           </div>
         </main>
@@ -86,8 +94,8 @@ export function IrregularityStudioShell() {
             <div className="mt-7 rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-4"><p className="text-xs font-bold text-cyan-300">Neye bakmalıyım?</p><p className="mt-2 text-sm leading-6 text-slate-200">{current.watch}</p></div>
           </div>
           <div className="flex shrink-0 items-center justify-between gap-2 border-t border-white/10 p-4">
-            <button type="button" disabled={selected === 0} onClick={() => setSelected(i => Math.max(0,i-1))} className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-3 py-2 text-xs disabled:opacity-30"><ChevronLeft size={15}/> Önceki</button>
-            <button type="button" disabled={selected === SCENARIOS.length - 1} onClick={() => setSelected(i => Math.min(SCENARIOS.length-1,i+1))} className="inline-flex items-center gap-1 rounded-lg bg-cyan-400 px-3 py-2 text-xs font-bold text-[#09111d] disabled:opacity-30">Sonraki <ChevronRight size={15}/></button>
+            <button type="button" disabled={selected === 0} onClick={() => selectScenario(Math.max(0,selected-1))} className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-3 py-2 text-xs disabled:opacity-30"><ChevronLeft size={15}/> Önceki</button>
+            <button type="button" disabled={selected === SCENARIOS.length - 1} onClick={() => selectScenario(Math.min(SCENARIOS.length-1,selected+1))} className="inline-flex items-center gap-1 rounded-lg bg-cyan-400 px-3 py-2 text-xs font-bold text-[#09111d] disabled:opacity-30">Sonraki <ChevronRight size={15}/></button>
           </div>
         </aside>
       </div>
