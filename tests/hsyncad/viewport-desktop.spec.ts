@@ -40,7 +40,7 @@ test("hsynCAD fills the desktop viewport; only inspector/axis panels can scroll"
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await expect.poll(async () => (await geometry()).app.height).toBeGreaterThan(viewport.height - 2);
-    let m = await geometry();
+    const m = await geometry();
     expect(m.doc.scrollHeight, "document vertical overflow " + JSON.stringify(viewport)).toBeLessThanOrEqual(m.doc.clientHeight + 1);
     expect(m.doc.scrollWidth, "document horizontal overflow " + JSON.stringify(viewport)).toBeLessThanOrEqual(m.doc.clientWidth + 1);
     expect(Math.abs(m.app.width - viewport.width)).toBeLessThanOrEqual(1);
