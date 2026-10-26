@@ -7,6 +7,11 @@ import { makeBlueprint, jointAt, segmentPose, slabPose, COLUMN_SECTION, BEAM_SEC
 import type { ScenarioId } from "@/lib/duzensizlik-simulatoru/scenarios";
 
 export type CameraView = "perspective" | "front" | "side" | "left" | "top";
+// The repo provides a minimal hand-written Three.js type shim for its CAD modules.
+// These standard runtime members are intentionally typed locally, avoiding edits
+// to the shared shim (which belongs to the other engineering tools).
+type DeformedGeometry = THREE.BufferGeometry & { computeVertexNormals(): void };
+type SlabRim = THREE.LineSegments & { scale: THREE.Vector3; rotation: THREE.Euler };
 interface Props {
   scenario: ScenarioId;
   view: CameraView;
@@ -78,7 +83,7 @@ export default function BuildingViewer(props: Props) {
     const unit = new THREE.BoxGeometry(1, 1, 1);
     const slabEdges = new THREE.EdgesGeometry(unit);
     const slabEdgeMaterial = new THREE.LineBasicMaterial({
-      color: "#bddae9", transparent: true, opacity: .43, depthWrite: false,
+      color: new THREE.Color("#bddae9"), transparent: true, opacity: .43, depthWrite: false,
     });
     const mat = {
       column: new THREE.MeshStandardMaterial({color:"#8dbbd0",metalness:.12,roughness:.69}),
@@ -109,7 +114,7 @@ export default function BuildingViewer(props: Props) {
 
     type Part = { mesh: THREE.Mesh; a: V3; b: V3; kind: "column" | "beam" | "wall" | "highlight" | "transfer";
       trimA: number; trimB: number; wallRest?: Float32Array };
-    type Surface = { mesh: THREE.Mesh; rim: THREE.LineSegments; x:number; z:number; y:number };
+    type Surface = { mesh: THREE.Mesh; rim: SlabRim; x:number; z:number; y:number };
     const pointKey = (v:V3) => v.map(x => x.toFixed(5)).join(":");
     let segments: Part[] = [];
     let surfaces: Surface[] = [];
@@ -119,13 +124,14 @@ export default function BuildingViewer(props: Props) {
         // A shear wall must follow BOTH floor outlines, not merely rotate a tall
         // box around its centre (which detaches its corners during A1 torsion).
         const attribute = part.mesh.geometry.getAttribute("position") as THREE.BufferAttribute;
+        const vertices = attribute.array as Float32Array;
         for (let i=0; i<attribute.count; i++) {
           const j = i*3;
           const p = jointAt([part.wallRest[j],part.wallRest[j+1],part.wallRest[j+2]],scenario,phase,intensity);
-          attribute.setXYZ(i,...p);
+          vertices[j]=p[0]; vertices[j+1]=p[1]; vertices[j+2]=p[2];
         }
         attribute.needsUpdate = true;
-        part.mesh.geometry.computeVertexNormals();
+        (part.mesh.geometry as DeformedGeometry).computeVertexNormals();
         part.mesh.visible = latest.current.showMembers;
         return;
       }
@@ -154,7 +160,7 @@ export default function BuildingViewer(props: Props) {
         surface.mesh.rotation.set(0,pose.yaw,0);
         surface.mesh.visible=latest.current.showSlabs;
         surface.rim.position.copy(surface.mesh.position);
-        surface.rim.rotation.copy(surface.mesh.rotation);
+        surface.rim.rotation.set(0,pose.yaw,0);
         surface.rim.visible=latest.current.showSlabs;
       }
     };
@@ -184,8 +190,14 @@ export default function BuildingViewer(props: Props) {
         let geometry:THREE.BufferGeometry=unit;
         if(kind==="wall") {
           geometry=new THREE.BoxGeometry(.20,segment.b[1]-segment.a[1],WALL_BAY_DEPTH);
-          geometry.translate(segment.a[0],(segment.a[1]+segment.b[1])/2,segment.a[2]);
-          wallRest=Float32Array.from(geometry.getAttribute("position").array);
+          const wallVertices = (geometry.getAttribute("position") as THREE.BufferAttribute).array as Float32Array;
+          const centerY=(segment.a[1]+segment.b[1])/2;
+          for(let j=0;j<wallVertices.length;j+=3) {
+            wallVertices[j]+=segment.a[0];
+            wallVertices[j+1]+=centerY;
+            wallVertices[j+2]+=segment.a[2];
+          }
+          wallRest=Float32Array.from(wallVertices);
         }
         const mesh=new THREE.Mesh(geometry,mat[kind]);
         if(wallRest) mesh.frustumCulled=false; // Animated custom positions have dynamic bounds.
@@ -201,7 +213,7 @@ export default function BuildingViewer(props: Props) {
         const mesh=new THREE.Mesh(unit,mat.slab);
         mesh.scale.set(slab.width,SLAB_THICKNESS,slab.depth);
         frame.add(mesh);
-        const rim=new THREE.LineSegments(slabEdges,slabEdgeMaterial);
+        const rim=new THREE.LineSegments(slabEdges,slabEdgeMaterial) as SlabRim;
         rim.scale.copy(mesh.scale);
         rim.renderOrder=2;
         frame.add(rim);
