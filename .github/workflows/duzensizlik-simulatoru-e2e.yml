@@ -18,6 +18,10 @@ jobs:
   quality:
     name: Build / geometry / desktop / mobile
     runs-on: ubuntu-latest
+    # Pinned to package-lock @playwright/test 1.62.1; WebKit needs
+    # OS libraries that ubuntu-latest 26.04 no longer bundles.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -32,10 +36,8 @@ jobs:
         run: npx tsx --test tests/duzensizlik-simulatoru/*.test.ts
       - name: Production build
         run: npm run build
-      - name: Install browser runtimes
-        # Browser downloads must not hang the full pipeline in the distro's apt resolver.
-        # ubuntu-latest supplies shared libraries; test execution still fails if a lib is missing.
-        timeout-minutes: 9
+      - name: Verify pinned browser runtimes
+        timeout-minutes: 3
         run: npx playwright install chromium webkit
       - name: Chromium desktop and mobile + WebKit mobile
         env: { PLAYWRIGHT_PRODUCTION_SERVER: "1" }
