@@ -8,8 +8,12 @@ test.describe("TBDY 3B düzensizlik stüdyosu regresyonları", () => {
     page.on("pageerror", error => errors.push(error.message));
     await page.goto(PATH, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("irregularity-studio")).toBeVisible();
+    await expect(page.getByTestId("irregularity-studio")).toHaveAttribute("data-interactive", "true");
+    if ((page.viewportSize()?.width ?? 1920) < 1024) {
+      await expect(page.getByRole("button", { name: "Öğretici paneli aç" })).toBeVisible();
+    }
     await expect(page.getByTestId("irregularity-app-shell")).toBeVisible();
-    await expect(page.getByRole("navigation", { name: /ana menü/i })).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: /ana menü|mobil ana navigasyon/i })).toHaveCount(0);
     await page.getByRole("button", { name: "2B çizime geç" }).click();
     await expect(page.getByTestId("irregularity-2d-diagram")).toBeVisible();
     for (const id of ["A1", "A2", "A3", "B1", "B2", "B3"]) {
@@ -27,7 +31,8 @@ test.describe("TBDY 3B düzensizlik stüdyosu regresyonları", () => {
   test("Mobil ekran sabit, panel kapatılabilir ve kontroller erişilebilir", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(PATH, { waitUntil: "domcontentloaded" });
-    await page.getByRole("button", { name: "Öğretici paneli kapat" }).first().click();
+    await expect(page.getByTestId("irregularity-studio")).toHaveAttribute("data-interactive", "true");
+    await expect(page.getByRole("button", { name: "Öğretici paneli aç" })).toBeVisible();
     await page.getByRole("button", { name: "2B çizime geç" }).click();
     await expect(page.getByTestId("irregularity-2d-diagram")).toBeVisible();
     await page.getByRole("button", { name: "Öğretici paneli aç" }).click();
