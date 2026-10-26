@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft, Box, Check, ChevronRight, Columns3, Download, Eye, Grid2X2, Hand, Layers, Maximize2, MousePointer2, Move, Plus, Redo2, RotateCcw, Ruler, Save, Square, Trash2, Undo2, Upload, X } from "lucide-react";
@@ -59,6 +59,14 @@ export default function HsynCadWorkbench() {
   const [zoom, setZoom] = useState(100);
   const [fitKey, setFitKey] = useState(0);
   const [panel, setPanel] = useState<"quantities" | "properties">("quantities");
+  const [isCompact, setIsCompact] = useState(false);
+  const [compactView, setCompactView] = useState<"2d" | "3d">("2d");
+  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [coordinatesOpen, setCoordinatesOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inspectorTriggerRef = useRef<HTMLButtonElement>(null);
+  const inspectorCloseRef = useRef<HTMLButtonElement>(null);
+  const inspectorRef = useRef<HTMLElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const floor = model.floors.find((f) => f.id === floorId) ?? model.floors[0];
   const selected = model.elements.find((e) => e.id === selectedId);
@@ -68,6 +76,72 @@ export default function HsynCadWorkbench() {
   const activeType = TOOLS.some((t) => t.id === tool) ? tool as CadElement["type"] : null;
   const dimensions = activeType ? defaults[activeType] : null;
   const layerOptions = [...new Set([...LAYERS, ...model.elements.map((e) => e.layer)])];
+
+  // Keep the media breakpoint aligned with the CSS; no model or canvas remounts on a view switch.
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 1000px)");
+    const sync = () => {
+      setIsCompact(query.matches);
+      if (!query.matches) setInspectorOpen(false);
+    };
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+
+  // On-screen keyboards shrink visualViewport on mobile even when dvh stays unchanged.
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const node = rootRef.current;
+    if (!viewport || !node) return;
+    const update = () => {
+      const keyboardVisible = isCompact && document.documentElement.clientHeight - viewport.height > 100;
+      if (keyboardVisible) node.style.setProperty("--hcad-visual-height", `${Math.floor(viewport.height)}px`);
+      else node.style.removeProperty("--hcad-visual-height");
+    };
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+      node.style.removeProperty("--hcad-visual-height");
+    };
+  }, [isCompact]);
+
+  useEffect(() => {
+    if (!isCompact || !inspectorOpen) return;
+    const id = requestAnimationFrame(() => inspectorCloseRef.current?.focus({ preventScroll: true }));
+    return () => cancelAnimationFrame(id);
+  }, [isCompact, inspectorOpen]);
+
+  function closeCompactInspector() {
+    setInspectorOpen(false);
+    requestAnimationFrame(() => inspectorTriggerRef.current?.focus({ preventScroll: true }));
+  }
+
+  function handleInspectorKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (!isCompact || !inspectorOpen) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeCompactInspector();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const container = inspectorRef.current;
+    if (!container) return;
+    const elements = Array.from(container.querySelectorAll<HTMLElement>(
+      "button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary, [tabindex]:not([tabindex='-1'])"
+    )).filter((el) => el.getClientRects().length > 0 && window.getComputedStyle(el).visibility !== "hidden");
+    if (!elements.length) return;
+    const first = elements[0], last = elements[elements.length - 1];
+    if (event.shiftKey && (document.activeElement === first || !container.contains(document.activeElement))) {
+      event.preventDefault(); last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !container.contains(document.activeElement))) {
+      event.preventDefault(); first.focus();
+    }
+  }
 
   useEffect(() => {
     let live = true;
@@ -256,9 +330,14 @@ export default function HsynCadWorkbench() {
   }
   const instruction = tool === "select" ? "Eleman seçin" : tool === "pan" ? "Görünümü kaydırın" : tool === "move" ? (pending.length ? "Hedef noktası" : "Taşıma başlangıcı") : tool === "column" ? "Merkez noktası" : tool === "slab" ? `${pending.length} köşe · Kapalı alan çizin` : tool === "axis" ? (axisOptions.direction === "free" ? (pending.length ? "Aks bitiş noktası" : "Aks başlangıç noktası") : `${axisOptions.direction === "horizontal" ? "Yatay" : "Düşey"} aks noktası`) : pending.length ? "İkinci nokta" : "İlk nokta";
 
-  return <div className={styles.root} data-testid="hsyncad-workbench" data-ready={hydrated} tabIndex={-1}
+  return <div ref={rootRef} className={styles.root} data-testid="hsyncad-workbench" data-ready={hydrated} tabIndex={-1}
     onPointerDown={(event) => { if ((event.target as HTMLElement).closest("svg[role='img']")) event.currentTarget.focus({ preventScroll: true }); }}
     onKeyDown={(event) => {
+      if (event.key === "Escape" && isCompact && inspectorOpen) {
+        event.preventDefault();
+        closeCompactInspector();
+        return;
+      }
       if ((event.target as HTMLElement).closest("input,textarea,select")) return;
       if (event.key === " " && tool === "axis") {
         event.preventDefault();
@@ -290,7 +369,13 @@ export default function HsynCadWorkbench() {
       {tab === "Katlar" && <><FloorProperties key={JSON.stringify(floor)} floor={floor} onApply={(next) => commit({ ...model, floors: model.floors.map((f) => f.id === next.id ? next : f) }, "Kat güncellendi. Kiriş ve döşemeler yeni kat üst kotunu kullanır.")} /><button type="button" onClick={addFloor}><Plus size={16} />Yeni kat</button><p className="hcad-fine">Kolon ve perde yüksekliği eleman özelliğidir.<br />Kiriş ve döşemenin üstü, kat üst kotundadır.</p></>}
       {tab === "Proje" && <><button type="button" onClick={() => replaceModel(createEmptyModel(), "Yeni boş model açıldı. Önceki model Geri al ile geri getirilebilir.")}><Plus size={17} />Yeni model</button><button type="button" data-testid="load-demo" onClick={() => replaceModel(createDemoModel(), "4 × 4 m ölçülü örnek açıldı. Tüm işlemler geri alınabilir.")}><Box size={18} />4 × 4 m örneği aç</button><button type="button" onClick={exportFile}><Download size={17} />JSON kaydet</button><p className="hcad-fine">Model bu tarayıcıda otomatik saklanır.<br />Kalıcı yedek için JSON dosyası indirin.</p></>}
     </div>
-    <div className="hcad-workspace-bar"><div><span className="hcad-section-eyebrow">ÇALIŞMA ALANI</span><ChevronRight size={13} /><label><span className="sr-only">Aktif kat</span><select data-testid="active-floor" value={floor.id} onChange={(e) => { setFloorId(e.target.value); setSelectedId(null); setPending([]); }}>{model.floors.map((f) => <option key={f.id} value={f.id}>{f.name} · +{number(f.elevation, 2)} m</option>)}</select></label></div><div className="hcad-workspace-tools"><button type="button" className={snapping ? "active" : ""} aria-pressed={snapping} onClick={() => setSnapping(!snapping)} data-testid="snap-toggle">Yakalama {snapping ? "açık" : "kapalı"}</button><button type="button" className={ortho ? "active" : ""} aria-pressed={ortho} onClick={() => setOrtho(!ortho)}>Dik çizim</button><label><span className="sr-only">Izgara aralığı</span><select aria-label="Izgara aralığı" value={gridStep} onChange={(e) => setGridStep(Number(e.target.value))}><option value={0.1}>Izgara 0,10 m</option><option value={0.25}>Izgara 0,25 m</option><option value={0.5}>Izgara 0,50 m</option><option value={1}>Izgara 1,00 m</option></select></label></div></div>
+    <div className="hcad-workspace-bar">
+      <div className="hcad-compact-switch" role="group" aria-label="CAD çalışma görünümü">
+        <button type="button" data-testid="hsyncad-view-2d" aria-pressed={compactView === "2d"} className={compactView === "2d" ? "active" : ""} onClick={() => setCompactView("2d")}>2B</button>
+        <button type="button" data-testid="hsyncad-view-3d" aria-pressed={compactView === "3d"} className={compactView === "3d" ? "active" : ""} onClick={() => setCompactView("3d")}>3B</button>
+        <button type="button" ref={inspectorTriggerRef} data-testid="hsyncad-inspector-toggle" aria-controls="hsyncad-compact-inspector" aria-expanded={inspectorOpen} aria-label="Metraj ve özellikler panelini aç" onClick={() => setInspectorOpen(true)}><Layers size={14} />{panel === "quantities" ? "Metraj" : "Özellikler"}</button>
+      </div>
+      <div><span className="hcad-section-eyebrow">ÇALIŞMA ALANI</span><ChevronRight size={13} /><label><span className="sr-only">Aktif kat</span><select data-testid="active-floor" value={floor.id} onChange={(e) => { setFloorId(e.target.value); setSelectedId(null); setPending([]); }}>{model.floors.map((f) => <option key={f.id} value={f.id}>{f.name} · +{number(f.elevation, 2)} m</option>)}</select></label></div><div className="hcad-workspace-tools"><button type="button" className={snapping ? "active" : ""} aria-pressed={snapping} onClick={() => setSnapping(!snapping)} data-testid="snap-toggle">Yakalama {snapping ? "açık" : "kapalı"}</button><button type="button" className={ortho ? "active" : ""} aria-pressed={ortho} onClick={() => setOrtho(!ortho)}>Dik çizim</button><label><span className="sr-only">Izgara aralığı</span><select aria-label="Izgara aralığı" value={gridStep} onChange={(e) => setGridStep(Number(e.target.value))}><option value={0.1}>Izgara 0,10 m</option><option value={0.25}>Izgara 0,25 m</option><option value={0.5}>Izgara 0,50 m</option><option value={1}>Izgara 1,00 m</option></select></label></div></div>
     {tool === "axis" && (
       <div className="hcad-axis-options-slot" data-testid="hsyncad-axis-options-slot">
       <AxisOptions
@@ -310,11 +395,15 @@ export default function HsynCadWorkbench() {
     )}
     <div className="hcad-body">
       <nav className="hcad-side-tools" aria-label="Dikey çizim araçları">{[{ id: "select", name: "Seç", Icon: MousePointer2 }, { id: "move", name: "Taşı", Icon: Move }, { id: "pan", name: "Kaydır", Icon: Hand }].map(({ id, name, Icon }) => <button type="button" key={id} data-testid={`tool-${id}`} title={name} aria-label={name} className={tool === id ? "active" : ""} onClick={() => selectTool(id as Tool)}><Icon size={19} /><small>{name}</small></button>)}<span className="hcad-toolbar-rule" /><button type="button" aria-label="Seçili elemanı sil" title="Sil (Delete)" onClick={deleteSelected} disabled={!selected}><Trash2 size={18} /><small>Sil</small></button><button type="button" aria-label="Çizimi iptal et" title="İptal (Esc)" onClick={cancel} disabled={!pending.length}><X size={18} /><small>İptal</small></button><button type="button" aria-label="Çizimi sığdır" title="Çizimi sığdır" onClick={() => setFitKey((n) => n + 1)}><Maximize2 size={18} /><small>Sığdır</small></button></nav>
-      <div className="hcad-views"><div className="hcad-plan-wrap"><Plan2D elements={visibleElements} tool={tool} selectedId={selectedId} pending={pending} snapping={snapping} ortho={ortho} gridStep={gridStep} fitKey={fitKey} onPoint={placePoint} onSelect={selectElement} onCursor={(p, label) => { setCursor(p); setSnapLabel(label); }} onZoom={setZoom} />
-        <form className="hcad-coordinate-box" onSubmit={(e) => { e.preventDefault(); placePoint({ x: Number(coords.x.replace(",", ".")), y: Number(coords.y.replace(",", ".")) }); }}><div><Move size={12} /><strong>Koordinat kutusu</strong><span>m</span></div><label>X<input aria-label="X koordinatı" data-testid="coordinate-x" inputMode="decimal" value={coords.x} onChange={(e) => setCoords({ ...coords, x: e.target.value })} required /></label><label>Y<input aria-label="Y koordinatı" data-testid="coordinate-y" inputMode="decimal" value={coords.y} onChange={(e) => setCoords({ ...coords, y: e.target.value })} required /></label><button type="submit" data-testid="coordinate-place" title="Girilen koordinatı kullan"><Plus size={13} />Nokta ekle</button><small>İmleç: {number(cursor.x, 2)} / {number(cursor.y, 2)}</small></form>
+      <div className="hcad-views" data-active-view={compactView}><div className="hcad-plan-wrap">
+        <button type="button" className="hcad-coordinate-toggle" data-testid="hsyncad-coordinate-toggle" aria-controls="hsyncad-coordinate-form" aria-expanded={coordinatesOpen} onClick={() => setCoordinatesOpen((open) => !open)}><Move size={13} />X/Y</button><Plan2D elements={visibleElements} tool={tool} selectedId={selectedId} pending={pending} snapping={snapping} ortho={ortho} gridStep={gridStep} fitKey={fitKey} onPoint={placePoint} onSelect={selectElement} onCursor={(p, label) => { setCursor(p); setSnapLabel(label); }} onZoom={setZoom} />
+        <form id="hsyncad-coordinate-form" className="hcad-coordinate-box" data-compact-open={coordinatesOpen} onSubmit={(e) => { e.preventDefault(); placePoint({ x: Number(coords.x.replace(",", ".")), y: Number(coords.y.replace(",", ".")) }); }}><div><Move size={12} /><strong>Koordinat kutusu</strong><span>m</span></div><label>X<input aria-label="X koordinatı" data-testid="coordinate-x" inputMode="decimal" value={coords.x} onChange={(e) => setCoords({ ...coords, x: e.target.value })} required /></label><label>Y<input aria-label="Y koordinatı" data-testid="coordinate-y" inputMode="decimal" value={coords.y} onChange={(e) => setCoords({ ...coords, y: e.target.value })} required /></label><button type="submit" data-testid="coordinate-place" title="Girilen koordinatı kullan"><Plus size={13} />Nokta ekle</button><small>İmleç: {number(cursor.x, 2)} / {number(cursor.y, 2)}</small></form>
         {tool === "slab" && pending.length > 0 && <button type="button" className="hcad-finish-slab" data-testid="finish-slab" disabled={pending.length < 3} onClick={finishSlab}><Check size={16} />Döşemeyi tamamla ({pending.length})</button>}
       </div><Scene3D model={model} selectedId={selectedId} onSelect={selectElement} hiddenLayers={hiddenLayers} junctions={junctions} /></div>
-      <aside className="hcad-inspector"><div className="hcad-inspector-tabs"><button type="button" className={panel === "quantities" ? "active" : ""} onClick={() => setPanel("quantities")}>Metraj</button><button type="button" className={panel === "properties" ? "active" : ""} onClick={() => setPanel("properties")}>Özellikler</button></div>
+      {isCompact && inspectorOpen && <div className="hcad-inspector-backdrop" data-testid="hsyncad-inspector-backdrop" aria-hidden="true" onClick={closeCompactInspector} />}
+      <aside ref={inspectorRef} id="hsyncad-compact-inspector" className="hcad-inspector" data-open={inspectorOpen} inert={isCompact && !inspectorOpen} role={isCompact && inspectorOpen ? "dialog" : undefined} aria-modal={isCompact && inspectorOpen ? true : undefined} aria-label={isCompact && inspectorOpen ? "Metraj ve özellikler" : undefined} onKeyDown={handleInspectorKeyDown}>
+        <div className="hcad-inspector-drawer-header"><strong>Metraj / Özellikler</strong><button type="button" ref={inspectorCloseRef} data-testid="hsyncad-inspector-close" onClick={closeCompactInspector} aria-label="Paneli kapat"><X size={17} /></button></div>
+        <div className="hcad-inspector-tabs"><button type="button" className={panel === "quantities" ? "active" : ""} onClick={() => setPanel("quantities")}>Metraj</button><button type="button" className={panel === "properties" ? "active" : ""} onClick={() => setPanel("properties")}>Özellikler</button></div>
         <div className="hcad-inspector-content">{panel === "quantities" ? <><div className="hcad-panel-heading"><span className="hcad-section-eyebrow">ANLIK METRAJ</span><span className="hcad-live"><i />Canlı</span></div><div className="hcad-metric"><span>Beton hacmi · {quantities.warnings.length ? "brüt" : "net"}</span><div><strong data-testid="quantity-net">{number(quantities.netVolume)}</strong><span>m³</span></div><small>Tüm katlar · {model.elements.filter((e) => e.type !== "axis").length} yapı elemanı</small></div><div className="hcad-metric hcad-metric-secondary"><span>Kalıp alanı · brüt</span><div><strong data-testid="quantity-formwork">{number(quantities.formwork, 2)}</strong><span>m²</span></div></div><table className="hcad-quantity-table"><caption>Eleman tipine göre metraj</caption><thead><tr><th>Eleman</th><th>Adet</th><th>{quantities.warnings.length ? "Brüt m³" : "Net m³"}</th><th>Kalıp m²</th></tr></thead><tbody>{quantities.rows.map((row) => <tr key={row.type} data-testid={`quantity-${row.type}`}><td><i style={{ background: TYPE_COLORS[row.type] }} />{TYPE_NAMES[row.type]}</td><td>{row.count}</td><td>{number(row.netVolume)}</td><td>{number(row.formwork, 2)}</td></tr>)}</tbody></table><div className="hcad-deduction"><span>Brüt hacim <b>{number(quantities.grossVolume)} m³</b></span><span>Çakışma düşümü <b data-testid="quantity-overlap">−{number(quantities.overlapVolume)} m³</b></span></div><details className="hcad-assumptions" open><summary>Hesap kabulleri</summary>{quantities.assumptions.map((text, i) => <p key={i}>{text}</p>)}</details>{quantities.warnings.map((text, i) => <p className="hcad-warning" key={i}>{text}</p>)}<p className="hcad-scope-note">Geometrik modelleme ve metraj MVP’si. Statik / deprem hesabı ve mevzuata uygunluk kontrolü içermez.</p></> : <ElementProperties element={selected} model={model} onApply={(next) => commit({ ...model, elements: model.elements.map((e) => e.id === next.id ? next : e) }, `${next.name} güncellendi.`)} onDelete={deleteSelected} />}
         <details className="hcad-element-list"><summary><Layers size={13} />Elemanlar ({model.elements.length})</summary>{model.elements.map((e) => <button type="button" key={e.id} data-testid={`element-${e.name}`} className={selectedId === e.id ? "active" : ""} onClick={() => { selectElement(e.id); setFloorId(e.floorId); setTool("select"); }}><i style={{ background: TYPE_COLORS[e.type] }} /><b>{e.name}</b><span>{TYPE_NAMES[e.type]}</span><small>{model.floors.find((f) => f.id === e.floorId)?.name}</small></button>)}{!model.elements.length && <p className="hcad-fine">Henüz eleman yok.</p>}</details></div>
       </aside>

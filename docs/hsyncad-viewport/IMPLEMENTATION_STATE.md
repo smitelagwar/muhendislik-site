@@ -1,6 +1,6 @@
 # hsynCAD — Uygulama durumu
 
-> Bu ilerleme kaydı ilk planın tamamlanmış aşamalarını izler. `PLAN.md` orijinal plan kopyasıdır. ASAMA_03 kod checkpoint'i tamamlandı; sonraki ASAMA_04 yalnız kullanıcı yeni `devam` gönderince başlar.
+> Bu ilerleme kaydı ilk planın tamamlanmış aşamalarını izler. `PLAN.md` orijinal plan kopyasıdır. ASAMA_04 mobil/tablet panel geçişi kod checkpoint'i tamamlandı. ASAMA_05 yalnız yeni `devam` talimatıyla başlar.
 
 ```yaml
 plan_id: HSYNCAD_IMMERSIVE_VIEWPORT_2026_10_26
@@ -8,8 +8,8 @@ plan_revision: 1
 planning_status: PLAN_HAZIR
 execution_status: DEVAM_EDIYOR
 active_stage: null
-next_stage: ASAMA_04
-completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03]
+next_stage: ASAMA_05
+completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04]
 evidence:
   - stage: ASAMA_01
     check: main_HEAD
@@ -69,8 +69,28 @@ evidence:
     check: preview_or_production_deployment
     result: NOT_RUN
     detail: "No deployment in ASAMA_03."
+  - stage: ASAMA_04
+    check: mobile_single_pane_source_contract
+    result: PASS_SOURCE
+    detail: "2D and 3D remain mounted in one cell; switching uses CSS visibility and pointer-events without model remount."
+  - stage: ASAMA_04
+    check: inspector_a11y_source_contract
+    result: PASS_SOURCE
+    detail: "Compact drawer modal, inert closed state, backdrop, focus return, Escape and Tab loop."
+  - stage: ASAMA_04
+    check: keyboard_and_responsive_source_contract
+    result: PASS_SOURCE
+    detail: "visualViewport keyboard constraint, ribbon/workspace internal scrolling and compact landscape rules."
+  - stage: ASAMA_04
+    check: mobile_playwright_regression
+    result: NOT_RUN
+    detail: "Updated existing mobile spec and added compact viewport spec; complete local Next install and browser harness not available."
+  - stage: ASAMA_04
+    check: vercel_deployment
+    result: NOT_RUN
+    detail: "No preview or production deploy in stage 04."
 blockers: []
-updated_at: "2026-10-26T15:20:19+03:00"
+updated_at: "2026-10-26T15:28:19+03:00"
 ```
 
 ## Kaynak ve erişim tabanı
@@ -112,3 +132,14 @@ Yalnız bu iki plan/durum belgesi tek dokümantasyon checkpoint'inde kaydedilir;
 - Bu aşamanın kaynak kod sözleşmesi statik olarak doğrulandı. Gerçek Chromium/Next tarayıcı E2E, build, typecheck ve detaylı viewport ölçümleri henüz yapılmadı; geçerli PASS iddiası yok. AŞAMA_05 kalite kapısı zorunludur.
 - `main` ve Vercel Production korunuyor; deploy yok.
 - Durma noktası: AŞAMA_04 için yeni `devam` beklenecek.
+
+## ASAMA_04 — Mobil ve tablet tek-sahne arayüzü (2026-10-26T15:28:19+03:00)
+
+- `workbench.tsx`: 1000px ve altında görünüm değiştirme `2B | 3B` ve `Metraj/Özellikler` tetikleyicisi eklendi. Model, 2B/3B bileşenleri ve geçmiş state'i anahtarla geçişte yeniden mount edilmiyor.
+- Inspector, dar ekranda modal panel olarak görüntüleniyor. Kapalı durumda `inert`, görünürlük kilidi, arka plan perdeleme; açık durumda Escape, Tab/Shift+Tab odak döngüsü, kapanışta tetikleyiciye odak geri dönüşü ve role/aria sözleşmesi var.
+- Koordinat kutusu mobilde X/Y tuşuyla açılıp kapanıyor; mevcut koordinat ve nokta oluşturma mantığı korunuyor.
+- `workbench.module.css`: 1000px altındaki dikey yığılma yerine iki görünüm aynı grid hücresini paylaşıyor; gizli görünüm visibility/pointer-events ile erişilemez. Inspector `hcad-body` içi overlay; ana document scroll yok, inspector/ribbon/kat seçimleri kendi içinde kayabiliyor. 844×390 gibi kısa yatay ekranlar için kompakt kurallar eklendi.
+- `visualViewport` yalnız klavye açık olduğunda CAD root yüksekliğini görsel viewport'a indiriyor; global body/html stilleri değişmiyor.
+- `tests/hsyncad/workbench.spec.ts`: eski `3B, 2B'nin altında` beklentisi yeni 2B/3B anahtarına çevrildi. Mobil odak/drawer ve pinch/touch temelli senaryolar korundu. Ayrı kompakt viewport matrisi test dosyası eklendi.
+- Kod ve seçici seviyesinde statik kontroller yapıldı. **Tam TypeScript build, gerçek Playwright, mobil kamera/viewport ve fiziksel klavye kabulü bu oturumda yapılmadı.** Bunlar AŞAMA_05 kalite kapısında zorunlu. Bu aşamanın başarı iddiası branch'e kod yerleştirilmesidir, gerçek cihaz kabulü değildir.
+- `main` değiştirilmedi; Vercel deployment başlatılmadı. AŞAMA_05 yeni `devam` gerektirir.
