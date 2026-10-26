@@ -7,13 +7,13 @@ export type IrregularityScenario = "A1" | "A2" | "A3" | "B1" | "B2" | "B3";
 export default function BuildingViewer({ view, resetToken, scenario, playing, speed, showSlabs, onFailure }: { view: CameraView; resetToken: number; scenario: IrregularityScenario; playing: boolean; speed: number; showSlabs: boolean; onFailure: () => void }) {
   const host = useRef<HTMLDivElement>(null);
   const live = useRef({ playing, speed, showSlabs });
-  live.current = { playing, speed, showSlabs };
+  useEffect(() => { live.current = { playing, speed, showSlabs }; }, [playing, speed, showSlabs]);
   const cameraController = useRef<(v: CameraView) => void>(() => {});
   const motionReset = useRef<() => void>(() => {});
   const viewRef = useRef(view);
-  viewRef.current = view;
+  useEffect(() => { viewRef.current = view; }, [view]);
   const onFailureRef = useRef(onFailure);
-  onFailureRef.current = onFailure;
+  useEffect(() => { onFailureRef.current = onFailure; }, [onFailure]);
   useEffect(() => {
     const el = host.current;
     if (!el) return;
