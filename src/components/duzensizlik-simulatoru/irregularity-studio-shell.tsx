@@ -26,8 +26,9 @@ export function IrregularityStudioShell() {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [showSlabs, setShowSlabs] = useState(true);
+  const [lessonStep, setLessonStep] = useState(0);
   const current = SCENARIOS[selected];
-  const selectScenario = (index: number) => { setSelected(index); setPlaying(false); };
+  const selectScenario = (index: number) => { setSelected(index); setPlaying(false); setLessonStep(0); };
   useEffect(() => {
     if (!panelOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -90,8 +91,13 @@ export function IrregularityStudioShell() {
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6">
             <span className="text-xs font-bold tracking-widest text-cyan-300">SENARYO {selected + 1} / 6</span>
             <h2 className="mt-3 text-xl font-bold">{current.id} · {current.title}</h2>
-            <p className="mt-4 text-sm leading-6 text-slate-300">{current.note}</p>
-            <div className="mt-7 rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-4"><p className="text-xs font-bold text-cyan-300">Neye bakmalıyım?</p><p className="mt-2 text-sm leading-6 text-slate-200">{current.watch}</p></div>
+            <div role="group" aria-label="Öğrenme adımları" className="mt-5 flex gap-2">
+              {["Tanı", "Gözlemle", "İncele"].map((label, index) => (
+                <button type="button" key={label} onClick={() => { setLessonStep(index); if (index === 1) setPlaying(true); }} aria-pressed={lessonStep === index} className={lessonStep === index ? "flex-1 rounded-md bg-cyan-400 px-2 py-2 text-xs font-semibold text-[#0b1726]" : "flex-1 rounded-md bg-white/5 px-2 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10"}>{index + 1}. {label}</button>
+              ))}
+            </div>
+            <p className="mt-5 text-sm leading-6 text-slate-300">{lessonStep === 0 ? current.note : lessonStep === 1 ? "Hareketi izle. Kritik bölgeyi fark et." : current.watch}</p>
+            <div className="mt-7 rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-4"><p className="text-xs font-bold text-cyan-300">Neye bakmalıyım?</p><p className="mt-2 text-sm leading-6 text-slate-200">{lessonStep === 0 ? current.watch : lessonStep === 1 ? "Kamerayı döndürerek farklı cepheleri karşılaştır." : "3B, ön, yan ve üst görünüşleri kullan."}</p></div>
           </div>
           <div className="flex shrink-0 items-center justify-between gap-2 border-t border-white/10 p-4">
             <button type="button" disabled={selected === 0} onClick={() => selectScenario(Math.max(0,selected-1))} className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-3 py-2 text-xs disabled:opacity-30"><ChevronLeft size={15}/> Önceki</button>
