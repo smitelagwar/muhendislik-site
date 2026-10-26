@@ -21,6 +21,7 @@ export function IrregularityStudioShell() {
   const [mode, setMode] = useState<Mode>("3d");
   const [panelOpen, setPanelOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [whyOpen, setWhyOpen] = useState(true);
   const [lessonStep, setLessonStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -51,6 +52,21 @@ export function IrregularityStudioShell() {
     return () => { window.cancelAnimationFrame(frame); window.cancelAnimationFrame(motionFrame); media.removeEventListener("change",update); };
   }, []);
   useEffect(()=>{
+    // A desktop guide can be visible by default, but it must not become a
+    // blocking mobile drawer after window resize or device rotation.
+    let wasDesktop=window.innerWidth>=1024;
+    const reconcileLayout=()=>{
+      const isDesktop=window.innerWidth>=1024;
+      if(wasDesktop && !isDesktop){
+        setPanelOpen(false);
+        setSettingsOpen(false);
+      }
+      wasDesktop=isDesktop;
+    };
+    window.addEventListener("resize",reconcileLayout);
+    return ()=>window.removeEventListener("resize",reconcileLayout);
+  },[]);
+  useEffect(()=>{
     if(!panelOpen && !settingsOpen) return;
     const onKey=(e:KeyboardEvent)=>{
       if(e.key==="Tab"&&panelOpen&&window.innerWidth<1024&&!settingsOpen){
@@ -73,6 +89,7 @@ export function IrregularityStudioShell() {
   },[scenario]);
   const choose=(id:ScenarioId)=>{
     setScenario(id);
+    setWhyOpen(true);
     setPlaying(false);
     setLessonStep(0);
     setSettingsOpen(false);
@@ -87,8 +104,16 @@ export function IrregularityStudioShell() {
     setView("perspective");
     setCameraPulse(n=>n+1);
     setLessonStep(0);
+    setWhyOpen(true);
     setSettingsOpen(false);
     setResetToken(n=>n+1);
+  };
+  const openDetails=()=>{
+    setLessonStep(2);
+    setPanelOpen(true);
+    setSettingsOpen(false);
+    // A modal mobile guide must receive focus when opened from the why-card.
+    if(window.innerWidth<1024)window.requestAnimationFrame(()=>closePanel.current?.focus());
   };
   const changeMode=()=>{
     const next:Mode=mode==="3d"?"2d":"3d";
@@ -137,7 +162,37 @@ export function IrregularityStudioShell() {
               <span className="font-semibold text-sky-200">{scenario}</span><span className="ml-2 hidden text-slate-300 sm:inline">{data.emphasis}</span>
             </div>
             {viewerFailed && <button type="button" data-testid="irregularity-retry" onClick={()=>{setViewerFailed(false);setMode("3d");setViewerKey(n=>n+1);}} className="absolute bottom-16 right-3 z-10 rounded-lg border border-sky-300/40 bg-[#18324a] px-4 py-2 text-xs font-semibold">3B&apos;yi tekrar dene</button>}
-            {mode==="3d"&&!viewerFailed&&(
+            {/* One compact scenario explanation. Small screens: above camera dock;
+                desktop: top-right, clear of the scenario badge and guide panel. */}
+             <div className="pointer-events-none absolute bottom-[62px] left-2 right-2 z-10 sm:bottom-auto sm:left-auto sm:right-3 sm:top-3 sm:w-[min(270px,calc(100%-24px))]">
+               {whyOpen ? (
+                 <aside data-testid="irregularity-why-card" data-scenario={scenario} aria-label={scenario+" neden problemli?"} aria-live="polite"
+                   className="pointer-events-auto max-h-[38dvh] overflow-y-auto overscroll-contain rounded-xl border border-amber-300/35 bg-[#14293b]/95 p-2.5 shadow-[0_8px_35px_rgba(0,0,0,0.35)] backdrop-blur-md sm:p-3">
+                   <div className="flex items-center justify-between gap-2">
+                     <p className="min-w-0 text-[11px] font-extrabold tracking-[0.04em] text-amber-200 sm:text-xs">
+                       <span aria-hidden="true" className="mr-1.5 inline-block h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_9px_#ffb86a]"/>Neden Problemli?
+                     </p>
+                     <button type="button" data-testid="irregularity-why-close" aria-label="Bilgi kartını kapat"
+                       onClick={()=>setWhyOpen(false)} className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-slate-300 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300">
+                       <X size={15} aria-hidden="true"/>
+                     </button>
+                   </div>
+                   <p data-testid="irregularity-why-copy" className="mt-1.5 text-[11px] leading-[1.45] text-slate-100 sm:text-xs">{data.why}</p>
+                   <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/10 pt-1.5">
+                     <span className="min-w-0 text-[10px] text-amber-100/85 sm:text-[11px]">{data.focusLabel}{!showHighlights&&mode==="3d"?" · İşaretler kapalı":""}</span>
+                     <button type="button" data-testid="irregularity-why-details"
+                       onClick={openDetails}
+                       className="shrink-0 rounded-md px-1 py-1 text-[10px] font-semibold text-sky-300 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300">Detay</button>
+                   </div>
+                 </aside>
+               ) : (
+                 <button type="button" data-testid="irregularity-why-open" onClick={()=>setWhyOpen(true)}
+                   className="pointer-events-auto inline-flex h-9 items-center gap-2 rounded-lg border border-amber-300/40 bg-[#152b3e]/95 px-3 text-xs font-bold text-amber-100 shadow-xl">
+                   <span aria-hidden="true" className="h-2 w-2 rounded-full bg-amber-300"/>Neden Problemli?
+                 </button>
+               )}
+             </div>
+             {mode==="3d"&&!viewerFailed&&(
               <div role="group" aria-label="Kamera görünümleri" className="absolute bottom-3 left-2 z-10 flex max-w-[calc(100%-16px)] gap-1 rounded-xl border border-white/10 bg-[#102235]/90 p-1 shadow-xl backdrop-blur-md sm:left-3">
                 {views.map(item=><button type="button" key={item.value} data-testid={"irregularity-camera-"+item.value} onClick={()=>{setView(item.value);setCameraPulse(n=>n+1);}} aria-pressed={view===item.value} className={"min-h-9 rounded-lg px-2.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 "+(view===item.value?"bg-sky-300 text-[#0b1420]":"text-slate-200 hover:bg-white/10")}>{item.label}</button>)}
               </div>
