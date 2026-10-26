@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { makeBlueprint, jointAt, segmentPose, slabPose, COLUMN_SECTION, BEAM_SECTION, SLAB_THICKNESS, WALL_BAY_DEPTH, BEAM_FACE_TRIM, SLAB_LIFT, type V3 } from "@/lib/duzensizlik-simulatoru/motion";
 import type { ScenarioId } from "@/lib/duzensizlik-simulatoru/scenarios";
+import { FOCUS_POINTS, focusAnchorAt, type FocusPoint } from "@/lib/duzensizlik-simulatoru/focus";
 
 export type CameraView = "perspective" | "front" | "side" | "left" | "top";
 // The repo provides a minimal hand-written Three.js type shim for its CAD modules.
@@ -93,7 +94,11 @@ export default function BuildingViewer(props: Props) {
       highlight: new THREE.MeshStandardMaterial({color:"#fa746c",emissive:"#62211f",emissiveIntensity:.27,roughness:.7}),
       transfer: new THREE.MeshStandardMaterial({color:"#f3b05f",emissive:"#623d17",emissiveIntensity:.15}),
       foundation: new THREE.MeshStandardMaterial({color:"#284054",roughness:.79}),
+      focusPrimary: new THREE.MeshStandardMaterial({color:"#ffd492",emissive:"#ef7c35",emissiveIntensity:.6,roughness:.35,depthTest:false,depthWrite:false}),
+      focusComparison: new THREE.MeshStandardMaterial({color:"#85e5f4",emissive:"#2088a5",emissiveIntensity:.65,roughness:.35,depthTest:false,depthWrite:false}),
+      focusHalo: new THREE.MeshStandardMaterial({color:"#ffb86a",emissive:"#9e4d23",emissiveIntensity:.4,transparent:true,opacity:.22,depthTest:false,depthWrite:false}),
     };
+    const focusSphere = new THREE.SphereGeometry(1,12,10);
     const axis = new THREE.Vector3(0,1,0);
     const frame = new THREE.Group();
     scene.add(frame);
@@ -115,9 +120,11 @@ export default function BuildingViewer(props: Props) {
     type Part = { mesh: THREE.Mesh; a: V3; b: V3; kind: "column" | "beam" | "wall" | "highlight" | "transfer";
       trimA: number; trimB: number; wallRest?: Float32Array };
     type Surface = { mesh: THREE.Mesh; rim: SlabRim; x:number; z:number; y:number };
+    type Marker = { point: FocusPoint; mesh: THREE.Mesh; halo: THREE.Mesh };
     const pointKey = (v:V3) => v.map(x => x.toFixed(5)).join(":");
     let segments: Part[] = [];
     let surfaces: Surface[] = [];
+    let markers: Marker[] = [];
     let modelBounds = makeBlueprint(scenario).bounds;
     const updateSegment = (part: Part, phase: number, intensity: number) => {
       if (part.wallRest) {
@@ -163,6 +170,18 @@ export default function BuildingViewer(props: Props) {
         surface.rim.rotation.set(0,pose.yaw,0);
         surface.rim.visible=latest.current.showSlabs;
       }
+      for(const marker of markers) {
+        const at=focusAnchorAt(marker.point,scenario,phase,intensity);
+        marker.mesh.position.set(...at);
+        marker.halo.position.copy(marker.mesh.position);
+        marker.mesh.visible=latest.current.showHighlights;
+        marker.halo.visible=latest.current.showHighlights;
+      }
+      // Expose the positions of actual Three.js markers for browser assertions.
+      host.dataset.focusVisible=String(latest.current.showHighlights);
+      host.dataset.focusWorld=markers.length
+        ? [markers[0].mesh.position.x,markers[0].mesh.position.y,markers[0].mesh.position.z].map(n=>n.toFixed(4)).join(",")
+        : "";
     };
     const rebuild = (next: ScenarioId) => {
       scenario = next;
@@ -171,8 +190,10 @@ export default function BuildingViewer(props: Props) {
         if(p.wallRest) p.mesh.geometry.dispose();
       }
       for(const s of surfaces) { frame.remove(s.mesh); frame.remove(s.rim); }
+      for(const m of markers) { frame.remove(m.mesh); frame.remove(m.halo); }
       segments=[];
       surfaces=[];
+      markers=[];
       const blueprint=makeBlueprint(scenario);
       modelBounds=blueprint.bounds;
       pad.position.x=(modelBounds.min[0]+modelBounds.max[0])/2;
@@ -219,6 +240,21 @@ export default function BuildingViewer(props: Props) {
         frame.add(rim);
         surfaces.push({mesh,rim,x:slab.cx,z:slab.cz,y:slab.level*1.6});
       }
+      for(const point of FOCUS_POINTS[scenario]) {
+        const mesh=new THREE.Mesh(focusSphere,point.role==="comparison"?mat.focusComparison:mat.focusPrimary);
+        mesh.scale.setScalar(.145);
+        mesh.renderOrder=12;
+        mesh.userData.kind="problem-focus";
+        mesh.userData.focusId=point.id;
+        const halo=new THREE.Mesh(focusSphere,mat.focusHalo);
+        halo.scale.setScalar(.27);
+        halo.renderOrder=11;
+        frame.add(halo);
+        frame.add(mesh);
+        markers.push({point,mesh,halo});
+      }
+      host.dataset.focusCount=String(markers.length);
+      host.dataset.focusId=markers.map(m=>m.point.id).join(",");
       elapsed=0;
       blend=0;
       updateModel(0,0);
@@ -338,6 +374,7 @@ export default function BuildingViewer(props: Props) {
       for(const p of segments) if(p.wallRest) p.mesh.geometry.dispose();
       slabEdges.dispose();
       slabEdgeMaterial.dispose();
+      focusSphere.dispose();
       unit.dispose();
       grid.geometry.dispose();
       if(Array.isArray(grid.material)) grid.material.forEach(m=>m.dispose());
