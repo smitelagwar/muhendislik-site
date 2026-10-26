@@ -9,6 +9,9 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
   const live = useRef({ playing, speed, showSlabs });
   live.current = { playing, speed, showSlabs };
   const cameraController = useRef<(v: CameraView) => void>(() => {});
+  const motionReset = useRef<() => void>(() => {});
+  const viewRef = useRef(view);
+  viewRef.current = view;
   const onFailureRef = useRef(onFailure);
   onFailureRef.current = onFailure;
   useEffect(() => {
@@ -102,6 +105,7 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
     let frame = 0;
     let stopped = false;
     let elapsed = 0;
+    const resetMotion = () => { elapsed = 0; };
     let previous = 0;
     let dirty = true;
     let contextLost = false;
@@ -143,7 +147,8 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
       observer = new ResizeObserver(resize);
       observer.observe(el);
       cameraController.current = applyView;
-      applyView("perspective");
+      motionReset.current = resetMotion;
+      applyView(viewRef.current);
       const tick = (now: number) => {
         if (stopped) return;
         const dt = previous ? Math.min((now - previous) / 1000, .05) : 0;
@@ -189,6 +194,7 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
     return () => {
       stopped = true;
       cameraController.current = () => {};
+      motionReset.current = () => {};
       cancelAnimationFrame(frame);
       observer?.disconnect();
       controls?.dispose();
@@ -205,6 +211,6 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
     };
   }, [scenario]);
   useEffect(() => { cameraController.current(view); }, [view]);
-  useEffect(() => { if (resetToken > 0) cameraController.current("perspective"); }, [resetToken]);
+  useEffect(() => { if (resetToken > 0) { motionReset.current(); cameraController.current("perspective"); } }, [resetToken]);
   return <div ref={host} data-testid="irregularity-three-canvas" className="h-full w-full touch-none" />;
 }
