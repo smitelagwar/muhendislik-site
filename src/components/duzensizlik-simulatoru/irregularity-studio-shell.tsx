@@ -27,8 +27,9 @@ export function IrregularityStudioShell() {
   const [speed, setSpeed] = useState(1);
   const [showSlabs, setShowSlabs] = useState(true);
   const [lessonStep, setLessonStep] = useState(0);
+  const [viewerRetry, setViewerRetry] = useState(0);
   const current = SCENARIOS[selected];
-  const selectScenario = (index: number) => { setSelected(index); setPlaying(false); setLessonStep(0); };
+  const selectScenario = (index: number) => { setSelected(index); setPlaying(false); setLessonStep(0); setViewerFailed(false); };
   useEffect(() => {
     if (!panelOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -63,9 +64,9 @@ export function IrregularityStudioShell() {
           </div>
           <div className="relative z-[1] min-h-0 flex-1">
             {viewerFailed ? (
-              <div role="alert" className="flex h-full items-center justify-center p-5 text-center text-sm text-slate-300">Bu cihazda 3B görüntüleme kullanılamıyor. 2B öğretici görünüm sonraki aşamada eklenecek.</div>
+              <div role="alert" className="flex h-full flex-col items-center justify-center gap-4 p-5 text-center text-sm text-slate-300"><p>3B görüntüleme kullanılamıyor. Senaryonun açıklamasını sağ panelden inceleyebilirsin.</p><button type="button" className="rounded-lg border border-cyan-300/40 px-4 py-2 text-cyan-200" onClick={() => { setViewerFailed(false); setViewerRetry(v => v + 1); }}>Tekrar dene</button></div>
             ) : (
-              <BuildingViewer view={cameraView} resetToken={cameraReset} scenario={current.id} playing={playing} speed={speed} showSlabs={showSlabs} onFailure={() => setViewerFailed(true)} />
+              <BuildingViewer key={viewerRetry} view={cameraView} resetToken={cameraReset} scenario={current.id} playing={playing} speed={speed} showSlabs={showSlabs} onFailure={() => setViewerFailed(true)} />
             )}
             <div className="absolute right-3 top-3 rounded-full border border-cyan-300/25 bg-[#0d1928]/85 px-3 py-1.5 text-[11px] font-semibold tracking-wide text-cyan-200 backdrop-blur-sm">EĞİTSEL MODEL · {current.id}</div>
             <div role="group" aria-label="Kamera görünümleri" className="absolute bottom-3 left-3 flex flex-wrap gap-1 rounded-xl border border-white/10 bg-[#0d1928]/90 p-1.5 backdrop-blur-sm">
@@ -77,7 +78,7 @@ export function IrregularityStudioShell() {
           <div className="relative z-[1] flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-[#0d1928]/95 px-3 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             <span className="text-[11px] text-slate-400">Eğitsel gösterim · Hesap sonucu değildir</span>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={() => { setPlaying(false); setCameraView("perspective"); setCameraReset(v => v + 1); }} className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/15 px-3 text-xs hover:bg-white/10"><RotateCcw size={15}/> Sıfırla</button>
+              <button type="button" onClick={() => { setPlaying(false); setLessonStep(0); setCameraView("perspective"); setCameraReset(v => v + 1); }} className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/15 px-3 text-xs hover:bg-white/10"><RotateCcw size={15}/> Sıfırla</button>
               <button type="button" aria-pressed={showSlabs} onClick={() => setShowSlabs(v => !v)} className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/15 px-3 text-xs hover:bg-white/10"><Layers size={15}/><span className="hidden sm:inline">Döşeme</span></button>
               <label className="sr-only" htmlFor="irregularity-speed">Hareket hızı</label>
               <select id="irregularity-speed" value={speed} onChange={event => setSpeed(Number(event.target.value))} className="h-9 rounded-lg border border-white/15 bg-[#10243a] px-2 text-xs" aria-label="Hareket hızı"><option value={0.5}>0,5×</option><option value={1}>1×</option><option value={1.5}>1,5×</option></select>
@@ -93,7 +94,7 @@ export function IrregularityStudioShell() {
             <h2 className="mt-3 text-xl font-bold">{current.id} · {current.title}</h2>
             <div role="group" aria-label="Öğrenme adımları" className="mt-5 flex gap-2">
               {["Tanı", "Gözlemle", "İncele"].map((label, index) => (
-                <button type="button" key={label} onClick={() => { setLessonStep(index); if (index === 1) setPlaying(true); }} aria-pressed={lessonStep === index} className={lessonStep === index ? "flex-1 rounded-md bg-cyan-400 px-2 py-2 text-xs font-semibold text-[#0b1726]" : "flex-1 rounded-md bg-white/5 px-2 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10"}>{index + 1}. {label}</button>
+                <button type="button" key={label} onClick={() => { setLessonStep(index); if (index === 1) setPlaying(true); else setPlaying(false); }} aria-pressed={lessonStep === index} className={lessonStep === index ? "flex-1 rounded-md bg-cyan-400 px-2 py-2 text-xs font-semibold text-[#0b1726]" : "flex-1 rounded-md bg-white/5 px-2 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10"}>{index + 1}. {label}</button>
               ))}
             </div>
             <p className="mt-5 text-sm leading-6 text-slate-300">{lessonStep === 0 ? current.note : lessonStep === 1 ? "Hareketi izle. Kritik bölgeyi fark et." : current.watch}</p>
