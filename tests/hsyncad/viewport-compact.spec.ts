@@ -28,6 +28,21 @@ for (const size of sizes) {
         return { vw: window.innerWidth, vh: window.innerHeight, height: root.scrollHeight, width: root.scrollWidth, clientHeight: root.clientHeight, clientWidth: root.clientWidth, scrollY: window.scrollY, rootHeight: c.height, rootBottom: c.bottom };
       });
       const m = await dimensions();
+      if (m.height > m.clientHeight + 1 || m.width > m.clientWidth + 1) {
+        const candidates = await page.evaluate(() => {
+          const vw = document.documentElement.clientWidth;
+          return [...document.querySelectorAll<HTMLElement>("body *")]
+            .map(el => {
+              const rect = el.getBoundingClientRect();
+              return { tag: el.tagName, className: typeof el.className === "string" ? el.className.slice(0, 90) : "",
+                width: Math.round(rect.width), right: Math.round(rect.right),
+                overflowX: getComputedStyle(el).overflowX };
+            })
+            .filter(item => item.right > vw + 1 && item.width > 0)
+            .slice(0, 20);
+        });
+        console.log("CAD_VIEWPORT_OVERFLOW", JSON.stringify({ size, m, candidates }));
+      }
       expect(m.height).toBeLessThanOrEqual(m.clientHeight + 1);
       expect(m.width).toBeLessThanOrEqual(m.clientWidth + 1);
       expect(m.rootBottom).toBeLessThanOrEqual(m.vh + 1);

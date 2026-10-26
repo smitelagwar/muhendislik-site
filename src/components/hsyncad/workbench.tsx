@@ -111,8 +111,12 @@ export default function HsynCadWorkbench() {
 
   useEffect(() => {
     if (!isCompact || !inspectorOpen) return;
-    const id = requestAnimationFrame(() => inspectorCloseRef.current?.focus({ preventScroll: true }));
-    return () => cancelAnimationFrame(id);
+    // The drawer transitions visibility for 180 ms. Delay focus until it becomes
+    // keyboard-focusable rather than racing the CSS visibility transition.
+    const timer = window.setTimeout(() => {
+      if (!inspectorRef.current?.inert) inspectorCloseRef.current?.focus({ preventScroll: true });
+    }, 220);
+    return () => window.clearTimeout(timer);
   }, [isCompact, inspectorOpen]);
 
   function closeCompactInspector() {

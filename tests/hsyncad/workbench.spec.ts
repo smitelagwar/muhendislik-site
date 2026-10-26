@@ -24,7 +24,8 @@ async function clickWorld(page: Page, x: number, y: number) {
   const p = await worldPoint(page, x, y);
   await page.mouse.click(p.x, p.y);
 }
-async function solids(page: Page, count: number) { await expect(scene(page)).toHaveAttribute("data-rendered-solid-count", String(count)); }
+// Section solid count excludes axes; the inner viewport's rendered meshes include axes.
+async function solids(page: Page, count: number) { await expect(page.getByTestId("hsyncad-3d")).toHaveAttribute("data-solid-count", String(count)); }
 async function signature(page: Page) { return JSON.parse((await scene(page).getAttribute("data-model-signature"))!) as Array<{ id: string; name: string; type: string; width?: number; position?: { x: number; y: number }; end?: { x: number; y: number } }>; }
 
 test("complete placement, snap, 2D/3D edits, history, floors, layers and invalid input", async ({ page }) => {
@@ -32,6 +33,8 @@ test("complete placement, snap, 2D/3D edits, history, floors, layers and invalid
   page.on("pageerror", (error) => errors.push(error.message));
   await ready(page);
   await page.getByTestId("tool-axis").click();
+  // Current default is single-click horizontal axes. Select explicit two-point mode.
+  await page.getByTestId("hsyncad-axis-free").click();
   await clickWorld(page, 0, 0); await clickWorld(page, 4, 0);
   await clickWorld(page, 2, -1); await clickWorld(page, 2, 4);
   await expect(page.getByTestId("hsyncad-plan")).toHaveAttribute("data-element-count", "2");
