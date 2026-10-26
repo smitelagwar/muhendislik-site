@@ -31,12 +31,14 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
     floors.forEach(floor => group.add(floor));
     let activeFloor = -1;
     const slabs: THREE.Mesh[] = [];
+    const columnMeshes: { mesh: THREE.Mesh; storey: number; initialX: number }[] = [];
     const add = (x: number, y: number, z: number, w: number, h: number, d: number, material: number) => {
       const part = new THREE.Mesh(geometry, materials[material]);
       part.position.set(x, y, z);
       part.scale.set(w, h, d);
       (activeFloor < 0 ? group : floors[activeFloor]).add(part);
       if (material === 2) slabs.push(part);
+      if (activeFloor >= 0 && w === .25 && h === 1.6 && d === .25) columnMeshes.push({ mesh: part, storey: activeFloor, initialX: x });
     };
     // Distinct *illustrative* static geometry for each TBDY irregularity.
     // No color or deformation here is a calculated structural response.
@@ -152,10 +154,21 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
         const wave = Math.sin(elapsed * 3.1) * motionBlend;
         floors.forEach((floor, i) => {
           const h = (i + 1) / 5;
-          const amplitude = scenario === "B2" ? (i === 0 ? .13 : .36) : .16 * h;
+          // B2: most relative drift must occur in the *ground storey*.
+          // B1 uses normal illustrative drift because low strength != low stiffness.
+          const amplitude = scenario === "B2" ? (.32 + i * .025) : .16 * h;
           floor.position.x = wave * amplitude;
-          floor.position.z = Math.cos(elapsed * 2.4) * .06 * h * motionBlend;
+          floor.position.z = 0;
           floor.rotation.y = scenario === "A1" ? wave * h * .045 : 0;
+        });
+        // Floor groups carry beams/slabs. Columns span the previous and next
+        // displaced diaphragms, preventing implausible breaks at each joint.
+        columnMeshes.forEach(({ mesh, storey, initialX }) => {
+          const top = floors[storey].position.x;
+          const bottom = storey === 0 ? 0 : floors[storey - 1].position.x;
+          const difference = top - bottom;
+          mesh.position.x = initialX + (bottom - top) / 2;
+          mesh.rotation.z = -Math.atan2(difference, 1.6);
         });
         let layerChanged = false;
         slabs.forEach(slab => {
