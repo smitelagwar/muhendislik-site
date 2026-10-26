@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import type { CameraView } from "./building-viewer";
 import { IrregularityFallback2D } from "./irregularity-fallback-2d";
@@ -31,6 +31,14 @@ export function IrregularityStudioShell() {
   const [viewerRetry, setViewerRetry] = useState(0);
   const [viewMode, setViewMode] = useState<"3d" | "2d">("3d");
   const current = SCENARIOS[selected];
+  const studioRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      if (window.innerWidth < 1024) setPanelOpen(false);
+      studioRef.current?.setAttribute("data-interactive", "true");
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
   const selectScenario = (index: number) => { setSelected(index); setPlaying(false); setLessonStep(0); };
   useEffect(() => {
     if (!panelOpen) return;
@@ -42,7 +50,7 @@ export function IrregularityStudioShell() {
   }, [panelOpen]);
 
   return (
-    <div data-testid="irregularity-studio" className="isolate flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-[#09111d] text-slate-100">
+    <div ref={studioRef} data-testid="irregularity-studio" className="isolate flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-[#09111d] text-slate-100">
       <header className="z-10 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#0d1928] px-3 sm:px-5">
         <div className="flex min-w-0 items-center gap-3">
           <Link href="/kategori/araclar" aria-label="Araçlara geri dön" className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-white/15 transition-colors hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400">
