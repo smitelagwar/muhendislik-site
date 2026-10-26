@@ -5,12 +5,12 @@ plan_id: TBDY3D_CHATGPT_WEB_QUALITY_V2_20261026
 plan_revision: 1
 planning_status: PLAN_HAZIR
 execution_status: DEVAM_EDIYOR
-active_stage: ASAMA_03
-next_stage: ASAMA_03
-completed_stages: [ASAMA_01, ASAMA_02]
+active_stage: null
+next_stage: ASAMA_04
+completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03]
 base_sha: 93d734042a2e9f47737898312d839c179cd9a746
 working_branch: internal-tbdy3d-quality-v2
-updated_at: 2026-10-26T19:28:02.968Z
+updated_at: 2026-10-26T20:01:11.036Z
 evidence:
   - ASAMA_01: main SHA and Vercel production READY checked
   - ASAMA_01: GitHub sources / checks and desktop browser interaction reviewed
@@ -19,8 +19,7 @@ evidence:
   - ASAMA_02: CI Playwright 30/30 desktop/mobile/WebKit PASS; reviewed 15 screenshot artifacts
   - ASAMA_03: source commit 38df78be78f259a0d712f68e077096b6ce59436c; 17/17 geometry and production build PASS
   - ASAMA_03: visual evidence from prior browser run 36/40 PASS, four failures from guide overlay in new E2E test; corrected in final source
-blockers:
-  - ASAMA_03: final browser CI for commit 38df78b not yet terminal; cannot report PASS
+blockers: []
 ```
 
 ## ASAMA_01 — Gerçekleşen denetim (2026-10-26)
@@ -156,3 +155,16 @@ Taslak PR: https://github.com/smitelagwar/muhendislik-site/pull/50. `main` merge
 1. SHA `38df78b` için `Build / geometry / desktop / mobile` job'u terminal olana kadar sonucunu kontrol et.
 2. FAIL olursa gerçek hatayı log/screenshot ile düzelt ve yeniden test et. Tam PASS ise state dosyasında `completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03]`, `next_stage: ASAMA_04`, `active_stage: null` yap.
 3. Sonuç doğrulanmadan `ASAMA_04` başlatma veya `main`/Vercel üretim yayını yapma.
+
+### ASAMA_03 nihai kabul ek kaydı
+
+**Durum: TAMAMLANDI.** Tekrar edilebilir resmî Playwright 1.62.1 container ortamına geçildi, `mcr.microsoft.com/playwright:v1.62.1-noble`; GitHub runner'ın eksik WebKit sistem bağımlılıkları engeli ortadan kalktı.
+- Test HEAD: `1249208f3fdb5ee6f1d8df6f2fecf520b7255b55`.
+- Simülatör geometri: **17/17 PASS**.
+- Playwright Chromium masaüstü / mobil 390 / mobil 320 / tablet 768 / WebKit mobil 390: **40/40 PASS**.
+- Simülatör lint, TypeScript ve üretim build: **PASS**.
+- CI: https://github.com/smitelagwar/muhendislik-site/actions/runs/40391024803
+- Bunlar ürün kabul kanıtıdır. Ayrı genel site `quality` / `repository-health` hatları bağımsız borç olarak kalmaktadır.
+- `main` ve Vercel Production değiştirilmedi, deploy yok.
+
+**Durma ve sonraki aşama:** `ASAMA_04`, yalnız kullanıcıdan gelen son “devam” komutuyla bu A3 kabulü ardından açıldı; A4 dışında iş yapılmaz.
