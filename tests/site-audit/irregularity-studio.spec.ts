@@ -95,6 +95,57 @@ test.describe("TBDY 3B stüdyo kalite kapısı",()=>{
     }
   });
 
+
+  test("A1–B3 bağlamsal kartı, gerçek 3B odak ve 2B anlatımı eşleşiyor",async ({page})=>{
+    const card=page.getByTestId("irregularity-why-card");
+    await expect(card).toBeVisible();
+    for(const [id,excerpt,count] of [
+      ["A1","karşılıklı kenarlarda",2],
+      ["A2","döşeme boşluğu",1],
+      ["A3","iç köşesinde",1],
+      ["B1","dayanımı",1],
+      ["B2","göreli yatay ötelenme",1],
+      ["B3","iki uçtan mesnetli",1],
+    ] as const){
+      await page.getByTestId("irregularity-scenario-"+id).click();
+      await expect(card).toHaveAttribute("data-scenario",id);
+      await expect(page.getByTestId("irregularity-why-copy")).toContainText(excerpt);
+      const root=page.getByTestId("irregularity-three-canvas");
+      if(await root.locator("canvas").count()){
+        await expect(root).toHaveAttribute("data-focus-count",String(count));
+        await expect(root).toHaveAttribute("data-focus-visible","true");
+        await expect(root).toHaveAttribute("data-focus-world",/^-?[\d.]+,-?[\d.]+,-?[\d.]+$/);
+      }
+    }
+    await page.getByTestId("irregularity-why-close").click();
+    await expect(card).not.toBeVisible();
+    await page.getByTestId("irregularity-why-open").click();
+    await expect(card).toBeVisible();
+    await page.getByTestId("irregularity-why-details").click();
+    await expect(page.getByTestId("irregularity-lesson-2")).toHaveAttribute("aria-pressed","true");
+    await expect(page.getByTestId("irregularity-guide-copy")).not.toBeEmpty();
+    const rect=await card.boundingBox(),vp=page.viewportSize();
+    if(rect&&vp){
+      expect(rect.x).toBeGreaterThanOrEqual(0);
+      expect(rect.x+rect.width).toBeLessThanOrEqual(vp.width+2);
+      expect(rect.y+rect.height).toBeLessThanOrEqual(vp.height+2);
+    }
+    await page.getByTestId("irregularity-mode").click();
+    await expect(page.getByTestId("irregularity-2d-diagram")).toBeVisible();
+    await expect(card).toContainText("iki uçtan mesnetli");
+  });
+
+  test("3B odak işaretleri katman anahtarıyla birlikte gizlenip açılıyor",async ({page})=>{
+    const root=page.getByTestId("irregularity-three-canvas");
+    if(!(await root.locator("canvas").count()))return;
+    await expect(root).toHaveAttribute("data-focus-visible","true");
+    await page.getByTestId("irregularity-settings").click();
+    await page.getByTestId("irregularity-layer-showHighlights").uncheck();
+    await expect(root).toHaveAttribute("data-focus-visible","false");
+    await expect(page.getByTestId("irregularity-why-card")).toContainText("İşaretler kapalı");
+    await page.getByTestId("irregularity-layer-showHighlights").check();
+    await expect(root).toHaveAttribute("data-focus-visible","true");
+  });
   test("Azaltılmış hareket, oynatma durumunda yanıltıcı davranmıyor",async ({page})=>{
     await page.emulateMedia({reducedMotion:"reduce"});
     await expect(page.getByTestId("irregularity-playback")).toBeDisabled();
