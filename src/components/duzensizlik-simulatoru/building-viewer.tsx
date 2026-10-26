@@ -87,7 +87,7 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
     } else if (scenario !== "B2" && scenario !== "B1") {
       add(0, 4, 0, .23, 8, 1.5, 3);
     }
-    scene.add(new THREE.HemisphereLight("#d7ecff", "#172130", 2));
+    scene.add(new THREE.AmbientLight("#d7ecff", 1.55));
     const light = new THREE.DirectionalLight("#ffffff", 3);
     light.position.set(8, 16, 10);
     scene.add(light);
@@ -110,7 +110,6 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
       dirty = true;
       const positions: Record<CameraView, [number, number, number]> = { perspective: [15, 14, 18], front: [0, 5, 23], side: [23, 5, 0], top: [.01, 24, 0] };
       camera.position.set(...positions[v]);
-      camera.up.set(0, 1, 0);
       controls?.target.copy(target);
       camera.lookAt(target);
       controls?.update();
