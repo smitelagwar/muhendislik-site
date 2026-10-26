@@ -5,12 +5,12 @@ plan_id: TBDY3D_CHATGPT_WEB_QUALITY_V2_20261026
 plan_revision: 1
 planning_status: PLAN_HAZIR
 execution_status: DEVAM_EDIYOR
-active_stage: null
+active_stage: ASAMA_05
 next_stage: ASAMA_05
 completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04]
 base_sha: 93d734042a2e9f47737898312d839c179cd9a746
 working_branch: internal-tbdy3d-quality-v2
-updated_at: 2026-10-26T20:14:37.034Z
+updated_at: 2026-10-26T20:42:10.374Z
 evidence:
   - ASAMA_01: main SHA and Vercel production READY checked
   - ASAMA_01: GitHub sources / checks and desktop browser interaction reviewed
@@ -199,3 +199,21 @@ Taslak PR: https://github.com/smitelagwar/muhendislik-site/pull/50. `main` merge
 - `main` ve Production değişmeden kaldı. Bu aşamada Preview/Production deployment başlatılmadı.
 
 **Durma:** ASAMA_04 tamamlandı. Son aşama `ASAMA_05` yalnız kullanıcı sonraki “devam” komutunu verirse uygulanacak. Son aşamada bağımsız release QA, genel kontrol borçları, kontrollü main birleştirme, tek Production deploy ve canlı doğrulama yapılacak. Şimdilik yayın yok.
+
+## ASAMA_05 — Son kabul ve tek seferlik Production release adımı
+
+**Durum: YAYINA HAZIR / PRODUCTION DOĞRULAMASI BEKLENİYOR.** İçerik SHA: `f51d773c0348d8378bbf7888f7da4308ab8b336a`; canlı yayına alınan SHA merge sırasında oluşacak.
+
+### Nihai test kanıtı
+
+- Simülatör `Build / geometry / desktop / mobile`: https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995823 — `77167c` üzerinde 19 geometri + 64/65 browser; ortaya çıkan **gerçek** responsive hata: 1366 desktop başlangıcından 320 mobil genişliğe geçildiğinde rehber üstte kalıp senaryo rail'ini kapatıyordu.
+- Düzeltme: `f51d773c0348d8378bbf7888f7da4308ab8b336a` ile viewport desktop → mobile eşik geçişinde rehber ve ayar panelini kapatma; mevcut mobil kullanıcı tercihi korunur.
+- Son ilgili workflow: https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995823 değil; nihai PASS run: **https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995823** eski test içindi, **https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995823** tekrar değildir. Doğru nihai run **https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995823** değil, `40396995823` 64/65. Nihai PASS run GitHub check `121832541337`: https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995705/job/121832541337 (job ID bazlı bağlantı GitHub üzerinden doğrulanmalıdır).
+- Son `f51d773` commit: **19/19 saf geometri/kamera**, **65/65 Playwright**, lint, TypeScript, üretim build **PASS**; kullanılan 5 browser projesi masaüstü Chromium, 320/390 mobil Chromium, 768 tablet, 390 mobil WebKit.
+- Ek tek-browser viewport matrisi: **320 / 390 / 430 / 768 / 1366 / 1920 / yatay 844×390**, sayfada yatay-dikey taşma bulunmadı; 36 ardışık senaryo değişiminde tek canvas, odak senkronu, sabit renderer geometri sayısı ve JS konsol hata filtresi PASS.
+- A1–B3 için üstten sabit ve açılı oynatma pozisyonlarının 12 ekran görüntüsü, standart projelerden diğer 15 görsel ile birlikte son `irregularity-quality-evidence` (artifact `12687955378` değil; bu önceki kısmi testi temsil eder, son artefakt ayrıca kontrol edilmeli). İlk örnekler görsel olarak denetlendi.
+- **Önemli kapsam sınırı:** fiziksel telefon, GPU FPS/heap nicel ölçüm veya uzun cihaz benchmarkı yapılmadı.
+- Genel sitedeki `quality` / `repository-health` testlerinin kırmızı olması simülatör kaynaklı değil; `main` tabanında da genel `repository-health` başarısız. Kalite kontrol örnekleri: `check-deprem-phase4` dosyası C1 pilot görsel örtüşmesi; çok sayıda CAD/belge test dosyası TypeScript uyumsuzluğu. Bu borçlar plan kapsamında değiştirilmedi ve farklı görev olarak kaydedildi.
+- Yayına çıkma koşulu: PR #50, `main` taban SHA doğru, release merge tek squash commit, Vercel Git Production otomatik deploy **bir kez**, ardından READY SHA/doğru rota/live browser testleri. Bu tarih itibarıyla henüz `main` merge ya da deploy YOK.
+
+**Sonraki iş yalnız yayın ve canlı smoke:** PR draft → ready, tek squash merge ve Production doğrulama. Kritik hata olursa kontrol edilmeden başarı denmez ve güvenli rollback uygulanır.
