@@ -14,6 +14,17 @@ export function SiteShell({ children, footer }: { children: ReactNode; footer: R
     return <main id="main-content" tabIndex={-1} className="min-h-screen focus:outline-none">{children}</main>;
   }
 
+  if (pathname === "/kategori/araclar/duzensizlik-simulatoru") {
+    return (
+      <>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-cyan-400 focus:px-4 focus:py-2 focus:font-bold focus:text-black">Ana içeriğe atla</a>
+        <main id="main-content" tabIndex={-1} data-testid="irregularity-app-shell" className="h-[100dvh] overflow-hidden focus:outline-none">{children}</main>
+        <GlobalOverlays />
+        <Toaster position="top-center" richColors />
+      </>
+    );
+  }
+
   if (pathname === "/kategori/araclar/hsyncad") {
     return (
       <>
