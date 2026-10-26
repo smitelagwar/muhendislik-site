@@ -59,7 +59,7 @@ test("A3 projection lies within model fit bounds",()=>{
 test("B3 has a transfer element and a missing lower column under it",()=>{
   const blue=makeBlueprint("B3");
   assert.ok(blue.segments.some(s=>s.kind==="transfer"));
-  assert.ok(!blue.segments.some(s=>s.kind==="column"&&s.a[0]===3.2&&s.a[2]===3.2&&s.a[1]===0));
+  assert.ok(!blue.segments.some(s=>s.kind==="column"&&s.a[0]===0&&s.a[2]===3.2&&s.a[1]===0));
 });
 test("Invalid or zero-length segments are rejected rather than generating NaN",()=>{
   assert.equal(segmentPose([0,0,0],[0,0,0]),null);

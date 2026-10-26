@@ -90,14 +90,21 @@ export function makeBlueprint(id: ScenarioId): Blueprint {
   for(let level = 1; level <= LEVELS; level++) {
     const y0 = (level - 1) * LEVEL_HEIGHT, y1 = level * LEVEL_HEIGHT;
     for (const x of xs) for(const z of zs) {
-      if (id === "B3" && level === 1 && x === FRAME_SPAN && z === FRAME_SPAN) continue;
+      // B3: the *intermediate* first-storey column is missing; the beam
+      // spanning between both outer supports transfers its upper load.
+      if (id === "B3" && level === 1 && x === 0 && z === FRAME_SPAN) continue;
       if (id === "A2" && x === 0 && z === 0) continue;
       add(v(x,y0,z),v(x,y1,z),"column",level);
     }
     for (const z of zs) {
       if (id === "A2" && level === 3 && z === 0) continue;
-      add(v(-FRAME_SPAN,y1,z),v(0,y1,z),"beam",level);
-      add(v(0,y1,z),v(FRAME_SPAN,y1,z),id === "B3" && level === 1 && z === FRAME_SPAN ? "transfer" : "beam",level);
+      if (id === "B3" && level === 1 && z === FRAME_SPAN) {
+        // A simply-supported transfer example, NOT an end-supported cantilever.
+        add(v(-FRAME_SPAN,y1,z),v(FRAME_SPAN,y1,z),"transfer",level);
+      } else {
+        add(v(-FRAME_SPAN,y1,z),v(0,y1,z),"beam",level);
+        add(v(0,y1,z),v(FRAME_SPAN,y1,z),"beam",level);
+      }
     }
     for (const x of xs) {
       if (id === "A2" && level === 3 && x === 0) continue;

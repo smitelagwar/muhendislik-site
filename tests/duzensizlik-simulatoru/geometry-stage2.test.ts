@@ -92,5 +92,11 @@ test("A2 opening stays on level three and B3 has no accidental lower bearing col
   assert.ok(a2.slabs.filter(s=>s.level!==3).every(s=>s.width===6.4&&s.depth===6.4));
   const b3=makeBlueprint("B3");
   assert.ok(b3.segments.some(s=>s.kind==="transfer"));
-  assert.ok(!b3.segments.some(s=>s.kind==="column"&&s.a[0]===3.2&&s.a[2]===3.2&&s.a[1]===0));
+  assert.ok(!b3.segments.some(s=>s.kind==="column"&&s.a[0]===0&&s.a[2]===3.2&&s.a[1]===0));
+  const transfer=b3.segments.find(s=>s.kind==="transfer");
+  assert.ok(transfer);
+  assert.equal(transfer.a[0],-FRAME_SPAN);
+  assert.equal(transfer.b[0],FRAME_SPAN);
+  for(const x of [-FRAME_SPAN,FRAME_SPAN])
+    assert.ok(b3.segments.some(s=>s.kind==="column"&&s.a[0]===x&&s.a[2]===FRAME_SPAN&&s.a[1]===0),`B3 transfer support missing at ${x}`);
 });

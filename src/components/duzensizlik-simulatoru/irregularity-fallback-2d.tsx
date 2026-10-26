@@ -22,7 +22,7 @@ export function IrregularityFallback2D({ scenario }: { scenario: ScenarioId }) {
         {plan ? (
           <>
             {scenario === "A3" ? (
-              <path d="M90 55H282V135H345V280H90Z" fill="#35546d" stroke="#b9e7fc" strokeWidth="4"/>
+              <path d="M90 55H345V135H282V280H90Z" fill="#35546d" stroke="#b9e7fc" strokeWidth="4"/>
             ) : (
               <rect x="90" y="55" width="245" height="225" rx="3" fill="#35546d" stroke="#b9e7fc" strokeWidth="4"/>
             )}
@@ -68,16 +68,16 @@ export function IrregularityFallback2D({ scenario }: { scenario: ScenarioId }) {
               <g key={x}>
                 {Array.from({ length: 5 }, (_, floor) => {
                   const y = 93 + floor * 41;
-                  const gap = scenario === "B3" && col === 2 && floor === 4;
+                  const gap = scenario === "B3" && col === 1 && floor === 4;
                   return gap ? null : <rect key={floor} x={x} y={y} width="9" height="41" fill={scenario === "B1" && floor === 4 ? "#f16f68" : "#7dc7d6"}/>;
                 })}
               </g>
             ))}
             {scenario === "B3" && (
               <>
-                <rect x="290" y="247" width="44" height="11" fill="#ffb66a"/>
-                <path d="M327 247L372 222" stroke="#ff7977" strokeWidth="3"/>
-                <text x="365" y="210" fill="#ffd6d6" textAnchor="middle" fontSize="12">Kesinti</text>
+                <rect x="95" y="247" width="240" height="11" fill="#ffb66a"/>
+                <path d="M210 252L282 218" stroke="#ff7977" strokeWidth="3"/>
+                <text x="300" y="212" fill="#ffd6d6" textAnchor="middle" fontSize="12">Kesinti</text>
               </>
             )}
             <text x="210" y="308" textAnchor="middle" fill="#d8e9f4" fontSize="13">
