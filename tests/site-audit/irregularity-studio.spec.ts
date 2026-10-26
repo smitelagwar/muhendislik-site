@@ -31,7 +31,7 @@ test.describe("TBDY 3B stüdyo kalite kapısı",()=>{
   });
 
   test("Kamera, animasyon, katman, hız ve sıfırlama düğmeleri",async ({page})=>{
-    for(const preset of ["front","side","top","perspective"]){
+    for(const preset of ["front","side","left","top","perspective"]){
       await page.getByTestId("irregularity-camera-"+preset).click();
       await expect(page.getByTestId("irregularity-camera-"+preset)).toHaveAttribute("aria-pressed","true");
     }

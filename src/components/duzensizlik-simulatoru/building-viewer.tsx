@@ -6,7 +6,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { makeBlueprint, jointAt, segmentPose, type V3 } from "@/lib/duzensizlik-simulatoru/motion";
 import type { ScenarioId } from "@/lib/duzensizlik-simulatoru/scenarios";
 
-export type CameraView = "perspective" | "front" | "side" | "top";
+export type CameraView = "perspective" | "front" | "side" | "left" | "top";
 interface Props {
   scenario: ScenarioId;
   view: CameraView;
@@ -163,7 +163,7 @@ export default function BuildingViewer(props: Props) {
       const radius=Math.hypot(w,h,d)*.5;
       return Math.min(90, Math.max(13, (radius / Math.min(vertical,vertical*aspect)) * 1.03));
     };
-    const direction=(v:CameraView):V3 => v==="front" ? [0,.09,1] : v==="side" ? [1,.09,0] : v==="top" ? [.015,1,.075] : [.8,.65,1];
+    const direction=(v:CameraView):V3 => v==="front" ? [0,.09,1] : v==="side" ? [1,.09,0] : v==="left" ? [-1,.09,0] : v==="top" ? [.015,1,.075] : [.8,.65,1];
     const cameraTarget=():V3 => [(modelBounds.min[0]+modelBounds.max[0])/2, (modelBounds.min[1]+modelBounds.max[1])/2+.1, (modelBounds.min[2]+modelBounds.max[2])/2];
     const viewCamera=(v:CameraView,immediate=false) => {
       selectedView=v;

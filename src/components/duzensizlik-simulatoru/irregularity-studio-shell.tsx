@@ -12,7 +12,7 @@ const Viewer = dynamic(() => import("./building-viewer"), { ssr: false });
 type Mode = "3d" | "2d";
 const views: readonly { value: CameraView; label: string }[] = [
   { value:"perspective",label:"Serbest" }, { value:"front",label:"Ön" },
-  { value:"side",label:"Yan" }, { value:"top",label:"Üst" },
+  { value:"side",label:"Sağ" }, { value:"left",label:"Sol" }, { value:"top",label:"Üst" },
 ];
 
 export function IrregularityStudioShell() {
@@ -125,7 +125,7 @@ export function IrregularityStudioShell() {
             <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-white/10 bg-[#102235]/75 px-2.5 py-1.5 text-xs text-slate-200 backdrop-blur-sm">
               <span className="font-semibold text-sky-200">{scenario}</span><span className="ml-2 hidden text-slate-300 sm:inline">{data.emphasis}</span>
             </div>
-            {viewerFailed && <button type="button" data-testid="irregularity-retry" onClick={()=>{setViewerFailed(false);setMode("3d");setViewerKey(n=>n+1);}} className="absolute bottom-16 right-3 z-10 rounded-lg border border-sky-300/40 bg-[#18324a] px-4 py-2 text-xs font-semibold">3B'yi tekrar dene</button>}
+            {viewerFailed && <button type="button" data-testid="irregularity-retry" onClick={()=>{setViewerFailed(false);setMode("3d");setViewerKey(n=>n+1);}} className="absolute bottom-16 right-3 z-10 rounded-lg border border-sky-300/40 bg-[#18324a] px-4 py-2 text-xs font-semibold">3B&apos;yi tekrar dene</button>}
             {mode==="3d"&&!viewerFailed&&(
               <div role="group" aria-label="Kamera görünümleri" className="absolute bottom-3 left-2 z-10 flex max-w-[calc(100%-16px)] gap-1 rounded-xl border border-white/10 bg-[#102235]/90 p-1 shadow-xl backdrop-blur-md sm:left-3">
                 {views.map(item=><button type="button" key={item.value} data-testid={"irregularity-camera-"+item.value} onClick={()=>setView(item.value)} aria-pressed={view===item.value} className={"min-h-9 rounded-lg px-2.5 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 "+(view===item.value?"bg-sky-300 text-[#0b1420]":"text-slate-200 hover:bg-white/10")}>{item.label}</button>)}
