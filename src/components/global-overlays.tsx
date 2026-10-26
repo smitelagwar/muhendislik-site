@@ -12,7 +12,8 @@ export function GlobalOverlays() {
   const isDocumentWorkspace = pathname === "/dokumantasyon" || pathname.startsWith("/dokumantasyon/");
   const isBelgeStudio = pathname.startsWith("/belgeler/");
   const isHsynCadWorkspace = pathname === "/kategori/araclar/hsyncad";
-  const isImmersiveWorkspace = isDocumentWorkspace || isBelgeStudio || isHsynCadWorkspace;
+  const isIrregularityStudio = pathname === "/kategori/araclar/duzensizlik-simulatoru";
+  const isImmersiveWorkspace = isDocumentWorkspace || isBelgeStudio || isHsynCadWorkspace || isIrregularityStudio;
 
   return (
     <>
