@@ -101,6 +101,8 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
     let stopped = false;
     let elapsed = 0;
     let previous = 0;
+    let motionBlend = 0;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const target = new THREE.Vector3(0, 4, 0);
     const applyView = (v: CameraView) => {
       const positions: Record<CameraView, [number, number, number]> = { perspective: [15, 14, 18], front: [0, 5, 23], side: [23, 5, 0], top: [.01, 24, 0] };
@@ -141,13 +143,15 @@ export default function BuildingViewer({ view, resetToken, scenario, playing, sp
         if (stopped) return;
         const dt = previous ? Math.min((now - previous) / 1000, .05) : 0;
         previous = now;
-        if (live.current.playing && !document.hidden) elapsed += dt * live.current.speed;
-        const wave = live.current.playing ? Math.sin(elapsed * 3.1) : 0;
+        const active = live.current.playing && !document.hidden && !reducedMotion;
+        if (active) elapsed += dt * live.current.speed;
+        motionBlend += ((active ? 1 : 0) - motionBlend) * Math.min(1, dt * 5);
+        const wave = Math.sin(elapsed * 3.1) * motionBlend;
         floors.forEach((floor, i) => {
           const h = (i + 1) / 5;
           const amplitude = scenario === "B2" ? (i === 0 ? .13 : .36) : .16 * h;
           floor.position.x = wave * amplitude;
-          floor.position.z = live.current.playing ? Math.cos(elapsed * 2.4) * .06 * h : 0;
+          floor.position.z = Math.cos(elapsed * 2.4) * .06 * h * motionBlend;
           floor.rotation.y = scenario === "A1" ? wave * h * .045 : 0;
         });
         slabs.forEach(slab => { slab.visible = live.current.showSlabs; });
