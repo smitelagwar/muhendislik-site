@@ -11,7 +11,8 @@ export function GlobalOverlays() {
   const pathname = usePathname();
   const isDocumentWorkspace = pathname === "/dokumantasyon" || pathname.startsWith("/dokumantasyon/");
   const isBelgeStudio = pathname.startsWith("/belgeler/");
-  const isImmersiveWorkspace = isDocumentWorkspace || isBelgeStudio;
+  const isHsynCadWorkspace = pathname === "/kategori/araclar/hsyncad";
+  const isImmersiveWorkspace = isDocumentWorkspace || isBelgeStudio || isHsynCadWorkspace;
 
   return (
     <>

@@ -1,0 +1,8 @@
+/* hsynCAD's own route-only viewport; panel sizing is completed in ASAMA_03. */
+.viewport {
+  inline-size: 100%;
+  block-size: 100vh;
+  block-size: 100dvh;
+  min-block-size: 0;
+  overflow: hidden;
+}

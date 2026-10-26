@@ -1,6 +1,6 @@
 # hsynCAD — Uygulama durumu
 
-> Bu ilerleme kaydı ilk planın tamamlanmış aşamalarını izler. `PLAN.md` orijinal plan kopyasıdır. Kullanıcının yeni `devam` komutu gelmeden ASAMA_02 başlamaz.
+> Bu ilerleme kaydı ilk planın tamamlanmış aşamalarını izler. `PLAN.md` orijinal plan kopyasıdır. ASAMA_02 tamamlandı; kullanıcı yeni `devam` göndermeden ASAMA_03 başlamaz.
 
 ```yaml
 plan_id: HSYNCAD_IMMERSIVE_VIEWPORT_2026_10_26
@@ -8,8 +8,8 @@ plan_revision: 1
 planning_status: PLAN_HAZIR
 execution_status: DEVAM_EDIYOR
 active_stage: null
-next_stage: ASAMA_02
-completed_stages: [ASAMA_01]
+next_stage: ASAMA_03
+completed_stages: [ASAMA_01, ASAMA_02]
 evidence:
   - stage: ASAMA_01
     check: main_HEAD
@@ -33,8 +33,28 @@ evidence:
     check: local_build_and_browser_test
     result: NOT_RUN
     reason: "Runtime container has Node and Python Playwright but no repository checkout or network access for Git clone."
+  - stage: ASAMA_02
+    check: isolated_component_route_render
+    result: PASS
+    detail: "CAD path hides Navbar/Footer; other routes including /b/ preserve existing route behavior."
+  - stage: ASAMA_02
+    check: global_overlay_isolation
+    result: PASS_SOURCE
+    detail: "BottomNav/BackToTop suppressed on CAD, DeferredCommandPalette and overlay root preserved."
+  - stage: ASAMA_02
+    check: tsx_syntax_and_mock_logic
+    result: PASS
+    detail: "Compiled TSX using TypeScript transpileModule; isolated SiteShell mock assertions passed."
+  - stage: ASAMA_02
+    check: playwright_browser
+    result: NOT_RUN
+    detail: "New shell.spec.ts tests authored; no accessible complete Next project checkout to execute them in this stage."
+  - stage: ASAMA_02
+    check: preview_or_production_deployment
+    result: NOT_RUN
+    detail: "No deployment permitted in ASAMA_02."
 blockers: []
-updated_at: "2026-10-26T14:43:57.280+03:00"
+updated_at: "2026-10-26T14:52:51+03:00"
 ```
 
 ## Kaynak ve erişim tabanı
@@ -54,3 +74,13 @@ updated_at: "2026-10-26T14:43:57.280+03:00"
 ## ASAMA_01 kararı
 
 Yalnız bu iki plan/durum belgesi tek dokümantasyon checkpoint'inde kaydedilir; uygulama kaynaklarına hiç dokunulmaz. Preview/Production deploy yapılmaz. ASAMA_02 yalnız ayrı kullanıcı talimatıyla başlatılır.
+
+## ASAMA_02 — CAD rota izolasyonu (2026-10-26T14:52:51+03:00)
+
+- `SiteShell` için **tam yol** eşitliğiyle hsynCAD'e özel `main` dalı eklendi; normal Navbar/Footer üretilmiyor, `/b/` ve diğer rotaların dalı korunuyor.
+- `src/components/hsyncad/immersive-shell.module.css` yalnız CAD uygulama kabuğunda 100vh → 100dvh ve overflow:hidden kullanıyor. İç CAD panel ve mobil sahne boylandırması **ASAMA_03/04'te** tamamlanacak; bu ara aşama final tam-ekran UI değildir.
+- `GlobalOverlays` CAD'de mobil `BottomNav`/boşluk ve `BackToTop` render etmiyor; komut paleti ve overlay root kalıyor.
+- `tests/hsyncad/site-shell.spec.ts` masaüstü/mobil, geri/ileri/refresh, toolbar, normal rota geri dönüş regresyon testlerini içeriyor. Testler henüz Playwright ile çalıştırılmadı.
+- İzole route render testi ve TSX sözdizimi kontrolü bu oturumda **PASS**; gerçek tarayıcı ve tam production build henüz doğrulanmadı, ASAMA_05 release kapısında zorunlu.
+- Bu aşamada yalnız uygulama kabuğu ve ilgili test/durum değiştirildi. Geometri, metraj, CAD model, CSS iç çalışma yüzeyi, Vercel yapılandırması ve `main` değişmedi.
+- Uygulama burada durur. ASAMA_03 için yeni `devam` gerekir.
