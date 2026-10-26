@@ -145,7 +145,7 @@ export function makeBlueprint(id: ScenarioId): Blueprint {
     }
   }
   return {segments,slabs,bounds:{
-    min: [id==="A3"?-3.8:-3.55,-.45,-3.55],
+    min: [id==="A3"?-3.8:id==="B2"?-3.9:-3.55,-.45,-3.55],
     // Includes B2 first-storey offset and the animated A3 wing tip.
     max: [id==="A3"?7:id==="B2"?3.9:3.55, LEVELS*LEVEL_HEIGHT+.35,3.55],
   }};
