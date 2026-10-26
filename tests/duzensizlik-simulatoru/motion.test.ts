@@ -46,6 +46,9 @@ test("B2 accumulates the majority of relative drift in the first storey",()=>{
 test("A2 opening occurs on the third slab only",()=>{
   const blueprint=makeBlueprint("A2");
   assert.equal(blueprint.slabs.filter(s=>s.level===3).length,4);
+  assert.ok((4.2*4.2)/(6.4*6.4)>1/3,"illustrative area aperture is clearly larger than a third");
+  assert.ok(!blueprint.segments.some(s=>s.kind==="column"&&s.a[0]===0&&s.a[2]===0),"central column may not cross opening");
+  assert.ok(!blueprint.segments.some(s=>s.kind==="beam"&&s.storey===3&&s.a[2]===0&&s.b[2]===0),"no central beam may cross A2 opening");
   for(const level of [1,2,4,5])assert.equal(blueprint.slabs.filter(s=>s.level===level).length,1);
 });
 test("A3 projection lies within model fit bounds",()=>{

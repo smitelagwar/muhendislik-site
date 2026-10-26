@@ -64,26 +64,29 @@ export function makeBlueprint(id: ScenarioId): Blueprint {
     const y0 = (level - 1) * LEVEL_HEIGHT, y1 = level * LEVEL_HEIGHT;
     for (const x of xs) for(const z of zs) {
       if (id === "B3" && level === 1 && x === FRAME_SPAN && z === FRAME_SPAN) continue;
+      if (id === "A2" && x === 0 && z === 0) continue;
       add(v(x,y0,z),v(x,y1,z),"column",level);
     }
     for (const z of zs) {
+      if (id === "A2" && level === 3 && z === 0) continue;
       add(v(-FRAME_SPAN,y1,z),v(0,y1,z),"beam",level);
       add(v(0,y1,z),v(FRAME_SPAN,y1,z),id === "B3" && level === 1 && z === FRAME_SPAN ? "transfer" : "beam",level);
     }
     for (const x of xs) {
+      if (id === "A2" && level === 3 && x === 0) continue;
       add(v(x,y1,-FRAME_SPAN),v(x,y1,0),"beam",level);
       add(v(x,y1,0),v(x,y1,FRAME_SPAN),"beam",level);
     }
     // Only the THIRD floor has a slab aperture in the A2 example.
     if (id === "A2" && level === 3) {
       slabs.push(
-        {cx:-2.32,cz:0,width:1.76,depth:6.4,level},
-        {cx:2.32,cz:0,width:1.76,depth:6.4,level},
-        {cx:0,cz:-2.32,width:2.9,depth:1.76,level},
-        {cx:0,cz:2.32,width:2.9,depth:1.76,level},
+        {cx:-2.65,cz:0,width:1.1,depth:6.4,level},
+        {cx:2.65,cz:0,width:1.1,depth:6.4,level},
+        {cx:0,cz:-2.65,width:4.2,depth:1.1,level},
+        {cx:0,cz:2.65,width:4.2,depth:1.1,level},
       );
       // Four sides of the hole, in the actual slab plane.
-      const n = 1.44;
+      const n = 2.1;
       add(v(-n,y1,-n),v(n,y1,-n),"highlight",level);
       add(v(n,y1,-n),v(n,y1,n),"highlight",level);
       add(v(n,y1,n),v(-n,y1,n),"highlight",level);

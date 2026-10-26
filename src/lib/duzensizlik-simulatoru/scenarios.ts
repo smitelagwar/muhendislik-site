@@ -19,7 +19,7 @@ export const SCENARIOS: Record<ScenarioId, ScenarioInfo> = {
   },
   A2: {
     id: "A2", title: "Döşeme süreksizliği", definition: "Döşeme boşluğu diyafram içindeki aktarım yolunu değiştirir.",
-    observe: "Üçüncü kattaki boşluğu üstten incele.",
+    observe: "Üçüncü kattaki boşluğu üstten incele. Örnek boşluk yaklaşık %43.",
     important: "Boşluk boyutu ve çevresindeki süreklilik ayrıca değerlendirilir.",
     emphasis: "Boşluk çevresi · aktarım yolu", reference: "TBDY 2018 · 3.6.2.2",
   },

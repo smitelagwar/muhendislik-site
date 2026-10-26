@@ -41,6 +41,8 @@ export default function BuildingViewer(props: Props) {
     let raf = 0;
     let activeFrames = 0;
     let ticking = false;
+    let resizedOnce = false;
+    let manuallyMoved = false;
     let lastStamp = 0;
     let elapsed = 0;
     let blend = 0;
@@ -227,8 +229,9 @@ export default function BuildingViewer(props: Props) {
       if(activeFrames<4) raf=requestAnimationFrame(tick);
     };
     const cancelTween=()=>{ cameraTween=null; dirty=true; wake(); };
+    const onUserStart=()=>{manuallyMoved=true;cancelTween();};
     const markDirty=()=>{ dirty=true; wake(); };
-    controls.addEventListener("start",cancelTween);
+    controls.addEventListener("start",onUserStart);
     controls.addEventListener("change",markDirty);
     const resize=()=>{
       if(disposed) return;
@@ -237,7 +240,9 @@ export default function BuildingViewer(props: Props) {
       camera.updateProjectionMatrix();
       renderer.setSize(w,h,false);
       // Keep the building contained after mobile rotation or inspector resize.
-      viewCamera(selectedView,true);
+      if(!resizedOnce){resizedOnce=true;viewCamera(selectedView,true);}
+      else if(!manuallyMoved)viewCamera(selectedView,false);
+      else {dirty=true;wake();}
     };
     const observer=new ResizeObserver(resize);
     observer.observe(host);
@@ -258,7 +263,7 @@ export default function BuildingViewer(props: Props) {
       cancelAnimationFrame(raf);
       runtime.current=null;
       observer.disconnect();
-      controls.removeEventListener("start",cancelTween);
+      controls.removeEventListener("start",onUserStart);
       controls.removeEventListener("change",markDirty);
       controls.dispose();
       document.removeEventListener("visibilitychange",onVisible);
