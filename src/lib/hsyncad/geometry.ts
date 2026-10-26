@@ -50,24 +50,30 @@ export function elementFootprint(element: CadElement): Point[] {
   if (element.type === "slab") return element.points;
   if (element.type === "column") {
     const { x, y } = element.position, w = element.width / 2, d = element.depth / 2;
-    return [{ x: x - w, y: y - d }, { x: x + w, y: y - d }, { x: x + w, y: y + d }, { x: x - w, y: y + d }];
+    const radians = (element.rotation ?? 0) * Math.PI / 180, cos = Math.cos(radians), sin = Math.sin(radians);
+    return [{ x: -w, y: -d }, { x: w, y: -d }, { x: w, y: d }, { x: -w, y: d }].map(p => ({ x: x + p.x * cos - p.y * sin, y: y + p.x * sin + p.y * cos }));
   }
   const length = distance(element.start, element.end);
   if (length <= EPSILON) return [];
   const half = (element.type === "beam" ? element.width : element.thickness) / 2;
-  const nx = -(element.end.y - element.start.y) / length * half, ny = (element.end.x - element.start.x) / length * half;
+  const nx = -(element.end.y - element.start.y) / length, ny = (element.end.x - element.start.x) / length;
+  const shift = element.type === "beam" ? (element.offset ?? 0) + (element.alignment === "left" ? half : element.alignment === "right" ? -half : 0) : 0;
   return [
-    { x: element.start.x - nx, y: element.start.y - ny },
-    { x: element.end.x - nx, y: element.end.y - ny },
-    { x: element.end.x + nx, y: element.end.y + ny },
-    { x: element.start.x + nx, y: element.start.y + ny },
+    { x: element.start.x + nx * (shift - half), y: element.start.y + ny * (shift - half) },
+    { x: element.end.x + nx * (shift - half), y: element.end.y + ny * (shift - half) },
+    { x: element.end.x + nx * (shift + half), y: element.end.y + ny * (shift + half) },
+    { x: element.start.x + nx * (shift + half), y: element.start.y + ny * (shift + half) },
   ];
 }
 
 export function elementVerticalRange(element: CadElement, floor: Floor): [number, number] {
   if (element.type === "axis") return [floor.elevation, floor.elevation];
-  if (element.type === "column" || element.type === "wall") return [floor.elevation, floor.elevation + element.height];
-  const top = floor.elevation + floor.height;
+  if (element.type === "column" || element.type === "wall") {
+    const bottom = floor.elevation + (element.baseOffset ?? 0);
+    const top = (element.heightMode === "story" ? floor.elevation + floor.height : bottom + element.height) + (element.topOffset ?? 0);
+    return [bottom, top];
+  }
+  const top = floor.elevation + floor.height + (element.topOffset ?? 0);
   return [top - (element.type === "slab" ? element.thickness : element.height), top];
 }
 

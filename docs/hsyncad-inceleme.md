@@ -37,4 +37,38 @@ Bu kararlar özgün web uygulamasına aittir; ideCAD algoritmaları olarak yorum
 - **Metraj:** Brüt hacim taban alanı × yükseklik. Tüm katılar eksenlere paralel dikdörtgense z/x kesitleri ve y aralık taramasıyla tam hacim birleşimi hesaplanır; çift/üçlü çakışmalar bir kez sayılır. Ortak hacim kolon → perde → kiriş → döşeme önceliğiyle sınıflandırılır. Eğik eleman/dikdörtgen olmayan döşeme veya işlem bütçesi aşımı halinde tüm model brüt hacme döner ve panel açık uyarı verir. Kalıp daima brüt: kolon/perde çevre × yükseklik; kiriş `(b+2h)L+2bh`; döşeme `alan+çevre×kalınlık`. Birleşim kalıp temas yüzeyleri düşülmez; boşluk/fire/donatı dahil değildir.
 - **Kayıt ve doğrulama:** Model tarayıcı `localStorage` içinde `hsyncad.model.v1` anahtarında saklanır; JSON indir/aç ile taşınabilir. Girdi tümüyle doğrulanmadan mevcut model değiştirilmez. Sürüm, benzersiz kimlikler, kat/malzeme referansları, sonlu/pozitif boyutlar ve basit poligon şartları kontrol edilir. İçe aktarma 5 MB; model 1000 eleman, 100 kat ve 200 döşeme köşesiyle sınırlıdır. Bunlar tarayıcı MVP sınırlarıdır.
 
+## İkinci Aşama REA İncelemesi: Aks Çizim Seçenekleri, Kotlar ve Birleşim Kesişimleri (26 Ekim 2026)
+
+Kullanıcının geri bildirimi doğrultusunda ideCAD Statik 11 Deneme PE dosyasındaki Win32 diyalog (`RT_DIALOG` / `DIALOGEX`), menü ve string tabloları REA kaynak konumları üzerinden derinlemesine incelendi.
+
+- **Kalıcı İnceleme Dosyaları:**
+  - `C:\Users\hsyn\Desktop\hsyncad\incelemeler\idecad-rea\calisma-akisi-2026-10-26\aks-kot-birlesim-bulgular.json` (2.042 kaynak arasından filtrelenmiş aks, kot ve birleşim bulguları)
+  - `C:\Users\hsyn\Desktop\hsyncad\incelemeler\idecad-rea\calisma-akisi-2026-10-26\tam-bulgular.json` (743 diyalog, menüler ve string kayıtlarının tam Win32 çözümü)
+  - `C:\Users\hsyn\Desktop\hsyncad\incelemeler\idecad-rea\calisma-akisi-2026-10-26\parse-win32-ui.cjs` (Salt okunur Win32 kaynak ayrıştırıcı betik)
+  - `C:\Users\hsyn\Desktop\hsyncad\incelemeler\idecad-rea\README.md` (İnceleme dizini kullanım rehberi)
+
+### 1. ideCAD Aks Sistemi ve hsynCAD Çözümü
+- **İncelenen ideCAD Mantığı:** ideCAD'de aks aracı tek tıklamayla yatay/düşey yönlendirme, ardışık açıklık girişiyle aks ağı (grid) oluşturma, mevcut akstan ofset mesafesiyle paralel aks türetme ve aks balonlarının uç uzantılarını (`extension`) bağımsız yönetme olanakları sunar.
+- **hsynCAD Uygulaması (`src/lib/hsyncad/axes.ts` & `src/components/hsyncad/axis-options.tsx`):**
+  - **Aks Yönü:** Yatay (─), Düşey (│) ve İki nokta serbest (╱) modları. Tek tıklamayla modele yayılan yatay/düşey aks yerleştirme; Boşluk tuşu (`Space`) ile modlar arası anında geçiş.
+  - **Otomatik Adlandırma:** Düşey akslar `1, 2, 3...`, yatay akslar `A, B, C... AA, AB...` kuralıyla çakışmasız otomatik ad alır.
+  - **Ölçülü Aks Ağı (Grid):** Noktalı virgülle ayrılan açıklıklarla (`4;4,5;3` gibi) X ve Y yönünde tek işlemde tam ölçekli aks sistemi üretimi ve SVG önizlemesi.
+  - **Mesafeyle Paralel Aks:** Seçili veya son akstan istenen ofset mesafesiyle paralel yeni aks oluşturma.
+  - **Uzantı ve Balonlar:** `extendedAxisEndpoints` fonksiyonu ile aks çizgileri plan ve 3B görünümde modelin dışına taşarak okunur; balonlar `labelSide` ("both" | "start" | "end") seçeneğine göre çizilir.
+
+### 2. Eleman Kot Hiyerarşisi
+- **İncelenen ideCAD Mantığı:** Kolon ve perdelerin alt kotu kat tabanına veya bağımsız alt kot farkına bağlanabilir; tavan kotu kat yüksekliğine göre otomatik kilitlenebilir (`story`). Kiriş ve döşemelerin üst kotu ise doğrudan kat tavan kotuna referanslıdır.
+- **hsynCAD Uygulaması (`src/lib/hsyncad/model.ts` & `src/components/hsyncad/properties.tsx`):**
+  - Kolon/Perde: `baseOffset` (alt kot farkı), `topOffset` (üst kot farkı), `heightMode` (`"fixed"` veya `"story"`).
+  - Kiriş: `topOffset` (tavan kotuna göre kot farkı), `alignment` (`"center" | "left" | "right"`), `offset` (yanal kaçıklık).
+  - Döşeme: `topOffset` (kat tavanına göre kot farkı).
+  - Özellikler müfettişinden (`properties.tsx`) bu kot farkları ve geometrik özellikler doğrudan düzenlenebilir.
+
+### 3. Kiriş-Kolon-Döşeme Birleşim Kesişimleri (Junctions)
+- **Problem:** Önceki sürümde her eleman bağımsız birer tüm prizma olarak 3B sahneye gönderildiği için birleşim bölgelerinde elemanlar birbirinin içine giriyor, görsel z-fighting ve geometrik çakışma oluşuyordu.
+- **hsynCAD Çözümü (`src/lib/hsyncad/junctions.ts` & `src/components/hsyncad/scene3d.tsx`):**
+  - **Katı Parçalama Motoru (`resolveJunctions`):** Modeli tüm katlardaki Z düzlemlerine göre dilimler. Katı elemanlar arasındaki ortak hacim `kolon (0) > perde (1) > kiriş (2) > döşeme (3)` hiyerarşisiyle Boolean fark algoritması (`subtractConvex`) ile ayrıştırılır.
+  - **Kesişimsiz 3B Parçalar (`SolidPart[]`):** 3B sahnede artık çakışan prizmalar değil, kesişimi düşülmüş ayrık katı parçalar render edilir. Kolon kirişi keser, kiriş döşemeyi keser.
+  - **Metraj Tam Eşliği:** `calculateQuantities(model, junctions)` fonksiyonu 3B sahnede çizilen aynı katı parçaları kullanarak net hacmi hesaplar. Böylece 3B görünüm ile metraj tablosundaki m³ değerleri birebir örtüşür.
+
 Uygulama sonlu eleman, deprem/dinamik analiz, pafta veya DWG aktarımı yapmaz. Geliştirme ve doğrulama yereldir; Vercel dağıtımı yapılmadı. Kullanım ve doğrulama kaydı: [hsyncad-test.md](hsyncad-test.md).

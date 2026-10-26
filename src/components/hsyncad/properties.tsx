@@ -21,8 +21,53 @@ function ElementForm({ element, model, onApply, onDelete }: { element: CadElemen
     <div className="hcad-selected-title"><span>{TYPE_NAMES[element.type]}</span><b>{element.name}</b></div>
     <label className="hcad-field"><span>Eleman adı</span><input value={draft.name} maxLength={60} onChange={(e) => setDraft({ ...draft, name: e.target.value })} required /></label>
     <div className="hcad-fields">{number("width", "Genişlik b (m)")}{number("depth", "Derinlik h (m)")}{number("height", draft.type === "beam" ? "Kesit h (m)" : "Yükseklik (m)")}{number("thickness", "Kalınlık (m)")}</div>
-    {draft.type === "column" && <div className="hcad-fields"><NumberField label="Merkez X (m)" value={draft.position.x} onChange={(x) => setDraft({ ...draft, position: { ...draft.position, x } })} /><NumberField label="Merkez Y (m)" value={draft.position.y} onChange={(y) => setDraft({ ...draft, position: { ...draft.position, y } })} /></div>}
+    {draft.type === "column" && <div className="hcad-fields"><NumberField label="Merkez X (m)" value={draft.position.x} onChange={(x) => setDraft({ ...draft, position: { ...draft.position, x } })} /><NumberField label="Merkez Y (m)" value={draft.position.y} onChange={(y) => setDraft({ ...draft, position: { ...draft.position, y } })} /><NumberField label="Açı (°)" value={draft.rotation ?? 0} onChange={(rotation) => setDraft({ ...draft, rotation })} /></div>}
     {(draft.type === "beam" || draft.type === "wall" || draft.type === "axis") && <>{(["start", "end"] as const).map((key, i) => <div className="hcad-fields" key={key}><NumberField label={`${i + 1}. nokta X (m)`} value={draft[key].x} onChange={(x) => setDraft({ ...draft, [key]: { ...draft[key], x } })} /><NumberField label={`${i + 1}. nokta Y (m)`} value={draft[key].y} onChange={(y) => setDraft({ ...draft, [key]: { ...draft[key], y } })} /></div>)}</>}
+    {draft.type === "axis" && (
+      <div className="hcad-fields">
+        <NumberField label="Uç uzatma (m)" min={0} value={draft.extension ?? 1} onChange={(extension) => setDraft({ ...draft, extension })} />
+        <label className="hcad-field">
+          <span>Aks başlığı</span>
+          <select value={draft.labelSide ?? "both"} onChange={(e) => setDraft({ ...draft, labelSide: e.target.value as "both" | "start" | "end" })}>
+            <option value="both">İki uçta</option>
+            <option value="start">Başlangıçta</option>
+            <option value="end">Bitişte</option>
+          </select>
+        </label>
+      </div>
+    )}
+    {(draft.type === "column" || draft.type === "wall") && (
+      <div className="hcad-fields">
+        <NumberField label="Alt kot farkı (m)" value={draft.baseOffset ?? 0} onChange={(baseOffset) => setDraft({ ...draft, baseOffset })} />
+        <NumberField label="Üst kot farkı (m)" value={draft.topOffset ?? 0} onChange={(topOffset) => setDraft({ ...draft, topOffset })} />
+        <label className="hcad-field">
+          <span>Yükseklik modu</span>
+          <select value={draft.heightMode ?? "fixed"} onChange={(e) => setDraft({ ...draft, heightMode: e.target.value as "fixed" | "story" })}>
+            <option value="fixed">Sabit yükseklik</option>
+            <option value="story">Kat tavanına bağlı</option>
+          </select>
+        </label>
+      </div>
+    )}
+    {draft.type === "beam" && (
+      <div className="hcad-fields">
+        <NumberField label="Kot farkı (m)" value={draft.topOffset ?? 0} onChange={(topOffset) => setDraft({ ...draft, topOffset })} />
+        <NumberField label="Kaçıklık ofseti (m)" value={draft.offset ?? 0} onChange={(offset) => setDraft({ ...draft, offset })} />
+        <label className="hcad-field">
+          <span>Hizalama</span>
+          <select value={draft.alignment ?? "center"} onChange={(e) => setDraft({ ...draft, alignment: e.target.value as "center" | "left" | "right" })}>
+            <option value="center">Ortalı</option>
+            <option value="left">Sol</option>
+            <option value="right">Sağ</option>
+          </select>
+        </label>
+      </div>
+    )}
+    {draft.type === "slab" && (
+      <div className="hcad-fields">
+        <NumberField label="Kot farkı (m)" value={draft.topOffset ?? 0} onChange={(topOffset) => setDraft({ ...draft, topOffset })} />
+      </div>
+    )}
     {draft.type === "slab" && <p className="hcad-fine">{draft.points.length} köşeli kapalı alan. Taşı aracıyla tüm köşeleri birlikte taşıyabilirsiniz.</p>}
     <label className="hcad-field"><span>Kat</span><select value={draft.floorId} onChange={(e) => setDraft({ ...draft, floorId: e.target.value })}>{model.floors.map((f) => <option value={f.id} key={f.id}>{f.name}</option>)}</select></label>
     <label className="hcad-field"><span>Malzeme</span><select value={draft.materialId} onChange={(e) => setDraft({ ...draft, materialId: e.target.value })}>{model.materials.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>

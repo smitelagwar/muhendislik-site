@@ -1,4 +1,4 @@
-import { isSimplePolygon, polygonArea } from "./geometry";
+import { elementVerticalRange, isSimplePolygon, polygonArea } from "./geometry";
 
 /** SI model: coordinates, elevations and dimensions are always metres. */
 export type Point = { x: number; y: number };
@@ -6,11 +6,12 @@ export type Floor = { id: string; name: string; elevation: number; height: numbe
 export type Material = { id: string; name: string };
 export type ElementType = "axis" | "column" | "beam" | "wall" | "slab";
 type ElementBase = { id: string; name: string; floorId: string; materialId: string; layer: string };
-export type AxisElement = ElementBase & { type: "axis"; start: Point; end: Point };
-export type ColumnElement = ElementBase & { type: "column"; position: Point; width: number; depth: number; height: number };
-export type BeamElement = ElementBase & { type: "beam"; start: Point; end: Point; width: number; height: number };
-export type WallElement = ElementBase & { type: "wall"; start: Point; end: Point; thickness: number; height: number };
-export type SlabElement = ElementBase & { type: "slab"; points: Point[]; thickness: number };
+export type AxisElement = ElementBase & { type: "axis"; start: Point; end: Point; orientation?: "horizontal" | "vertical" | "free"; labelSide?: "both" | "start" | "end"; extension?: number };
+type VerticalOffsets = { baseOffset?: number; topOffset?: number; heightMode?: "story" | "fixed" };
+export type ColumnElement = ElementBase & VerticalOffsets & { type: "column"; position: Point; width: number; depth: number; height: number; rotation?: number };
+export type BeamElement = ElementBase & { type: "beam"; start: Point; end: Point; width: number; height: number; topOffset?: number; alignment?: "center" | "left" | "right"; offset?: number };
+export type WallElement = ElementBase & VerticalOffsets & { type: "wall"; start: Point; end: Point; thickness: number; height: number };
+export type SlabElement = ElementBase & { type: "slab"; points: Point[]; thickness: number; topOffset?: number };
 export type CadElement = AxisElement | ColumnElement | BeamElement | WallElement | SlabElement;
 export type SolidElement = Exclude<CadElement, AxisElement>;
 export type CadModel = { schemaVersion: 1; name: string; floors: Floor[]; materials: Material[]; elements: CadElement[] };
@@ -70,6 +71,18 @@ function uniqueIds(values: { id: string }[], label: string) {
   if (new Set(values.map(v => v.id)).size !== values.length) throw new Error(`${label}: yinelenen kimlik var.`);
 }
 
+function optionalNumber<K extends string>(source: Record<string, unknown>, key: K, label: string): Partial<Record<K, number>> {
+  return source[key] === undefined ? {} : { [key]: number(source[key], label) } as Record<K, number>;
+}
+function optionalChoice<K extends string, V extends string>(source: Record<string, unknown>, key: K, choices: readonly V[], label: string): Partial<Record<K, V>> {
+  if (source[key] === undefined) return {};
+  if (typeof source[key] !== "string" || !choices.includes(source[key] as V)) throw new Error(`${label}: geçersiz seçenek.`);
+  return { [key]: source[key] } as Record<K, V>;
+}
+function verticalOffsets(source: Record<string, unknown>): VerticalOffsets {
+  return { ...optionalNumber(source, "baseOffset", "Alt kot farkı"), ...optionalNumber(source, "topOffset", "Üst kot farkı"), ...optionalChoice(source, "heightMode", ["story", "fixed"] as const, "Yükseklik yöntemi") };
+}
+
 /** Reconstruct a complete validated model before replacing application state. */
 export function validateModel(value: unknown): CadModel {
   const source = record(value, "Model");
@@ -90,22 +103,34 @@ export function validateModel(value: unknown): CadModel {
     const e = record(v, "Eleman");
     const base: ElementBase = { id: text(e.id, "Eleman kimliği"), name: text(e.name, "Eleman adı"), floorId: text(e.floorId, "Eleman katı"), materialId: text(e.materialId, "Eleman malzemesi"), layer: text(e.layer, "Katman") };
     if (!floorIds.has(base.floorId) || !materialIds.has(base.materialId)) throw new Error(`${base.name}: kat veya malzeme bulunamadı.`);
-    if (e.type === "column") return { ...base, type: "column", position: point(e.position, "Konum"), width: number(e.width, "Kolon b", true), depth: number(e.depth, "Kolon h", true), height: number(e.height, "Kolon yüksekliği", true) };
+    if (e.type === "column") return { ...base, type: "column", position: point(e.position, "Konum"), width: number(e.width, "Kolon b", true), depth: number(e.depth, "Kolon h", true), height: number(e.height, "Kolon yüksekliği", true), ...verticalOffsets(e), ...optionalNumber(e, "rotation", "Kolon açısı") };
     if (e.type === "slab") {
       const points = list(e.points, "Döşeme köşeleri", 200).map(v => point(v, "Köşe"));
       if (!isSimplePolygon(points) || polygonArea(points) < 1e-8) throw new Error(`${base.name}: döşeme en az üç köşeli, alanı pozitif ve kendisiyle kesişmeyen kapalı alan olmalıdır.`);
-      return { ...base, type: "slab", points, thickness: number(e.thickness, "Döşeme kalınlığı", true) };
+      return { ...base, type: "slab", points, thickness: number(e.thickness, "Döşeme kalınlığı", true), ...optionalNumber(e, "topOffset", "Döşeme kot farkı") };
     }
     if (e.type === "axis" || e.type === "beam" || e.type === "wall") {
       const start = point(e.start, "Başlangıç"), end = point(e.end, "Bitiş");
       if (Math.hypot(end.x - start.x, end.y - start.y) < 1e-6) throw new Error(`${base.name}: başlangıç ve bitiş farklı olmalıdır.`);
-      if (e.type === "axis") return { ...base, type: "axis", start, end };
-      if (e.type === "beam") return { ...base, type: "beam", start, end, width: number(e.width, "Kiriş b", true), height: number(e.height, "Kiriş h", true) };
-      return { ...base, type: "wall", start, end, thickness: number(e.thickness, "Perde kalınlığı", true), height: number(e.height, "Perde yüksekliği", true) };
+      if (e.type === "axis") {
+        const extras = { ...optionalChoice(e, "orientation", ["horizontal", "vertical", "free"] as const, "Aks yönü"), ...optionalChoice(e, "labelSide", ["both", "start", "end"] as const, "Aks etiket tarafı"), ...optionalNumber(e, "extension", "Aks uzantısı") };
+        if (extras.extension !== undefined && extras.extension < 0) throw new Error("Aks uzantısı negatif olamaz.");
+        if (extras.orientation === "horizontal" && Math.abs(end.y - start.y) > 1e-8) throw new Error("Yatay aksın uç Y koordinatları eşit olmalıdır.");
+        if (extras.orientation === "vertical" && Math.abs(end.x - start.x) > 1e-8) throw new Error("Düşey aksın uç X koordinatları eşit olmalıdır.");
+        return { ...base, type: "axis", start, end, ...extras };
+      }
+      if (e.type === "beam") return { ...base, type: "beam", start, end, width: number(e.width, "Kiriş b", true), height: number(e.height, "Kiriş h", true), ...optionalNumber(e, "topOffset", "Kiriş kot farkı"), ...optionalNumber(e, "offset", "Kiriş yanal ofseti"), ...optionalChoice(e, "alignment", ["center", "left", "right"] as const, "Kiriş hizası") };
+      return { ...base, type: "wall", start, end, thickness: number(e.thickness, "Perde kalınlığı", true), height: number(e.height, "Perde yüksekliği", true), ...verticalOffsets(e) };
     }
     throw new Error(`${base.name}: bilinmeyen eleman tipi.`);
   });
   uniqueIds(elements, "Elemanlar");
+  for (const element of elements) {
+    if (element.type === "axis") continue;
+    const floor = floors.find(f => f.id === element.floorId)!;
+    const [bottom, top] = elementVerticalRange(element, floor);
+    if (!Number.isFinite(bottom) || !Number.isFinite(top) || top - bottom < 1e-6) throw new Error(`${element.name}: üst kot alt kottan en az 0,000001 m büyük olmalıdır.`);
+  }
   return { schemaVersion: 1, name: text(source.name, "Model adı"), floors, materials, elements };
 }
 

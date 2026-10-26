@@ -1,0 +1,41 @@
+.root { padding: 12px 18px; background: var(--hc-panel); border-bottom: 1px solid var(--hc-border); color: var(--hc-text); }
+.mainRow { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.modeGroup { display: flex; flex-direction: column; gap: 5px; }
+.caption { color: var(--hc-muted); font-size: 9px; letter-spacing: 1px; }
+.modes { display: flex; gap: 4px; }
+.modes button { min-height: 36px; }
+.modes button > span { font-size: 20px; line-height: 1; }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0; width: 122px; }
+.field > span { color: var(--hc-muted); font-size: 10px; }
+.field input, .field select { width: 100%; }
+.field small { color: var(--hc-muted); font-size: 9px; }
+.guide { margin: 4px 0 0 auto; color: var(--hc-accent); font-size: 11px; line-height: 1.6; }
+.guide small { display: block; color: var(--hc-muted); font-size: 9px; }
+.extensions { display: flex; gap: 20px; align-items: flex-start; margin-top: 10px; flex-wrap: wrap; }
+.extensions summary { color: var(--hc-accent); min-height: 25px; }
+.gridDetails[open] { flex: 1 1 630px; }
+.parallelDetails[open] { flex: 1 1 220px; max-width: 350px; }
+.gridLayout { display: grid; grid-template-columns: minmax(250px, 1fr) minmax(260px, 1fr); gap: 16px; padding-top: 8px; }
+.gridFields { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; align-content: start; }
+.gridFields .field { width: auto; }
+.note { font-size: 10px; color: var(--hc-muted); line-height: 1.6; margin: 0; }
+.gridFields > .note, .gridFields > .createButton, .gridFields > .error { grid-column: 1 / -1; }
+.preview { padding: 8px; background: var(--hc-bg); border: 1px solid var(--hc-border); border-radius: 6px; }
+.preview svg { display: block; width: 100%; max-height: 210px; }
+.preview p { margin: 0; text-align: center; color: var(--hc-muted); font-size: 10px; line-height: 1.7; }
+.preview b { color: var(--hc-text); font-weight: 600; }
+.parallelBody { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding-top: 8px; }
+.parallelBody .field { width: 100%; }
+.error { color: #dc6b58; font-size: 11px; line-height: 1.6; margin: 8px 0 0; }
+@media (max-width: 700px) {
+  .root { padding: 12px; }
+  .mainRow { gap: 10px; }
+  .modeGroup { flex: 1 1 100%; }
+  .modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .modes button { min-width: 0; padding: 7px; }
+  .field { flex: 1 1 95px; }
+  .guide { margin: 0; flex: 1 1 100%; }
+  .extensions { flex-direction: column; gap: 7px; }
+  .extensions details, .gridDetails[open], .parallelDetails[open] { flex: none; max-width: none; width: 100%; }
+  .gridLayout { grid-template-columns: minmax(0, 1fr); }
+}

@@ -9,6 +9,8 @@ import { OrbitControls, type OrbitControlsEventMap } from "three/addons/controls
 import type { Controls } from "three/src/extras/Controls.js";
 import type { CadModel } from "@/lib/hsyncad/model";
 import { elementFootprint, elementVerticalRange } from "@/lib/hsyncad/geometry";
+import { resolveJunctions, type JunctionResult } from "@/lib/hsyncad/junctions";
+import { extendedAxisEndpoints } from "@/lib/hsyncad/axes";
 
 const THREE = ThreeRuntime as unknown as typeof ThreeTypes;
 
@@ -17,6 +19,7 @@ interface Scene3DProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   hiddenLayers: string[];
+  junctions?: JunctionResult;
 }
 
 // Restore only the official inherited lifecycle/event types hidden by that shim.
@@ -52,7 +55,7 @@ function disposeObjects(root: ThreeTypes.Object3D) {
 }
 
 /** One model unit is one metre. Plan +Y maps to world -Z; world +Y is elevation. */
-export default function Scene3D({ model, selectedId, onSelect, hiddenLayers }: Scene3DProps) {
+export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, junctions }: Scene3DProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<SceneRuntime | null>(null);
   const selectRef = useRef(onSelect);
@@ -224,39 +227,72 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers }: S
     const viewport = viewportRef.current;
     if (!runtime || !viewport) return;
     disposeObjects(runtime.elements);
+    const resolvedJunctions = junctions ?? resolveJunctions(model);
     const floors = new Map(model.floors.map((floor) => [floor.id, floor]));
+    const elementsById = new Map(model.elements.map((e) => [e.id, e]));
     let solidCount = 0;
+
     for (const element of model.elements) {
-      if (hiddenLayers.includes(element.layer)) continue;
+      if (element.type !== "axis" || hiddenLayers.includes(element.layer)) continue;
       const floor = floors.get(element.floorId);
       if (!floor) continue;
-      if (element.type === "axis") {
-        const geometry = new THREE.BufferGeometry().setFromPoints([
-          new THREE.Vector3(element.start.x, floor.elevation + 0.015, -element.start.y),
-          new THREE.Vector3(element.end.x, floor.elevation + 0.015, -element.end.y),
-        ]);
-        const line = new THREE.Line(geometry, new THREE.LineDashedMaterial({ color: 0x91a5b8, dashSize: 0.2, gapSize: 0.1 }));
-        line.computeLineDistances();
-        runtime.elements.add(line);
-        continue;
+      const [start, end] = extendedAxisEndpoints(element);
+      const geometry = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(start.x, floor.elevation + 0.015, -start.y),
+        new THREE.Vector3(end.x, floor.elevation + 0.015, -end.y),
+      ]);
+      const line = new THREE.Line(geometry, new THREE.LineDashedMaterial({ color: 0x91a5b8, dashSize: 0.2, gapSize: 0.1 }));
+      line.computeLineDistances();
+      runtime.elements.add(line);
+    }
+
+    if (resolvedJunctions.status === "resolved" && resolvedJunctions.parts.length > 0) {
+      for (const part of resolvedJunctions.parts) {
+        const element = elementsById.get(part.elementId);
+        if (element && hiddenLayers.includes(element.layer)) continue;
+        if (part.footprint.length < 3) continue;
+        const depth = part.top - part.bottom;
+        if (depth <= 1e-6) continue;
+        const shape = new THREE.Shape(part.footprint.map((p) => new THREE.Vector2(p.x, p.y)));
+        const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, steps: 1 });
+        geometry.rotateX(-Math.PI / 2);
+        geometry.translate(0, part.bottom, 0);
+        geometry.computeVertexNormals();
+        const material = new THREE.MeshStandardMaterial({ color: COLORS[part.type], roughness: 0.78, metalness: 0.04 });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.name = element?.name ?? part.type;
+        mesh.userData.elementId = part.elementId;
+        mesh.userData.baseColor = COLORS[part.type];
+        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 25), new THREE.LineBasicMaterial({ color: 0x263849, transparent: true, opacity: 0.65 }));
+        mesh.add(edges);
+        runtime.elements.add(mesh);
+        solidCount += 1;
       }
-      const footprint = elementFootprint(element);
-      if (footprint.length < 3) continue;
-      const [bottom, top] = elementVerticalRange(element, floor);
-      const shape = new THREE.Shape(footprint.map((point) => new THREE.Vector2(point.x, point.y)));
-      const geometry = new THREE.ExtrudeGeometry(shape, { depth: top - bottom, bevelEnabled: false, steps: 1 });
-      geometry.rotateX(-Math.PI / 2);
-      geometry.translate(0, bottom, 0);
-      geometry.computeVertexNormals();
-      const material = new THREE.MeshStandardMaterial({ color: COLORS[element.type], roughness: 0.78, metalness: 0.04 });
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.name = element.name;
-      mesh.userData.elementId = element.id;
-      mesh.userData.baseColor = COLORS[element.type];
-      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 25), new THREE.LineBasicMaterial({ color: 0x263849, transparent: true, opacity: 0.65 }));
-      mesh.add(edges);
-      runtime.elements.add(mesh);
-      solidCount += 1;
+    } else {
+      for (const element of model.elements) {
+        if (element.type === "axis" || hiddenLayers.includes(element.layer)) continue;
+        const floor = floors.get(element.floorId);
+        if (!floor) continue;
+        const footprint = elementFootprint(element);
+        if (footprint.length < 3) continue;
+        const [bottom, top] = elementVerticalRange(element, floor);
+        const depth = top - bottom;
+        if (depth <= 1e-6) continue;
+        const shape = new THREE.Shape(footprint.map((point) => new THREE.Vector2(point.x, point.y)));
+        const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, steps: 1 });
+        geometry.rotateX(-Math.PI / 2);
+        geometry.translate(0, bottom, 0);
+        geometry.computeVertexNormals();
+        const material = new THREE.MeshStandardMaterial({ color: COLORS[element.type], roughness: 0.78, metalness: 0.04 });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.name = element.name;
+        mesh.userData.elementId = element.id;
+        mesh.userData.baseColor = COLORS[element.type];
+        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 25), new THREE.LineBasicMaterial({ color: 0x263849, transparent: true, opacity: 0.65 }));
+        mesh.add(edges);
+        runtime.elements.add(mesh);
+        solidCount += 1;
+      }
     }
     const bounds = new THREE.Box3().setFromObject(runtime.elements);
     const size = bounds.isEmpty() ? new THREE.Vector3() : bounds.getSize(new THREE.Vector3());
@@ -269,7 +305,7 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers }: S
       runtime.fit();
     }
     runtime.render();
-  }, [model, hiddenLayers]);
+  }, [model, hiddenLayers, junctions]);
 
   useEffect(() => {
     const runtime = runtimeRef.current;
@@ -288,7 +324,7 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers }: S
       }
     }
     runtime.render();
-  }, [selectedId, model, hiddenLayers]);
+  }, [selectedId, model, hiddenLayers, junctions]);
 
   const solidCount = model.elements.filter((element) => element.type !== "axis" && !hiddenLayers.includes(element.layer)).length;
 

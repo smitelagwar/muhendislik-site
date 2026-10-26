@@ -3,12 +3,14 @@ import assert from "node:assert/strict";
 import { createDemoModel, createEmptyModel, translateElement, validateModel, type CadElement, type CadModel, type ColumnElement, type SlabElement } from "./model";
 import { elementFootprint, elementVerticalRange, isSimplePolygon, polygonArea, snapPoint } from "./geometry";
 import { calculateQuantities } from "./quantities";
+import { buildAxisGrid, createAxisElement, createParallelAxis, extendedAxisEndpoints, nextAxisName, parseAxisSpacings } from "./axes";
+import { resolveJunctions } from "./junctions";
 
 const base = { id: "element-1", name: "E1", floorId: "floor-0", materialId: "concrete", layer: "Yapı" };
 const column: ColumnElement = { ...base, type: "column", position: { x: 0, y: 0 }, width: 0.4, depth: 0.4, height: 3 };
 const slab: SlabElement = { ...base, type: "slab", points: [{ x: 0, y: 0 }, { x: 4, y: 0 }, { x: 4, y: 4 }, { x: 0, y: 4 }], thickness: 0.15 };
 const modelWith = (elements: CadElement[]): CadModel => ({ ...createEmptyModel(), elements });
-const close = (value: number, expected: number) => assert.ok(Math.abs(value - expected) < 1e-9, `${value} ≠ ${expected}`);
+const close = (value: number | null, expected: number | null) => { assert.notEqual(value, null); assert.notEqual(expected, null); assert.ok(Math.abs(value! - expected!) < 1e-9, `${value} ≠ ${expected}`); };
 
 test("SI quantities match independently hand-calculated isolated elements", () => {
   const beam: CadElement = { ...base, type: "beam", start: { x: 0, y: 0 }, end: { x: 4, y: 0 }, width: 0.25, height: 0.5 };
@@ -71,15 +73,17 @@ test("box union agrees with an independent integer voxel count", () => {
   }
 });
 
-test("angled solids and concave slabs explicitly fall back to gross quantities", () => {
+test("angled solids and concave slabs have resolved net quantities", () => {
   const diagonal: CadElement = { ...base, type: "beam", start: { x: 0, y: 0 }, end: { x: 3, y: 4 }, width: 0.2, height: 0.5 };
   const lShape: SlabElement = { ...slab, id: "L", points: [{ x: 0, y: 0 }, { x: 2, y: 0 }, { x: 2, y: 1 }, { x: 1, y: 1 }, { x: 1, y: 2 }, { x: 0, y: 2 }], thickness: 0.2 };
   assert.doesNotThrow(() => validateModel(modelWith([lShape])));
   close(polygonArea(lShape.points), 3);
   close(calculateQuantities(modelWith([lShape])).grossVolume, 0.6);
   const result = calculateQuantities(modelWith([diagonal, lShape]));
-  close(result.netVolume, result.grossVolume); close(result.overlapVolume, 0);
-  assert.match(result.warnings[0], /brüttür/);
+  assert.notEqual(result.netVolume, null);
+  assert.ok(result.netVolume! < result.grossVolume);
+  assert.ok(result.overlapVolume! > 0);
+  assert.equal(result.warnings.length, 0);
 });
 
 test("invalid import is rejected completely without altering existing model", () => {
@@ -137,4 +141,66 @@ test("empty model has zero quantities and remains serializable", () => {
   const result = calculateQuantities(model);
   close(result.netVolume, 0); close(result.formwork, 0);
   assert.equal(result.rows.length, 4); assert.equal(result.warnings.length, 0);
+});
+
+test("axis naming, grid generation and parallel offset match structural convention", () => {
+  const empty: CadElement[] = [];
+  assert.equal(nextAxisName(empty, "vertical", "floor-0"), "1");
+  assert.equal(nextAxisName(empty, "horizontal", "floor-0"), "A");
+
+  const xSpacings = parseAxisSpacings("4;4");
+  const ySpacings = parseAxisSpacings("3;5");
+  assert.deepEqual(xSpacings, [4, 4]);
+  assert.deepEqual(ySpacings, [3, 5]);
+
+  const grid = buildAxisGrid({
+    origin: { x: 0, y: 0 },
+    xSpacings,
+    ySpacings,
+    extension: 1,
+    labelSide: "both",
+    floorId: "floor-0",
+    materialId: "concrete",
+  }, empty);
+
+  // 3 vertical axes (X=0, 4, 8) + 3 horizontal axes (Y=0, 3, 8) = 6 axes
+  assert.equal(grid.length, 6);
+  const vertical = grid.filter((a) => a.orientation === "vertical");
+  const horizontal = grid.filter((a) => a.orientation === "horizontal");
+  assert.equal(vertical.length, 3);
+  assert.equal(horizontal.length, 3);
+  assert.deepEqual(vertical.map((a) => a.name), ["1", "2", "3"]);
+  assert.deepEqual(horizontal.map((a) => a.name), ["A", "B", "C"]);
+
+  // Extended endpoints
+  const [extStart, extEnd] = extendedAxisEndpoints(vertical[0]);
+  close(extStart.y, -1);
+  close(extEnd.y, 9);
+
+  // Parallel axis offset
+  const parallel = createParallelAxis(vertical[0], 2.5, grid);
+  assert.equal(parallel.orientation, "vertical");
+  close(parallel.start.x, 2.5);
+  close(parallel.end.x, 2.5);
+});
+
+test("resolveJunctions produces disjoint non-overlapping 3D solid parts", () => {
+  const elements: CadElement[] = [
+    { ...column, width: 1, depth: 1, height: 3 },
+    { ...base, id: "beam", type: "beam", start: { x: -0.5, y: 0 }, end: { x: 1.5, y: 0 }, width: 0.5, height: 0.6 },
+    { ...slab, id: "slab", points: [{ x: -0.5, y: -0.5 }, { x: 1.5, y: -0.5 }, { x: 1.5, y: 1.5 }, { x: -0.5, y: 1.5 }], thickness: 0.15 },
+  ];
+  const model = modelWith(elements);
+  const junctions = resolveJunctions(model);
+  assert.equal(junctions.status, "resolved");
+  assert.ok(junctions.parts.length > 0);
+
+  // Parts should sum up to net volume
+  const partsVolume = junctions.parts.reduce((sum, p) => sum + p.volume, 0);
+  close(partsVolume, junctions.netVolume);
+
+  // Column volume should be intact (priority 0)
+  const columnParts = junctions.parts.filter((p) => p.elementId === column.id);
+  const columnVolume = columnParts.reduce((sum, p) => sum + p.volume, 0);
+  close(columnVolume, 3);
 });

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Maximize2, Minus, Plus } from "lucide-react";
 import type { CadElement, Point } from "@/lib/hsyncad/model";
 import { elementFootprint, snapPoint } from "@/lib/hsyncad/geometry";
+import { extendedAxisEndpoints } from "@/lib/hsyncad/axes";
 import { distance, insidePolygon, roundPoint, segmentDistance, TYPE_COLORS, type Tool } from "./editor-state";
 
 type Props = {
@@ -86,7 +87,10 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
     const priority = { column: 0, beam: 1, wall: 2, axis: 3, slab: 4 };
     const ordered = [...elements].sort((a, b) => priority[a.type] - priority[b.type]);
     const hit = ordered.find((e) => {
-      if (e.type === "axis") return segmentDistance(p, e.start, e.end) < tolerance;
+      if (e.type === "axis") {
+        const [a, b] = extendedAxisEndpoints(e);
+        return segmentDistance(p, a, b) < tolerance;
+      }
       const poly = elementFootprint(e);
       return insidePolygon(p, poly) || poly.some((a, i) => segmentDistance(p, a, poly[(i + 1) % poly.length]) < tolerance);
     });
@@ -153,9 +157,32 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
           const points = e.type === "axis" ? [e.start, e.end] : elementFootprint(e);
           const center = e.type === "column" ? e.position : { x: points.reduce((s, p) => s + p.x, 0) / points.length, y: points.reduce((s, p) => s + p.y, 0) / points.length };
           const label = screen(center);
+          if (e.type === "axis") {
+            const extended = extendedAxisEndpoints(e);
+            const showStart = e.labelSide === "start" || e.labelSide === "both" || !e.labelSide;
+            const showEnd = e.labelSide === "end" || e.labelSide === "both" || !e.labelSide;
+            const sStart = screen(extended[0]), sEnd = screen(extended[1]);
+            return (
+              <g key={e.id} data-element-id={e.id} data-element-type="axis">
+                <polyline points={path(extended)} fill="none" stroke={selected ? "#f59e0b" : color} strokeDasharray="9 5 2 5" strokeWidth={selected ? 3 : 1.3} />
+                {showStart && (
+                  <g>
+                    <circle cx={sStart.x} cy={sStart.y} r={12} fill="var(--hc-panel)" stroke={selected ? "#f59e0b" : color} />
+                    <text x={sStart.x} y={sStart.y + 4} textAnchor="middle" fill={selected ? "#f59e0b" : color} fontSize={10}>{e.name}</text>
+                  </g>
+                )}
+                {showEnd && (
+                  <g>
+                    <circle cx={sEnd.x} cy={sEnd.y} r={12} fill="var(--hc-panel)" stroke={selected ? "#f59e0b" : color} />
+                    <text x={sEnd.x} y={sEnd.y + 4} textAnchor="middle" fill={selected ? "#f59e0b" : color} fontSize={10}>{e.name}</text>
+                  </g>
+                )}
+              </g>
+            );
+          }
           return <g key={e.id} data-element-id={e.id} data-element-type={e.type}>
-            {e.type === "axis" ? <><polyline points={path(points)} fill="none" stroke={selected ? "#f59e0b" : color} strokeDasharray="9 5 2 5" strokeWidth={selected ? 3 : 1.3} />{points.map((p, i) => { const s = screen(p); return <g key={i}><circle cx={s.x} cy={s.y} r={12} fill="var(--hc-panel)" stroke={color} /><text x={s.x} y={s.y + 4} textAnchor="middle" fill={color} fontSize={10}>{e.name}</text></g>; })}</> : <polygon points={path(points)} fill={color} fillOpacity={e.type === "slab" ? 0.12 : 0.45} stroke={selected ? "#fbbf24" : color} strokeWidth={selected ? 3 : 1.5} />}
-            {e.type !== "axis" && <text x={label.x + 8} y={label.y - 8} fill={color} fontSize={10} fontFamily="var(--font-mono)" paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={3}>{e.name}</text>}
+            <polygon points={path(points)} fill={color} fillOpacity={e.type === "slab" ? 0.12 : 0.45} stroke={selected ? "#fbbf24" : color} strokeWidth={selected ? 3 : 1.5} />
+            <text x={label.x + 8} y={label.y - 8} fill={color} fontSize={10} fontFamily="var(--font-mono)" paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={3}>{e.name}</text>
             {selected && points.map((p, i) => { const s = screen(p); return <rect key={i} x={s.x - 3} y={s.y - 3} width={6} height={6} fill="#fbbf24" />; })}
           </g>;
         })}

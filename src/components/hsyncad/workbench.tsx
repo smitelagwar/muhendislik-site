@@ -5,7 +5,11 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowLeft, Box, Check, ChevronRight, Columns3, Download, Eye, Grid2X2, Hand, Layers, Maximize2, MousePointer2, Move, Plus, Redo2, RotateCcw, Ruler, Save, Square, Trash2, Undo2, Upload, X } from "lucide-react";
 import { createDemoModel, createEmptyModel, validateModel, translateElement, type CadElement, type CadModel, type Point } from "@/lib/hsyncad/model";
+import { elementFootprint } from "@/lib/hsyncad/geometry";
 import { calculateQuantities } from "@/lib/hsyncad/quantities";
+import { resolveJunctions } from "@/lib/hsyncad/junctions";
+import { createAxisElement, type AxisDrawingOptions } from "@/lib/hsyncad/axes";
+import AxisOptions from "./axis-options";
 import { distance, historyReducer, initialHistory, LAYERS, TYPE_COLORS, TYPE_LAYERS, TYPE_NAMES, type Tool } from "./editor-state";
 import { ElementProperties, FloorProperties, NumberField } from "./properties";
 import Plan2D from "./plan2d";
@@ -20,7 +24,7 @@ const TOOLS = [
   { id: "wall", name: "Perde", Icon: Square, detail: "İki nokta" },
   { id: "slab", name: "Döşeme", Icon: Layers, detail: "Kapalı alan" },
 ] as const;
-const number = (value: number, digits = 3) => value.toLocaleString("tr-TR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+const number = (value: number | null | undefined, digits = 3) => value == null ? "—" : value.toLocaleString("tr-TR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 type Dimensions = { width: number; depth: number; height: number; thickness: number };
 const DEFAULTS: Record<CadElement["type"], Dimensions> = {
   axis: { width: 0.4, depth: 0.4, height: 3, thickness: 0.2 },
@@ -39,6 +43,7 @@ export default function HsynCadWorkbench() {
   const [floorId, setFloorId] = useState(model.floors[0].id);
   const [pending, setPending] = useState<Point[]>([]);
   const [defaults, setDefaults] = useState(DEFAULTS);
+  const [axisOptions, setAxisOptions] = useState<AxisDrawingOptions>({ direction: "horizontal", name: "", extension: 1, labelSide: "both" });
   const [snapping, setSnapping] = useState(true);
   const [ortho, setOrtho] = useState(false);
   const [gridStep, setGridStep] = useState(0.25);
@@ -58,7 +63,8 @@ export default function HsynCadWorkbench() {
   const floor = model.floors.find((f) => f.id === floorId) ?? model.floors[0];
   const selected = model.elements.find((e) => e.id === selectedId);
   const visibleElements = useMemo(() => model.elements.filter((e) => e.floorId === floor.id && !hiddenLayers.includes(e.layer)), [model.elements, floor.id, hiddenLayers]);
-  const quantities = useMemo(() => calculateQuantities(model), [model]);
+  const junctions = useMemo(() => resolveJunctions(model), [model]);
+  const quantities = useMemo(() => calculateQuantities(model, junctions), [model, junctions]);
   const activeType = TOOLS.some((t) => t.id === tool) ? tool as CadElement["type"] : null;
   const dimensions = activeType ? defaults[activeType] : null;
   const layerOptions = [...new Set([...LAYERS, ...model.elements.map((e) => e.layer)])];
@@ -99,7 +105,13 @@ export default function HsynCadWorkbench() {
   }
   function selectTool(next: Tool) {
     setTool(next); setPending([]); setTab("Giriş");
-    setMessage(next === "move" ? "Elemanı seçin, ardından taşıma başlangıcını ve hedefini belirtin." : next === "pan" ? "Planı sürükleyin. İki parmakla kaydırma ve yakınlaştırma da kullanılabilir." : next === "select" ? "Plandan, 3B görünümden veya eleman listesinden seçim yapın." : `${TYPE_NAMES[next]}: ${next === "column" ? "merkez noktası" : "ilk nokta"} bekleniyor.`);
+    setMessage(
+      next === "move" ? "Elemanı seçin, ardından taşıma başlangıcını ve hedefini belirtin."
+      : next === "pan" ? "Planı sürükleyin. İki parmakla kaydırma ve yakınlaştırma da kullanılabilir."
+      : next === "select" ? "Plandan, 3B görünümden veya eleman listesinden seçim yapın."
+      : next === "axis" ? "Aks: Yatay/düşey için tıklayın veya seçeneklerden ölçülü aks sistemi oluşturun. Boşluk tuşu: yön değiştir."
+      : `${TYPE_NAMES[next]}: ${next === "column" ? "merkez noktası" : "ilk nokta"} bekleniyor.`
+    );
   }
   const selectElement = useCallback((id: string | null) => {
     setSelectedId(id); setPending([]);
@@ -125,7 +137,26 @@ export default function HsynCadWorkbench() {
     else if (activeType === "slab") element = { ...common, type: "slab", points, thickness: d.thickness };
     else if (activeType === "beam") element = { ...common, type: "beam", start: points[0], end: points[1], width: d.width, height: d.height };
     else if (activeType === "wall") element = { ...common, type: "wall", start: points[0], end: points[1], thickness: d.thickness, height: d.height };
-    else element = { ...common, type: "axis", start: points[0], end: points[1] };
+    else {
+      try {
+        const axis = createAxisElement({
+          start: points[0],
+          end: points[1],
+          direction: axisOptions.direction,
+          name: axisOptions.name.trim() || undefined,
+          extension: axisOptions.extension,
+          labelSide: axisOptions.labelSide,
+          floorId: floor.id,
+          materialId: model.materials[0].id,
+        }, model.elements);
+        if (commit({ ...model, elements: [...model.elements, axis] }, `${axis.name} eklendi. Yeni aks için devam edebilirsiniz.`)) {
+          setPending([]); setSelectedId(axis.id); setHiddenLayers((layers) => layers.filter((l) => l !== axis.layer));
+        }
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : "Aks eklenemedi.");
+      }
+      return;
+    }
     if (commit({ ...model, elements: [...model.elements, element] }, `${element.name} eklendi. Yeni ${TYPE_NAMES[element.type].toLocaleLowerCase("tr")} için devam edebilirsiniz.`)) {
       setPending([]); setSelectedId(element.id); setHiddenLayers((layers) => layers.filter((l) => l !== element.layer));
     }
@@ -142,6 +173,41 @@ export default function HsynCadWorkbench() {
       if (!pending.length) { setPending([point]); setMessage("Taşıma hedef noktasını belirtin."); return; }
       const moved = translateElement(selected, { x: point.x - pending[0].x, y: point.y - pending[0].y });
       if (commit({ ...model, elements: model.elements.map((e) => e.id === selected.id ? moved : e) }, `${selected.name} taşındı.`)) setPending([]);
+      return;
+    }
+    if (tool === "axis" && (axisOptions.direction === "horizontal" || axisOptions.direction === "vertical")) {
+      const onFloor = model.elements.filter((e) => e.floorId === floor.id);
+      const points = onFloor.flatMap((e) => e.type === "axis" ? [e.start, e.end] : elementFootprint(e));
+      let start: Point, end: Point;
+      if (axisOptions.direction === "horizontal") {
+        const xs = points.map((p) => p.x);
+        const minX = xs.length ? Math.min(...xs) - 1 : point.x - 5;
+        const maxX = xs.length ? Math.max(...xs) + 1 : point.x + 5;
+        start = { x: minX === maxX ? point.x - 5 : minX, y: point.y };
+        end = { x: minX === maxX ? point.x + 5 : maxX, y: point.y };
+      } else {
+        const ys = points.map((p) => p.y);
+        const minY = ys.length ? Math.min(...ys) - 1 : point.y - 5;
+        const maxY = ys.length ? Math.max(...ys) + 1 : point.y + 5;
+        start = { x: point.x, y: minY === maxY ? point.y - 5 : minY };
+        end = { x: point.x, y: minY === maxY ? point.y + 5 : maxY };
+      }
+      try {
+        const axis = createAxisElement({
+          start, end, direction: axisOptions.direction,
+          name: axisOptions.name.trim() || undefined,
+          extension: axisOptions.extension,
+          labelSide: axisOptions.labelSide,
+          floorId: floor.id,
+          materialId: model.materials[0].id,
+        }, model.elements);
+        if (commit({ ...model, elements: [...model.elements, axis] }, `${axis.name} aksı eklendi.`)) {
+          setSelectedId(axis.id);
+          setFitKey((n) => n + 1);
+        }
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : "Aks eklenemedi.");
+      }
       return;
     }
     if (tool === "column") { addElement([point]); return; }
@@ -188,12 +254,21 @@ export default function HsynCadWorkbench() {
     const next = { id: crypto.randomUUID(), name: `${model.floors.length}. Kat`, elevation: top, height: floor.height };
     if (commit({ ...model, floors: [...model.floors, next] }, `${next.name} eklendi. Boş katta çizime başlayabilirsiniz.`)) { setFloorId(next.id); setSelectedId(null); setPending([]); }
   }
-  const instruction = tool === "select" ? "Eleman seçin" : tool === "pan" ? "Görünümü kaydırın" : tool === "move" ? (pending.length ? "Hedef noktası" : "Taşıma başlangıcı") : tool === "column" ? "Merkez noktası" : tool === "slab" ? `${pending.length} köşe · Kapalı alan çizin` : pending.length ? "İkinci nokta" : "İlk nokta";
+  const instruction = tool === "select" ? "Eleman seçin" : tool === "pan" ? "Görünümü kaydırın" : tool === "move" ? (pending.length ? "Hedef noktası" : "Taşıma başlangıcı") : tool === "column" ? "Merkez noktası" : tool === "slab" ? `${pending.length} köşe · Kapalı alan çizin` : tool === "axis" ? (axisOptions.direction === "free" ? (pending.length ? "Aks bitiş noktası" : "Aks başlangıç noktası") : `${axisOptions.direction === "horizontal" ? "Yatay" : "Düşey"} aks noktası`) : pending.length ? "İkinci nokta" : "İlk nokta";
 
   return <div className={styles.root} data-testid="hsyncad-workbench" data-ready={hydrated} tabIndex={-1}
     onPointerDown={(event) => { if ((event.target as HTMLElement).closest("svg[role='img']")) event.currentTarget.focus({ preventScroll: true }); }}
     onKeyDown={(event) => {
       if ((event.target as HTMLElement).closest("input,textarea,select")) return;
+      if (event.key === " " && tool === "axis") {
+        event.preventDefault();
+        setAxisOptions((prev) => ({
+          ...prev,
+          direction: prev.direction === "horizontal" ? "vertical" : prev.direction === "vertical" ? "free" : "horizontal",
+        }));
+        setMessage("Aks yönü değiştirildi.");
+        return;
+      }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") { event.preventDefault(); if (event.shiftKey) redo(); else undo(); }
       if (event.key === "Delete" || event.key === "Backspace") { event.preventDefault(); deleteSelected(); }
       if (event.key === "Escape") cancel();
@@ -216,12 +291,27 @@ export default function HsynCadWorkbench() {
       {tab === "Proje" && <><button type="button" onClick={() => replaceModel(createEmptyModel(), "Yeni boş model açıldı. Önceki model Geri al ile geri getirilebilir.")}><Plus size={17} />Yeni model</button><button type="button" data-testid="load-demo" onClick={() => replaceModel(createDemoModel(), "4 × 4 m ölçülü örnek açıldı. Tüm işlemler geri alınabilir.")}><Box size={18} />4 × 4 m örneği aç</button><button type="button" onClick={exportFile}><Download size={17} />JSON kaydet</button><p className="hcad-fine">Model bu tarayıcıda otomatik saklanır.<br />Kalıcı yedek için JSON dosyası indirin.</p></>}
     </div>
     <div className="hcad-workspace-bar"><div><span className="hcad-section-eyebrow">ÇALIŞMA ALANI</span><ChevronRight size={13} /><label><span className="sr-only">Aktif kat</span><select data-testid="active-floor" value={floor.id} onChange={(e) => { setFloorId(e.target.value); setSelectedId(null); setPending([]); }}>{model.floors.map((f) => <option key={f.id} value={f.id}>{f.name} · +{number(f.elevation, 2)} m</option>)}</select></label></div><div className="hcad-workspace-tools"><button type="button" className={snapping ? "active" : ""} aria-pressed={snapping} onClick={() => setSnapping(!snapping)} data-testid="snap-toggle">Yakalama {snapping ? "açık" : "kapalı"}</button><button type="button" className={ortho ? "active" : ""} aria-pressed={ortho} onClick={() => setOrtho(!ortho)}>Dik çizim</button><label><span className="sr-only">Izgara aralığı</span><select aria-label="Izgara aralığı" value={gridStep} onChange={(e) => setGridStep(Number(e.target.value))}><option value={0.1}>Izgara 0,10 m</option><option value={0.25}>Izgara 0,25 m</option><option value={0.5}>Izgara 0,50 m</option><option value={1}>Izgara 1,00 m</option></select></label></div></div>
+    {tool === "axis" && (
+      <AxisOptions
+        options={axisOptions}
+        onChange={setAxisOptions}
+        elements={model.elements}
+        floorId={floor.id}
+        materialId={model.materials[0].id}
+        selectedId={selectedId}
+        onCreateGrid={(axes) => {
+          if (commit({ ...model, elements: [...model.elements, ...axes] }, `${axes.length} aks eklendi.`)) {
+            setFitKey((n) => n + 1);
+          }
+        }}
+      />
+    )}
     <div className="hcad-body">
       <nav className="hcad-side-tools" aria-label="Dikey çizim araçları">{[{ id: "select", name: "Seç", Icon: MousePointer2 }, { id: "move", name: "Taşı", Icon: Move }, { id: "pan", name: "Kaydır", Icon: Hand }].map(({ id, name, Icon }) => <button type="button" key={id} data-testid={`tool-${id}`} title={name} aria-label={name} className={tool === id ? "active" : ""} onClick={() => selectTool(id as Tool)}><Icon size={19} /><small>{name}</small></button>)}<span className="hcad-toolbar-rule" /><button type="button" aria-label="Seçili elemanı sil" title="Sil (Delete)" onClick={deleteSelected} disabled={!selected}><Trash2 size={18} /><small>Sil</small></button><button type="button" aria-label="Çizimi iptal et" title="İptal (Esc)" onClick={cancel} disabled={!pending.length}><X size={18} /><small>İptal</small></button><button type="button" aria-label="Çizimi sığdır" title="Çizimi sığdır" onClick={() => setFitKey((n) => n + 1)}><Maximize2 size={18} /><small>Sığdır</small></button></nav>
       <div className="hcad-views"><div className="hcad-plan-wrap"><Plan2D elements={visibleElements} tool={tool} selectedId={selectedId} pending={pending} snapping={snapping} ortho={ortho} gridStep={gridStep} fitKey={fitKey} onPoint={placePoint} onSelect={selectElement} onCursor={(p, label) => { setCursor(p); setSnapLabel(label); }} onZoom={setZoom} />
         <form className="hcad-coordinate-box" onSubmit={(e) => { e.preventDefault(); placePoint({ x: Number(coords.x.replace(",", ".")), y: Number(coords.y.replace(",", ".")) }); }}><div><Move size={12} /><strong>Koordinat kutusu</strong><span>m</span></div><label>X<input aria-label="X koordinatı" data-testid="coordinate-x" inputMode="decimal" value={coords.x} onChange={(e) => setCoords({ ...coords, x: e.target.value })} required /></label><label>Y<input aria-label="Y koordinatı" data-testid="coordinate-y" inputMode="decimal" value={coords.y} onChange={(e) => setCoords({ ...coords, y: e.target.value })} required /></label><button type="submit" data-testid="coordinate-place" title="Girilen koordinatı kullan"><Plus size={13} />Nokta ekle</button><small>İmleç: {number(cursor.x, 2)} / {number(cursor.y, 2)}</small></form>
         {tool === "slab" && pending.length > 0 && <button type="button" className="hcad-finish-slab" data-testid="finish-slab" disabled={pending.length < 3} onClick={finishSlab}><Check size={16} />Döşemeyi tamamla ({pending.length})</button>}
-      </div><Scene3D model={model} selectedId={selectedId} onSelect={selectElement} hiddenLayers={hiddenLayers} /></div>
+      </div><Scene3D model={model} selectedId={selectedId} onSelect={selectElement} hiddenLayers={hiddenLayers} junctions={junctions} /></div>
       <aside className="hcad-inspector"><div className="hcad-inspector-tabs"><button type="button" className={panel === "quantities" ? "active" : ""} onClick={() => setPanel("quantities")}>Metraj</button><button type="button" className={panel === "properties" ? "active" : ""} onClick={() => setPanel("properties")}>Özellikler</button></div>
         <div className="hcad-inspector-content">{panel === "quantities" ? <><div className="hcad-panel-heading"><span className="hcad-section-eyebrow">ANLIK METRAJ</span><span className="hcad-live"><i />Canlı</span></div><div className="hcad-metric"><span>Beton hacmi · {quantities.warnings.length ? "brüt" : "net"}</span><div><strong data-testid="quantity-net">{number(quantities.netVolume)}</strong><span>m³</span></div><small>Tüm katlar · {model.elements.filter((e) => e.type !== "axis").length} yapı elemanı</small></div><div className="hcad-metric hcad-metric-secondary"><span>Kalıp alanı · brüt</span><div><strong data-testid="quantity-formwork">{number(quantities.formwork, 2)}</strong><span>m²</span></div></div><table className="hcad-quantity-table"><caption>Eleman tipine göre metraj</caption><thead><tr><th>Eleman</th><th>Adet</th><th>{quantities.warnings.length ? "Brüt m³" : "Net m³"}</th><th>Kalıp m²</th></tr></thead><tbody>{quantities.rows.map((row) => <tr key={row.type} data-testid={`quantity-${row.type}`}><td><i style={{ background: TYPE_COLORS[row.type] }} />{TYPE_NAMES[row.type]}</td><td>{row.count}</td><td>{number(row.netVolume)}</td><td>{number(row.formwork, 2)}</td></tr>)}</tbody></table><div className="hcad-deduction"><span>Brüt hacim <b>{number(quantities.grossVolume)} m³</b></span><span>Çakışma düşümü <b data-testid="quantity-overlap">−{number(quantities.overlapVolume)} m³</b></span></div><details className="hcad-assumptions" open><summary>Hesap kabulleri</summary>{quantities.assumptions.map((text, i) => <p key={i}>{text}</p>)}</details>{quantities.warnings.map((text, i) => <p className="hcad-warning" key={i}>{text}</p>)}<p className="hcad-scope-note">Geometrik modelleme ve metraj MVP’si. Statik / deprem hesabı ve mevzuata uygunluk kontrolü içermez.</p></> : <ElementProperties element={selected} model={model} onApply={(next) => commit({ ...model, elements: model.elements.map((e) => e.id === next.id ? next : e) }, `${next.name} güncellendi.`)} onDelete={deleteSelected} />}
         <details className="hcad-element-list"><summary><Layers size={13} />Elemanlar ({model.elements.length})</summary>{model.elements.map((e) => <button type="button" key={e.id} data-testid={`element-${e.name}`} className={selectedId === e.id ? "active" : ""} onClick={() => { selectElement(e.id); setFloorId(e.floorId); setTool("select"); }}><i style={{ background: TYPE_COLORS[e.type] }} /><b>{e.name}</b><span>{TYPE_NAMES[e.type]}</span><small>{model.floors.find((f) => f.id === e.floorId)?.name}</small></button>)}{!model.elements.length && <p className="hcad-fine">Henüz eleman yok.</p>}</details></div>
