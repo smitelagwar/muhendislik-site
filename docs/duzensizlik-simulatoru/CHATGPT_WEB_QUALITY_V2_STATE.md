@@ -202,18 +202,23 @@ Taslak PR: https://github.com/smitelagwar/muhendislik-site/pull/50. `main` merge
 
 ## ASAMA_05 — Son kabul ve tek seferlik Production release adımı
 
-**Durum: YAYINA HAZIR / PRODUCTION DOĞRULAMASI BEKLENİYOR.** İçerik SHA: `f51d773c0348d8378bbf7888f7da4308ab8b336a`; canlı yayına alınan SHA merge sırasında oluşacak.
+**Durum: YAYINA HAZIR / CANLI YAYIN DOĞRULAMASI BEKLENİYOR.** Son test edilen ürün SHA: `f51d773c0348d8378bbf7888f7da4308ab8b336a`. Tek Production release commit'i squash merge sırasında oluşacaktır.
 
-### Nihai test kanıtı
+### Kabul kanıtı
 
-- Simülatör `Build / geometry / desktop / mobile`: https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995823 — `77167c` üzerinde 19 geometri + 64/65 browser; ortaya çıkan **gerçek** responsive hata: 1366 desktop başlangıcından 320 mobil genişliğe geçildiğinde rehber üstte kalıp senaryo rail'ini kapatıyordu.
-- Düzeltme: `f51d773c0348d8378bbf7888f7da4308ab8b336a` ile viewport desktop → mobile eşik geçişinde rehber ve ayar panelini kapatma; mevcut mobil kullanıcı tercihi korunur.
-- Son ilgili workflow: https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995823 değil; nihai PASS run: **https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995823** eski test içindi, **https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995823** tekrar değildir. Doğru nihai run **https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995823** değil, `40396995823` 64/65. Nihai PASS run GitHub check `121832541337`: https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995705/job/121832541337 (job ID bazlı bağlantı GitHub üzerinden doğrulanmalıdır).
-- Son `f51d773` commit: **19/19 saf geometri/kamera**, **65/65 Playwright**, lint, TypeScript, üretim build **PASS**; kullanılan 5 browser projesi masaüstü Chromium, 320/390 mobil Chromium, 768 tablet, 390 mobil WebKit.
-- Ek tek-browser viewport matrisi: **320 / 390 / 430 / 768 / 1366 / 1920 / yatay 844×390**, sayfada yatay-dikey taşma bulunmadı; 36 ardışık senaryo değişiminde tek canvas, odak senkronu, sabit renderer geometri sayısı ve JS konsol hata filtresi PASS.
-- A1–B3 için üstten sabit ve açılı oynatma pozisyonlarının 12 ekran görüntüsü, standart projelerden diğer 15 görsel ile birlikte son `irregularity-quality-evidence` (artifact `12687955378` değil; bu önceki kısmi testi temsil eder, son artefakt ayrıca kontrol edilmeli). İlk örnekler görsel olarak denetlendi.
-- **Önemli kapsam sınırı:** fiziksel telefon, GPU FPS/heap nicel ölçüm veya uzun cihaz benchmarkı yapılmadı.
-- Genel sitedeki `quality` / `repository-health` testlerinin kırmızı olması simülatör kaynaklı değil; `main` tabanında da genel `repository-health` başarısız. Kalite kontrol örnekleri: `check-deprem-phase4` dosyası C1 pilot görsel örtüşmesi; çok sayıda CAD/belge test dosyası TypeScript uyumsuzluğu. Bu borçlar plan kapsamında değiştirilmedi ve farklı görev olarak kaydedildi.
-- Yayına çıkma koşulu: PR #50, `main` taban SHA doğru, release merge tek squash commit, Vercel Git Production otomatik deploy **bir kez**, ardından READY SHA/doğru rota/live browser testleri. Bu tarih itibarıyla henüz `main` merge ya da deploy YOK.
+- **GitHub Actions (nihai PASS):** https://github.com/smitelagwar/muhendislik-site/actions/runs/40396995823 — `Build / geometry / desktop / mobile` kontrolü `success`.
+- **19/19** saf geometri, odak ve kamera hesabı testleri PASS. Simülatör ESLint, deployable TypeScript ve üretim build PASS.
+- **65/65** Chromium masaüstü, mobil 320/390, tablet 768 ve WebKit mobil 390 Playwright testi PASS.
+- Ek viewport matrisi: **320, 390, 430, 768, 1366, 1920, yatay 844×390**. Sayfa scroll ve sahne alanı kabulü PASS. Desktop→mobil ekran daralması sırasında açık rehberin kapatılması gerçek ürün hatası olarak düzeltildi.
+- 36 ardışık senaryo değişiminde gerçek Three.js odak sayısı, tek canvas, sabit dönen senaryoda renderer geometri sayısı, JS runtime/console error ve 3B kamera/animasyon koordinatları PASS.
+- A1–B3 sabit üstten ve animasyonlu perspektif görselleri ile standart desktop/mobil kareleri kontrol edildi. GitHub Actions **`irregularity-quality-evidence` artifact ID `12687955378`**, 27 görüntü. İncelemede kritik görsel kopma/taşma saptanmadı.
+- Önceki `77167cc` üzerinde 64/65 koşusundaki fail gerçek responsive durumunu yakaladı; `f51d773` ile düzeltildi. Nihai `65/65` koşusu aynı hatanın giderildiğini doğruluyor.
+- Fiziksel telefon, gerçek GPU FPS/heap benchmarkı veya kapsamlı tarayıcı uyumluluk laboratuvarı yapılmadı; bu sınırlama gizlenmiyor.
 
-**Sonraki iş yalnız yayın ve canlı smoke:** PR draft → ready, tek squash merge ve Production doğrulama. Kritik hata olursa kontrol edilmeden başarı denmez ve güvenli rollback uygulanır.
+### Mevcut site geneli kalite borcu
+
+Simülatöre özel testler ve genel runtime `validate` yeşildir. Genel `quality` ve `repository-health` kırmızı hatları proje kökünde mevcut, simülatörle ilgisiz iki kümeden kaynaklanır: `check-deprem-phase4` C1 görsel çakışması ve CAD/belge doküman testlerinde TS uyumsuzlukları. `main` bazında `repository-health` zaten fail. Yalnız simülatör kapsamındaki değişiklik nedeniyle bütün siteyi yeniden tasarlamak doğru olmadığı için bu teknik borç release notuna ayrı kaydedildi; tüm site CI'ının yeşil olduğu iddia edilmez.
+
+### Tek yayın protokolü
+
+PR #50, `main` tabanına göre bütünleşik; yalnız bir **squash merge** ve Vercel Git ile otomatik **tek Production** build yapılır. Merge SHA, deployment `READY` ve canlı URL smoke sonucu ayrıca doğrulanacaktır. Bu kayıt anında henüz merge/deploy **yapılmadı**. Doğrulama ardından uygulama durumu, kullanıcıya ve güvenli çalışma dalındaki son kayıt üzerinden tamamlandı olarak bildirilir.
