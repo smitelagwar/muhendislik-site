@@ -1,8 +1,8 @@
 "use client";
 
-import type { IrregularityScenario } from "./building-viewer";
+import type { ScenarioId } from "@/lib/duzensizlik-simulatoru/scenarios";
 
-const LABELS: Record<IrregularityScenario, string> = {
+const LABELS: Record<ScenarioId, string> = {
   A1: "Burulma — plan şeması",
   A2: "Döşeme süreksizliği — plan şeması",
   A3: "Planda çıkıntı — plan şeması",
@@ -11,7 +11,7 @@ const LABELS: Record<IrregularityScenario, string> = {
   B3: "Düşey süreksizlik — görünüş şeması",
 };
 
-export function IrregularityFallback2D({ scenario }: { scenario: IrregularityScenario }) {
+export function IrregularityFallback2D({ scenario }: { scenario: ScenarioId }) {
   const plan = scenario.startsWith("A");
   return (
     <div data-testid="irregularity-2d-diagram" className="flex h-full w-full flex-col items-center justify-center gap-3 overflow-auto px-5 py-6 text-center">
