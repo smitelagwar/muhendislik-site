@@ -71,7 +71,7 @@ export function IrregularityStudioShell() {
               <BuildingViewer key={viewerRetry} view={cameraView} resetToken={cameraReset} scenario={current.id} playing={playing} speed={speed} showSlabs={showSlabs} onFailure={() => {setViewerFailed(true); setPlaying(false); setViewMode("2d");}} />
             )}
             {viewerFailed && (
-              <button type="button" className="absolute bottom-3 right-3 z-10 rounded-lg border border-cyan-300/50 bg-[#11253b] px-3 py-2 text-xs text-cyan-100" onClick={() => {setViewerFailed(false); setViewerRetry(v => v+1); setViewMode("3d");}}>3B'yi tekrar dene</button>
+              <button type="button" className="absolute bottom-3 right-3 z-10 rounded-lg border border-cyan-300/50 bg-[#11253b] px-3 py-2 text-xs text-cyan-100" onClick={() => {setViewerFailed(false); setViewerRetry(v => v+1); setViewMode("3d");}}>3B&apos;yi tekrar dene</button>
             )}
             <div className="absolute right-3 top-3 rounded-full border border-cyan-300/25 bg-[#0d1928]/85 px-3 py-1.5 text-[11px] font-semibold tracking-wide text-cyan-200 backdrop-blur-sm">EĞİTSEL MODEL · {current.id}</div>
             {viewMode === "3d" && !viewerFailed && <div role="group" aria-label="Kamera görünümleri" className="absolute bottom-3 left-3 flex flex-wrap gap-1 rounded-xl border border-white/10 bg-[#0d1928]/90 p-1.5 backdrop-blur-sm">
