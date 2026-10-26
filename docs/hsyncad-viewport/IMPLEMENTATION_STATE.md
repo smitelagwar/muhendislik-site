@@ -1,15 +1,15 @@
 # hsynCAD — Uygulama durumu
 
-> Bu ilerleme kaydı ilk planın tamamlanmış aşamalarını izler. `PLAN.md` orijinal plan kopyasıdır. ASAMA_05 test/Preview kalite kapısı tamamlandı. ASAMA_06 Production yalnız yeni `devam` komutuyla başlar.
+> Bu ilerleme kaydı ilk planın tamamlanmış aşamalarını izler. `PLAN.md` orijinal plan kopyasıdır. ASAMA_01–ASAMA_06 tamamlandı. Production yayın kanıtı bu çalışma dalında deployment tetiklemeyen ayrı belge checkpoint'idir.
 
 ```yaml
 plan_id: HSYNCAD_IMMERSIVE_VIEWPORT_2026_10_26
 plan_revision: 1
 planning_status: PLAN_HAZIR
-execution_status: DEVAM_EDIYOR
+execution_status: TAMAMLANDI
 active_stage: null
-next_stage: ASAMA_06
-completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04, ASAMA_05]
+next_stage: null
+completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04, ASAMA_05, ASAMA_06]
 evidence:
   - stage: ASAMA_01
     check: main_HEAD
@@ -119,8 +119,36 @@ evidence:
     check: repo_wide_health_informational
     result: FAIL_BASELINE
     detail: "Existing unrelated test/script typechecking debt; no hsynCAD runtime typecheck errors"
+  - stage: ASAMA_06
+    check: github_squash_merge
+    result: PASS
+    pull_request: 47
+    merge_sha: bc625a0ccc35489191cb20644b5aad3eec2aaeda
+    original_main_sha: b60c61b03d49b3c4c1d65d38346f308ed57b7b3a
+    detail: "Single-parent squash commit; merge tree identical to tested PR head"
+  - stage: ASAMA_06
+    check: vercel_automatic_production_deployment
+    result: PASS
+    deployment_id: dpl_EQaXAazyvb5dvhRoVYwpFs7QYPvL
+    deployment_commit: bc625a0ccc35489191cb20644b5aad3eec2aaeda
+    target: production
+    state: READY
+    minimum_observation_seconds: 180
+    observed_seconds: 333
+    public_alias: muhendislik-site.vercel.app
+  - stage: ASAMA_06
+    check: live_browser_acceptance
+    result: PASS
+    checks: 18
+    reported_pass: 18
+    url: https://muhendislik-site.vercel.app/kategori/araclar/hsyncad
+    detail: "Desktop fullscreen, 2B/3B, no global bar/footer or document scrollbar, sample model net 8.089 / formwork 83.80 / overlap 0.632, normal tools route restores global chrome and scrolling. Live agent navigated via URL; prior CI independently clicked internal back arrow."
+  - stage: ASAMA_06
+    check: production_runtime_error_scan
+    result: PASS_NO_ERRORS_OBSERVED
+    detail: "Vercel production deployment filtered error/fatal logs over 20m had no matches, not proof of absence of all client errors"
 blockers: []
-updated_at: "2026-10-26T16:37:51+03:00"
+updated_at: "2026-10-26T16:49:46+03:00"
 ```
 
 ## Kaynak ve erişim tabanı
@@ -211,3 +239,15 @@ Yalnız bu iki plan/durum belgesi tek dokümantasyon checkpoint'inde kaydedilir;
 - **Tarayıcıda Preview incelemesi:** İlk Preview sürümünde bağımsız tarayıcı ajanı 17 PASS / 1 NOT TESTED raporladı. Bu nihai commit'e ait değildir; nihai commit'in 12/12 Chromium CI sonuçları bağımsız regresyon kanıtıdır. Son uygulama ekran görüntüleri incelendi; masaüstünde mobil 2B/3B/Metraj anahtarı gizli, mobilde görünüyor.
 - Kalan kesin sınırlamalar: Edge/Safari gerçek browser matrisi çalıştırılmadı; mobil sanal klavye dış cihaz kabulü ayrıca yapılmadı. Tam depo script/test baseline borcu devam ediyor.
 - `main` ve Production hiç değiştirilmedi. PR #47 **draft** kalacak. **ASAMA_06 için yeni `devam` gereklidir**; o aşamada tek squash merge / tek production ve yeniden 180 saniye gözlem uygulanır. Bu aşamada asla production deploy tetiklenmeyecek.
+
+
+## ASAMA_06 — Final Production ve kapanış
+
+- **Durum:** TAMAMLANDI. Yalnızca `internal-hsyncad-viewport` çalışma dalına bu yayın-sonrası belge checkpoint'i `[skip ci]` ile eklendi; `main` dalına yeni commit ve ikinci Production deployment **oluşturulmadı**. Bu nedenle `main` üzerindeki aynı adlı dosya AŞAMA_05'te kalır; nihai kanıt burada, PR #47 ve sohbet release raporundadır.
+- **Merge:** PR https://github.com/smitelagwar/muhendislik-site/pull/47 squash merge, SHA `bc625a0ccc35489191cb20644b5aad3eec2aaeda`, ana dal önceki SHA `b60c61b03d49b3c4c1d65d38346f308ed57b7b3a`; tek parent/tek commit. PR head ve merge commit Git tree SHA `45b2e7fadacb0fe702c14c2e7eba2b97200de134` birebir aynı.
+- **Tek Production:** Vercel otomatik `dpl_EQaXAazyvb5dvhRoVYwpFs7QYPvL`, `READY`; SHA doğru; `muhendislik-site.vercel.app` alias bağlandı. Başlangıç `2026-10-26T13:42:28.211Z`; `t0+333s` anındaki gözlemde READY, istenen 180sn minimumun üzerinde.
+- **QA:** Chromium Playwright `12/12 PASS`, Github Actions 40331196927; vercel-preflight/Next.js build ve deployable TypeScript PASS, 40331197236. Canlı desktop browser acceptance `18 PASS` (tarayıcı ajanı); `8,089m³` net, `83,80m²` kalıp, `0,632m³` çakışma düşümü. Canlı Araçlar sayfasında normal header ve kaydırma geri geldi. Otomatik CI testi sol ok linkini tıklayarak geçti, canlı ajan ise liste rotasına URL yoluyla gitti; canlıda doğrudan ok tıklaması ayrıca doğrulanmadı.
+- **Runtime:** Son 20 dk error/fatal Vercel log sorgusu boş; yerel client errors / tüm browser versiyonları için garantili sıfır hata iddiası yoktur.
+- **Bağımsız teknik borç:** Repo genelinde test/script TypeScript denetimi ve Deprem içerik/Document Mobile senaryolarında önceden mevcut kırmızı kontroller devam edebilir; hsynCAD hedefli gate'leri yeşildir. Gerçek Safari/Edge ve fiziksel cihaz sanal klavye matrisi ayrıca çalıştırılmadı.
+- **Rollback dayanağı:** Önceki sağlam Production `dpl_G3RdFhu88WTZU7TBND8NagvqfpqJ` (`b60c61b03d49b3c4c1d65d38346f308ed57b7b3a`), bu aşamada rollback gerekmedi.
+- **Durma:** Aşamalı plan bitti. Sonraki düz `devam` isteğinde iş yapılmayacak.
