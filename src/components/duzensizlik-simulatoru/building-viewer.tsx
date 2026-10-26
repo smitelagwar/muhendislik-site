@@ -108,7 +108,9 @@ export default function BuildingViewer({ view, resetToken, onFailure }: { view: 
       }
       geometry.dispose();
       materials.forEach(m => m.dispose());
-      grid.dispose();
+      grid.geometry.dispose();
+      if (Array.isArray(grid.material)) grid.material.forEach(m => m.dispose());
+      else grid.material.dispose();
     };
   }, []);
   useEffect(() => { cameraController.current(view); }, [view]);
