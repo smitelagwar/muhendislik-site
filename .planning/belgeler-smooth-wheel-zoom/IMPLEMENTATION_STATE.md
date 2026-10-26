@@ -1,17 +1,16 @@
 plan_id: BELGELER-SMOOTH-WHEEL-ZOOM-SILENT-RENDER-20261026
-plan_revision: 1
+plan_revision: 2
 planning_status: PLAN_HAZIR
-execution_status: TAMAMLANDI
-active_stage: null
+execution_status: DEVAM_EDIYOR
+active_stage: ASAMA_01_PARLAMA_REPAIR
 next_stage: null
 completed_stages:
   - ASAMA_01
-release_status: VERIFIED
-commit_sha: "66d58fde6ce8b7ff81a742886f4a4fe7b469950a"
-deployment_id: "https://muhendislik-site-r1055ht91-huseying5713-2819s-projects.vercel.app"
-deployment_url: "https://muhendislik-site-r1055ht91-huseying5713-2819s-projects.vercel.app"
+release_status: PENDING_DEPLOY
+commit_sha: null
+deployment_id: null
+deployment_url: null
 live_alias: "https://muhendislik-site.vercel.app"
-release_time: "2026-10-26T02:04:15+03:00"
 evidence:
   - stage: ASAMA_01
     description: "Ultra Smooth Ctrl+Wheel Zoom, Pürüzsüz rAF Hedef Takibi ve Sessiz PDF Güncelleme"
@@ -28,10 +27,25 @@ evidence:
       - "tests/belgeler/use-belge-fit-transition.test.ts: 3/3 pass"
       - "npm run check:belgeler-pdf: 509/509 pass + visual protection check passed"
       - "npx tsc -p tsconfig.next.json --noEmit: 0 error"
-      - "npm run build: 634/634 pages compiled and statically generated"
-      - "tests/site-audit/belgeler-smooth-zoom.spec.ts: 5/5 pass"
+      - "npm run build: 635/635 pages compiled and statically generated"
+      - "tests/site-audit/belgeler-smooth-zoom.spec.ts: 6/6 pass"
       - "tests/site-audit/belgeler-fit-transition-stage02.spec.ts: 6/6 pass"
       - "tests/site-audit/belgeler-focus-center-stage03.spec.ts: 4/4 pass"
-      - "Live Production Smoke (muhendislik-site.vercel.app/belgeler/santiye-sefi-taahhutnamesi): HTTP 200, 100% -> 107% (1 notch wheel), canvas inkPixels=1138, inkRatio=0.1138, Header Derleniyor=false, 0 page errors."
+  - stage: ASAMA_01_PARLAMA_REPAIR
+    description: "Sürekli Yakınlaştırma/Uzaklaştırma Sırasındaki Parlama, Sıçrama ve Anlık Farklı Zoom Açılarının Belirmesinin Giderilmesi"
+    root_cause:
+      - "Çoklu veya sürekli wheel darbeleri arasında ufak zaman aralıklarında erken settle tetiklenip PDF.js render başlatılıyordu."
+      - "Kullanıcı ters yöne veya daha ileriye zoom yaparken arkaplanda tamamlanan eski render commitRenderedBuffer ile canvas.style.transform='none' yapıyor ve eski raster'ı tuvale basıyordu."
+      - "Settle sonrasında setZoomLevel prop güncellemesi tetiklenen useEffect 90ms timer ile renderPage çağırıyor ve yeni zoom hareketi başlamışsa eski zoom'u ekranda anlık parlatıyordu."
+      - "Anchor scroll hesabında frameLeft/Top'un donuk saklanması çerçeve ortalandığında subpixel yatay kaymaya sebep oluyordu."
+    fixes:
+      - "SETTLE_QUIET_MS (140ms sessizlik penceresi) eklendi; kullanıcı tekerleği çevirmeye devam ettikçe erken settle engellendi ve ara PDF.js render çağrıları sıfırlandı."
+      - "Wheel hareketi başlar başlamaz in-flight PDF.js render iptal ediliyor (renderRequestRef++ ve renderTask.cancel()) ve renderPage/commitRenderedBuffer önüne smoothZoom.isSmoothZoomActive() koruma kapısı konuldu."
+      - "Canlı çerçeve geometrisi (liveFrameLeft, liveFrameTop) üzerinden scroll anchor hesabı yapılarak merkezleme kaymaları sıfırlandı."
+    tests:
+      - "tests/site-audit/belgeler-smooth-zoom.spec.ts Test 6: 0 intermediate canvas width/height mutations during multi-notch in/out zoom"
+      - "tests/site-audit/belgeler-smooth-zoom.spec.ts: 6/6 pass"
+      - "tests/site-audit/belgeler-fit-transition-stage02.spec.ts: 6/6 pass"
+      - "tests/site-audit/belgeler-focus-center-stage03.spec.ts: 4/4 pass"
 blockers: []
-updated_at: "2026-10-26T02:04:30+03:00"
+updated_at: "2026-10-26T10:45:00+03:00"

@@ -417,6 +417,13 @@ export function BelgeStudioPdfPreview({
       if (!canvas || !frame) return;
 
       if (
+        isTransitioningRef.current ||
+        smoothZoomRef.current?.isSmoothZoomActive()
+      ) {
+        return;
+      }
+
+      if (
         !data.bufferCanvas ||
         data.bufferCanvas.width <= 0 ||
         data.bufferCanvas.height <= 0 ||
@@ -507,6 +514,9 @@ export function BelgeStudioPdfPreview({
     const container = containerRef.current;
     const frame = frameRef.current;
     if (!pdf || !canvas || !container || !frame) return;
+    if (smoothZoomRef.current?.isSmoothZoomActive() || isTransitioningRef.current) {
+      return;
+    }
     if (container.clientWidth < 1 || container.clientHeight < 1) {
       if (layoutRetryCount < 60) {
         layoutRetryRafRef.current = requestAnimationFrame(() => {
@@ -566,6 +576,8 @@ export function BelgeStudioPdfPreview({
       if (
         requestId !== renderRequestRef.current ||
         pinchingRef.current ||
+        smoothZoomRef.current?.isSmoothZoomActive() ||
+        isTransitioningRef.current ||
         zoomRef.current !== renderZoom ||
         pageRef.current !== renderPageNumber
       ) {
@@ -623,6 +635,8 @@ export function BelgeStudioPdfPreview({
       if (
         requestId !== renderRequestRef.current ||
         pinchingRef.current ||
+        smoothZoomRef.current?.isSmoothZoomActive() ||
+        isTransitioningRef.current ||
         zoomRef.current !== renderZoom ||
         pageRef.current !== renderPageNumber
       ) {
@@ -651,6 +665,8 @@ export function BelgeStudioPdfPreview({
       if (
         requestId !== renderRequestRef.current ||
         pinchingRef.current ||
+        smoothZoomRef.current?.isSmoothZoomActive() ||
+        isTransitioningRef.current ||
         zoomRef.current !== renderZoom ||
         pageRef.current !== renderPageNumber
       ) {
@@ -679,7 +695,7 @@ export function BelgeStudioPdfPreview({
         requestId,
       };
 
-      if (isTransitioningRef.current) {
+      if (isTransitioningRef.current || smoothZoomRef.current?.isSmoothZoomActive()) {
         return;
       }
 
@@ -699,7 +715,15 @@ export function BelgeStudioPdfPreview({
   }, [report, applyZoomAnchor]);
 
   useEffect(() => {
-    if (activeTabMobile !== "preview" || !documentRef.current || pinchingRef.current) return;
+    if (
+      activeTabMobile !== "preview" ||
+      !documentRef.current ||
+      pinchingRef.current ||
+      isTransitioningRef.current ||
+      smoothZoomRef.current?.isSmoothZoomActive()
+    ) {
+      return;
+    }
     if (renderTaskRef.current !== null) return;
     const container = containerRef.current;
     const token = renderedTokenRef.current;
@@ -832,8 +856,23 @@ export function BelgeStudioPdfPreview({
   }, [snapshot, loadAttempt, report, renderPage]);
 
   useEffect(() => {
-    if (!documentRef.current || pinchingRef.current) return;
-    const timer = window.setTimeout(() => void renderPage(), 90);
+    if (
+      !documentRef.current ||
+      pinchingRef.current ||
+      isTransitioningRef.current ||
+      smoothZoomRef.current?.isSmoothZoomActive()
+    ) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      if (
+        isTransitioningRef.current ||
+        smoothZoomRef.current?.isSmoothZoomActive()
+      ) {
+        return;
+      }
+      void renderPage();
+    }, 90);
     return () => window.clearTimeout(timer);
   }, [renderPage, zoomLevel, currentPage, layoutVersion, gestureEndVersion, isInlineEditingActive]);
 
@@ -1098,6 +1137,17 @@ export function BelgeStudioPdfPreview({
       event.stopPropagation();
       cancelTransition();
       if (!documentRef.current || event.deltaY === 0 || renderedSizeRef.current.width <= 0) return;
+
+      renderRequestRef.current++;
+      if (renderTaskRef.current) {
+        try {
+          renderTaskRef.current.cancel();
+        } catch {
+          // Gecikmiş iptal güvenle yok sayılır
+        }
+        renderTaskRef.current = null;
+      }
+
       smoothZoom.addWheelDelta(event, { x: event.clientX, y: event.clientY });
     };
     container.addEventListener("wheel", handleWheel, { passive: false });

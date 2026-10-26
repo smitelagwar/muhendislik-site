@@ -252,4 +252,62 @@ test.describe("ASAMA_01: Ultra Smooth PDF Zoom, Sessiz Güncelleme ve Görsel Ko
       expect(ink.inkRatio).toBeGreaterThan(0.01);
     }
   });
+
+  test("6. Kesintisiz İki Yönlü Zoom Sırasında Parlama/Sıçrama Önleme: Ara karelerde ara raster çizilmez, sadece final settle'da tek raster basılır", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    const { canvas } = await waitForStudioReady(page, "/belgeler/santiye-sefi-taahhutnamesi");
+
+    const canvasBox = await canvas.boundingBox();
+    const centerX = canvasBox!.x + canvasBox!.width / 2;
+    const centerY = canvasBox!.y + canvasBox!.height / 2;
+    await page.mouse.move(centerX, centerY);
+
+    const initialWidth = await page.evaluate(() => {
+      const cvs = document.querySelector('[data-testid="belge-studio-preview-canvas"] canvas') as HTMLCanvasElement;
+      return cvs?.width;
+    });
+
+    await page.evaluate(() => {
+      const cvs = document.querySelector('[data-testid="belge-studio-preview-canvas"] canvas') as HTMLCanvasElement;
+      (window as unknown as { __widthChanges: number[] }).__widthChanges = [];
+      const observer = new MutationObserver(() => {
+        (window as unknown as { __widthChanges: number[] }).__widthChanges.push(cvs.width);
+      });
+      observer.observe(cvs, { attributes: true, attributeFilter: ["width"] });
+    });
+
+    // Hızlı iki yönlü tekerlek hareketi (ara bekleme 40ms < 140ms quiet period)
+    await page.keyboard.down("Control");
+    for (let i = 0; i < 3; i++) {
+      await page.mouse.wheel(0, -80);
+      await page.waitForTimeout(40);
+    }
+    for (let i = 0; i < 2; i++) {
+      await page.mouse.wheel(0, 80);
+      await page.waitForTimeout(40);
+    }
+    for (let i = 0; i < 3; i++) {
+      await page.mouse.wheel(0, -80);
+      await page.waitForTimeout(40);
+    }
+    await page.keyboard.up("Control");
+
+    // Hareket sırasında sıfır ara raster çizimi (parlama ve anlık başka açıların belirmesi engellendi)
+    const midChanges = await page.evaluate(() => {
+      return (window as unknown as { __widthChanges: number[] }).__widthChanges.length;
+    });
+    expect(midChanges).toBe(0);
+
+    // Settle bekle (140ms sessizlik + animasyon oturması)
+    await page.waitForTimeout(300);
+
+    const finalWidth = await page.evaluate(() => {
+      const cvs = document.querySelector('[data-testid="belge-studio-preview-canvas"] canvas') as HTMLCanvasElement;
+      return cvs?.width;
+    });
+    expect(finalWidth).toBeGreaterThan(initialWidth);
+
+    const finalInk = await getCanvasInkMetrics(page);
+    expect(finalInk.inkRatio).toBeGreaterThan(0.01);
+  });
 });

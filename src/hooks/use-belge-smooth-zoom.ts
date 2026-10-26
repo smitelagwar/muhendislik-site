@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import {
   BELGE_ZOOM_SETTLE_THRESHOLD,
   DEFAULT_BELGE_WHEEL_SENSITIVITY,
+  DEFAULT_BELGE_ZOOM_SETTLE_QUIET_MS,
   DEFAULT_BELGE_ZOOM_TAU_MS,
   calculateNextTargetZoom,
   calculateZoomFollowAlpha,
@@ -28,6 +29,7 @@ export type UseBelgeSmoothZoomOptions = {
   onVisualZoomChange?: (zoom: number) => void;
   tauMs?: number;
   sensitivity?: number;
+  settleQuietMs?: number;
 };
 
 export type UseBelgeSmoothZoomReturn = {
@@ -43,8 +45,8 @@ type AnchorData = {
   relativeY: number;
   pointerX: number;
   pointerY: number;
-  frameLeft: number;
-  frameTop: number;
+  lastClientX?: number;
+  lastClientY?: number;
 };
 
 export function useBelgeSmoothZoom({
@@ -63,6 +65,7 @@ export function useBelgeSmoothZoom({
   onVisualZoomChange,
   tauMs = DEFAULT_BELGE_ZOOM_TAU_MS,
   sensitivity = DEFAULT_BELGE_WHEEL_SENSITIVITY,
+  settleQuietMs = DEFAULT_BELGE_ZOOM_SETTLE_QUIET_MS,
 }: UseBelgeSmoothZoomOptions): UseBelgeSmoothZoomReturn {
   const isAnimatingRef = useRef(false);
   const targetZoomRef = useRef(zoomRef.current);
@@ -70,6 +73,7 @@ export function useBelgeSmoothZoom({
   const rafIdRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number>(0);
   const lastDisplayUpdateRef = useRef<number>(0);
+  const lastWheelTimeRef = useRef<number>(0);
   const anchorRef = useRef<AnchorData | null>(null);
 
   const cancelSmoothZoom = useCallback(() => {
@@ -80,6 +84,7 @@ export function useBelgeSmoothZoom({
     const wasAnimating = isAnimatingRef.current;
     isAnimatingRef.current = false;
     anchorRef.current = null;
+    lastWheelTimeRef.current = 0;
     if (wasAnimating && onAnimationEnd) {
       onAnimationEnd();
     }
@@ -111,11 +116,18 @@ export function useBelgeSmoothZoom({
         canvas.style.transform = ratio === 1 ? "none" : `scale(${ratio})`;
       }
 
-      if (anchorRef.current && container) {
+      if (anchorRef.current && container && frame) {
         const anchor = anchorRef.current;
+        const containerRect = container.getBoundingClientRect();
+        const frameRect = frame.getBoundingClientRect();
+        const viewportLeft = containerRect.left + container.clientLeft;
+        const viewportTop = containerRect.top + container.clientTop;
+        const liveFrameLeft = frameRect.left - viewportLeft + container.scrollLeft;
+        const liveFrameTop = frameRect.top - viewportTop + container.scrollTop;
+
         const targetScroll = getBelgeZoomAnchorScroll({
-          frameLeft: anchor.frameLeft,
-          frameTop: anchor.frameTop,
+          frameLeft: liveFrameLeft,
+          frameTop: liveFrameTop,
           nextWidth,
           nextHeight,
           relativeX: anchor.relativeX,
@@ -153,9 +165,11 @@ export function useBelgeSmoothZoom({
       visualZoomRef.current += (targetZoomRef.current - visualZoomRef.current) * alpha;
 
       const diff = Math.abs(targetZoomRef.current - visualZoomRef.current);
-      const isSettled = diff < BELGE_ZOOM_SETTLE_THRESHOLD;
+      const isTargetReached = diff < BELGE_ZOOM_SETTLE_THRESHOLD;
+      const isQuiet = lastWheelTimeRef.current === 0 || (now - lastWheelTimeRef.current) >= settleQuietMs;
+      const isSettled = isTargetReached && isQuiet;
 
-      if (isSettled) {
+      if (isTargetReached) {
         visualZoomRef.current = targetZoomRef.current;
       }
 
@@ -176,6 +190,7 @@ export function useBelgeSmoothZoom({
         isAnimatingRef.current = false;
         rafIdRef.current = null;
         anchorRef.current = null;
+        lastWheelTimeRef.current = 0;
 
         const finalZoom = targetZoomRef.current;
         zoomRef.current = finalZoom;
@@ -198,6 +213,7 @@ export function useBelgeSmoothZoom({
     rafIdRef.current = requestAnimationFrame(step);
   }, [
     tauMs,
+    settleQuietMs,
     applyDomTransforms,
     setDisplayZoom,
     onVisualZoomChange,
@@ -223,22 +239,45 @@ export function useBelgeSmoothZoom({
       const normalizedDelta = normalizeWheelDelta(event, container.clientHeight);
       if (normalizedDelta === 0) return;
 
-      const rect = canvas.getBoundingClientRect();
-      const relativeX = Math.max(0, Math.min(1, (point.x - rect.left) / Math.max(1, rect.width)));
-      const relativeY = Math.max(0, Math.min(1, (point.y - rect.top) / Math.max(1, rect.height)));
-      const containerRect = container.getBoundingClientRect();
-      const frameRect = frame.getBoundingClientRect();
-      const viewportLeft = containerRect.left + container.clientLeft;
-      const viewportTop = containerRect.top + container.clientTop;
+      lastWheelTimeRef.current = performance.now();
 
-      anchorRef.current = {
-        relativeX,
-        relativeY,
-        pointerX: point.x - viewportLeft,
-        pointerY: point.y - viewportTop,
-        frameLeft: frameRect.left - viewportLeft + container.scrollLeft,
-        frameTop: frameRect.top - viewportTop + container.scrollTop,
-      };
+      if (!isAnimatingRef.current || !anchorRef.current) {
+        const rect = canvas.getBoundingClientRect();
+        const relativeX = Math.max(0, Math.min(1, (point.x - rect.left) / Math.max(1, rect.width)));
+        const relativeY = Math.max(0, Math.min(1, (point.y - rect.top) / Math.max(1, rect.height)));
+        const containerRect = container.getBoundingClientRect();
+        const viewportLeft = containerRect.left + container.clientLeft;
+        const viewportTop = containerRect.top + container.clientTop;
+
+        anchorRef.current = {
+          relativeX,
+          relativeY,
+          pointerX: point.x - viewportLeft,
+          pointerY: point.y - viewportTop,
+          lastClientX: point.x,
+          lastClientY: point.y,
+        };
+      } else {
+        const dx = point.x - (anchorRef.current.lastClientX ?? point.x);
+        const dy = point.y - (anchorRef.current.lastClientY ?? point.y);
+        if (Math.hypot(dx, dy) > 8) {
+          const rect = canvas.getBoundingClientRect();
+          const relativeX = Math.max(0, Math.min(1, (point.x - rect.left) / Math.max(1, rect.width)));
+          const relativeY = Math.max(0, Math.min(1, (point.y - rect.top) / Math.max(1, rect.height)));
+          const containerRect = container.getBoundingClientRect();
+          const viewportLeft = containerRect.left + container.clientLeft;
+          const viewportTop = containerRect.top + container.clientTop;
+
+          anchorRef.current = {
+            relativeX,
+            relativeY,
+            pointerX: point.x - viewportLeft,
+            pointerY: point.y - viewportTop,
+            lastClientX: point.x,
+            lastClientY: point.y,
+          };
+        }
+      }
 
       if (!isAnimatingRef.current) {
         const fitVisual = getFitVisualZoom ? getFitVisualZoom() : null;
@@ -274,8 +313,8 @@ export function useBelgeSmoothZoom({
       frameRef,
       sensitivity,
       getFitVisualZoom,
-      zoomRef,
       cancelSmoothZoom,
+      zoomRef,
       setZoomLevel,
       setDisplayZoom,
       setFitMode,
@@ -311,7 +350,6 @@ export function useBelgeSmoothZoom({
       const rect = canvas.getBoundingClientRect();
       const relativeX = Math.max(0, Math.min(1, (point.x - rect.left) / Math.max(1, rect.width)));
       const relativeY = Math.max(0, Math.min(1, (point.y - rect.top) / Math.max(1, rect.height)));
-      const frameRect = frame.getBoundingClientRect();
       const viewportLeft = containerRect.left + container.clientLeft;
       const viewportTop = containerRect.top + container.clientTop;
 
@@ -320,8 +358,8 @@ export function useBelgeSmoothZoom({
         relativeY,
         pointerX: point.x - viewportLeft,
         pointerY: point.y - viewportTop,
-        frameLeft: frameRect.left - viewportLeft + container.scrollLeft,
-        frameTop: frameRect.top - viewportTop + container.scrollTop,
+        lastClientX: point.x,
+        lastClientY: point.y,
       };
 
       if (!isAnimatingRef.current) {
@@ -331,6 +369,7 @@ export function useBelgeSmoothZoom({
       }
 
       targetZoomRef.current = clamped;
+      lastWheelTimeRef.current = 0;
 
       if (reduceMotion) {
         cancelSmoothZoom();

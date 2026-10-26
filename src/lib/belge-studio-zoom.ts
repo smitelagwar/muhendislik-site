@@ -6,6 +6,7 @@ export const BELGE_PREVIEW_MAX_RASTER_SIDE = 4096;
 export const DEFAULT_BELGE_WHEEL_SENSITIVITY = 0.0006;
 export const DEFAULT_BELGE_ZOOM_TAU_MS = 65;
 export const BELGE_ZOOM_SETTLE_THRESHOLD = 0.15;
+export const DEFAULT_BELGE_ZOOM_SETTLE_QUIET_MS = 140;
 
 export function clampBelgeZoom(value: number): number {
   return Math.min(MAX_BELGE_ZOOM, Math.max(MIN_BELGE_ZOOM, value));
