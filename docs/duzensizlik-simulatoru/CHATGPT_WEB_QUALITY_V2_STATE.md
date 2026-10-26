@@ -5,19 +5,22 @@ plan_id: TBDY3D_CHATGPT_WEB_QUALITY_V2_20261026
 plan_revision: 1
 planning_status: PLAN_HAZIR
 execution_status: DEVAM_EDIYOR
-active_stage: null
+active_stage: ASAMA_03
 next_stage: ASAMA_03
 completed_stages: [ASAMA_01, ASAMA_02]
 base_sha: 93d734042a2e9f47737898312d839c179cd9a746
 working_branch: internal-tbdy3d-quality-v2
-updated_at: 2026-10-26T19:00:00Z
+updated_at: 2026-10-26T19:28:02.968Z
 evidence:
   - ASAMA_01: main SHA and Vercel production READY checked
   - ASAMA_01: GitHub sources / checks and desktop browser interaction reviewed
   - ASAMA_01: phase-2 risk register and acceptance baseline documented below
   - ASAMA_02: commit 456321f92b59ce8a1fd249247ecdfc7ac0e2389e, 13/13 geometry tests, lint/typecheck/build PASS
   - ASAMA_02: CI Playwright 30/30 desktop/mobile/WebKit PASS; reviewed 15 screenshot artifacts
-blockers: []
+  - ASAMA_03: source commit 38df78be78f259a0d712f68e077096b6ce59436c; 17/17 geometry and production build PASS
+  - ASAMA_03: visual evidence from prior browser run 36/40 PASS, four failures from guide overlay in new E2E test; corrected in final source
+blockers:
+  - ASAMA_03: final browser CI for commit 38df78b not yet terminal; cannot report PASS
 ```
 
 ## ASAMA_01 — Gerçekleşen denetim (2026-10-26)
@@ -123,3 +126,33 @@ Yeni taslak PR: https://github.com/smitelagwar/muhendislik-site/pull/50 (henüz 
 `ASAMA_03`: A1–B3 teknik öğreticilik, sahneyle ilişkili kusur vurguları ve küçük **“Neden Problemli?”** bağlamsal kartı.
 
 **Kesin durma:** ASAMA_02 tamamlandı. Kullanıcıdan yeni `devam` almadan ASAMA_03'ü başlatma; `main` push, PR merge veya Vercel deployment yapma.
+
+## ASAMA_03 — Altı senaryo odağı ve “Neden Problemli?” kartı (2026-10-26)
+
+**Durum: KODLAMA TAMAMLANDI / SON TARAYICI KABULÜ BEKLENİYOR.** Son ürün kodu SHA: `38df78be78f259a0d712f68e077096b6ce59436c`.
+Taslak PR: https://github.com/smitelagwar/muhendislik-site/pull/50. `main` merge ve Vercel deploy YOK.
+
+### Gerçekleşen değişiklikler
+
+1. Resmî AFAD TBDY 2018 Tablo 3.6 ve 3.6.2.4 sayfaları incelendi: https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf (PDF dizininde s.40 ve 43; basılı s.20 ve 23). A1, A2, A3, B1, B2, B3 terminolojisi ve özellikle B1 dayanım / B2 rijitlik ayrımı doğrulandı; hiçbir senaryo gerçek bina hesabı/uygunluk sonucu olarak sunulmuyor.
+2. `scenarios.ts`: 6 kısa ayrı `why` açıklaması, işaretlenecek gerçek geometriyle aynı `focusLabel`, güncel `observe` anlatıları.
+3. `focus.ts`: her senaryoya özel pure koordinat sözleşmesi ve `focusAnchorAt`; A1'de iki karşıt slab kenarı, A2 3. kat boşluğu, A3 iç köşe, B1/B2 ilk kat, B3 kesilen orta kolon.
+4. `building-viewer.tsx`: düşük mesh maliyetli paylaşılan sphere & malzeme ile 3B amber/turkuaz işaret; `jointAt` animasyonunu takip ediyor. Katman `showHighlights` kapatılınca gerçekten sahneden gizleniyor. Aynı gerçek mesh konum/sayısından `data-focus-count/visible/world` test telemetrisi üretiliyor; ek RAF veya React frame state eklenmedi. Shared kaynaklar unmount'ta dispose.
+5. `irregularity-studio-shell.tsx`: kısa, kapatılıp açılabilen `Neden Problemli?` bilgi kartı; mobilde kamera dock üstünde, büyük ekranda sağ üstte; `Detay` ile `Anla` rehberine geçiyor. Rehber/kart/ayarlar etkileşimi ve erişilebilirlik dikkate alındı.
+6. B3'ün eski uçta mesnetsiz gösterimi kaldırıldı. Yeni sahne alt orta kolonun kesilmesini, üst kolonun uçları kolonlara oturan iki mesnetli aktarma kirişine basmasını gösterir. Bu temsil 3.6.2.4(b)'ye bağlanır; düşey deprem hesabı yapılmamıştır. 2B B3 şeması aynı iki uçlu düzeni gösterir.
+7. A3 2B L planı 3B uzantının yönüyle eşleştirildi.
+8. `tests/duzensizlik-simulatoru/focus-stage3.test.ts` (+ 4 pure test), eski geometri testleri güncel B3 destek sözleşmesine göre uyumlu; Playwright'a yeni kart, odak sayısı, katman görünürlüğü ve mobil taşma testleri eklendi.
+
+### Gerçek doğrulama
+
+- `ESLint`, `tsc -p tsconfig.next.json --noEmit --incremental false`, `npm run build` ve **17/17 saf geometri testi:** PASS. Son CI commit `38df78b` üzerindeki simülatör workflow'u: https://github.com/smitelagwar/muhendislik-site/actions/runs/40385043572.
+- Bir önceki çalışmanın 40 Playwright testinden 36'sı PASS, 4'ü FAIL: rehber açıldıktan sonra mobil/tablet görünümde alt 2B düğmesi rehber tarafından kapatıldı; **test** rehber kapanmadan düğmeye basmaya çalışıyordu. Son source commit `38df78b` testine `Escape` ile rehberi kapatma adımı eklendi. Önceki run: https://github.com/smitelagwar/muhendislik-site/actions/runs/40384865180.
+- Bir önceki run'ın gerçek screenshot artefaktı `12679854551` indirildi, incelendi; altı senaryo görüntülerinde model ve kart masaüstü ve mobilde görünür. Screenshot statiktir; gerçek cihaz FPS ve çok uzun oturum sonucu değildir.
+- Son sürümün 40 Playwright test sonucu **henüz bilinmiyor**: GitHub `Install browser runtimes` adımı gecikti. Bu sonuç PASS sayılmadığından aşama formel olarak kapatılmadı. `quality` ve `repository-health` genel test başarısızlıkları simülatör ürün testinden ayrı.
+- `main` ve Vercel Production değişmedi. Fiziksel mobil cihaz testi, FPS/heap analizi ve piksel fark karşılaştırması ASAMA_04/05 kapsamındadır.
+
+### Bekleyen kabul hareketi
+
+1. SHA `38df78b` için `Build / geometry / desktop / mobile` job'u terminal olana kadar sonucunu kontrol et.
+2. FAIL olursa gerçek hatayı log/screenshot ile düzelt ve yeniden test et. Tam PASS ise state dosyasında `completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03]`, `next_stage: ASAMA_04`, `active_stage: null` yap.
+3. Sonuç doğrulanmadan `ASAMA_04` başlatma veya `main`/Vercel üretim yayını yapma.
