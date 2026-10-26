@@ -243,6 +243,8 @@
 .root :global(.hcad-coordinate-toggle),
 .root :global(.hcad-inspector-drawer-header),
 .root :global(.hcad-inspector-backdrop) { display: none; }
+/* More specific than the shared .hcad-workspace-bar > div flex rule. */
+.root :global(.hcad-workspace-bar > div.hcad-compact-switch) { display: none; }
 
 /* Tablet and phone: single pane in the CAD canvas with an internal inspector sheet.
    No stacked panel heights and no document scroll. */
@@ -274,7 +276,7 @@
   .root :global(.hcad-workspace-bar .hcad-section-eyebrow) { display: none; }
   .root :global(.hcad-workspace-bar button),
   .root :global(.hcad-workspace-bar select) { min-height: 31px; }
-  .root :global(.hcad-compact-switch) {
+  .root :global(.hcad-workspace-bar > div.hcad-compact-switch) {
     display: flex; align-items: center; gap: 3px; padding: 2px;
     position: sticky; left: 0; z-index: 2;
     border: 1px solid var(--hc-border); border-radius: 6px;

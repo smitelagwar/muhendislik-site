@@ -15,6 +15,10 @@ test("hsynCAD fills the desktop viewport; only inspector/axis panels can scroll"
   await page.goto("/kategori/araclar/hsyncad");
   await expect(page.getByTestId("hsyncad-workbench")).toHaveAttribute("data-ready", "true");
   await expect(page.getByTestId("hsyncad-3d-canvas")).toBeVisible();
+  // Desktop always displays BOTH scenes; compact-only view buttons must be hidden.
+  await expect(page.getByTestId("hsyncad-view-2d")).toBeHidden();
+  await expect(page.getByTestId("hsyncad-view-3d")).toBeHidden();
+  await expect(page.getByTestId("hsyncad-inspector-toggle")).toBeHidden();
 
   const geometry = () => page.evaluate(() => {
     const box = (selector: string) => {
