@@ -6,6 +6,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { makeBlueprint, jointAt, segmentPose, slabPose, COLUMN_SECTION, BEAM_SECTION, SLAB_THICKNESS, WALL_BAY_DEPTH, BEAM_FACE_TRIM, SLAB_LIFT, type V3 } from "@/lib/duzensizlik-simulatoru/motion";
 import type { ScenarioId } from "@/lib/duzensizlik-simulatoru/scenarios";
 import { FOCUS_POINTS, focusAnchorAt, type FocusPoint } from "@/lib/duzensizlik-simulatoru/focus";
+import { cameraFitDistance, smootherStep } from "@/lib/duzensizlik-simulatoru/camera";
 
 export type CameraView = "perspective" | "front" | "side" | "left" | "top";
 // The repo provides a minimal hand-written Three.js type shim for its CAD modules.
@@ -72,12 +73,13 @@ export default function BuildingViewer(props: Props) {
     renderer.domElement.setAttribute("aria-label", "3B betonarme bina inceleme alanı");
     host.append(renderer.domElement);
 
+    const motionPreference=window.matchMedia("(prefers-reduced-motion: reduce)");
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = .09;
-    controls.rotateSpeed = .44;
-    controls.zoomSpeed = .58;
-    controls.panSpeed = .38;
+    controls.dampingFactor = .075;
+    controls.rotateSpeed = .38;
+    controls.zoomSpeed = .52;
+    controls.panSpeed = .32;
     controls.minPolarAngle = .07;
     controls.maxPolarAngle = Math.PI * .93;
     controls.screenSpacePanning = true;
@@ -100,6 +102,8 @@ export default function BuildingViewer(props: Props) {
     };
     const focusSphere = new THREE.SphereGeometry(1,12,10);
     const axis = new THREE.Vector3(0,1,0);
+    // Avoid allocating a new Three.Vector3 for every beam/column, every frame.
+    const segmentDirection = new THREE.Vector3();
     const frame = new THREE.Group();
     scene.add(frame);
     const pad = new THREE.Mesh(unit, mat.foundation);
@@ -147,7 +151,7 @@ export default function BuildingViewer(props: Props) {
       const pose = segmentPose(a,b,part.trimA,part.trimB);
       if (!pose) { part.mesh.visible = false; return; }
       part.mesh.position.set(...pose.mid);
-      part.mesh.quaternion.setFromUnitVectors(axis,new THREE.Vector3(...pose.direction));
+      part.mesh.quaternion.setFromUnitVectors(axis,segmentDirection.set(...pose.direction));
       const cross = part.kind==="column" ? (scenario==="B1" && part.a[1]===0 ? .19 : COLUMN_SECTION)
         : part.kind==="highlight" ? (scenario==="B1" ? .30 : .12)
         : part.kind==="transfer" ? .38 : BEAM_SECTION;
@@ -260,22 +264,18 @@ export default function BuildingViewer(props: Props) {
       updateModel(0,0);
       dirty=true;
     };
-    const fitDistance=() => {
-      const w=modelBounds.max[0]-modelBounds.min[0],h=modelBounds.max[1]-modelBounds.min[1],d=modelBounds.max[2]-modelBounds.min[2];
-      const aspect=Math.max(.2,camera.aspect);
-      const vertical=Math.tan((camera.fov*Math.PI/180)/2);
-      const radius=Math.hypot(w,h,d)*.5;
-      return Math.min(90, Math.max(13, (radius / Math.min(vertical,vertical*aspect)) * 1.03));
-    };
+    const fitDistance=()=>cameraFitDistance(modelBounds,camera.aspect,camera.fov);
     const direction=(v:CameraView):V3 => v==="front" ? [0,.09,1] : v==="side" ? [1,.09,0] : v==="left" ? [-1,.09,0] : v==="top" ? [.015,1,.075] : [.8,.65,1];
     const cameraTarget=():V3 => [(modelBounds.min[0]+modelBounds.max[0])/2, (modelBounds.min[1]+modelBounds.max[1])/2+.1, (modelBounds.min[2]+modelBounds.max[2])/2];
     const viewCamera=(v:CameraView,immediate=false) => {
       selectedView=v;
+      // An explicit preset/reset restores auto-fit after manual orbit/pan.
+      manuallyMoved=false;
       const dest=cameraTarget(),dir=direction(v),length=Math.hypot(...dir),distance=fitDistance();
       const to:V3=[dest[0]+dir[0]/length*distance,dest[1]+dir[1]/length*distance,dest[2]+dir[2]/length*distance];
       controls.minDistance=Math.max(4,distance*.25);
       controls.maxDistance=Math.max(28,distance*2.2);
-      if(immediate || window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+      if(immediate || motionPreference.matches){
         camera.position.set(...to);
         controls.target.set(...dest);
         controls.update();
@@ -300,6 +300,11 @@ export default function BuildingViewer(props: Props) {
     const render=()=>{
       if(disposed||lost||!latest.current.active||document.hidden){ticking=false;return;}
       renderer.render(scene,camera);
+      // Values are sampled from the actual camera and GPU renderer, never
+      // inferred from an active button. Used by bounded browser regression QA.
+      const pos=[camera.position.x,camera.position.y,camera.position.z].map(v=>v.toFixed(3)).join(",");
+      if(host.dataset.cameraPosition!==pos) host.dataset.cameraPosition=pos;
+      host.dataset.rendererGeometries=String(renderer.info.memory.geometries);
     };
     const tick=(now:number)=>{
       ticking=true;
@@ -307,7 +312,7 @@ export default function BuildingViewer(props: Props) {
       if(disposed||lost||!latest.current.active||document.hidden){ticking=false;return;}
       const dt=lastStamp?Math.min((now-lastStamp)/1000,.05):0;
       lastStamp=now;
-      const allowed=!window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const allowed=!motionPreference.matches;
       const running=latest.current.playing && allowed;
       if(running) elapsed+=dt*Math.max(.25,Math.min(2,latest.current.speed))*3.1;
       if(running) blend+=(1-blend)*Math.min(1,dt*5.5);
@@ -316,7 +321,7 @@ export default function BuildingViewer(props: Props) {
       if(moving) updateModel(elapsed,blend);
       if(cameraTween){
         const f=Math.min(1,(now-cameraTween.start)/cameraTween.duration);
-        const smooth=f*f*(3-2*f),a=cameraTween;
+        const smooth=smootherStep(f),a=cameraTween;
         camera.position.set(a.from[0]+(a.to[0]-a.from[0])*smooth,a.from[1]+(a.to[1]-a.from[1])*smooth,a.from[2]+(a.to[2]-a.from[2])*smooth);
         controls.target.set(a.targetFrom[0]+(a.targetTo[0]-a.targetFrom[0])*smooth,a.targetFrom[1]+(a.targetTo[1]-a.targetFrom[1])*smooth,a.targetFrom[2]+(a.targetTo[2]-a.targetFrom[2])*smooth);
         if(f>=1) cameraTween=null;

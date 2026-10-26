@@ -93,6 +93,13 @@ export function IrregularityStudioShell() {
     setSettingsOpen(false);
     setResetToken(n=>n+1);
   };
+  const openDetails=()=>{
+    setLessonStep(2);
+    setPanelOpen(true);
+    setSettingsOpen(false);
+    // A modal mobile guide must receive focus when opened from the why-card.
+    if(window.innerWidth<1024)window.requestAnimationFrame(()=>closePanel.current?.focus());
+  };
   const changeMode=()=>{
     const next:Mode=mode==="3d"?"2d":"3d";
     setMode(next);
@@ -159,7 +166,7 @@ export function IrregularityStudioShell() {
                    <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/10 pt-1.5">
                      <span className="min-w-0 text-[10px] text-amber-100/85 sm:text-[11px]">{data.focusLabel}{!showHighlights&&mode==="3d"?" · İşaretler kapalı":""}</span>
                      <button type="button" data-testid="irregularity-why-details"
-                       onClick={()=>{setLessonStep(2);setPanelOpen(true);setSettingsOpen(false);}}
+                       onClick={openDetails}
                        className="shrink-0 rounded-md px-1 py-1 text-[10px] font-semibold text-sky-300 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300">Detay</button>
                    </div>
                  </aside>

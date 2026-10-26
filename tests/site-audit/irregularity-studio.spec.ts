@@ -147,6 +147,49 @@ test.describe("TBDY 3B stüdyo kalite kapısı",()=>{
     await page.getByTestId("irregularity-layer-showHighlights").check();
     await expect(root).toHaveAttribute("data-focus-visible","true");
   });
+
+  test("Kamera presetleri görsel kamerayı değiştirir ve hareketli odak yer değiştirir",async ({page},testInfo)=>{
+    // In 2B fallback there is intentionally no camera. Only WebGL-capable
+    // browsers can assert real camera and animation positions.
+    if(testInfo.project.name!=="chromium-desktop-1366")return;
+    const root=page.getByTestId("irregularity-three-canvas");
+    await expect(root.locator("canvas")).toHaveCount(1);
+    await expect(root).toHaveAttribute("data-camera-position",/^-?[\d.]+,-?[\d.]+,-?[\d.]+$/);
+    const start=await root.getAttribute("data-camera-position");
+    await page.getByTestId("irregularity-camera-top").click();
+    await expect.poll(()=>root.getAttribute("data-camera-position")).not.toBe(start);
+    await page.waitForTimeout(500);
+    const top=await root.getAttribute("data-camera-position");
+    await page.getByTestId("irregularity-camera-front").click();
+    await expect.poll(()=>root.getAttribute("data-camera-position")).not.toBe(top);
+    await page.waitForTimeout(500);
+    const atRest=await root.getAttribute("data-focus-world");
+    await page.getByTestId("irregularity-playback").click();
+    await expect.poll(()=>root.getAttribute("data-focus-world")).not.toBe(atRest);
+    await page.getByTestId("irregularity-playback").click();
+    await expect(root).toHaveAttribute("data-renderer-geometries",/^\d+$/);
+  });
+
+  test("Dar ekranlarda neden kartı çalışma alanı ve kamera düğmelerini taşırmıyor",async ({page},testInfo)=>{
+    if(!["chromium-mobile-320","chromium-mobile-390","webkit-mobile-390"].includes(testInfo.project.name))return;
+    const card=page.getByTestId("irregularity-why-card");
+    const panel=page.getByTestId("irregularity-scene-area");
+    const cameras=page.getByRole("group",{name:"Kamera görünümleri"});
+    await expect(card).toBeVisible();
+    const box=await card.boundingBox(),area=await panel.boundingBox(),ctl=await cameras.boundingBox();
+    expect(box&&area&&ctl).toBeTruthy();
+    if(box&&area&&ctl){
+      expect(box.x).toBeGreaterThanOrEqual(area.x);
+      expect(box.x+box.width).toBeLessThanOrEqual(area.x+area.width+2);
+      expect(box.y).toBeGreaterThanOrEqual(area.y);
+      expect(box.y+box.height).toBeLessThanOrEqual(ctl.y+2);
+    }
+    await page.getByTestId("irregularity-why-details").click();
+    await expect(page.getByRole("button",{name:"Paneli kapat"})).toBeFocused();
+    await page.keyboard.press("Escape");
+    await page.getByTestId("irregularity-camera-top").click();
+    await expect(page.getByTestId("irregularity-camera-top")).toHaveAttribute("aria-pressed","true");
+  });
   test("Azaltılmış hareket, oynatma durumunda yanıltıcı davranmıyor",async ({page})=>{
     await page.emulateMedia({reducedMotion:"reduce"});
     await expect(page.getByTestId("irregularity-playback")).toBeDisabled();
