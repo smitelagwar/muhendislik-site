@@ -185,7 +185,7 @@ test.describe("TBDY 3B stüdyo kalite kapısı",()=>{
       expect(box.y+box.height).toBeLessThanOrEqual(ctl.y+2);
     }
     await page.getByTestId("irregularity-why-details").click();
-    await expect(page.getByRole("button",{name:"Paneli kapat"})).toBeFocused();
+    await expect(page.locator('#irregularity-learning-panel button[aria-label="Paneli kapat"]')).toBeFocused();
     await page.keyboard.press("Escape");
     await page.getByTestId("irregularity-camera-top").click();
     await expect(page.getByTestId("irregularity-camera-top")).toHaveAttribute("aria-pressed","true");
