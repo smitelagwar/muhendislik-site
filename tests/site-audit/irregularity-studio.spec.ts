@@ -19,7 +19,10 @@ test.describe("TBDY 3B düzensizlik stüdyosu regresyonları", () => {
     for (const id of ["A1", "A2", "A3", "B1", "B2", "B3"]) {
       await page.getByRole("button", { name: new RegExp("^" + id + " ·") }).click();
       await expect(page.getByTestId("irregularity-2d-diagram")).toContainText("2B öğretici şema");
-      await expect(page.getByRole("heading", { name: new RegExp("^" + id + " ·") })).toBeVisible();
+      await expect(page.locator("#irregularity-learning-panel h2")).toContainText(new RegExp("^" + id + " ·"));
+    }
+    if ((page.viewportSize()?.width ?? 1920) < 1024) {
+      await page.getByRole("button", { name: "Öğretici paneli aç" }).click();
     }
     await page.getByRole("button", { name: "Öğretici paneli kapat" }).first().click();
     await expect(page.getByRole("button", { name: "Öğretici paneli aç" })).toBeVisible();
