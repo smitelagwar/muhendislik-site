@@ -1,0 +1,13 @@
+/* Only this route owns viewport sizing and scroll containment. */
+.viewport {
+  display: flex;
+  flex-direction: column;
+  inline-size: 100%;
+  min-inline-size: 0;
+  block-size: 100vh;
+  block-size: 100dvh;
+  min-block-size: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  contain: layout paint;
+}

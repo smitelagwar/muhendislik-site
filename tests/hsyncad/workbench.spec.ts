@@ -24,7 +24,8 @@ async function clickWorld(page: Page, x: number, y: number) {
   const p = await worldPoint(page, x, y);
   await page.mouse.click(p.x, p.y);
 }
-async function solids(page: Page, count: number) { await expect(scene(page)).toHaveAttribute("data-rendered-solid-count", String(count)); }
+// Section solid count excludes axes; the inner viewport's rendered meshes include axes.
+async function solids(page: Page, count: number) { await expect(page.getByTestId("hsyncad-3d")).toHaveAttribute("data-solid-count", String(count)); }
 async function signature(page: Page) { return JSON.parse((await scene(page).getAttribute("data-model-signature"))!) as Array<{ id: string; name: string; type: string; width?: number; position?: { x: number; y: number }; end?: { x: number; y: number } }>; }
 
 test("complete placement, snap, 2D/3D edits, history, floors, layers and invalid input", async ({ page }) => {
@@ -32,6 +33,8 @@ test("complete placement, snap, 2D/3D edits, history, floors, layers and invalid
   page.on("pageerror", (error) => errors.push(error.message));
   await ready(page);
   await page.getByTestId("tool-axis").click();
+  // Current default is single-click horizontal axes. Select explicit two-point mode.
+  await page.getByTestId("hsyncad-axis-free").click();
   await clickWorld(page, 0, 0); await clickWorld(page, 4, 0);
   await clickWorld(page, 2, -1); await clickWorld(page, 2, 4);
   await expect(page.getByTestId("hsyncad-plan")).toHaveAttribute("data-element-count", "2");
@@ -139,17 +142,35 @@ test("known 4x4 quantities, JSON roundtrip, persistence, 3D orbit and tool hub",
   await expect(page.getByRole("heading", { name: "Donatı Alanı Hesabı", exact: true }).first()).toBeVisible();
 });
 
-test("mobile stacked views, real two-finger pinch/pan, touch placement and light theme", async ({ browser }, testInfo) => {
+test("mobile single-pane 2D/3D switching, inspector focus, pinch/pan, touch and light theme", async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
   try {
     const page = await context.newPage();
-    await ready(page);
+    await page.goto(route);
+    await expect(page.getByTestId("hsyncad-workbench")).toHaveAttribute("data-ready", "true");
     await page.getByRole("button", { name: "Ölçülü örnekle başla" }).click(); await solids(page, 10);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     const plan = page.getByTestId("hsyncad-plan");
-    const planBounds = (await plan.boundingBox())!, threeBounds = (await scene(page).boundingBox())!;
-    expect(threeBounds.y).toBeGreaterThan(planBounds.y + planBounds.height);
-    await plan.scrollIntoViewIfNeeded();
+    await expect(page.getByTestId("hsyncad-view-2d")).toHaveAttribute("aria-pressed", "true");
+    await expect(scene(page)).toBeHidden();
+    await page.getByTestId("hsyncad-view-3d").click();
+    await expect(scene(page)).toBeVisible();
+    await expect(page.getByTestId("hsyncad-3d-canvas")).toBeVisible();
+    await expect(plan).toBeHidden();
+    await page.getByTestId("hsyncad-view-2d").click();
+    await expect(plan).toBeVisible();
+    await expect(scene(page)).toBeHidden();
+    await page.getByTestId("hsyncad-inspector-toggle").click();
+    const inspector = page.getByRole("dialog", { name: "Metraj ve özellikler" });
+    await expect(inspector).toBeVisible();
+    await expect(page.getByTestId("quantity-net")).toHaveText("8,089");
+    await expect(page.getByTestId("hsyncad-inspector-close")).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(inspector).toHaveCount(0);
+    await expect(page.getByTestId("hsyncad-inspector-toggle")).toBeFocused();
+    await page.getByTestId("hsyncad-coordinate-toggle").click();
+    await expect(page.getByTestId("coordinate-x")).toBeVisible();
+    await page.getByTestId("hsyncad-coordinate-toggle").click();
     const box = (await plan.boundingBox())!;
     const x = box.x + box.width / 2, y = box.y + box.height * 0.66;
     const previous = JSON.parse((await plan.getAttribute("data-camera"))!);

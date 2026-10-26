@@ -17,6 +17,9 @@ export default defineConfig({
     navigationTimeout: 45_000,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
+    // CI uses the Chrome already present on GitHub-hosted Ubuntu runners;
+    // local tests continue to use Playwright's bundled Chromium.
+    channel: process.env.HSYNCAD_BROWSER_CHANNEL === "chrome" ? "chrome" : undefined,
     launchOptions: { args: ["--enable-unsafe-swiftshader"] },
   },
 });
