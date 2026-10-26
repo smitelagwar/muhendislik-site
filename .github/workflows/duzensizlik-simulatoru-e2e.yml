@@ -1,0 +1,42 @@
+name: TBDY 3B Duzensizlik Studio E2E
+on:
+  pull_request:
+    paths:
+      - "src/components/duzensizlik-simulatoru/**"
+      - "src/components/site-shell.tsx"
+      - "src/app/kategori/araclar/duzensizlik-simulatoru/**"
+      - "src/components/ToolsWorkbenchShowcase.tsx"
+      - "tests/site-audit/irregularity-studio.spec.ts"
+      - ".github/workflows/duzensizlik-simulatoru-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium:
+    name: Fullscreen desktop + mobile
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Install Chromium dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Typecheck
+        run: npx tsc -p tsconfig.next.json --noEmit --incremental false
+      - name: Test irregularity studio
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/irregularity-studio.spec.ts --project=chromium-desktop-1366 --project=chromium-mobile-390
+      - name: Upload failures
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: irregularity-studio-failures
+          path: |
+            test-results/site-audit
+            playwright-report/site-audit
+          retention-days: 7
+          if-no-files-found: ignore
