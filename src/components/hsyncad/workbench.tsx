@@ -29,7 +29,10 @@ const TOOLS = [
 const number = (value: number | null | undefined, digits = 3) => {
   if (value == null) return "—";
   const factor = 10 ** digits;
-  const rounded = Math.round((value + Number.EPSILON * Math.max(1, Math.abs(value)) * 8) * factor) / factor;
+  // Quantize harmless floating noise five places beyond displayed precision
+  // before half-up decimal rounding (e.g. a 0.6315 m³ overlap -> 0.632).
+  const decimal = Number(value.toFixed(Math.min(digits + 5, 12)));
+  const rounded = Math.sign(decimal) * Math.round(Math.abs(decimal) * factor) / factor;
   return rounded.toLocaleString("tr-TR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 };
 type Dimensions = { width: number; depth: number; height: number; thickness: number };
