@@ -143,3 +143,11 @@ Yalnız bu iki plan/durum belgesi tek dokümantasyon checkpoint'inde kaydedilir;
 - `tests/hsyncad/workbench.spec.ts`: eski `3B, 2B'nin altında` beklentisi yeni 2B/3B anahtarına çevrildi. Mobil odak/drawer ve pinch/touch temelli senaryolar korundu. Ayrı kompakt viewport matrisi test dosyası eklendi.
 - Kod ve seçici seviyesinde statik kontroller yapıldı. **Tam TypeScript build, gerçek Playwright, mobil kamera/viewport ve fiziksel klavye kabulü bu oturumda yapılmadı.** Bunlar AŞAMA_05 kalite kapısında zorunlu. Bu aşamanın başarı iddiası branch'e kod yerleştirilmesidir, gerçek cihaz kabulü değildir.
 - `main` değiştirilmedi; Vercel deployment başlatılmadı. AŞAMA_05 yeni `devam` gerektirir.
+
+## ASAMA_05 — CI kalite kapısı açıldı
+
+- Vercel Preview `dpl_9oGY3QdT3vp7zLXxesyyBk6Y85qM`, SHA `761dff5602fdb628a7002c7ed50126e7bd6d6180`, `READY`; üretim TypeScript ve `npm run build` başarıyla tamamlandı; 180 saniyelik minimum aralık beklendi.
+- TinyFish canlı tarayıcı incelemesi ilk Preview'de 17 PASS / 1 NOT TESTED raporladı; geri dönünce site headerının yeniden görünmesi doğrudan tıklamayla doğrulanmadı; Playwright kanıtı bunun yerine geçmez.
+- CI atlama notu: önceki ara commitlerin `[skip ci]` etiketleri PR #47'de otomatik workflow tetiklemedi. Bu aşamada GitHub PR QA'yı başlatmak için, değişmeyen Production ve deployment-disabled `internal-*` koruması altında, gerçek erişilebilirlik düzeltmesi (mobil JSON düğmelerinin açık aria-label'ları) ile beraber tek kontrollü **QA tetikleyen commit** oluşturuldu. Bu QA checkpoint'te `[skip ci]` bulunmaması Vercel'e yeni otomatik preview başlatmaz; Vercel dal kuralı bunu kapatmıştır.
+- `.github/workflows/hsyncad-viewport-validation.yml` hsynCAD pull request'lerinde hedefli ESLint, TypeScript ve 12 civarı Playwright Chromium kontrolünü çalıştıracak. Asıl repo `vercel-preflight` ayrıca Next production build kontrolünü sürdürür.
+- CI sonuçları bekleniyor. `main` ve Production değişmedi. CI yeşil olmadan `execution_status: TAMAMLANDI` yazılmaz.
