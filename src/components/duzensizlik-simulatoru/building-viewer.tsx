@@ -4,8 +4,10 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 export type CameraView = "perspective" | "front" | "side" | "top";
 export type IrregularityScenario = "A1" | "A2" | "A3" | "B1" | "B2" | "B3";
-export default function BuildingViewer({ view, resetToken, scenario, onFailure }: { view: CameraView; resetToken: number; scenario: IrregularityScenario; onFailure: () => void }) {
+export default function BuildingViewer({ view, resetToken, scenario, playing, speed, showSlabs, onFailure }: { view: CameraView; resetToken: number; scenario: IrregularityScenario; playing: boolean; speed: number; showSlabs: boolean; onFailure: () => void }) {
   const host = useRef<HTMLDivElement>(null);
+  const live = useRef({ playing, speed, showSlabs });
+  live.current = { playing, speed, showSlabs };
   const cameraController = useRef<(v: CameraView) => void>(() => {});
   const onFailureRef = useRef(onFailure);
   onFailureRef.current = onFailure;
@@ -25,11 +27,16 @@ export default function BuildingViewer({ view, resetToken, scenario, onFailure }
     ];
     const group = new THREE.Group();
     scene.add(group);
+    const floors = Array.from({ length: 5 }, () => new THREE.Group());
+    floors.forEach(floor => group.add(floor));
+    let activeFloor = -1;
+    const slabs: THREE.Mesh[] = [];
     const add = (x: number, y: number, z: number, w: number, h: number, d: number, material: number) => {
       const part = new THREE.Mesh(geometry, materials[material]);
       part.position.set(x, y, z);
       part.scale.set(w, h, d);
-      group.add(part);
+      (activeFloor < 0 ? group : floors[activeFloor]).add(part);
+      if (material === 2) slabs.push(part);
     };
     // Distinct *illustrative* static geometry for each TBDY irregularity.
     // No color or deformation here is a calculated structural response.
@@ -37,6 +44,7 @@ export default function BuildingViewer({ view, resetToken, scenario, onFailure }
     add(offset / 2, -.25, 0, 8 + offset, .5, 8, 1);
     for (let floor = 0; floor < 5; floor++) {
       const y = floor * 1.6;
+      activeFloor = floor;
       for (const x of [-3.3, 0, 3.3]) for (const z of [-3.3, 0, 3.3]) {
         // B3: one lower-level column terminates; show a highlighted transfer beam.
         if (scenario === "B3" && floor === 0 && x === 3.3 && z === 3.3) continue;
@@ -70,6 +78,7 @@ export default function BuildingViewer({ view, resetToken, scenario, onFailure }
         for (const x of [-3.3, 3.3]) add(x, y + .75, -3.1, .35, 1.45, .13, 3);
       }
     }
+    activeFloor = -1;
     if (scenario === "A1") {
       // Eccentric wall denotes stiffness asymmetry; torsional motion comes later.
       add(-2.7, 4, 0, .22, 8, 2.5, 3);
@@ -90,6 +99,8 @@ export default function BuildingViewer({ view, resetToken, scenario, onFailure }
     let observer: ResizeObserver | undefined;
     let frame = 0;
     let stopped = false;
+    let elapsed = 0;
+    let previous = 0;
     const target = new THREE.Vector3(0, 4, 0);
     const applyView = (v: CameraView) => {
       const positions: Record<CameraView, [number, number, number]> = { perspective: [15, 14, 18], front: [0, 5, 23], side: [23, 5, 0], top: [.01, 24, 0] };
@@ -126,8 +137,20 @@ export default function BuildingViewer({ view, resetToken, scenario, onFailure }
       observer.observe(el);
       cameraController.current = applyView;
       applyView("perspective");
-      const tick = () => {
+      const tick = (now: number) => {
         if (stopped) return;
+        const dt = previous ? Math.min((now - previous) / 1000, .05) : 0;
+        previous = now;
+        if (live.current.playing && !document.hidden) elapsed += dt * live.current.speed;
+        const wave = live.current.playing ? Math.sin(elapsed * 3.1) : 0;
+        floors.forEach((floor, i) => {
+          const h = (i + 1) / 5;
+          const amplitude = scenario === "B2" ? (i === 0 ? .13 : .36) : .16 * h;
+          floor.position.x = wave * amplitude;
+          floor.position.z = live.current.playing ? Math.cos(elapsed * 2.4) * .06 * h : 0;
+          floor.rotation.y = scenario === "A1" ? wave * h * .045 : 0;
+        });
+        slabs.forEach(slab => { slab.visible = live.current.showSlabs; });
         controls?.update();
         renderer?.render(scene, camera);
         frame = requestAnimationFrame(tick);
