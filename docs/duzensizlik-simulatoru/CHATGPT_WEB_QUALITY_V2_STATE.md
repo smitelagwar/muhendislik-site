@@ -5,12 +5,12 @@ plan_id: TBDY3D_CHATGPT_WEB_QUALITY_V2_20261026
 plan_revision: 1
 planning_status: PLAN_HAZIR
 execution_status: DEVAM_EDIYOR
-active_stage: ASAMA_04
-next_stage: ASAMA_04
-completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03]
+active_stage: null
+next_stage: ASAMA_05
+completed_stages: [ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04]
 base_sha: 93d734042a2e9f47737898312d839c179cd9a746
 working_branch: internal-tbdy3d-quality-v2
-updated_at: 2026-10-26T20:04:34.578Z
+updated_at: 2026-10-26T20:14:37.034Z
 evidence:
   - ASAMA_01: main SHA and Vercel production READY checked
   - ASAMA_01: GitHub sources / checks and desktop browser interaction reviewed
@@ -19,6 +19,7 @@ evidence:
   - ASAMA_02: CI Playwright 30/30 desktop/mobile/WebKit PASS; reviewed 15 screenshot artifacts
   - ASAMA_03: source commit 38df78be78f259a0d712f68e077096b6ce59436c; 17/17 geometry and production build PASS
   - ASAMA_03: visual evidence from prior browser run 36/40 PASS, four failures from guide overlay in new E2E test; corrected in final source
+  - ASAMA_04: commit 5a1a1b2b0efe55f5aa4dbedd30c86725957ac53f, 19/19 geometry and 50/50 browser tests PASS
 blockers: []
 ```
 
@@ -180,3 +181,21 @@ Taslak PR: https://github.com/smitelagwar/muhendislik-site/pull/50. `main` merge
 - Mobil “Detay” rehber modalinde doğru klavye odağı sağlandı; Escape ve focus trap korunuyor.
 - Test hattı: https://github.com/smitelagwar/muhendislik-site/actions/runs/40392212665. Simülatör lint, typecheck, saf test, build, Chromium/WebKit E2E kesin sonuçları henüz bekleniyor; PASS kaydı sonuca bağlı.
 - Vercel Production ve GitHub `main` değişmedi; Aşama 4 boyunca deploy YOK.
+
+### ASAMA_04 kabul kaydı — 26.10.2026
+
+**Durum: TAMAMLANDI.** Son doğrulanmış ürün kaynak SHA'sı `5a1a1b2b0efe55f5aa4dbedd30c86725957ac53f`.
+- GitHub Actions: https://github.com/smitelagwar/muhendislik-site/actions/runs/40393155141
+- Simülatör ESLint: PASS.
+- Next.js runtime TypeScript: PASS.
+- Saf geometri + kamera hesabı / easing testleri: **19/19 PASS**.
+- Üretim build: PASS.
+- Chromium masaüstü, 390 mobil, 320 mobil, 768 tablet, WebKit mobil E2E: **50/50 PASS**.
+- Gerçek kamera konumunda preset kaynaklı hareketin olması ve A1 odak hareketinin oynatma sırasında değişmesi tarayıcıda doğrulandı; yalnız `aria-pressed` sayılmadı.
+- Mobil kart ve dock konum sınırları, rehber focus/escape, WebGL fallback ve reduced motion senaryoları tarayıcıda PASS.
+- Görsel kalite: ilk A4 47/50 çalışmasının screenshot artefaktı `12686066159` indirildi ve masaüstü/mobil görüntüler elle gözden geçirildi. Son başarısız üç seçici testi `#irregularity-learning-panel button[aria-label="Paneli kapat"]` ile daraltıldı; güncel commit'te 50/50 başarı ile doğrulandı.
+- Gerçek telefon/düşük donanım FPS/heap/etkileşim hissi laboratuvarı veya sayısal performans önce-sonra ölçümü **yapılmadı**. Küçük GPU tahsisi azaltması kodla doğrulandı fakat ölçülmüş yüzde hızlanma iddia edilmiyor.
+- Kapsam dışı genel `quality` / `repository-health` kontrollerinde başarısızlık bulunuyor; simülatör özel kontrolün başarısını etkilemiyor, release gate için A5 incelemesinde ayrıca değerlendirilir.
+- `main` ve Production değişmeden kaldı. Bu aşamada Preview/Production deployment başlatılmadı.
+
+**Durma:** ASAMA_04 tamamlandı. Son aşama `ASAMA_05` yalnız kullanıcı sonraki “devam” komutunu verirse uygulanacak. Son aşamada bağımsız release QA, genel kontrol borçları, kontrollü main birleştirme, tek Production deploy ve canlı doğrulama yapılacak. Şimdilik yayın yok.
