@@ -1,216 +1,277 @@
 "use client";
+
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { makeBlueprint, jointAt, segmentPose, type V3 } from "@/lib/duzensizlik-simulatoru/motion";
+import type { ScenarioId } from "@/lib/duzensizlik-simulatoru/scenarios";
+
 export type CameraView = "perspective" | "front" | "side" | "top";
-export type IrregularityScenario = "A1" | "A2" | "A3" | "B1" | "B2" | "B3";
-export default function BuildingViewer({ view, resetToken, scenario, playing, speed, showSlabs, onFailure }: { view: CameraView; resetToken: number; scenario: IrregularityScenario; playing: boolean; speed: number; showSlabs: boolean; onFailure: () => void }) {
-  const host = useRef<HTMLDivElement>(null);
-  const live = useRef({ playing, speed, showSlabs });
-  useEffect(() => { live.current = { playing, speed, showSlabs }; }, [playing, speed, showSlabs]);
-  const cameraController = useRef<(v: CameraView) => void>(() => {});
-  const motionReset = useRef<() => void>(() => {});
-  const viewRef = useRef(view);
-  useEffect(() => { viewRef.current = view; }, [view]);
-  const onFailureRef = useRef(onFailure);
-  useEffect(() => { onFailureRef.current = onFailure; }, [onFailure]);
+interface Props {
+  scenario: ScenarioId;
+  view: CameraView;
+  resetToken: number;
+  playing: boolean;
+  speed: number;
+  showSlabs: boolean;
+  showMembers: boolean;
+  showHighlights: boolean;
+  active: boolean;
+  onFailure: () => void;
+}
+interface Runtime {
+  refresh: () => void;
+  changeScenario: (scenario: ScenarioId) => void;
+  view: (view: CameraView, immediate?: boolean) => void;
+  reset: () => void;
+}
+
+export default function BuildingViewer(props: Props) {
+  const root = useRef<HTMLDivElement>(null);
+  const runtime = useRef<Runtime | null>(null);
+  const latest = useRef(props);
+  const initial = useRef(props);
+  useEffect(() => { latest.current = props; runtime.current?.refresh(); }, [props]);
   useEffect(() => {
-    const el = host.current;
-    if (!el) return;
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#0b1726");
-    const camera = new THREE.PerspectiveCamera(42, 1, .1, 140);
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const materials = [
-      new THREE.MeshStandardMaterial({ color: "#81afc6", roughness: .73 }),
-      new THREE.MeshStandardMaterial({ color: "#537b9c", roughness: .76 }),
-      new THREE.MeshStandardMaterial({ color: "#bbd7e8", transparent: true, opacity: .22, depthWrite: false }),
-      new THREE.MeshStandardMaterial({ color: "#f4a76a", roughness: .7 }),
-      new THREE.MeshStandardMaterial({ color: "#f16f68", roughness: .68 }),
-    ];
-    const group = new THREE.Group();
-    scene.add(group);
-    const floors = Array.from({ length: 5 }, () => new THREE.Group());
-    floors.forEach(floor => group.add(floor));
-    let activeFloor = -1;
-    const slabs: THREE.Mesh[] = [];
-    const columnMeshes: { mesh: THREE.Mesh; storey: number; initialX: number }[] = [];
-    const add = (x: number, y: number, z: number, w: number, h: number, d: number, material: number) => {
-      const part = new THREE.Mesh(geometry, materials[material]);
-      part.position.set(x, y, z);
-      part.scale.set(w, h, d);
-      (activeFloor < 0 ? group : floors[activeFloor]).add(part);
-      if (material === 2) slabs.push(part);
-      if (activeFloor >= 0 && w === .25 && h === 1.6 && d === .25) columnMeshes.push({ mesh: part, storey: activeFloor, initialX: x });
-    };
-    // Distinct *illustrative* static geometry for each TBDY irregularity.
-    // No color or deformation here is a calculated structural response.
-    const offset = scenario === "A3" ? 1.8 : 0;
-    add(offset / 2, -.25, 0, 8 + offset, .5, 8, 1);
-    for (let floor = 0; floor < 5; floor++) {
-      const y = floor * 1.6;
-      activeFloor = floor;
-      for (const x of [-3.3, 0, 3.3]) for (const z of [-3.3, 0, 3.3]) {
-        // B3: one lower-level column terminates; show a highlighted transfer beam.
-        if (scenario === "B3" && floor === 0 && x === 3.3 && z === 3.3) continue;
-        // B1: red identifies an illustrative reduced-strength storey, NOT calculated capacity.
-        const material = scenario === "B1" && floor === 0 ? 4 : 0;
-        add(x, y + .8, z, .25, 1.6, .25, material);
-      }
-      for (const x of [-3.3, 0, 3.3]) add(x, y + 1.55, 0, .22, .26, 6.8, scenario === "B3" && floor === 0 && x === 3.3 ? 3 : 1);
-      for (const z of [-3.3, 0, 3.3]) add(0, y + 1.55, z, 6.8, .26, .22, scenario === "B3" && floor === 0 && z === 3.3 ? 3 : 1);
-      if (scenario === "A2") {
-        // Four slab strips surround a visible opening near the center.
-        add(-2.25, y + 1.61, 0, 2.3, .12, 6.8, 2);
-        add(2.25, y + 1.61, 0, 2.3, .12, 6.8, 2);
-        add(0, y + 1.61, -2.25, 2.2, .12, 2.3, 2);
-        add(0, y + 1.61, 2.25, 2.2, .12, 2.3, 2);
-        if (floor === 2) add(0, y + 1.61, -1.1, 2.2, .14, .2, 4);
-      } else {
-        add(0, y + 1.61, 0, 6.8, .12, 6.8, 2);
-      }
-      if (scenario === "A3") {
-        // A coherent projecting bay gives a clear re-entrant plan corner.
-        add(4.25, y + .8, -3.3, .25, 1.6, .25, 0);
-        add(4.25, y + .8, 0, .25, 1.6, .25, 0);
-        add(4.25, y + 1.61, -1.65, 1.9, .12, 3.4, 2);
-        add(3.8, y + 1.55, -3.3, 1.5, .26, .22, 1);
-        add(3.8, y + 1.55, 0, 1.5, .26, .22, 1);
-        if (floor === 2) add(3.3, y + 1.61, 0, .28, .14, .8, 4);
-      }
-      if (scenario === "B2" && floor === 0) {
-        // Emphasize the open ground-storey mechanism, not computed drift.
-        for (const x of [-3.3, 3.3]) add(x, y + .75, -3.1, .35, 1.45, .13, 3);
-      }
-    }
-    activeFloor = -1;
-    if (scenario === "A1") {
-      // Eccentric wall denotes stiffness asymmetry; torsional motion comes later.
-      add(-2.7, 4, 0, .22, 8, 2.5, 3);
-    } else if (scenario === "B3") {
-      add(3.3, 2.5, 3.3, .25, 1.6, .25, 4);
-    } else if (scenario !== "B2" && scenario !== "B1") {
-      add(0, 4, 0, .23, 8, 1.5, 3);
-    }
-    scene.add(new THREE.AmbientLight("#d7ecff", 1.55));
-    const light = new THREE.DirectionalLight("#ffffff", 3);
-    light.position.set(8, 16, 10);
-    scene.add(light);
-    const grid = new THREE.GridHelper(24, 24, "#35536e", "#22374b");
-    grid.position.y = -.55;
-    scene.add(grid);
-    let renderer: THREE.WebGLRenderer | undefined;
-    let controls: OrbitControls | undefined;
-    let observer: ResizeObserver | undefined;
-    let frame = 0;
-    let stopped = false;
+    const host = root.current;
+    if (!host) return;
+    let disposed = false;
+    let lost = false;
+    let raf = 0;
+    let activeFrames = 0;
+    let ticking = false;
+    let lastStamp = 0;
     let elapsed = 0;
-    const resetMotion = () => { elapsed = 0; };
-    let previous = 0;
+    let blend = 0;
     let dirty = true;
-    let contextLost = false;
-    let motionBlend = 0;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const target = new THREE.Vector3(0, 4, 0);
-    const applyView = (v: CameraView) => {
-      dirty = true;
-      const positions: Record<CameraView, [number, number, number]> = { perspective: [15, 14, 18], front: [0, 5, 23], side: [23, 5, 0], top: [.01, 24, 0] };
-      camera.position.set(...positions[v]);
-      controls?.target.copy(target);
-      camera.lookAt(target);
-      controls?.update();
-    };
-    const lost = (event: Event) => { event.preventDefault(); contextLost = true; onFailureRef.current(); };
+    let scenario: ScenarioId = initial.current.scenario;
+    let selectedView: CameraView = initial.current.view;
+    let cameraTween: { from: V3; to: V3; targetFrom: V3; targetTo: V3; start: number; duration: number } | null = null;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color("#0c1725");
+    const camera = new THREE.PerspectiveCamera(40, 1, .1, 220);
+    let renderer: THREE.WebGLRenderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
-      renderer.domElement.style.cssText = "width:100%;height:100%;touch-action:none";
-      el.appendChild(renderer.domElement);
-      renderer.domElement.addEventListener("webglcontextlost", lost);
-      controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = .085;
-      controls.rotateSpeed = .5;
-      controls.zoomSpeed = .65;
-      controls.panSpeed = .65;
-      controls.minDistance = 9;
-      controls.maxDistance = 42;
-      controls.addEventListener('change', () => { dirty = true; });
-      const resize = () => {
-        if (!renderer || !el || stopped) return;
-        const w = Math.max(1, el.clientWidth), h = Math.max(1, el.clientHeight);
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-        renderer.setSize(w, h, false);
-        if (!contextLost) renderer.render(scene, camera);
-      };
-      observer = new ResizeObserver(resize);
-      observer.observe(el);
-      cameraController.current = applyView;
-      motionReset.current = resetMotion;
-      applyView(viewRef.current);
-      const tick = (now: number) => {
-        if (stopped) return;
-        const dt = previous ? Math.min((now - previous) / 1000, .05) : 0;
-        previous = now;
-        const active = live.current.playing && !document.hidden && !reducedMotion;
-        if (active) elapsed += dt * live.current.speed;
-        motionBlend += ((active ? 1 : 0) - motionBlend) * Math.min(1, dt * 5);
-        const wave = Math.sin(elapsed * 3.1) * motionBlend;
-        floors.forEach((floor, i) => {
-          const h = (i + 1) / 5;
-          // B2: most relative drift must occur in the *ground storey*.
-          // B1 uses normal illustrative drift because low strength != low stiffness.
-          const amplitude = scenario === "B2" ? (.32 + i * .025) : .16 * h;
-          floor.position.x = wave * amplitude;
-          floor.position.z = 0;
-          floor.rotation.y = scenario === "A1" ? wave * h * .045 : 0;
-        });
-        // Floor groups carry beams/slabs. Columns span the previous and next
-        // displaced diaphragms, preventing implausible breaks at each joint.
-        columnMeshes.forEach(({ mesh, storey, initialX }) => {
-          const top = floors[storey].position.x;
-          const bottom = storey === 0 ? 0 : floors[storey - 1].position.x;
-          const difference = top - bottom;
-          mesh.position.x = initialX + (bottom - top) / 2;
-          mesh.rotation.z = -Math.atan2(difference, 1.6);
-        });
-        let layerChanged = false;
-        slabs.forEach(slab => {
-          if (slab.visible !== live.current.showSlabs) {
-            slab.visible = live.current.showSlabs;
-            layerChanged = true;
-          }
-        });
-        const cameraChanged = controls?.update() ?? false;
-        if (!contextLost && (active || motionBlend > .002 || dirty || layerChanged || cameraChanged)) renderer?.render(scene, camera);
-        dirty = false;
-        frame = requestAnimationFrame(tick);
-      };
-      frame = requestAnimationFrame(tick);
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "default" });
     } catch {
-      onFailureRef.current();
+      latest.current.onFailure();
+      return;
     }
-    return () => {
-      stopped = true;
-      cameraController.current = () => {};
-      motionReset.current = () => {};
-      cancelAnimationFrame(frame);
-      observer?.disconnect();
-      controls?.dispose();
-      if (renderer) {
-        renderer.domElement.removeEventListener("webglcontextlost", lost);
-        renderer.domElement.remove();
-        renderer.dispose();
-      }
-      geometry.dispose();
-      materials.forEach(m => m.dispose());
-      grid.geometry.dispose();
-      if (Array.isArray(grid.material)) grid.material.forEach(m => m.dispose());
-      else grid.material.dispose();
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.innerWidth < 768 ? 1.35 : 1.75));
+    renderer.domElement.style.cssText = "display:block;width:100%;height:100%;touch-action:none";
+    renderer.domElement.setAttribute("aria-label", "3B betonarme bina inceleme alanı");
+    host.append(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = .09;
+    controls.rotateSpeed = .44;
+    controls.zoomSpeed = .58;
+    controls.panSpeed = .38;
+    controls.minPolarAngle = .07;
+    controls.maxPolarAngle = Math.PI * .93;
+    controls.screenSpacePanning = true;
+    const unit = new THREE.BoxGeometry(1, 1, 1);
+    const mat = {
+      column: new THREE.MeshStandardMaterial({color:"#8dbbd0",metalness:.12,roughness:.69}),
+      beam: new THREE.MeshStandardMaterial({color:"#638da9",metalness:.09,roughness:.73}),
+      slab: new THREE.MeshStandardMaterial({color:"#a4c9d9",transparent:true,opacity:.22,depthWrite:false,roughness:.84}),
+      wall: new THREE.MeshStandardMaterial({color:"#e8a766",metalness:.07,roughness:.72,transparent:true,opacity:.82}),
+      highlight: new THREE.MeshStandardMaterial({color:"#fa746c",emissive:"#62211f",emissiveIntensity:.27,roughness:.7}),
+      transfer: new THREE.MeshStandardMaterial({color:"#f3b05f",emissive:"#623d17",emissiveIntensity:.15}),
+      foundation: new THREE.MeshStandardMaterial({color:"#284054",roughness:.79}),
     };
-  }, [scenario]);
-  useEffect(() => { cameraController.current(view); }, [view]);
-  useEffect(() => { if (resetToken > 0) { motionReset.current(); cameraController.current("perspective"); } }, [resetToken]);
-  return <div ref={host} data-testid="irregularity-three-canvas" className="h-full w-full touch-none" />;
+    const axis = new THREE.Vector3(0,1,0);
+    const frame = new THREE.Group();
+    scene.add(frame);
+    const pad = new THREE.Mesh(unit, mat.foundation);
+    pad.scale.set(7.9,.34,7.9);
+    pad.position.set(0,-.26,0);
+    frame.add(pad);
+    const grid = new THREE.GridHelper(28,28,"#334e66","#223448");
+    grid.position.y = -.46;
+    scene.add(grid);
+    scene.add(new THREE.AmbientLight("#dcefff",1.35));
+    const key = new THREE.DirectionalLight("#ffffff",2.65);
+    key.position.set(9,16,11);
+    scene.add(key);
+    const rim = new THREE.DirectionalLight("#55bce0",.8);
+    rim.position.set(-11,9,-8);
+    scene.add(rim);
+
+    type Part = { mesh: THREE.Mesh; a: V3; b: V3; kind: "column" | "beam" | "wall" | "highlight" | "transfer" };
+    type Surface = { mesh: THREE.Mesh; x:number; z:number; y:number };
+    let segments: Part[] = [];
+    let surfaces: Surface[] = [];
+    let modelBounds = makeBlueprint(scenario).bounds;
+    const updateSegment = (part: Part, phase: number, intensity: number) => {
+      const a = jointAt(part.a,scenario,phase,intensity);
+      const b = jointAt(part.b,scenario,phase,intensity);
+      const pose = segmentPose(a,b);
+      if (!pose) { part.mesh.visible = false; return; }
+      part.mesh.position.set(...pose.mid);
+      part.mesh.quaternion.setFromUnitVectors(axis,new THREE.Vector3(...pose.direction));
+      const cross = part.kind==="column" ? (scenario==="B1" && part.a[1]===0 ? .19 : .26) : part.kind==="highlight" ? .13 : part.kind==="wall" ? .20 : part.kind==="transfer" ? .38 : .24;
+      const depth = part.kind==="wall" ? 2.5 : part.kind==="transfer" ? .35 : cross;
+      part.mesh.scale.set(cross,pose.length,depth);
+      part.mesh.visible = part.kind==="highlight" ? latest.current.showHighlights : latest.current.showMembers;
+    };
+    const updateModel = (phase: number,intensity: number) => {
+      for(const part of segments) updateSegment(part,phase,intensity);
+      for(const surface of surfaces) {
+        const origin:V3=[surface.x,surface.y,surface.z];
+        const p=jointAt(origin,scenario,phase,intensity);
+        const q=jointAt([surface.x+1,surface.y,surface.z],scenario,phase,intensity);
+        surface.mesh.position.set(...p);
+        surface.mesh.rotation.set(0,Math.atan2(q[2]-p[2],q[0]-p[0]),0);
+        surface.mesh.visible=latest.current.showSlabs;
+      }
+    };
+    const rebuild = (next: ScenarioId) => {
+      scenario = next;
+      for(const p of segments) frame.remove(p.mesh);
+      for(const s of surfaces) frame.remove(s.mesh);
+      segments=[];
+      surfaces=[];
+      const blueprint=makeBlueprint(scenario);
+      modelBounds=blueprint.bounds;
+      pad.position.x=(modelBounds.min[0]+modelBounds.max[0])/2;
+      pad.scale.x=modelBounds.max[0]-modelBounds.min[0]+.8;
+      for (const segment of blueprint.segments) {
+        const kind=segment.kind;
+        const mesh=new THREE.Mesh(unit,mat[kind]);
+        mesh.userData.kind=kind;
+        frame.add(mesh);
+        segments.push({mesh,a:segment.a,b:segment.b,kind});
+      }
+      for (const slab of blueprint.slabs) {
+        const mesh=new THREE.Mesh(unit,mat.slab);
+        mesh.scale.set(slab.width,.11,slab.depth);
+        frame.add(mesh);
+        surfaces.push({mesh,x:slab.cx,z:slab.cz,y:slab.level*1.6});
+      }
+      elapsed=0;
+      blend=0;
+      updateModel(0,0);
+      dirty=true;
+    };
+    const fitDistance=() => {
+      const w=modelBounds.max[0]-modelBounds.min[0],h=modelBounds.max[1]-modelBounds.min[1],d=modelBounds.max[2]-modelBounds.min[2];
+      const aspect=Math.max(.2,camera.aspect);
+      const vertical=Math.tan((camera.fov*Math.PI/180)/2);
+      const radius=Math.hypot(w,h,d)*.5;
+      return Math.min(90, Math.max(13, (radius / Math.min(vertical,vertical*aspect)) * 1.03));
+    };
+    const direction=(v:CameraView):V3 => v==="front" ? [0,.09,1] : v==="side" ? [1,.09,0] : v==="top" ? [.015,1,.075] : [.8,.65,1];
+    const cameraTarget=():V3 => [(modelBounds.min[0]+modelBounds.max[0])/2, (modelBounds.min[1]+modelBounds.max[1])/2+.1, (modelBounds.min[2]+modelBounds.max[2])/2];
+    const viewCamera=(v:CameraView,immediate=false) => {
+      selectedView=v;
+      const dest=cameraTarget(),dir=direction(v),length=Math.hypot(...dir),distance=fitDistance();
+      const to:V3=[dest[0]+dir[0]/length*distance,dest[1]+dir[1]/length*distance,dest[2]+dir[2]/length*distance];
+      controls.minDistance=Math.max(4,distance*.25);
+      controls.maxDistance=Math.max(28,distance*2.2);
+      if(immediate || window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+        camera.position.set(...to);
+        controls.target.set(...dest);
+        controls.update();
+        cameraTween=null;
+      } else {
+        cameraTween={
+          from:[camera.position.x,camera.position.y,camera.position.z],
+          to,
+          targetFrom:[controls.target.x,controls.target.y,controls.target.z],
+          targetTo:dest,
+          start:performance.now(),duration:380,
+        };
+      }
+      dirty=true;
+      wake();
+    };
+    const wake=()=>{
+      if(disposed||lost||raf||ticking) return;
+      activeFrames=0;
+      raf=requestAnimationFrame(tick);
+    };
+    const render=()=>{
+      if(disposed||lost||!latest.current.active||document.hidden){ticking=false;return;}
+      renderer.render(scene,camera);
+    };
+    const tick=(now:number)=>{
+      ticking=true;
+      raf=0;
+      if(disposed||lost||!latest.current.active||document.hidden){ticking=false;return;}
+      const dt=lastStamp?Math.min((now-lastStamp)/1000,.05):0;
+      lastStamp=now;
+      const allowed=!window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const running=latest.current.playing && allowed;
+      if(running) elapsed+=dt*Math.max(.25,Math.min(2,latest.current.speed))*3.1;
+      blend+=(Number(running)-blend)*Math.min(1,dt*5.5);
+      const moving=running||blend>.002;
+      if(moving) updateModel(elapsed,blend);
+      if(cameraTween){
+        const f=Math.min(1,(now-cameraTween.start)/cameraTween.duration);
+        const smooth=f*f*(3-2*f),a=cameraTween;
+        camera.position.set(a.from[0]+(a.to[0]-a.from[0])*smooth,a.from[1]+(a.to[1]-a.from[1])*smooth,a.from[2]+(a.to[2]-a.from[2])*smooth);
+        controls.target.set(a.targetFrom[0]+(a.targetTo[0]-a.targetFrom[0])*smooth,a.targetFrom[1]+(a.targetTo[1]-a.targetFrom[1])*smooth,a.targetFrom[2]+(a.targetTo[2]-a.targetFrom[2])*smooth);
+        if(f>=1) cameraTween=null;
+        dirty=true;
+      }
+      const controlChanged=controls.update();
+      if(dirty||moving||controlChanged||cameraTween) render();
+      dirty=false;
+      activeFrames=(dirty||moving||controlChanged||cameraTween) ? 0 : activeFrames+1;
+      ticking=false;
+      if(activeFrames<4) raf=requestAnimationFrame(tick);
+    };
+    const cancelTween=()=>{ cameraTween=null; dirty=true; wake(); };
+    const markDirty=()=>{ dirty=true; wake(); };
+    controls.addEventListener("start",cancelTween);
+    controls.addEventListener("change",markDirty);
+    const resize=()=>{
+      if(disposed) return;
+      const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
+      camera.aspect=w/h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w,h,false);
+      // Keep the building contained after mobile rotation or inspector resize.
+      viewCamera(selectedView,true);
+    };
+    const observer=new ResizeObserver(resize);
+    observer.observe(host);
+    const onVisible=()=>{lastStamp=0; if(!document.hidden){dirty=true;wake();}};
+    document.addEventListener("visibilitychange",onVisible);
+    const onLoss=(e:Event)=>{e.preventDefault();lost=true;cancelAnimationFrame(raf);raf=0;latest.current.onFailure();};
+    renderer.domElement.addEventListener("webglcontextlost",onLoss);
+    rebuild(scenario);
+    runtime.current={
+      refresh:()=>{updateModel(elapsed,blend);dirty=true;wake();},
+      changeScenario:(next)=>{rebuild(next);viewCamera(selectedView,false);wake();},
+      view:viewCamera,
+      reset:()=>{elapsed=0;blend=0;updateModel(0,0);viewCamera("perspective",false);},
+    };
+    resize();
+    return ()=>{
+      disposed=true;
+      cancelAnimationFrame(raf);
+      runtime.current=null;
+      observer.disconnect();
+      controls.removeEventListener("start",cancelTween);
+      controls.removeEventListener("change",markDirty);
+      controls.dispose();
+      document.removeEventListener("visibilitychange",onVisible);
+      renderer.domElement.removeEventListener("webglcontextlost",onLoss);
+      renderer.domElement.remove();
+      renderer.dispose();
+      unit.dispose();
+      grid.geometry.dispose();
+      if(Array.isArray(grid.material)) grid.material.forEach(m=>m.dispose());
+      else grid.material.dispose();
+      Object.values(mat).forEach(m=>m.dispose());
+    };
+  }, []);
+  useEffect(()=>{runtime.current?.changeScenario(props.scenario);},[props.scenario]);
+  useEffect(()=>{runtime.current?.view(props.view);},[props.view]);
+  useEffect(()=>{if(props.resetToken>0)runtime.current?.reset();},[props.resetToken]);
+  return <div ref={root} data-testid="irregularity-three-canvas" data-scenario={props.scenario} className="h-full w-full touch-none" />;
 }
