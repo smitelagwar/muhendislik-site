@@ -1,6 +1,6 @@
 "use client";
 
-import { Accessibility, Check, ChevronDown, Minus, Plus, RotateCcw } from "lucide-react";
+import { Accessibility, ChevronDown, Minus, Plus, RotateCcw } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   TEXT_SCALE_MAX, TEXT_SCALE_MIN, TEXT_SCALE_STEP,
@@ -47,7 +47,7 @@ export function BelgeStudioReadabilityOptions({ readability }: Props) {
       </div>
       <button type="button" onClick={resetScale} data-testid="belge-ui-scale-reset"
         className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold text-amber-700 hover:bg-secondary dark:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
-        <RotateCcw className="size-3.5" /> Arayüzü %100'e döndür
+        <RotateCcw className="size-3.5" /> Arayüzü %100&apos;e döndür
       </button>
 
       <details className="group rounded-xl border border-border p-2.5" data-testid="belge-readability-more">
