@@ -42,9 +42,9 @@ export default function DepremYonetmelikHub({ articles }: DepremYonetmelikHubPro
   const router = useRouter();
   const searchParams = useSearchParams();
   const { dal, q, konu, bolum } = getSearchState(searchParams);
-  const [searchDraft, setSearchDraft] = useState(q);
+  const [searchInput, setSearchInput] = useState({ urlValue: q, value: q });
+  const searchDraft = searchInput.urlValue === q ? searchInput.value : q;
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => { setSearchDraft(q); }, [q]);
   useEffect(() => () => { if (searchTimer.current) clearTimeout(searchTimer.current); }, []);
 
   const counts = articles.reduce<Partial<Record<DepremSeriesId, number>>>((result, article) => {
@@ -87,7 +87,7 @@ export default function DepremYonetmelikHub({ articles }: DepremYonetmelikHubPro
   }
 
   function onSearchInput(nextValue: string) {
-    setSearchDraft(nextValue);
+    setSearchInput({ urlValue: q, value: nextValue });
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => updateSearch({ q: nextValue }), 260);
   }

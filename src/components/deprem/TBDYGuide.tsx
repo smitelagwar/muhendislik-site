@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowUpRight, BookOpen, FileText } from "lucide-react";
-import { TBDY_ARTICLE_INDEX, TBDY_CHAPTERS, TBDY_OFFICIAL_PDF, TBDY_TOPICS, getTBDYArticleMeta } from "@/lib/tbdy-guide";
+import { TBDY_ARTICLE_INDEX, TBDY_CHAPTERS, TBDY_OFFICIAL_PDF, TBDY_TOPICS } from "@/lib/tbdy-guide";
 import type { DepremArticleSummary } from "@/lib/deprem-series";
 
 interface TBDYGuideProps {
