@@ -770,7 +770,7 @@ export const TBDY_ARTICLE_INDEX: Record<string, TBDYArticleIndex> = {
     ],
     "clauses": [],
     "order": 135
-  }
+  },
   "tbdy-kapsam-tasarim-gozetimi": { topic: "ozel", chapters: [1], clauses: ["1.1","1.3","1.4"], order: 8 },
   "tbdy-deprem-kaydi-secimi-olcekleme": { topic: "tehlike", chapters: [2], clauses: ["2.5.1","2.5.2","2.5.3","5.7.2"], order: 16 },
   "tbdy-sgdt-performans-sonuc-kontrolu": { topic: "analiz", chapters: [5], clauses: ["5.7","5.8","5.9"], order: 40 },
