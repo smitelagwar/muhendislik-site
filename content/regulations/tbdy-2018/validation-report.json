@@ -1,0 +1,37 @@
+{
+  "overallStatus": "extracted-not-engineering-verified",
+  "sourcePdfSha256": "b3d0ab5480a57044709e9c517d10c6f6595a1273b2f73c108c94d0fade7bb154",
+  "sourcePageCount": 416,
+  "bodyPageCount": 395,
+  "chapterCount": 17,
+  "appendixCount": 25,
+  "bodyPageCoverageGaps": [],
+  "highRiskPageCount": 350,
+  "pdfPrivateGlyphOccurrences": 1339,
+  "riskCounts": {
+    "table-or-reference": 137,
+    "private-use-symbol-glyph": 283,
+    "equation-or-reference": 176,
+    "embedded-images": 136
+  },
+  "riskMethod": "Conservative offline PyMuPDF page audit on uploaded PDF; findings are NOT proof of incorrect content.",
+  "officialPdfByteEquality": "NOT_CHECKED",
+  "officialRevisionCurrency": "NOT_VERIFIED",
+  "qualityWarnings": [
+    "Math symbols and subscripts may be damaged",
+    "Table grid positions and figure layouts not validated",
+    "Markdown is an automatically extracted draft; no technical verification or public publication"
+  ],
+  "manualReviewExamples": [
+    {
+      "pdfPage": 71,
+      "reason": "equations 4.20–4.24",
+      "status": "needs-manual-comparison"
+    },
+    {
+      "pdfPage": 57,
+      "reason": "Tablo 4.1",
+      "status": "needs-manual-comparison"
+    }
+  ]
+}
