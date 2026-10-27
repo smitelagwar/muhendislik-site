@@ -117,10 +117,10 @@ export default function BuildingViewer(props: Props) {
     const focusSphere = new THREE.SphereGeometry(1,12,10);
     const teachingMaterials = {
       irregular: new THREE.LineBasicMaterial({
-        color:"#ffbe6d",transparent:true,opacity:.92,depthTest:false,depthWrite:false,
+        color:new THREE.Color("#ffbe6d"),transparent:true,opacity:.92,depthTest:false,depthWrite:false,
       }),
       reference: new THREE.LineBasicMaterial({
-        color:"#67e3d4",transparent:true,opacity:.9,depthTest:false,depthWrite:false,
+        color:new THREE.Color("#67e3d4"),transparent:true,opacity:.9,depthTest:false,depthWrite:false,
       }),
     };
     const axis = new THREE.Vector3(0,1,0);
@@ -320,7 +320,7 @@ export default function BuildingViewer(props: Props) {
         const attribute=new THREE.BufferAttribute(new Float32Array(18),3);
         geometry.setAttribute("position",attribute);
         const mesh=new THREE.LineSegments(geometry,teachingMaterials[cue.side]);
-        mesh.frustumCulled=false; // moving endpoints have dynamic extents
+        (mesh as THREE.LineSegments & {frustumCulled:boolean}).frustumCulled=false; // moving endpoints have dynamic extents
         mesh.renderOrder=16;
         mesh.userData.kind="teaching-cue";
         mesh.userData.cueId=cue.id;

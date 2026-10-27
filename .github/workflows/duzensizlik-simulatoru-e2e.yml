@@ -7,6 +7,7 @@ on:
       - "src/components/site-shell.tsx"
       - "src/app/kategori/araclar/duzensizlik-simulatoru/**"
       - "tests/site-audit/irregularity-studio.spec.ts"
+      - "tests/site-audit/irregularity-comparison-*.spec.ts"
       - "tests/duzensizlik-simulatoru/**"
       - ".github/workflows/duzensizlik-simulatoru-e2e.yml"
   workflow_dispatch:
@@ -29,7 +30,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
       - name: Lint changed simulator
-        run: npx eslint src/components/duzensizlik-simulatoru src/lib/duzensizlik-simulatoru tests/site-audit/irregularity-studio.spec.ts tests/duzensizlik-simulatoru
+        run: npx eslint src/components/duzensizlik-simulatoru src/lib/duzensizlik-simulatoru tests/site-audit/irregularity-studio.spec.ts tests/site-audit/irregularity-comparison-teaching.spec.ts tests/site-audit/irregularity-comparison-responsive.spec.ts tests/duzensizlik-simulatoru
       - name: Typecheck
         run: npx tsc -p tsconfig.next.json --noEmit --incremental false
       - name: Pure geometry tests
@@ -44,6 +45,8 @@ jobs:
         run: >
           npx playwright test --config=playwright.site.config.ts
           tests/site-audit/irregularity-studio.spec.ts
+          tests/site-audit/irregularity-comparison-teaching.spec.ts
+          tests/site-audit/irregularity-comparison-responsive.spec.ts
           --project=chromium-desktop-1366
           --project=chromium-mobile-390
           --project=chromium-mobile-320

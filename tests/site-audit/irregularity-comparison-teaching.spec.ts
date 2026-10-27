@@ -15,7 +15,7 @@ test("Comparison teaches six distinct irregularities with synchronized 3D guides
   const canvas=page.getByTestId("irregularity-three-canvas");
   const compare=page.getByTestId("irregularity-compare-toggle");
   await expect(compare).toBeVisible();
-  if(await compare.isDisabled())test.skip(true,"WebGL not available in this environment");
+  if(await compare.isDisabled() || !(await canvas.locator("canvas").count()))test.skip(true,"WebGL not available in this environment");
   await compare.click();
   await expect(compare).toHaveAttribute("aria-pressed","true");
   await expect(canvas).toHaveAttribute("data-compare-mode","dual");

@@ -81,8 +81,8 @@ export function IrregularityStudioShell() {
       setCompactCompare(host.clientWidth<760);
     });
     observer.observe(host);
-    setCompactCompare(host.clientWidth<760);
-    return ()=>observer.disconnect();
+    const frame=window.requestAnimationFrame(()=>setCompactCompare(host.clientWidth<760));
+    return ()=>{window.cancelAnimationFrame(frame);observer.disconnect();};
   },[]);
   useEffect(()=>{
     if(!panelOpen && !settingsOpen) return;

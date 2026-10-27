@@ -45,3 +45,9 @@
 - Referans modelin merkezi düzensiz model kadrajına hizalanır (özellikle A3). Dokunarak model/işaret üzerinde açıklama açılır; kamera sürüklemesiyle çakışmaz.
 - Küçük ekranda karşılaştırma açıldığında öğretici kart kapalı başlar; Neden farklı? ile açılır. Mobil kontroller ve 2B geri dönüşü korunur.
 - Responsive Playwright senaryoları eklendi. Aşama 4'te gerçek derleme, test ve tek production yayını yapılacak.
+
+## Karşılaştırmalı simülasyon — 2026-10-27 / Aşama 4, release gate
+- Yeni yapı karşılaştırması için kapsamlı Playwright mobil/masaüstü ve altı senaryo birim testleri CI'ye bağlandı.
+- Vercel Preview denemesinde gerçek TypeScript derlemesi üç tip-uyumu sorunu tespit etti (iki materyal rengi, LineSegments.frustumCulled). Kod yerel Three.js tip tanımlarına göre düzeltildi.
+- Release'e yalnızca PR kalite akışı (lint, TypeScript, geometri, build, masaüstü/mobil Chromium + WebKit) başarılı olduktan sonra çıkılır. Hazır olmayan bir kontrolü başarılı sayma.
+- Geliştirme dalındaki ara commit'ler [skip ci] ile korunur; son kalite-adayı commit'i PR CI kontrolünü tetikler. Production tek main merge ile otomatik yayımlanır.
