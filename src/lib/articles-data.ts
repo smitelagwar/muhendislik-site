@@ -13,6 +13,7 @@ import { applyDepremPhase7Override, DEPREM_PHASE7_SLUGS, getDepremPhase7ContentS
 import { applyDepremRolloutEnhancement, getDepremRolloutSignature } from "./deprem-rollout";
 import { TS500_ARTICLES, TS500_SLUGS } from "./ts500-content";
 import { normalizeDepremContentAuthor } from "./content-author";
+import { applyTBDYStage1Figures } from "./tbdy-stage1-figures";
 
 export interface ArticleData {
     slug: string;
@@ -124,7 +125,7 @@ function parseArticles(fileContent: string) {
                       ? applyDepremRolloutEnhancement(phase4Article)
                       : applyDepremRolloutEnhancement(phase3Article);
 
-            normalizedArticles[slug] = DEPREM_PHASE7_SLUGS.has(slug)
+            const finalized = DEPREM_PHASE7_SLUGS.has(slug)
                 ? { ...rolloutArticle, updatedAt: phase7Article.updatedAt }
                 : DEPREM_PHASE6_SLUGS.has(slug)
                   ? { ...rolloutArticle, updatedAt: phase6Article.updatedAt }
@@ -133,6 +134,8 @@ function parseArticles(fileContent: string) {
                     : DEPREM_PHASE4_SLUGS.has(slug)
                       ? { ...rolloutArticle, updatedAt: phase4Article.updatedAt }
                       : rolloutArticle;
+
+            normalizedArticles[slug] = applyTBDYStage1Figures(finalized);
         }
 
         return Object.fromEntries(
