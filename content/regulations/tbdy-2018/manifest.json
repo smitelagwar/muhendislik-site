@@ -382,5 +382,12 @@
     }
   ],
   "pageIndex": "page-index.json",
-  "validationReport": "validation-report.json"
+  "validationReport": "validation-report.json",
+  "searchIndex": "search-index.json",
+  "searchCapabilities": [
+    "clause-number",
+    "normalized-turkish-text",
+    "pdf-page-links"
+  ],
+  "previewPolicy": "preview-only-until-validated"
 }
