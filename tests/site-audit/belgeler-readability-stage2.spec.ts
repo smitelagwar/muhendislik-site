@@ -25,8 +25,9 @@ async function setScale(page: Page, uiScale: number, textScale = 100) {
     }));
     window.dispatchEvent(new Event("belge-readability:change"));
   }, {uiScale, textScale});
-  await expect(page.locator('[data-belge-readability-root]').first())
-    .toHaveAttribute("data-belge-ui-large", uiScale >= 150 || textScale >= 150 ? "true" : undefined);
+  const root = page.locator('[data-belge-readability-root]').first();
+  if (uiScale >= 150 || textScale >= 150) await expect(root).toHaveAttribute("data-belge-ui-large", "true");
+  else await expect(root).not.toHaveAttribute("data-belge-ui-large");
 }
 
 async function checkPrimaryControls(page: Page) {
