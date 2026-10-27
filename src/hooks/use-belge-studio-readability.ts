@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useMemo, useSyncExternalStore, type CSSProperties } from "react";
 import {
   BELGE_READABILITY_KEY, DEFAULT_BELGE_READABILITY,
   parseBelgeReadability, sanitizeBelgeReadability,
@@ -13,37 +13,61 @@ type ReadabilityRootStyle = CSSProperties & {
   "--belge-target-scale": number;
 };
 
+const CHANGE_EVENT = "belge-readability:change";
+// Storage-denied browsers still need a functioning in-memory preference.
+let memoryValue: string | null = null;
+
+function currentSnapshot(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(BELGE_READABILITY_KEY) ?? memoryValue;
+  } catch {
+    return memoryValue;
+  }
+}
+
+function subscribe(onChange: () => void): () => void {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === BELGE_READABILITY_KEY || event.key === null) onChange();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(CHANGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(CHANGE_EVENT, onChange);
+  };
+}
+
+function writeSettings(next: BelgeReadabilitySettings): void {
+  const value = JSON.stringify({ version: 1, ...sanitizeBelgeReadability(next) });
+  memoryValue = value;
+  try {
+    localStorage.setItem(BELGE_READABILITY_KEY, value);
+  } catch {
+    // Memory fallback stays usable without storage.
+  }
+  window.dispatchEvent(new Event(CHANGE_EVENT));
+}
+
 export function useBelgeStudioReadability() {
-  const [settings, setSettings] = useState<BelgeReadabilitySettings>({ ...DEFAULT_BELGE_READABILITY });
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
+  // useSyncExternalStore has a stable server snapshot; no hydration mismatch
+  // and no synchronous setState in effects.
+  const serialized = useSyncExternalStore(subscribe, currentSnapshot, () => null);
+  const settings = useMemo<BelgeReadabilitySettings>(() => {
+    if (!serialized) return { ...DEFAULT_BELGE_READABILITY };
     try {
-      const json = localStorage.getItem(BELGE_READABILITY_KEY);
-      const loaded = json ? parseBelgeReadability(JSON.parse(json)) : null;
-      if (loaded) setSettings(loaded);
+      return parseBelgeReadability(JSON.parse(serialized)) ?? { ...DEFAULT_BELGE_READABILITY };
     } catch {
-      // Storage can be unavailable in private browsing; defaults remain usable.
-    } finally {
-      setHydrated(true);
+      return { ...DEFAULT_BELGE_READABILITY };
     }
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      localStorage.setItem(BELGE_READABILITY_KEY, JSON.stringify({ version: 1, ...settings }));
-    } catch {
-      // Rendering must not depend on storage availability.
-    }
-  }, [settings, hydrated]);
+  }, [serialized]);
 
   const update = useCallback((changes: Partial<BelgeReadabilitySettings>) => {
-    setSettings((current) => sanitizeBelgeReadability({ ...current, ...changes }));
-  }, []);
-  const resetScale = useCallback(() => update({ uiScale: 100 }), [update]);
-  const resetAll = useCallback(() => setSettings({ ...DEFAULT_BELGE_READABILITY }), []);
+    writeSettings({ ...settings, ...changes });
+  }, [settings]);
 
+  const resetScale = useCallback(() => update({ uiScale: 100 }), [update]);
+  const resetAll = useCallback(() => writeSettings({ ...DEFAULT_BELGE_READABILITY }), []);
   const rootStyle = useMemo<ReadabilityRootStyle>(() => ({
     "--belge-ui-scale": settings.uiScale / 100,
     "--belge-text-scale": settings.textScale / 100,
