@@ -113,7 +113,7 @@ test.describe("Belgeler — Arayüz ve Okunabilirlik: Stage 2", () => {
         const drawer = page.getByTestId("belge-mobile-actions-drawer");
         await expect(drawer).toBeVisible();
         await expect(drawer.getByTestId("belge-mobile-readability-section")).toBeVisible();
-        await drawer.getByTestId("belge-mobile-readability-section").locator("summary").click();
+        await drawer.getByTestId("belge-mobile-readability-section").locator("summary").first().click();
         await expect(drawer.getByTestId("belge-readability-options")).toBeVisible();
         await page.keyboard.press("Escape");
         await expect(drawer).toBeHidden();
