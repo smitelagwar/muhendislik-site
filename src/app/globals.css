@@ -2212,7 +2212,7 @@ body:has([data-testid="hsyncad-app-shell"]) {
 [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-mobile-actions"] {
   display: flex !important;
 }
-[data-belge-readability-root][data-belge-ui-large="true"] .belge-preview-right > .hidden.lg\\:flex {
+[data-belge-readability-root][data-belge-ui-large="true"] .belge-preview-right > [class~="lg:flex"] {
   display: none !important;
 }
 [data-belge-readability-root][data-belge-ui-large="true"] .belge-preview-more {
