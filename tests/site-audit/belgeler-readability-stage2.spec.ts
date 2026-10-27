@@ -14,6 +14,10 @@ async function visit(page: Page, doc = documents[0]) {
   const root = page.locator('[data-belge-readability-root]').first();
   await expect(root).toBeVisible({timeout: 20_000});
   await expect(root.locator('[data-testid="belge-studio-actions"]')).toBeVisible();
+  // Interactions before React hydration and the first PDF/form state settlement
+  // may be lost or superseded by initial draft recovery.
+  await expect(root.getByRole("status").first()).toHaveText("PDF önizlemesi hazır.", { timeout: 45_000 });
+  await expect(root.locator('[data-testid="belge-studio-actions"] button').first()).toBeEnabled();
   return root;
 }
 
@@ -124,6 +128,9 @@ test.describe("Belgeler — Arayüz ve Okunabilirlik: Stage 2", () => {
     await expect(input).toBeVisible();
     const value = ("Ankara Çankaya'da mühendislik çalışma açıklaması ve uzun adres. ").repeat(18);
     await input.fill(value);
+    await expect(input).toHaveValue(value);
+    await page.waitForTimeout(500);
+    await expect(input).toHaveValue(value);
     await setScale(page, 175, 150);
     await expect(input).toHaveValue(value);
     const footer = page.getByTestId("belge-studio-mobile-actions");
