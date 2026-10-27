@@ -20,7 +20,7 @@ let memoryValue: string | null = null;
 function currentSnapshot(): string | null {
   if (typeof window === "undefined") return null;
   try {
-    return localStorage.getItem(BELGE_READABILITY_KEY) ?? memoryValue;
+    return localStorage.getItem(BELGE_READABILITY_KEY);
   } catch {
     return memoryValue;
   }
