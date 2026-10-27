@@ -194,11 +194,36 @@ test.describe("Belgeler — Arayüz ve Okunabilirlik: Stage 2", () => {
           animations:"disabled"
         });
       }
+      if (viewport.width === 1366) {
+        const edit = page.getByTestId("belge-studio-mobile-actions").getByRole("button",{name:"Formu Düzenle"});
+        await expect(edit).toBeVisible();
+        await edit.click();
+        const form = page.getByTestId("belge-studio-form-scroll");
+        await expect(form).toBeVisible();
+        const widths = await form.evaluate(el => ({
+          panel: el.getBoundingClientRect().width,
+          available: document.documentElement.clientWidth,
+          field: el.querySelector("input")?.getBoundingClientRect().width ?? 0
+        }));
+        expect(widths.panel).toBeGreaterThan(widths.available * 0.70);
+        expect(widths.field).toBeGreaterThan(250);
+        await page.screenshot({
+          path:testInfo.outputPath("readability-desktop-form-200.png"),
+          animations:"disabled"
+        });
+      }
       if(viewport.width < 1024){
         const edit = page.getByTestId("belge-studio-mobile-actions")
           .getByRole("button",{name:"Formu Düzenle"});
         if(await edit.isVisible()) await edit.click();
         await expect(page.getByTestId("belge-studio-form-scroll")).toBeVisible();
+        const formMetrics = await page.getByTestId("belge-studio-form-scroll").evaluate(el => ({
+          width:el.getBoundingClientRect().width,
+          field:el.querySelector("input")?.getBoundingClientRect().width ?? 0,
+          viewport:document.documentElement.clientWidth
+        }));
+        expect(formMetrics.width).toBeGreaterThan(formMetrics.viewport * 0.9);
+        expect(formMetrics.field).toBeGreaterThan(150);
         await page.screenshot({
           path:testInfo.outputPath("readability-mobile-form-200.png"),
           animations:"disabled"
