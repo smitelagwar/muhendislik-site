@@ -10,6 +10,7 @@ import {
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
 import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
+import { useBelgeStudioReadability } from "@/hooks/use-belge-studio-readability";
 import { useBelgeStudioPdfFocus } from "@/hooks/use-belge-studio-pdf-focus";
 import { useBelgeFieldFocus } from "@/hooks/use-belge-field-focus";
 import { BelgeStudioPdfPreview, type BelgePreviewStatus } from "@/components/belge-studio-pdf-preview";
@@ -84,6 +85,7 @@ export function SozlesmeStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
+  const readability = useBelgeStudioReadability();
   const { scrollContainerRef, contentWrapperRef, contentWrapperProps, ...formView } = useBelgeStudioFormView({ isModal });
   void contentWrapperRef;
   const pdfFocus = useBelgeStudioPdfFocus({
@@ -280,6 +282,12 @@ export function SozlesmeStudio({
       <div
         ref={studioRootRef}
         data-studio-locked={isModal ? undefined : "true"}
+        data-belge-readability-root=""
+        data-belge-ui-large={readability.settings.uiScale >= 150 || readability.settings.textScale >= 150 ? "true" : undefined}
+        data-belge-high-contrast={readability.settings.highContrast ? "true" : undefined}
+        data-belge-comfortable={readability.settings.comfortableReading ? "true" : undefined}
+        data-belge-large-targets={readability.settings.largeTargets ? "true" : undefined}
+        style={readability.rootStyle}
         className={`flex flex-col bg-background text-foreground w-full max-w-full min-w-0 h-full overflow-hidden ${
           isModal
           ? "max-h-[96vh] rounded-2xl border border-border shadow-2xl"
@@ -323,6 +331,7 @@ export function SozlesmeStudio({
           }`}
           {...formFocusContainerProps}
         >
+          <div className="belge-readability-form-content">
           <div {...contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-sozlesmesi" layouts={layouts} excludedFields={["adres", "ucret", "sozlesme_tarihi"]} />
 
@@ -612,6 +621,7 @@ export function SozlesmeStudio({
           </BelgeStudioSection>
 
           </div>
+          </div>
         </div>
 
         <div
@@ -662,6 +672,7 @@ export function SozlesmeStudio({
         documentId="santiye-sefi-sozlesmesi"
         templateFilename="SANTIYE_SEFI_SOZLESMESI_BOS.pdf"
         formView={formView}
+        readability={readability}
       />
         <BelgeShareDialog share={shareApi} documentTitle="Şantiye Şefi Hizmet Sözleşmesi" />
       </div>
