@@ -2247,7 +2247,7 @@ body:has([data-testid="hsyncad-app-shell"]) {
 [data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-form-scroll"] input,
 [data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-form-scroll"] select,
 [data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-form-scroll"] textarea {
-  font-size: max(1rem, calc(0.75rem * var(--belge-text-scale, 1))) !important;
+  font-size: calc(0.75rem * var(--belge-text-scale, 1)) !important;
   line-height: 1.5;
   min-width: 0;
   max-width: 100%;
@@ -2395,4 +2395,11 @@ body:has([data-testid="hsyncad-app-shell"]) {
 [data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-preview-toolbar"] .preview-tool-button {
   min-width: calc(36px * min(var(--belge-ui-scale, 1), 1.4));
   min-height: calc(36px * min(var(--belge-ui-scale, 1), 1.4));
+}
+
+/* On touch-size viewports keep editable text >=16 CSS px to avoid iOS auto-zoom. */
+@media (max-width: 1023px) {
+  [data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-form-scroll"] :is(input, select, textarea) {
+    font-size: max(16px, calc(0.75rem * var(--belge-text-scale, 1))) !important;
+  }
 }
