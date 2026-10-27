@@ -9,6 +9,7 @@ import { FOCUS_POINTS, focusAnchorAt, type FocusPoint } from "@/lib/duzensizlik-
 import { cameraFitDistance, smootherStep } from "@/lib/duzensizlik-simulatoru/camera";
 import { MAX_SHAKE_STRENGTH } from "@/lib/duzensizlik-simulatoru/intensity";
 import { makeReferenceBlueprint, referenceJointAt, referenceSlabPose } from "@/lib/duzensizlik-simulatoru/reference-model";
+import { TEACHING, teachingCueSegment, teachingStroke, type TeachingCue } from "@/lib/duzensizlik-simulatoru/teaching";
 
 export type CameraView = "perspective" | "front" | "side" | "left" | "top";
 // The repo provides a minimal hand-written Three.js type shim for its CAD modules.
@@ -111,6 +112,14 @@ export default function BuildingViewer(props: Props) {
       focusHalo: new THREE.MeshStandardMaterial({color:"#ffb86a",emissive:"#9e4d23",emissiveIntensity:.4,transparent:true,opacity:.22,depthTest:false,depthWrite:false}),
     };
     const focusSphere = new THREE.SphereGeometry(1,12,10);
+    const teachingMaterials = {
+      irregular: new THREE.LineBasicMaterial({
+        color:"#ffbe6d",transparent:true,opacity:.92,depthTest:false,depthWrite:false,
+      }),
+      reference: new THREE.LineBasicMaterial({
+        color:"#67e3d4",transparent:true,opacity:.9,depthTest:false,depthWrite:false,
+      }),
+    };
     const axis = new THREE.Vector3(0,1,0);
     // Avoid allocating a new Three.Vector3 for every beam/column, every frame.
     const segmentDirection = new THREE.Vector3();
@@ -142,10 +151,12 @@ export default function BuildingViewer(props: Props) {
       trimA: number; trimB: number; wallRest?: Float32Array };
     type Surface = { mesh: THREE.Mesh; rim: SlabRim; x:number; z:number; y:number };
     type Marker = { point: FocusPoint; mesh: THREE.Mesh; halo: THREE.Mesh };
+    type TeachingLine = { cue:TeachingCue; mesh:THREE.LineSegments; attribute:THREE.BufferAttribute };
     const pointKey = (v:V3) => v.map(x => x.toFixed(5)).join(":");
     let segments: Part[] = [];
     let surfaces: Surface[] = [];
     let markers: Marker[] = [];
+    let teachingLines:TeachingLine[] = [];
     let referenceParts: Part[] = [];
     let referenceSurfaces: Surface[] = [];
     let referenceBuilt=false;
@@ -277,6 +288,41 @@ export default function BuildingViewer(props: Props) {
       referenceBuilt=true;
       updateReference(elapsed,blend);
     };
+    const updateTeaching=(phase:number,intensity:number)=>{
+      for(const item of teachingLines){
+        const [start,end]=teachingCueSegment(item.cue,scenario,phase,intensity);
+        const points=teachingStroke(start,end,item.cue.kind!=="line");
+        (item.attribute.array as Float32Array).set(points);
+        item.attribute.needsUpdate=true;
+        item.mesh.visible=latest.current.showHighlights &&
+          (item.cue.side==="irregular"||latest.current.comparing);
+      }
+      host.dataset.teachingCueCount=String(teachingLines.length);
+      host.dataset.teachingScenario=scenario;
+    };
+    const clearTeaching=()=>{
+      for(const item of teachingLines){
+        (item.cue.side==="reference"?referenceFrame:frame).remove(item.mesh);
+        item.mesh.geometry.dispose();
+      }
+      teachingLines=[];
+    };
+    const buildTeaching=()=>{
+      clearTeaching();
+      for(const cue of TEACHING[scenario].cues){
+        const geometry=new THREE.BufferGeometry();
+        const attribute=new THREE.BufferAttribute(new Float32Array(18),3);
+        geometry.setAttribute("position",attribute);
+        const mesh=new THREE.LineSegments(geometry,teachingMaterials[cue.side]);
+        mesh.frustumCulled=false; // moving endpoints have dynamic extents
+        mesh.renderOrder=16;
+        mesh.userData.kind="teaching-cue";
+        mesh.userData.cueId=cue.id;
+        (cue.side==="reference"?referenceFrame:frame).add(mesh);
+        teachingLines.push({cue,mesh,attribute});
+      }
+      updateTeaching(elapsed,blend);
+    };
     const updateModel = (phase: number,intensity: number) => {
       host.dataset.shakeIntensity = String(latest.current.intensity);
       for(const part of segments) updateSegment(part,phase,intensity);
@@ -290,6 +336,7 @@ export default function BuildingViewer(props: Props) {
         surface.rim.visible=latest.current.showSlabs;
       }
       if(latest.current.comparing && referenceBuilt)updateReference(phase,intensity);
+      updateTeaching(phase,intensity);
       for(const marker of markers) {
         const at=focusAnchorAt(marker.point,scenario,phase,intensity);
         marker.mesh.position.set(...at);
@@ -311,6 +358,7 @@ export default function BuildingViewer(props: Props) {
       }
       for(const s of surfaces) { frame.remove(s.mesh); frame.remove(s.rim); }
       for(const m of markers) { frame.remove(m.mesh); frame.remove(m.halo); }
+      clearTeaching();
       segments=[];
       surfaces=[];
       markers=[];
@@ -378,6 +426,7 @@ export default function BuildingViewer(props: Props) {
       elapsed=0;
       blend=0;
       if(referenceBuilt)buildReference();
+      buildTeaching();
       updateModel(0,0);
       dirty=true;
     };
@@ -541,6 +590,8 @@ export default function BuildingViewer(props: Props) {
       renderer.dispose();
       for(const p of segments) if(p.wallRest) p.mesh.geometry.dispose();
       clearReference();
+      clearTeaching();
+      Object.values(teachingMaterials).forEach(material=>material.dispose());
       slabEdges.dispose();
       slabEdgeMaterial.dispose();
       focusSphere.dispose();

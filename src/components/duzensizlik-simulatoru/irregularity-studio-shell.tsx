@@ -8,6 +8,7 @@ import type { CameraView } from "./building-viewer";
 import { IrregularityFallback2D } from "./irregularity-fallback-2d";
 import { AFAD_TBDY_URL, SCENARIO_IDS, SCENARIOS, type ScenarioId } from "@/lib/duzensizlik-simulatoru/scenarios";
 import { DEFAULT_SHAKE_LEVEL, SHAKE_LEVELS, shakeStrength, type ShakeLevel } from "@/lib/duzensizlik-simulatoru/intensity";
+import { TEACHING } from "@/lib/duzensizlik-simulatoru/teaching";
 
 const Viewer = dynamic(() => import("./building-viewer"), { ssr: false });
 type Mode = "3d" | "2d";
@@ -42,6 +43,7 @@ export function IrregularityStudioShell() {
   const guidePanel = useRef<HTMLElement>(null);
   const settingsButton = useRef<HTMLButtonElement>(null);
   const data = SCENARIOS[scenario];
+  const teaching = TEACHING[scenario];
 
   useEffect(() => {
     const frame=window.requestAnimationFrame(()=>setPanelOpen(window.innerWidth>=1024));
@@ -135,7 +137,9 @@ export function IrregularityStudioShell() {
     }
   };
   const canAnimate=mode==="3d"&&!viewerFailed&&!reducedMotion;
-  const guideContent=lessonStep===0?data.definition:lessonStep===1?data.observe:data.important;
+  const guideContent=lessonStep===0?data.definition:
+    lessonStep===1?(comparing?teaching.watch:data.observe):
+    (comparing?teaching.caution:data.important);
   return (
     <div data-testid="irregularity-studio" data-interactive="true" className="isolate flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-[#0b1420] text-slate-100">
       <header className="z-30 flex h-12 shrink-0 items-center gap-2 border-b border-white/10 bg-[#111e2c] px-2 sm:h-14 sm:px-4">
@@ -196,6 +200,15 @@ export function IrregularityStudioShell() {
                      </button>
                    </div>
                    <p data-testid="irregularity-why-copy" className="mt-1.5 text-[11px] leading-[1.45] text-slate-100 sm:text-xs">{data.why}</p>
+                   {comparing&&(
+                     <div data-testid="irregularity-compare-teaching" data-scenario={scenario} className="mt-2 space-y-1.5 border-t border-white/10 pt-2 text-[11px] leading-[1.45]">
+                       <p className="font-bold text-sky-100">{teaching.label}</p>
+                       <p><span className="font-semibold text-emerald-200">Düzenli: </span>{teaching.reference}</p>
+                       <p><span className="font-semibold text-amber-200">Düzensiz: </span>{teaching.irregular}</p>
+                       <p className="text-slate-200">{teaching.watch}</p>
+                       <p className="text-[10px] text-slate-400">{teaching.caution}</p>
+                     </div>
+                   )}
                    <div className="mt-2 flex items-center justify-between gap-2 border-t border-white/10 pt-1.5">
                      <span className="min-w-0 text-[10px] text-amber-100/85 sm:text-[11px]">{data.focusLabel}{!showHighlights&&mode==="3d"?" · İşaretler kapalı":""}</span>
                      <button type="button" data-testid="irregularity-why-details"

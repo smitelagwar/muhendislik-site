@@ -31,3 +31,10 @@
 - Tek WebGLRenderer ve tek animasyon döngüsü korunur. İki THREE.Group, aynı zaman/şiddet ve kamera ile iki scissor viewport'ta çizilir.
 - Tek bina modu önceki görüntüleme yoluyla çalışmaya devam eder. Senaryo açıklamaları Aşama 2, mobil karşılaştırma deneyimi Aşama 3, gerçek tarayıcı/geometri/build ve üretim dağıtımı Aşama 4 kapsamındadır.
 - Referans binanın düzenli olması güvenlik onayı değildir; hareketler eğitsel, ölçeksiz ve hesap sonucu değildir.
+
+## Karşılaştırmalı simülasyon — 2026-10-27 / Aşama 2
+- `teaching.ts`: altı düzensizliğin düzenli/düzensiz kıyas açıklamaları, uyarıları ve sahneye bağlanan iki taraflı öğretici işaretleri tek kaynaktan yönetilir.
+- A1: karşı kenar yer değiştirme okları; A2: döşeme boşluğu çevresinde şematik aktarım; A3: L plan iç köşe/kollar; B1: birinci kat kesit/dayanım farkı; B2: birinci-ikinci kat yer değiştirmeleri; B3: kolon–aktarma kirişi–mesnet ve referansta kesintisiz yük yolu.
+- Yeni çizgiler aynı `jointAt/referenceJointAt` zamanını kullanır; sahne/katman kapanışında gizlenir, yeniden kurulumda kaynakları temizlenir. Mevcut taşıyıcı geometri değiştirilmez.
+- Öğretici kart yalnız karşılaştırma açıkken her iki yapının farkını ve hesap yapılmadığı uyarısını sunar. Rehberin İzle/Anla bölümleri seçili senaryo metnini kullanır.
+- Saf hareket/geometri testleri ve Playwright etkileşim senaryosu eklendi; kapsamlı runtime/typecheck/build ve canlı tarayıcı kabulü Aşama 4'te tamamlanacak. Production değişmedi.
