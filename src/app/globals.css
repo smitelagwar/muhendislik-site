@@ -2351,3 +2351,19 @@ body:has([data-testid="hsyncad-app-shell"]) {
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* Dropdown portals are mounted outside the studio root; options own their vars. */
+[data-testid="belge-readability-options"] :is(button, summary, label) {
+  font-size: clamp(12px, calc(12px * var(--belge-ui-scale, 1) * var(--belge-text-scale, 1)), 28px);
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+[data-testid="belge-readability-options"] button:disabled {
+  opacity: 0.45;
+}
+[data-testid="belge-readability-options"][data-high-contrast="true"] button,
+[data-testid="belge-readability-options"][data-high-contrast="true"] label {
+  border-color: currentColor;
+}
