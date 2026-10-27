@@ -36,7 +36,7 @@ export function RegulationLibraryTeaser() {
           <FileText className="h-4 w-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-bold text-[var(--home-fg)]">{TBDY_ARCHIVE.title}</span>
-            <span className="block text-[11px] text-[var(--home-muted)]">{TBDY_ARCHIVE.statusLabel} · MD hazırlanacak</span>
+            <span className="block text-[11px] text-[var(--home-muted)]">{TBDY_ARCHIVE.statusLabel} · Doğrulama bekleniyor</span>
           </span>
           <ChevronRight className="h-4 w-4 shrink-0 text-[var(--home-muted)] transition-transform group-hover:translate-x-0.5" aria-hidden />
         </Link>
