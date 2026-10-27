@@ -148,4 +148,62 @@ test.describe("Belgeler — Arayüz ve Okunabilirlik: Stage 2", () => {
     }
     await expect(input).toHaveValue(value);
   });
+
+  test("inline PDF hotspots remain geometrically aligned at large UI scales", async ({page}) => {
+    await page.setViewportSize({width: 1366, height: 768});
+    await visit(page, documents[0]);
+    const toggle = page.getByTestId("belge-inline-edit-toggle");
+    await expect(toggle).toBeVisible();
+    await toggle.click();
+    const hotspot = page.locator('[data-testid^="belge-inline-hotspot-"]').first();
+    await expect(hotspot).toBeVisible({timeout: 15_000});
+
+    async function geometry() {
+      return hotspot.evaluate((el) => {
+        const frame = el.closest<HTMLElement>(".belge-preview-frame");
+        if (!frame) return null;
+        const a = el.getBoundingClientRect(), b = frame.getBoundingClientRect();
+        return {x:(a.left-b.left)/b.width, y:(a.top-b.top)/b.height,
+          w:a.width/b.width, h:a.height/b.height};
+      });
+    }
+    const before = await geometry();
+    expect(before).not.toBeNull();
+    for(const scale of [125, 175, 200, 100]){
+      await setScale(page, scale);
+      await expect(hotspot).toBeVisible({timeout: 15_000});
+      const after = await geometry();
+      expect(after).not.toBeNull();
+      for(const key of ["x","y","w","h"] as const){
+        expect(Math.abs(after![key]-before![key]), key+" moved at "+scale+"%").toBeLessThan(0.04);
+      }
+    }
+    await toggle.click();
+    await expect(page.locator('[data-testid="belge-inline-edit-layer"]')).toHaveCount(0);
+  });
+
+  test("high zoom visual snapshots preserve readable actions", async ({page}, testInfo) => {
+    for(const viewport of [{width:1366,height:768},{width:390,height:844}]){
+      await page.setViewportSize(viewport);
+      await visit(page);
+      for(const scale of [100,175,200]){
+        await setScale(page,scale);
+        await checkPrimaryControls(page);
+        await page.screenshot({
+          path:testInfo.outputPath("readability-"+viewport.width+"-"+scale+".png"),
+          animations:"disabled"
+        });
+      }
+      if(viewport.width < 1024){
+        const edit = page.getByTestId("belge-studio-mobile-actions")
+          .getByRole("button",{name:"Formu Düzenle"});
+        if(await edit.isVisible()) await edit.click();
+        await expect(page.getByTestId("belge-studio-form-scroll")).toBeVisible();
+        await page.screenshot({
+          path:testInfo.outputPath("readability-mobile-form-200.png"),
+          animations:"disabled"
+        });
+      }
+    }
+  });
 });
