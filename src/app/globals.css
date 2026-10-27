@@ -2367,3 +2367,32 @@ body:has([data-testid="hsyncad-app-shell"]) {
 [data-testid="belge-readability-options"][data-high-contrast="true"] label {
   border-color: currentColor;
 }
+
+
+/* Dialog portal is outside the studio; derive controls from explicit settings. */
+[data-belge-readability-drawer="true"] :is(button, a, summary, label, p, span) {
+  font-size: clamp(12px, calc(12px * var(--belge-ui-scale, 1) * var(--belge-text-scale, 1)), 28px);
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+[data-belge-readability-drawer="true"] :is(button, a) {
+  min-height: calc(44px * var(--belge-target-scale, 1));
+}
+[data-belge-readability-drawer="true"][data-belge-high-contrast="true"] :is(button, a):focus-visible {
+  outline: 3px solid #b45309;
+  outline-offset: 2px;
+}
+.dark [data-belge-readability-drawer="true"][data-belge-high-contrast="true"] :is(button, a):focus-visible {
+  outline-color: #fbbf24;
+}
+[data-belge-readability-root][data-belge-high-contrast="true"] .text-muted-foreground {
+  color: #111827 !important;
+}
+.dark [data-belge-readability-root][data-belge-high-contrast="true"] .text-muted-foreground {
+  color: #f9fafb !important;
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-preview-toolbar"] .preview-tool-button {
+  min-width: calc(36px * min(var(--belge-ui-scale, 1), 1.4));
+  min-height: calc(36px * min(var(--belge-ui-scale, 1), 1.4));
+}
