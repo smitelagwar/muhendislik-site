@@ -29,7 +29,7 @@ export default async function TbdyRawMarkdownPage({ params }: Props) {
             <ArrowLeft className="h-4 w-4" aria-hidden /> Okunabilir görünüme dön
           </Link>
           <a href={getTbdyPdfUrl(section.pdfPageStart)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-sm font-bold hover:underline">
-            PDF'de aç <ArrowUpRight className="h-4 w-4" aria-hidden />
+            PDF&apos;de aç <ArrowUpRight className="h-4 w-4" aria-hidden />
           </a>
         </div>
         <h1 className="text-2xl font-black text-[var(--home-fg)]">Bölüm {Number(chapter.slice(-2))} · Ham Markdown</h1>

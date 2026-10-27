@@ -105,7 +105,7 @@ export default function RegulationArchivePage() {
             <p className="mt-1 text-sm leading-6 text-[var(--home-muted)]">
               Bu kütüphane orijinal yönetmelik kaynaklarının doğrulanmış dönüşümleri için ayrılmıştır.
               Mevzuat merkezindeki makaleler mühendislik anlatımlarıdır; resmî madde metni olarak sunulmaz.
-              Özellikle TS 500'ün tam metni, kullanım hakkı doğrulanmadan yayımlanmayacaktır.
+              Özellikle TS 500&apos;ün tam metni, kullanım hakkı doğrulanmadan yayımlanmayacaktır.
             </p>
             <Link href="/kategori/deprem-yonetmelik" className="mt-3 inline-flex min-h-10 items-center gap-2 text-xs font-bold text-[var(--home-fg)] hover:underline">
               Mevzuat içeriklerine dön <ArrowRight className="h-4 w-4" aria-hidden />

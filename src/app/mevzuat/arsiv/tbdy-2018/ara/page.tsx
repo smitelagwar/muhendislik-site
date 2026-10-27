@@ -66,7 +66,7 @@ export default async function TbdySearchPage({ searchParams }: Props) {
                         {result.matchType === "madde" ? "Maddeye git" : "Sayfayı aç"}
                       </Link>
                       <a href={getTbdyPdfUrl(result.pdfPage)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--home-muted)] hover:text-[var(--home-fg)] hover:underline">
-                        PDF'de karşılaştır <ArrowUpRight className="h-4 w-4" aria-hidden />
+                        PDF&apos;de karşılaştır <ArrowUpRight className="h-4 w-4" aria-hidden />
                       </a>
                     </div>
                   </article>

@@ -83,8 +83,8 @@ export default async function TbdyChapterPage({ params }: Props) {
               <div>
                 <p className="text-sm font-black text-[var(--home-fg)]">Doğrulanmamış kaynak metin taslağı</p>
                 <p className="mt-1 text-xs leading-6 text-[var(--home-muted)]">
-                  Metin PDF'den otomatik çıkarılmıştır. Denklem, alt/üst indis, tablo ve şekiller hatalı görünebilir.
-                  Proje, hesap ve güvenlik kararlarında kaynak PDF'yi kontrol edin.
+                  Metin PDF&apos;den otomatik çıkarılmıştır. Denklem, alt/üst indis, tablo ve şekiller hatalı görünebilir.
+                  Proje, hesap ve güvenlik kararlarında kaynak PDF&apos;yi kontrol edin.
                 </p>
               </div>
             </div>
@@ -94,7 +94,7 @@ export default async function TbdyChapterPage({ params }: Props) {
                   <span className="rounded-md bg-amber-500/10 px-2.5 py-1.5 font-bold text-amber-700 dark:text-amber-400">Okunabilir görünüm</span>
                   <Link href={`${getTbdyChapterHref(chapter)}/ham`} prefetch={false} className="inline-flex min-h-10 items-center rounded-md px-2 text-[var(--home-muted)] hover:text-[var(--home-fg)] hover:underline">Ham Markdown</Link>
                   <a href={getTbdyPdfUrl(section.pdfPageStart)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1 font-semibold text-[var(--home-fg)] hover:underline">
-                    PDF'de aç <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
+                    PDF&apos;de aç <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
                   </a>
                 </div>
                 <TbdyMarkdown raw={markdown} />
