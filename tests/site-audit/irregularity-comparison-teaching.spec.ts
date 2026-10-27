@@ -22,6 +22,8 @@ test("Comparison teaches six distinct irregularities with synchronized 3D guides
 
   for(const scenario of scenarios){
     await page.getByTestId("irregularity-scenario-"+scenario.id).click();
+    const open=page.getByTestId("irregularity-why-open");
+    if(await open.isVisible())await open.click();
     const teaching=page.getByTestId("irregularity-compare-teaching");
     await expect(teaching).toHaveAttribute("data-scenario",scenario.id);
     await expect(teaching).toContainText(scenario.word);
@@ -29,7 +31,7 @@ test("Comparison teaches six distinct irregularities with synchronized 3D guides
     await expect(teaching).toContainText("Düzensiz:");
     await expect(canvas).toHaveAttribute("data-teaching-scenario",scenario.id);
     await expect(canvas).toHaveAttribute("data-teaching-cue-count",String(scenario.cues));
-    await expect(canvas).toHaveAttribute("data-compare-mode","dual");
+    await expect(canvas).toHaveAttribute("data-compare-mode",compact?"irregular":"dual");
   }
 
   // A shared animation clock, existing intensity picker and camera remain operable.

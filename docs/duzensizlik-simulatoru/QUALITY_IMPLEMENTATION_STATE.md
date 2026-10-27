@@ -38,3 +38,10 @@
 - Yeni çizgiler aynı `jointAt/referenceJointAt` zamanını kullanır; sahne/katman kapanışında gizlenir, yeniden kurulumda kaynakları temizlenir. Mevcut taşıyıcı geometri değiştirilmez.
 - Öğretici kart yalnız karşılaştırma açıkken her iki yapının farkını ve hesap yapılmadığı uyarısını sunar. Rehberin İzle/Anla bölümleri seçili senaryo metnini kullanır.
 - Saf hareket/geometri testleri ve Playwright etkileşim senaryosu eklendi; kapsamlı runtime/typecheck/build ve canlı tarayıcı kabulü Aşama 4'te tamamlanacak. Production değişmedi.
+
+## Karşılaştırmalı simülasyon — 2026-10-27 / Aşama 3
+- Geniş sahne alanında iki model ortak kamera, zaman ve şiddette yan yana kalır.
+- 760 px altındaki **gerçek sahne genişliğinde** aynı canvas'ta tek modeli tam boy gösteren Düzenli/Düzensiz seçimi kullanılır; yeni WebGL canvas veya saat döngüsü oluşturulmaz.
+- Referans modelin merkezi düzensiz model kadrajına hizalanır (özellikle A3). Dokunarak model/işaret üzerinde açıklama açılır; kamera sürüklemesiyle çakışmaz.
+- Küçük ekranda karşılaştırma açıldığında öğretici kart kapalı başlar; Neden farklı? ile açılır. Mobil kontroller ve 2B geri dönüşü korunur.
+- Responsive Playwright senaryoları eklendi. Aşama 4'te gerçek derleme, test ve tek production yayını yapılacak.

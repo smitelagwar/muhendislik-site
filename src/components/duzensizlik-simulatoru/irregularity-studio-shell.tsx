@@ -27,6 +27,8 @@ export function IrregularityStudioShell() {
   const [lessonStep, setLessonStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [comparing, setComparing] = useState(false);
+  const [compactCompare, setCompactCompare] = useState(false);
+  const [compareSide, setCompareSide] = useState<"reference"|"irregular">("irregular");
   const [speed, setSpeed] = useState(1);
   const [shakeLevel, setShakeLevel] = useState<ShakeLevel>(DEFAULT_SHAKE_LEVEL);
   const [showSlabs, setShowSlabs] = useState(true);
@@ -38,6 +40,7 @@ export function IrregularityStudioShell() {
   const [viewerFailed, setViewerFailed] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const rail = useRef<HTMLDivElement>(null);
+  const sceneArea = useRef<HTMLDivElement>(null);
   const panelButton = useRef<HTMLButtonElement>(null);
   const closePanel = useRef<HTMLButtonElement>(null);
   const guidePanel = useRef<HTMLElement>(null);
@@ -72,6 +75,16 @@ export function IrregularityStudioShell() {
     return ()=>window.removeEventListener("resize",reconcileLayout);
   },[]);
   useEffect(()=>{
+    const host=sceneArea.current;
+    if(!host)return;
+    const observer=new ResizeObserver(()=>{
+      setCompactCompare(host.clientWidth<760);
+    });
+    observer.observe(host);
+    setCompactCompare(host.clientWidth<760);
+    return ()=>observer.disconnect();
+  },[]);
+  useEffect(()=>{
     if(!panelOpen && !settingsOpen) return;
     const onKey=(e:KeyboardEvent)=>{
       if(e.key==="Tab"&&panelOpen&&window.innerWidth<1024&&!settingsOpen){
@@ -94,7 +107,7 @@ export function IrregularityStudioShell() {
   },[scenario]);
   const choose=(id:ScenarioId)=>{
     setScenario(id);
-    setWhyOpen(true);
+    setWhyOpen(!comparing || !compactCompare);
     setPlaying(false);
     setLessonStep(0);
     setSettingsOpen(false);
@@ -103,6 +116,7 @@ export function IrregularityStudioShell() {
   const reset=()=>{
     setPlaying(false);
     setComparing(false);
+    setCompareSide("irregular");
     setSpeed(1);
     setShakeLevel(DEFAULT_SHAKE_LEVEL);
     setShowSlabs(true);
@@ -148,7 +162,12 @@ export function IrregularityStudioShell() {
         </Link>
         <h1 className="min-w-0 flex-1 truncate text-sm font-bold sm:text-base">Bina Düzensizlikleri <span className="hidden font-medium text-slate-400 sm:inline">· TBDY 2018</span></h1>
         <button type="button" data-testid="irregularity-compare-toggle" aria-pressed={comparing}
-          disabled={mode!=="3d"||viewerFailed} onClick={()=>{setComparing(value=>!value);setSettingsOpen(false);}}
+          disabled={mode!=="3d"||viewerFailed} onClick={()=>{
+            setComparing(value=>!value);
+            setCompareSide("irregular");
+            setWhyOpen(comparing || !compactCompare);
+            setSettingsOpen(false);
+          }}
           className={"h-10 shrink-0 rounded-xl border px-2.5 text-[11px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 disabled:opacity-40 "+
             (comparing?"border-sky-300 bg-sky-300/20 text-sky-100":"border-white/15 text-slate-200 hover:bg-white/10")}>
           {comparing?"Tek bina":"Karşılaştır"}
@@ -166,19 +185,33 @@ export function IrregularityStudioShell() {
             </button>)}
           </div>
 
-          <div className="relative min-h-0 flex-1 bg-[radial-gradient(ellipse_at_50%_30%,#1b3447,#0b1725_70%)]" data-testid="irregularity-scene-area">
+          <div ref={sceneArea} className="relative min-h-0 flex-1 bg-[radial-gradient(ellipse_at_50%_30%,#1b3447,#0b1725_70%)]" data-testid="irregularity-scene-area">
             <div className={"absolute inset-0 transition-opacity duration-150 "+(mode==="2d"||viewerFailed?"pointer-events-none opacity-0":"opacity-100")} aria-hidden={mode!=="3d"||viewerFailed}>
-              <Viewer key={viewerKey} scenario={scenario} comparing={comparing} view={view} resetToken={resetToken} cameraPulse={cameraPulse}
+              <Viewer key={viewerKey} scenario={scenario} comparing={comparing} compactComparison={compactCompare} comparisonSide={compareSide}
+                onHighlightSelect={()=>setWhyOpen(true)} view={view} resetToken={resetToken} cameraPulse={cameraPulse}
                 playing={playing} speed={speed} intensity={shakeStrength(shakeLevel)} showSlabs={showSlabs} showMembers={showMembers}
                 showHighlights={showHighlights} active={mode==="3d"&&!viewerFailed}
                 onFailure={()=>{setViewerFailed(true);setMode("2d");setPlaying(false);}} />
             </div>
             {(mode==="2d"||viewerFailed)&&<div className="absolute inset-0"><IrregularityFallback2D scenario={scenario}/></div>}
             {comparing&&mode==="3d"&&!viewerFailed&&(
-              <div aria-hidden="true" className="pointer-events-none absolute left-0 right-0 top-12 z-10 flex text-center text-[10px] font-semibold sm:text-xs">
-                <span className="w-1/2 border-r border-white/15 bg-[#102235]/75 py-1.5 text-emerald-200">Düzenli referans</span>
-                <span className="w-1/2 bg-[#102235]/75 py-1.5 text-amber-100">Düzensiz · {scenario}</span>
-              </div>
+              compactCompare ? (
+                <div role="group" aria-label="Karşılaştırılacak bina" data-testid="irregularity-compare-mobile" className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 gap-1 rounded-xl border border-white/15 bg-[#102235]/95 p-1 shadow-lg backdrop-blur-md">
+                  {([{id:"reference",label:"Düzenli"},{id:"irregular",label:"Düzensiz"}] as const).map(item=>
+                    <button key={item.id} type="button" data-testid={"irregularity-compare-side-"+item.id}
+                      onClick={()=>setCompareSide(item.id)} aria-pressed={compareSide===item.id}
+                      className={"min-h-10 min-w-24 rounded-lg px-3 text-xs font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 "+
+                        (compareSide===item.id?"bg-sky-300 text-[#0b1420]":"text-slate-200 hover:bg-white/10")}>
+                      {item.label}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div aria-hidden="true" className="pointer-events-none absolute left-0 right-0 top-12 z-10 flex text-center text-[10px] font-semibold sm:text-xs">
+                  <span className="w-1/2 border-r border-white/15 bg-[#102235]/75 py-1.5 text-emerald-200">Düzenli referans</span>
+                  <span className="w-1/2 bg-[#102235]/75 py-1.5 text-amber-100">Düzensiz · {scenario}</span>
+                </div>
+              )
             )}
             <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-white/10 bg-[#102235]/75 px-2.5 py-1.5 text-xs text-slate-200 backdrop-blur-sm">
               <span className="font-semibold text-sky-200">{scenario}</span><span className="ml-2 hidden text-slate-300 sm:inline">{data.emphasis}</span>
@@ -188,11 +221,11 @@ export function IrregularityStudioShell() {
                 desktop: top-right, clear of the scenario badge and guide panel. */}
              <div className="pointer-events-none absolute bottom-[62px] left-2 right-2 z-10 sm:bottom-auto sm:left-auto sm:right-3 sm:top-3 sm:w-[min(270px,calc(100%-24px))]">
                {whyOpen ? (
-                 <aside data-testid="irregularity-why-card" data-scenario={scenario} aria-label={scenario+" neden problemli?"} aria-live="polite"
-                   className="pointer-events-auto max-h-[38dvh] overflow-y-auto overscroll-contain rounded-xl border border-amber-300/35 bg-[#14293b]/95 p-2.5 shadow-[0_8px_35px_rgba(0,0,0,0.35)] backdrop-blur-md sm:p-3">
+                 <aside data-testid="irregularity-why-card" data-scenario={scenario} aria-label={scenario+(comparing?" neden farklı?":" neden problemli?")} aria-live="polite"
+                   className="pointer-events-auto max-h-[min(38dvh,230px)] overflow-y-auto overscroll-contain rounded-xl border border-amber-300/35 bg-[#14293b]/95 p-2.5 shadow-[0_8px_35px_rgba(0,0,0,0.35)] backdrop-blur-md sm:p-3">
                    <div className="flex items-center justify-between gap-2">
                      <p className="min-w-0 text-[11px] font-extrabold tracking-[0.04em] text-amber-200 sm:text-xs">
-                       <span aria-hidden="true" className="mr-1.5 inline-block h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_9px_#ffb86a]"/>Neden Problemli?
+                       <span aria-hidden="true" className="mr-1.5 inline-block h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_9px_#ffb86a]"/>{comparing?"Neden farklı?":"Neden Problemli?"}
                      </p>
                      <button type="button" data-testid="irregularity-why-close" aria-label="Bilgi kartını kapat"
                        onClick={()=>setWhyOpen(false)} className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-slate-300 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300">
@@ -219,7 +252,7 @@ export function IrregularityStudioShell() {
                ) : (
                  <button type="button" data-testid="irregularity-why-open" onClick={()=>setWhyOpen(true)}
                    className="pointer-events-auto inline-flex h-9 items-center gap-2 rounded-lg border border-amber-300/40 bg-[#152b3e]/95 px-3 text-xs font-bold text-amber-100 shadow-xl">
-                   <span aria-hidden="true" className="h-2 w-2 rounded-full bg-amber-300"/>Neden Problemli?
+                   <span aria-hidden="true" className="h-2 w-2 rounded-full bg-amber-300"/>{comparing?"Neden farklı?":"Neden Problemli?"}
                  </button>
                )}
              </div>

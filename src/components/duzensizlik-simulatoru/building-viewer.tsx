@@ -25,6 +25,9 @@ type SplitRenderer = THREE.WebGLRenderer & {
 interface Props {
   scenario: ScenarioId;
   comparing: boolean;
+  compactComparison: boolean;
+  comparisonSide: "reference" | "irregular";
+  onHighlightSelect: () => void;
   view: CameraView;
   resetToken: number;
   cameraPulse: number;
@@ -246,6 +249,9 @@ export default function BuildingViewer(props: Props) {
     const buildReference=()=>{
       clearReference();
       const blueprint=makeReferenceBlueprint(scenario);
+      // Align frame centres while retaining independent member coordinates.
+      referenceFrame.position.x=(modelBounds.min[0]+modelBounds.max[0]-blueprint.bounds.min[0]-blueprint.bounds.max[0])/2;
+      referenceFrame.position.z=(modelBounds.min[2]+modelBounds.max[2]-blueprint.bounds.min[2]-blueprint.bounds.max[2])/2;
       referencePad.position.x=(blueprint.bounds.min[0]+blueprint.bounds.max[0])/2;
       referencePad.scale.x=blueprint.bounds.max[0]-blueprint.bounds.min[0]+.8;
       const nodes=new Set<string>();
@@ -466,7 +472,7 @@ export default function BuildingViewer(props: Props) {
     const render=()=>{
       if(disposed||lost||!latest.current.active||document.hidden){ticking=false;return;}
 
-      if(latest.current.comparing && referenceBuilt){
+      if(latest.current.comparing && referenceBuilt && !latest.current.compactComparison){
         const split=renderer as SplitRenderer;
         const width=Math.max(2,host.clientWidth),height=Math.max(1,host.clientHeight);
         const left=Math.floor(width/2),right=width-left;
@@ -489,11 +495,15 @@ export default function BuildingViewer(props: Props) {
           split.setViewport(0,0,width,height);
         }
       }else{
-        frame.visible=true;
-        referenceFrame.visible=false;
+        const reference=latest.current.comparing && referenceBuilt &&
+          latest.current.compactComparison && latest.current.comparisonSide==="reference";
+        frame.visible=!reference;
+        referenceFrame.visible=reference;
         renderer.render(scene,camera);
       }
-      host.dataset.compareMode=latest.current.comparing?"dual":"single";
+      host.dataset.compareMode=latest.current.comparing
+        ? latest.current.compactComparison?latest.current.comparisonSide:"dual"
+        : "single";
       host.dataset.comparePhase=elapsed.toFixed(4);
       host.dataset.referenceMembers=String(referenceParts.length);
       // Values are sampled from the actual camera and GPU renderer, never
@@ -542,7 +552,7 @@ export default function BuildingViewer(props: Props) {
     const resize=()=>{
       if(disposed) return;
       const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
-      camera.aspect=(latest.current.comparing?Math.max(1,Math.floor(w/2)):w)/h;
+      camera.aspect=(latest.current.comparing&&!latest.current.compactComparison?Math.max(1,Math.floor(w/2)):w)/h;
       camera.updateProjectionMatrix();
       renderer.setSize(w,h,false);
       // Keep the building contained after mobile rotation or inspector resize.
@@ -550,6 +560,29 @@ export default function BuildingViewer(props: Props) {
       else if(!manuallyMoved)viewCamera(selectedView,false);
       else {dirty=true;wake();}
     };
+    // Short taps on the actual model or annotations reveal the linked lesson.
+    const hitTest=new THREE.Raycaster();
+    const pointerStart={x:0,y:0};
+    const pointerDown=(e:PointerEvent)=>{pointerStart.x=e.clientX;pointerStart.y=e.clientY;};
+    const pointerUp=(e:PointerEvent)=>{
+      if(Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)>8)return;
+      if(!latest.current.active||!latest.current.showHighlights)return;
+      const bounds=renderer.domElement.getBoundingClientRect();
+      const px=e.clientX-bounds.left,py=e.clientY-bounds.top;
+      if(px<0||py<0||px>bounds.width||py>bounds.height)return;
+      const comparing=latest.current.comparing&&referenceBuilt;
+      const split=comparing&&!latest.current.compactComparison;
+      const reference=comparing&&(split?px<bounds.width/2:latest.current.comparisonSide==="reference");
+      const width=split?bounds.width/2:bounds.width;
+      const x=split?px-(reference?0:width):px;
+      hitTest.setFromCamera(new THREE.Vector2(x/width*2-1,1-py/bounds.height*2),camera);
+      const candidates=reference
+        ? [...referenceParts.map(item=>item.mesh),...referenceSurfaces.map(item=>item.mesh),...teachingLines.filter(item=>item.cue.side==="reference").map(item=>item.mesh)]
+        : [...markers.map(item=>item.mesh),...segments.map(item=>item.mesh),...teachingLines.filter(item=>item.cue.side==="irregular").map(item=>item.mesh)];
+      if(hitTest.intersectObjects(candidates,false).length)latest.current.onHighlightSelect();
+    };
+    renderer.domElement.addEventListener("pointerdown",pointerDown);
+    renderer.domElement.addEventListener("pointerup",pointerUp);
     const observer=new ResizeObserver(resize);
     observer.observe(host);
     const onVisible=()=>{lastStamp=0; if(!document.hidden){dirty=true;wake();}};
@@ -565,7 +598,7 @@ export default function BuildingViewer(props: Props) {
       compare:()=>{
         if(latest.current.comparing&&!referenceBuilt)buildReference();
         const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
-        camera.aspect=(latest.current.comparing?Math.max(1,Math.floor(w/2)):w)/h;
+        camera.aspect=(latest.current.comparing&&!latest.current.compactComparison?Math.max(1,Math.floor(w/2)):w)/h;
         camera.updateProjectionMatrix();
         updateModel(elapsed,blend);
         viewCamera(selectedView,false);
@@ -584,6 +617,8 @@ export default function BuildingViewer(props: Props) {
       controls.removeEventListener("start",onUserStart);
       controls.removeEventListener("change",markDirty);
       controls.dispose();
+      renderer.domElement.removeEventListener("pointerdown",pointerDown);
+      renderer.domElement.removeEventListener("pointerup",pointerUp);
       document.removeEventListener("visibilitychange",onVisible);
       renderer.domElement.removeEventListener("webglcontextlost",onLoss);
       renderer.domElement.remove();
@@ -604,7 +639,8 @@ export default function BuildingViewer(props: Props) {
   }, []);
   useEffect(()=>{runtime.current?.changeScenario(props.scenario);},[props.scenario]);
   useEffect(()=>{runtime.current?.view(props.view);},[props.view,props.cameraPulse]);
-  useEffect(()=>{runtime.current?.compare();},[props.comparing]);
+  useEffect(()=>{runtime.current?.compare();},[props.comparing,props.compactComparison]);
+  useEffect(()=>{runtime.current?.refresh();},[props.comparisonSide]);
   useEffect(()=>{if(props.resetToken>0)runtime.current?.reset();},[props.resetToken]);
   return <div ref={root} data-testid="irregularity-three-canvas" data-scenario={props.scenario} className="h-full w-full touch-none" />;
 }
