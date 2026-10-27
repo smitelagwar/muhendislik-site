@@ -2314,10 +2314,30 @@ body:has([data-testid="hsyncad-app-shell"]) {
 @media (max-width: 639px) {
   [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-mobile-actions"] {
     display: grid !important;
-    grid-template-columns: minmax(44px, auto) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(52px, auto) minmax(0, 1fr);
+    grid-auto-rows: minmax(44px, auto);
+    align-items: stretch;
   }
-  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-mobile-actions"] > button:nth-child(2) {
-    display: none;
+  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-mobile-action-share-btn"] {
+    display: none !important;
+  }
+  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-mobile-more-btn"] {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    height: 100%;
+  }
+  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-mobile-actions"] > button[aria-label="Formu Düzenle"],
+  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-mobile-actions"] > button[aria-label="Canlı PDF Önizle"] {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-mobile-actions"] > button:last-child {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-mobile-actions"] button {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 @media (forced-colors: active) {
