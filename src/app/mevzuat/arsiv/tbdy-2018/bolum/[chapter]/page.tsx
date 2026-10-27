@@ -92,7 +92,7 @@ export default async function TbdyChapterPage({ params }: Props) {
               <div className="min-w-0 rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] px-4 py-5 sm:px-7 sm:py-8">
                 <div className="mb-6 flex flex-wrap items-center gap-3 border-b border-[var(--home-border)] pb-4 text-xs">
                   <span className="rounded-md bg-amber-500/10 px-2.5 py-1.5 font-bold text-amber-700 dark:text-amber-400">Okunabilir görünüm</span>
-                  <Link href={`${getTbdyChapterHref(chapter)}/ham`} className="inline-flex min-h-10 items-center rounded-md px-2 text-[var(--home-muted)] hover:text-[var(--home-fg)] hover:underline">Ham Markdown</Link>
+                  <Link href={`${getTbdyChapterHref(chapter)}/ham`} prefetch={false} className="inline-flex min-h-10 items-center rounded-md px-2 text-[var(--home-muted)] hover:text-[var(--home-fg)] hover:underline">Ham Markdown</Link>
                   <a href={getTbdyPdfUrl(section.pdfPageStart)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1 font-semibold text-[var(--home-fg)] hover:underline">
                     PDF'de aç <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
                   </a>
@@ -107,8 +107,8 @@ export default async function TbdyChapterPage({ params }: Props) {
             )}
 
             <nav aria-label="Bölüm değiştir" className="mt-6 flex flex-wrap items-center justify-between gap-3">
-              {previous ? <Link href={getTbdyChapterHref(previous.sectionId)} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[var(--home-border)] bg-[var(--home-surface)] px-4 text-sm font-bold text-[var(--home-fg)] hover:border-amber-500"><ArrowLeft className="h-4 w-4" aria-hidden /> Önceki bölüm</Link> : <span />}
-              {next ? <Link href={getTbdyChapterHref(next.sectionId)} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[var(--home-border)] bg-[var(--home-surface)] px-4 text-sm font-bold text-[var(--home-fg)] hover:border-amber-500">Sonraki bölüm <ArrowRight className="h-4 w-4" aria-hidden /></Link> : null}
+              {previous ? <Link href={getTbdyChapterHref(previous.sectionId)} prefetch={false} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[var(--home-border)] bg-[var(--home-surface)] px-4 text-sm font-bold text-[var(--home-fg)] hover:border-amber-500"><ArrowLeft className="h-4 w-4" aria-hidden /> Önceki bölüm</Link> : <span />}
+              {next ? <Link href={getTbdyChapterHref(next.sectionId)} prefetch={false} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[var(--home-border)] bg-[var(--home-surface)] px-4 text-sm font-bold text-[var(--home-fg)] hover:border-amber-500">Sonraki bölüm <ArrowRight className="h-4 w-4" aria-hidden /></Link> : null}
             </nav>
           </main>
 

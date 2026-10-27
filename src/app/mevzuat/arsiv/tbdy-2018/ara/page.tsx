@@ -62,7 +62,7 @@ export default async function TbdySearchPage({ searchParams }: Props) {
                     <h3 className="mt-2 text-base font-black leading-snug text-[var(--home-fg)]">{result.heading}</h3>
                     <p className="mt-2 line-clamp-3 break-words text-xs leading-6 text-[var(--home-muted)]">{result.excerpt}</p>
                     <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
-                      <Link href={result.href} className="inline-flex min-h-11 items-center text-sm font-bold text-[var(--home-fg)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
+                      <Link href={result.href} prefetch={false} className="inline-flex min-h-11 items-center text-sm font-bold text-[var(--home-fg)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
                         {result.matchType === "madde" ? "Maddeye git" : "Sayfayı aç"}
                       </Link>
                       <a href={getTbdyPdfUrl(result.pdfPage)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[var(--home-muted)] hover:text-[var(--home-fg)] hover:underline">

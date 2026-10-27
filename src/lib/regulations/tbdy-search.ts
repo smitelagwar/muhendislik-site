@@ -45,5 +45,5 @@ export function searchTbdy(rawQuery: string, limit = 35): TbdySearchResult[] {
   return found
     .sort((a, b) => b.rank - a.rank || a.pdfPage - b.pdfPage)
     .slice(0, Math.max(1, Math.min(limit, 50)))
-    .map(({ rank: _rank, ...result }) => result);
+    .map((item) => ({ chapter: item.chapter, pdfPage: item.pdfPage, printedPage: item.printedPage, heading: item.heading, excerpt: item.excerpt, href: item.href, matchType: item.matchType }));
 }

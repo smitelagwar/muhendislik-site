@@ -10,6 +10,7 @@ function ChapterLinks({ active }: { active?: number }) {
         <Link
           key={chapter.number}
           href={getTbdyChapterHref(tbdySectionSlug(chapter.number))}
+          prefetch={false}
           aria-current={active === chapter.number ? "page" : undefined}
           className={`flex min-h-11 items-start gap-3 rounded-lg px-3 py-2.5 text-xs leading-5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${active === chapter.number
             ? "bg-amber-500/10 font-bold text-[var(--home-fg)]"

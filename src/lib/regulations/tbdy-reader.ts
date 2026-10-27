@@ -49,7 +49,7 @@ export function addTbdyClauseAnchors(markdown: string): string {
   const unique = new Set<string>();
   return markdown.split("\n").map((line) => {
     const plain = line.replace(/\s+$/, "");
-    const match = plain.match(/^(\d{1,2}(?:\.\d{1,2}){1,3})\.\s+(.{4,140})$/u);
+    const match = plain.length <= 150 ? plain.match(/^(\d{1,2}(?:\.\d{1,2}){1,3})\.?\s*(?:[–—-]\s*)?([A-Za-zÇĞİÖŞÜçğıöşü].{3,})$/u) : null;
     if (!match || unique.has(match[1])) return line;
     unique.add(match[1]);
     return `### ${match[1]}. ${match[2]}`;

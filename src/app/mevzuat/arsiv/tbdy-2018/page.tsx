@@ -81,6 +81,7 @@ export default function TbdyArchivePage() {
                 <Link
                   key={chapter.number}
                   href={getTbdyChapterHref(tbdySectionSlug(chapter.number))}
+                  prefetch={false}
                   data-testid={`tbdy-open-chapter-${chapter.number}`}
                   className="group flex min-h-36 flex-col rounded-xl border border-[var(--home-border)] bg-[var(--home-surface)] p-5 transition-colors hover:border-amber-500/50 hover:bg-[var(--home-surface-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                 >

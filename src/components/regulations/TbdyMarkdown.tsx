@@ -27,7 +27,7 @@ export function TbdyMarkdown({ raw }: { raw: string }) {
             const clause = title.match(/^(\d+(?:\.\d+){1,3})\./);
             return <h3 id={clause ? `madde-${clause[1].replace(/\./g, "-")}` : undefined} className="scroll-mt-24 pt-4 text-base font-black leading-7 text-[var(--home-fg)]">{children}</h3>;
           },
-          p: ({ children }) => <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--home-fg)]/90">{children}</p>,
+          p: ({ children }) => <p className="whitespace-pre-wrap text-sm leading-7 text-[var(--home-fg)]">{children}</p>,
           a: ({ children, href }) => <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel={href?.startsWith("http") ? "noopener noreferrer" : undefined} className="break-all font-semibold text-amber-700 underline underline-offset-4 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300">{children}</a>,
           blockquote: ({ children }) => <blockquote className="my-5 border-l-4 border-amber-500/70 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-[var(--home-muted)]">{children}</blockquote>,
           ul: ({ children }) => <ul className="list-disc space-y-1 pl-6 text-sm leading-7">{children}</ul>,
