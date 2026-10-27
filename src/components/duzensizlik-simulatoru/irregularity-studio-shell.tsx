@@ -25,6 +25,7 @@ export function IrregularityStudioShell() {
   const [whyOpen, setWhyOpen] = useState(true);
   const [lessonStep, setLessonStep] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [comparing, setComparing] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [shakeLevel, setShakeLevel] = useState<ShakeLevel>(DEFAULT_SHAKE_LEVEL);
   const [showSlabs, setShowSlabs] = useState(true);
@@ -99,6 +100,7 @@ export function IrregularityStudioShell() {
   };
   const reset=()=>{
     setPlaying(false);
+    setComparing(false);
     setSpeed(1);
     setShakeLevel(DEFAULT_SHAKE_LEVEL);
     setShowSlabs(true);
@@ -121,6 +123,7 @@ export function IrregularityStudioShell() {
   const changeMode=()=>{
     const next:Mode=mode==="3d"?"2d":"3d";
     setMode(next);
+    if(next==="2d")setComparing(false);
     setPlaying(false);
     setSettingsOpen(false);
   };
@@ -140,6 +143,12 @@ export function IrregularityStudioShell() {
           <ArrowLeft size={19} aria-hidden="true" />
         </Link>
         <h1 className="min-w-0 flex-1 truncate text-sm font-bold sm:text-base">Bina Düzensizlikleri <span className="hidden font-medium text-slate-400 sm:inline">· TBDY 2018</span></h1>
+        <button type="button" data-testid="irregularity-compare-toggle" aria-pressed={comparing}
+          disabled={mode!=="3d"||viewerFailed} onClick={()=>{setComparing(value=>!value);setSettingsOpen(false);}}
+          className={"h-10 shrink-0 rounded-xl border px-2.5 text-[11px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 disabled:opacity-40 "+
+            (comparing?"border-sky-300 bg-sky-300/20 text-sky-100":"border-white/15 text-slate-200 hover:bg-white/10")}>
+          {comparing?"Tek bina":"Karşılaştır"}
+        </button>
         <button ref={panelButton} type="button" data-testid="irregularity-toggle-panel" aria-expanded={panelOpen} aria-controls="irregularity-learning-panel" onClick={togglePanel} className="inline-flex h-10 min-w-10 items-center justify-center gap-2 rounded-xl border border-white/15 px-2.5 text-xs hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300">
           <BookOpen size={17} aria-hidden="true" /><span className="hidden sm:inline">{panelOpen?"Rehberi kapat":"Rehber"}</span>
           <span className="sr-only sm:hidden">Öğretici paneli {panelOpen?"kapat":"aç"}</span>
@@ -155,12 +164,18 @@ export function IrregularityStudioShell() {
 
           <div className="relative min-h-0 flex-1 bg-[radial-gradient(ellipse_at_50%_30%,#1b3447,#0b1725_70%)]" data-testid="irregularity-scene-area">
             <div className={"absolute inset-0 transition-opacity duration-150 "+(mode==="2d"||viewerFailed?"pointer-events-none opacity-0":"opacity-100")} aria-hidden={mode!=="3d"||viewerFailed}>
-              <Viewer key={viewerKey} scenario={scenario} view={view} resetToken={resetToken} cameraPulse={cameraPulse}
+              <Viewer key={viewerKey} scenario={scenario} comparing={comparing} view={view} resetToken={resetToken} cameraPulse={cameraPulse}
                 playing={playing} speed={speed} intensity={shakeStrength(shakeLevel)} showSlabs={showSlabs} showMembers={showMembers}
                 showHighlights={showHighlights} active={mode==="3d"&&!viewerFailed}
                 onFailure={()=>{setViewerFailed(true);setMode("2d");setPlaying(false);}} />
             </div>
             {(mode==="2d"||viewerFailed)&&<div className="absolute inset-0"><IrregularityFallback2D scenario={scenario}/></div>}
+            {comparing&&mode==="3d"&&!viewerFailed&&(
+              <div aria-hidden="true" className="pointer-events-none absolute left-0 right-0 top-12 z-10 flex text-center text-[10px] font-semibold sm:text-xs">
+                <span className="w-1/2 border-r border-white/15 bg-[#102235]/75 py-1.5 text-emerald-200">Düzenli referans</span>
+                <span className="w-1/2 bg-[#102235]/75 py-1.5 text-amber-100">Düzensiz · {scenario}</span>
+              </div>
+            )}
             <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-white/10 bg-[#102235]/75 px-2.5 py-1.5 text-xs text-slate-200 backdrop-blur-sm">
               <span className="font-semibold text-sky-200">{scenario}</span><span className="ml-2 hidden text-slate-300 sm:inline">{data.emphasis}</span>
             </div>

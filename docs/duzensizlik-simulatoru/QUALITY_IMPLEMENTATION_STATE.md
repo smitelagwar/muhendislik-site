@@ -24,3 +24,10 @@
 - execution_status: DEVAM_EDIYOR
 - active_stage: ASAMA_01
 - evidence: ilgili CI ve deploy sonuçları finalde güncellenecek.
+
+## Karşılaştırmalı 3B simülasyon — 2026-10-27 / Aşama 1
+- Çalışma dalı: `internal-irregularity-comparison-stage1-20261027`; main/production bu aşamada değiştirilmez.
+- Ayrı `reference-model.ts` geometrisi: A1 dengeli perdeler, A2 kesintisiz döşeme, A3 düzenli plan, B1 normal kolon kesiti, B2 sürekli perde, B3 temele devam eden kolon.
+- Tek WebGLRenderer ve tek animasyon döngüsü korunur. İki THREE.Group, aynı zaman/şiddet ve kamera ile iki scissor viewport'ta çizilir.
+- Tek bina modu önceki görüntüleme yoluyla çalışmaya devam eder. Senaryo açıklamaları Aşama 2, mobil karşılaştırma deneyimi Aşama 3, gerçek tarayıcı/geometri/build ve üretim dağıtımı Aşama 4 kapsamındadır.
+- Referans binanın düzenli olması güvenlik onayı değildir; hareketler eğitsel, ölçeksiz ve hesap sonucu değildir.

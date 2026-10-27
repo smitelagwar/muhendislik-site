@@ -8,6 +8,7 @@ import type { ScenarioId } from "@/lib/duzensizlik-simulatoru/scenarios";
 import { FOCUS_POINTS, focusAnchorAt, type FocusPoint } from "@/lib/duzensizlik-simulatoru/focus";
 import { cameraFitDistance, smootherStep } from "@/lib/duzensizlik-simulatoru/camera";
 import { MAX_SHAKE_STRENGTH } from "@/lib/duzensizlik-simulatoru/intensity";
+import { makeReferenceBlueprint, referenceJointAt, referenceSlabPose } from "@/lib/duzensizlik-simulatoru/reference-model";
 
 export type CameraView = "perspective" | "front" | "side" | "left" | "top";
 // The repo provides a minimal hand-written Three.js type shim for its CAD modules.
@@ -15,8 +16,14 @@ export type CameraView = "perspective" | "front" | "side" | "left" | "top";
 // to the shared shim (which belongs to the other engineering tools).
 type DeformedGeometry = THREE.BufferGeometry & { computeVertexNormals(): void };
 type SlabRim = THREE.LineSegments & { scale: THREE.Vector3; rotation: THREE.Euler };
+type SplitRenderer = THREE.WebGLRenderer & {
+  setScissorTest(enabled:boolean):void;
+  setViewport(x:number,y:number,width:number,height:number):void;
+  setScissor(x:number,y:number,width:number,height:number):void;
+};
 interface Props {
   scenario: ScenarioId;
+  comparing: boolean;
   view: CameraView;
   resetToken: number;
   cameraPulse: number;
@@ -32,6 +39,7 @@ interface Props {
 interface Runtime {
   refresh: () => void;
   changeScenario: (scenario: ScenarioId) => void;
+  compare: () => void;
   view: (view: CameraView, immediate?: boolean) => void;
   reset: () => void;
 }
@@ -107,11 +115,18 @@ export default function BuildingViewer(props: Props) {
     // Avoid allocating a new Three.Vector3 for every beam/column, every frame.
     const segmentDirection = new THREE.Vector3();
     const frame = new THREE.Group();
+    const referenceFrame = new THREE.Group();
+    referenceFrame.visible=false;
     scene.add(frame);
+    scene.add(referenceFrame);
     const pad = new THREE.Mesh(unit, mat.foundation);
     pad.scale.set(7.9,.34,7.9);
     pad.position.set(0,-.26,0);
     frame.add(pad);
+    const referencePad=new THREE.Mesh(unit,mat.foundation);
+    referencePad.scale.set(7.9,.34,7.9);
+    referencePad.position.set(0,-.26,0);
+    referenceFrame.add(referencePad);
     const grid = new THREE.GridHelper(28,28,"#334e66","#223448");
     grid.position.y = -.46;
     scene.add(grid);
@@ -131,6 +146,9 @@ export default function BuildingViewer(props: Props) {
     let segments: Part[] = [];
     let surfaces: Surface[] = [];
     let markers: Marker[] = [];
+    let referenceParts: Part[] = [];
+    let referenceSurfaces: Surface[] = [];
+    let referenceBuilt=false;
     let modelBounds = makeBlueprint(scenario).bounds;
     const updateSegment = (part: Part, phase: number, intensity: number) => {
       if (part.wallRest) {
@@ -165,6 +183,100 @@ export default function BuildingViewer(props: Props) {
       }
       part.mesh.visible = part.kind==="highlight" ? latest.current.showHighlights : latest.current.showMembers;
     };
+
+    // Two geometries share one WebGL context, camera and animation timeline.
+    const clearReference=()=>{
+      for(const part of referenceParts){
+        referenceFrame.remove(part.mesh);
+        if(part.wallRest)part.mesh.geometry.dispose();
+      }
+      for(const surface of referenceSurfaces){
+        referenceFrame.remove(surface.mesh);
+        referenceFrame.remove(surface.rim);
+      }
+      referenceParts=[];
+      referenceSurfaces=[];
+    };
+    const updateReference=(phase:number,intensity:number)=>{
+      for(const part of referenceParts){
+        if(part.wallRest){
+          const attribute=part.mesh.geometry.getAttribute("position") as THREE.BufferAttribute;
+          const vertices=attribute.array as Float32Array;
+          for(let i=0;i<attribute.count;i++){
+            const j=i*3;
+            const at=referenceJointAt([part.wallRest[j],part.wallRest[j+1],part.wallRest[j+2]],phase,intensity);
+            vertices[j]=at[0];vertices[j+1]=at[1];vertices[j+2]=at[2];
+          }
+          attribute.needsUpdate=true;
+          (part.mesh.geometry as DeformedGeometry).computeVertexNormals();
+          part.mesh.visible=latest.current.showMembers;
+          continue;
+        }
+        const a=referenceJointAt(part.a,phase,intensity);
+        const b=referenceJointAt(part.b,phase,intensity);
+        const pose=segmentPose(a,b,part.trimA,part.trimB);
+        if(!pose){part.mesh.visible=false;continue;}
+        part.mesh.position.set(...pose.mid);
+        part.mesh.quaternion.setFromUnitVectors(axis,segmentDirection.set(...pose.direction));
+        const cross=part.kind==="column"?COLUMN_SECTION:part.kind==="transfer"?.38:BEAM_SECTION;
+        part.mesh.scale.set(cross,pose.length,part.kind==="transfer"?.35:cross);
+        part.mesh.visible=latest.current.showMembers;
+      }
+      for(const surface of referenceSurfaces){
+        const pose=referenceSlabPose([surface.x,surface.y,surface.z],phase,intensity);
+        surface.mesh.position.set(...pose.position);
+        surface.mesh.rotation.set(0,pose.yaw,0);
+        surface.mesh.visible=latest.current.showSlabs;
+        surface.rim.position.copy(surface.mesh.position);
+        surface.rim.rotation.set(0,pose.yaw,0);
+        surface.rim.visible=latest.current.showSlabs;
+      }
+    };
+    const buildReference=()=>{
+      clearReference();
+      const blueprint=makeReferenceBlueprint(scenario);
+      referencePad.position.x=(blueprint.bounds.min[0]+blueprint.bounds.max[0])/2;
+      referencePad.scale.x=blueprint.bounds.max[0]-blueprint.bounds.min[0]+.8;
+      const nodes=new Set<string>();
+      for(const member of blueprint.segments)if(member.kind==="column"){
+        nodes.add(pointKey(member.a));nodes.add(pointKey(member.b));
+      }
+      for(const member of blueprint.segments){
+        const kind=member.kind;
+        let geometry:THREE.BufferGeometry=unit;
+        let wallRest:Float32Array|undefined;
+        if(kind==="wall"){
+          geometry=new THREE.BoxGeometry(.20,member.b[1]-member.a[1],WALL_BAY_DEPTH);
+          const vertices=(geometry.getAttribute("position") as THREE.BufferAttribute).array as Float32Array;
+          const center=(member.a[1]+member.b[1])/2;
+          for(let i=0;i<vertices.length;i+=3){
+            vertices[i]+=member.a[0];vertices[i+1]+=center;vertices[i+2]+=member.a[2];
+          }
+          wallRest=Float32Array.from(vertices);
+        }
+        const mesh=new THREE.Mesh(geometry,mat[kind]);
+        if(wallRest)mesh.frustumCulled=false;
+        mesh.userData.kind=kind;
+        mesh.userData.storey=member.storey;
+        referenceFrame.add(mesh);
+        const trim=kind==="beam"||kind==="transfer";
+        referenceParts.push({mesh,a:member.a,b:member.b,kind,wallRest,
+          trimA:trim&&nodes.has(pointKey(member.a))?BEAM_FACE_TRIM:0,
+          trimB:trim&&nodes.has(pointKey(member.b))?BEAM_FACE_TRIM:0});
+      }
+      for(const slab of blueprint.slabs){
+        const mesh=new THREE.Mesh(unit,mat.slab);
+        mesh.scale.set(slab.width,SLAB_THICKNESS,slab.depth);
+        referenceFrame.add(mesh);
+        const edge=new THREE.LineSegments(slabEdges,slabEdgeMaterial) as SlabRim;
+        edge.scale.copy(mesh.scale);
+        edge.renderOrder=2;
+        referenceFrame.add(edge);
+        referenceSurfaces.push({mesh,rim:edge,x:slab.cx,z:slab.cz,y:slab.level*1.6});
+      }
+      referenceBuilt=true;
+      updateReference(elapsed,blend);
+    };
     const updateModel = (phase: number,intensity: number) => {
       host.dataset.shakeIntensity = String(latest.current.intensity);
       for(const part of segments) updateSegment(part,phase,intensity);
@@ -177,6 +289,7 @@ export default function BuildingViewer(props: Props) {
         surface.rim.rotation.set(0,pose.yaw,0);
         surface.rim.visible=latest.current.showSlabs;
       }
+      if(latest.current.comparing && referenceBuilt)updateReference(phase,intensity);
       for(const marker of markers) {
         const at=focusAnchorAt(marker.point,scenario,phase,intensity);
         marker.mesh.position.set(...at);
@@ -264,6 +377,7 @@ export default function BuildingViewer(props: Props) {
       host.dataset.focusId=markers.map(m=>m.point.id).join(",");
       elapsed=0;
       blend=0;
+      if(referenceBuilt)buildReference();
       updateModel(0,0);
       dirty=true;
     };
@@ -302,7 +416,37 @@ export default function BuildingViewer(props: Props) {
     };
     const render=()=>{
       if(disposed||lost||!latest.current.active||document.hidden){ticking=false;return;}
-      renderer.render(scene,camera);
+
+      if(latest.current.comparing && referenceBuilt){
+        const split=renderer as SplitRenderer;
+        const width=Math.max(2,host.clientWidth),height=Math.max(1,host.clientHeight);
+        const left=Math.floor(width/2),right=width-left;
+        split.setScissorTest(true);
+        try{
+          frame.visible=false;
+          referenceFrame.visible=true;
+          split.setViewport(0,0,left,height);
+          split.setScissor(0,0,left,height);
+          renderer.render(scene,camera);
+          frame.visible=true;
+          referenceFrame.visible=false;
+          split.setViewport(left,0,right,height);
+          split.setScissor(left,0,right,height);
+          renderer.render(scene,camera);
+        }finally{
+          frame.visible=true;
+          referenceFrame.visible=false;
+          split.setScissorTest(false);
+          split.setViewport(0,0,width,height);
+        }
+      }else{
+        frame.visible=true;
+        referenceFrame.visible=false;
+        renderer.render(scene,camera);
+      }
+      host.dataset.compareMode=latest.current.comparing?"dual":"single";
+      host.dataset.comparePhase=elapsed.toFixed(4);
+      host.dataset.referenceMembers=String(referenceParts.length);
       // Values are sampled from the actual camera and GPU renderer, never
       // inferred from an active button. Used by bounded browser regression QA.
       const pos=[camera.position.x,camera.position.y,camera.position.z].map(v=>v.toFixed(3)).join(",");
@@ -349,7 +493,7 @@ export default function BuildingViewer(props: Props) {
     const resize=()=>{
       if(disposed) return;
       const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
-      camera.aspect=w/h;
+      camera.aspect=(latest.current.comparing?Math.max(1,Math.floor(w/2)):w)/h;
       camera.updateProjectionMatrix();
       renderer.setSize(w,h,false);
       // Keep the building contained after mobile rotation or inspector resize.
@@ -365,7 +509,19 @@ export default function BuildingViewer(props: Props) {
     renderer.domElement.addEventListener("webglcontextlost",onLoss);
     rebuild(scenario);
     runtime.current={
-      refresh:()=>{updateModel(elapsed,blend);dirty=true;wake();},
+      refresh:()=>{
+        if(latest.current.comparing&&!referenceBuilt)buildReference();
+        updateModel(elapsed,blend);dirty=true;wake();
+      },
+      compare:()=>{
+        if(latest.current.comparing&&!referenceBuilt)buildReference();
+        const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);
+        camera.aspect=(latest.current.comparing?Math.max(1,Math.floor(w/2)):w)/h;
+        camera.updateProjectionMatrix();
+        updateModel(elapsed,blend);
+        viewCamera(selectedView,false);
+        dirty=true;wake();
+      },
       changeScenario:(next)=>{rebuild(next);viewCamera(selectedView,false);wake();},
       view:viewCamera,
       reset:()=>{elapsed=0;blend=0;updateModel(0,0);viewCamera("perspective",false);},
@@ -384,6 +540,7 @@ export default function BuildingViewer(props: Props) {
       renderer.domElement.remove();
       renderer.dispose();
       for(const p of segments) if(p.wallRest) p.mesh.geometry.dispose();
+      clearReference();
       slabEdges.dispose();
       slabEdgeMaterial.dispose();
       focusSphere.dispose();
@@ -396,6 +553,7 @@ export default function BuildingViewer(props: Props) {
   }, []);
   useEffect(()=>{runtime.current?.changeScenario(props.scenario);},[props.scenario]);
   useEffect(()=>{runtime.current?.view(props.view);},[props.view,props.cameraPulse]);
+  useEffect(()=>{runtime.current?.compare();},[props.comparing]);
   useEffect(()=>{if(props.resetToken>0)runtime.current?.reset();},[props.resetToken]);
   return <div ref={root} data-testid="irregularity-three-canvas" data-scenario={props.scenario} className="h-full w-full touch-none" />;
 }
