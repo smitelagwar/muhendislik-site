@@ -118,6 +118,9 @@ export function BelgeStudioMobileActionsSheet({
 
         <DialogPrimitive.Content
           data-testid="belge-mobile-actions-drawer"
+          data-belge-readability-drawer={readability ? "true" : undefined}
+          data-belge-high-contrast={readability?.settings.highContrast ? "true" : undefined}
+          style={readability?.rootStyle}
           className="fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[min(85dvh,640px)] rounded-t-2xl border-t border-border bg-background shadow-2xl outline-none data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom motion-reduce:animate-none"
           onCloseAutoFocus={(e) => {
             const reason = closeReasonRef.current;
