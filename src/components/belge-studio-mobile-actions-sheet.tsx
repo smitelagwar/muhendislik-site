@@ -7,6 +7,7 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-context";
 import { useBelgeStudioTheme } from "@/hooks/use-belge-studio-theme";
 import { BelgeStudioReadabilityMenu } from "@/components/belge-studio-readability-menu";
+import { BelgeStudioFormViewMenu } from "@/components/belge-studio-form-view-menu";
 import type { BelgeReadabilityControls } from "@/hooks/use-belge-studio-readability";
 import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
 import {
@@ -64,6 +65,7 @@ export function BelgeStudioMobileActionsSheet({
   downloadBlank,
   blankDownloading,
   readability,
+  formView,
 }: BelgeStudioMobileActionsSheetProps) {
   const { drawerOpen, closeDrawer, triggerElement, preview, extraActions } = useBelgeStudioMobileContext();
   const { isDark, toggle: toggleTheme } = useBelgeStudioTheme();
@@ -226,6 +228,26 @@ export function BelgeStudioMobileActionsSheet({
                   <BelgeStudioReadabilityMenu readability={readability} embedded />
                 </div>
               </details>
+            )}
+
+            {formView && (
+              <div className="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-border bg-card/60 p-2">
+                <span className="text-sm font-semibold">Sol form görünümü</span>
+                <BelgeStudioFormViewMenu
+                  mode={formView.mode}
+                  manualScale={formView.manualScale}
+                  density={formView.density}
+                  appliedScale={formView.appliedScale}
+                  fitStatus={formView.fitStatus}
+                  onChooseScale={formView.onChooseScale}
+                  onToggleCompact={formView.onToggleCompact}
+                  onFit={formView.onFit}
+                  onReset={formView.onReset}
+                  side="top"
+                  align="end"
+                  iconOnly
+                />
+              </div>
             )}
 
             {/* 2. Üç Eşit İşlem Düğmesi (Örnek Veri, Temizle, Geri Al) */}
