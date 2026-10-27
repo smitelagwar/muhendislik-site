@@ -42,6 +42,15 @@ jobs:
         env:
           CI: "true"
           PLAYWRIGHT_PRODUCTION_SERVER: "0"
+      - name: Real PDF round-trip and screen-reader accessibility audit
+        run: >-
+          npx playwright test --config=playwright.site.config.ts
+          tests/site-audit/belgeler-functional-audit.spec.ts
+          --project=chromium-desktop-1920
+          --grep 'düzenleme, temizleme ve geri alma PDF içeriğini korumalı|ciddi erişilebilirlik'
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
       - name: Preserve failure screenshots and traces
         if: always()
         uses: actions/upload-artifact@v4
