@@ -9,6 +9,7 @@ import {
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
+import { useBelgeStudioReadability } from "@/hooks/use-belge-studio-readability";
 import { useBelgeStudioPdfFocus } from "@/hooks/use-belge-studio-pdf-focus";
 import { useBelgeFieldFocus } from "@/hooks/use-belge-field-focus";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
@@ -84,6 +85,7 @@ export function TaahhutnameStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
+  const readability = useBelgeStudioReadability();
   const { scrollContainerRef, contentWrapperRef, contentWrapperProps, ...formView } = useBelgeStudioFormView({ isModal });
   void contentWrapperRef;
   const pdfFocus = useBelgeStudioPdfFocus({
@@ -277,6 +279,12 @@ export function TaahhutnameStudio({
       <div
         ref={studioRootRef}
         data-studio-locked={isModal ? undefined : "true"}
+        data-belge-readability-root=""
+        data-belge-ui-large={readability.settings.uiScale >= 150 || readability.settings.textScale >= 150 ? "true" : undefined}
+        data-belge-high-contrast={readability.settings.highContrast ? "true" : undefined}
+        data-belge-comfortable={readability.settings.comfortableReading ? "true" : undefined}
+        data-belge-large-targets={readability.settings.largeTargets ? "true" : undefined}
+        style={readability.rootStyle}
         className={`flex flex-col bg-background text-foreground w-full max-w-full min-w-0 h-full overflow-hidden ${
           isModal
           ? "max-h-[96vh] rounded-2xl border border-border shadow-2xl"
@@ -319,6 +327,7 @@ export function TaahhutnameStudio({
           }`}
           {...formFocusContainerProps}
         >
+          <div className="belge-readability-form-content">
           <div {...contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-taahhutnamesi" layouts={layouts} excludedFields={["tc_kimlik_no", "telefon", "adres", "yapi_adresi", "yapi_sahibi_adresi", "tarih"]} />
 
@@ -596,6 +605,7 @@ export function TaahhutnameStudio({
           </BelgeStudioSection>
 
           </div>
+          </div>
         </div>
 
         <div
@@ -646,6 +656,7 @@ export function TaahhutnameStudio({
         documentId="santiye-sefi-taahhutnamesi"
         templateFilename="SANTIYE_SEFI_TAAHHUTNAMESI_BOS.pdf"
         formView={formView}
+        readability={readability}
       />
         <BelgeShareDialog share={shareApi} documentTitle="Şantiye Şefi Taahhütnamesi" />
       </div>
