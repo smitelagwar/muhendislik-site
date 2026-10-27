@@ -32,6 +32,16 @@ jobs:
         env:
           CI: "true"
           PLAYWRIGHT_PRODUCTION_SERVER: "0"
+      - name: Existing Belgeler interactions (drawer, Form View, inline editing)
+        run: >-
+          npx playwright test --config=playwright.site.config.ts
+          tests/site-audit/belgeler-mobile-drawer.spec.ts
+          tests/site-audit/belgeler-form-view.spec.ts
+          tests/site-audit/belgeler-inline-edit.spec.ts
+          --project=chromium-desktop-1366
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
       - name: Preserve failure screenshots and traces
         if: always()
         uses: actions/upload-artifact@v4
