@@ -283,6 +283,7 @@ export function SozlesmeStudio({
         ref={studioRootRef}
         data-studio-locked={isModal ? undefined : "true"}
         data-belge-readability-root=""
+        data-belge-readability-active={readability.settings.uiScale !== 100 || readability.settings.textScale !== 100 || readability.settings.highContrast || readability.settings.comfortableReading || readability.settings.largeTargets ? "true" : undefined}
         data-belge-ui-large={readability.settings.uiScale >= 150 || readability.settings.textScale >= 150 ? "true" : undefined}
         data-belge-high-contrast={readability.settings.highContrast ? "true" : undefined}
         data-belge-comfortable={readability.settings.comfortableReading ? "true" : undefined}
