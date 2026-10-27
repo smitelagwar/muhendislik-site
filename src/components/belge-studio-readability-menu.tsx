@@ -16,7 +16,7 @@ const toggleClass = "flex min-h-11 w-full items-center justify-between gap-3 rou
 export function BelgeStudioReadabilityOptions({ readability }: Props) {
   const { settings, update, resetScale, resetAll } = readability;
   return (
-    <div data-testid="belge-readability-options" className="space-y-3 text-foreground">
+    <div data-testid="belge-readability-options" style={readability.rootStyle} data-high-contrast={settings.highContrast ? "true" : undefined} className="space-y-3 text-foreground">
       <div className="flex items-center justify-between gap-3">
         <span className="font-bold text-sm">Arayüz büyüklüğü</span>
         <span data-testid="belge-ui-scale-value" className="font-mono font-bold tabular-nums">%{settings.uiScale}</span>
