@@ -6,6 +6,8 @@ import { X } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-context";
 import { useBelgeStudioTheme } from "@/hooks/use-belge-studio-theme";
+import { BelgeStudioReadabilityMenu } from "@/components/belge-studio-readability-menu";
+import type { BelgeReadabilityControls } from "@/hooks/use-belge-studio-readability";
 import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
 import {
   BelgeBackIcon,
@@ -38,6 +40,7 @@ export interface BelgeStudioMobileActionsSheetProps {
   downloadBlank: () => Promise<void>;
   blankDownloading: boolean;
   formView?: BelgeStudioFormViewControls;
+  readability?: BelgeReadabilityControls;
 }
 
 /**
@@ -60,6 +63,7 @@ export function BelgeStudioMobileActionsSheet({
   downloading,
   downloadBlank,
   blankDownloading,
+  readability,
 }: BelgeStudioMobileActionsSheetProps) {
   const { drawerOpen, closeDrawer, triggerElement, preview, extraActions } = useBelgeStudioMobileContext();
   const { isDark, toggle: toggleTheme } = useBelgeStudioTheme();
@@ -214,6 +218,15 @@ export function BelgeStudioMobileActionsSheet({
                 </span>
               </button>
             </div>
+
+            {readability && (
+              <details className="rounded-xl border border-border bg-card/70 p-3" data-testid="belge-mobile-readability-section">
+                <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-semibold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">Arayüz ve Okunabilirlik · %{readability.settings.uiScale}</summary>
+                <div className="border-t border-border pt-3">
+                  <BelgeStudioReadabilityMenu readability={readability} embedded />
+                </div>
+              </details>
+            )}
 
             {/* 2. Üç Eşit İşlem Düğmesi (Örnek Veri, Temizle, Geri Al) */}
             <div className="grid grid-cols-3 gap-2">
