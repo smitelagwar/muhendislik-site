@@ -7,6 +7,7 @@ import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Pause, Play, RotateCcw,
 import type { CameraView } from "./building-viewer";
 import { IrregularityFallback2D } from "./irregularity-fallback-2d";
 import { AFAD_TBDY_URL, SCENARIO_IDS, SCENARIOS, type ScenarioId } from "@/lib/duzensizlik-simulatoru/scenarios";
+import { DEFAULT_SHAKE_LEVEL, SHAKE_LEVELS, shakeStrength, type ShakeLevel } from "@/lib/duzensizlik-simulatoru/intensity";
 
 const Viewer = dynamic(() => import("./building-viewer"), { ssr: false });
 type Mode = "3d" | "2d";
@@ -25,6 +26,7 @@ export function IrregularityStudioShell() {
   const [lessonStep, setLessonStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [shakeLevel, setShakeLevel] = useState<ShakeLevel>(DEFAULT_SHAKE_LEVEL);
   const [showSlabs, setShowSlabs] = useState(true);
   const [showMembers, setShowMembers] = useState(true);
   const [showHighlights, setShowHighlights] = useState(true);
@@ -98,6 +100,7 @@ export function IrregularityStudioShell() {
   const reset=()=>{
     setPlaying(false);
     setSpeed(1);
+    setShakeLevel(DEFAULT_SHAKE_LEVEL);
     setShowSlabs(true);
     setShowMembers(true);
     setShowHighlights(true);
@@ -153,7 +156,7 @@ export function IrregularityStudioShell() {
           <div className="relative min-h-0 flex-1 bg-[radial-gradient(ellipse_at_50%_30%,#1b3447,#0b1725_70%)]" data-testid="irregularity-scene-area">
             <div className={"absolute inset-0 transition-opacity duration-150 "+(mode==="2d"||viewerFailed?"pointer-events-none opacity-0":"opacity-100")} aria-hidden={mode!=="3d"||viewerFailed}>
               <Viewer key={viewerKey} scenario={scenario} view={view} resetToken={resetToken} cameraPulse={cameraPulse}
-                playing={playing} speed={speed} showSlabs={showSlabs} showMembers={showMembers}
+                playing={playing} speed={speed} intensity={shakeStrength(shakeLevel)} showSlabs={showSlabs} showMembers={showMembers}
                 showHighlights={showHighlights} active={mode==="3d"&&!viewerFailed}
                 onFailure={()=>{setViewerFailed(true);setMode("2d");setPlaying(false);}} />
             </div>
@@ -200,9 +203,20 @@ export function IrregularityStudioShell() {
             {viewerFailed && <div role="status" className="absolute right-3 top-12 rounded bg-amber-950/70 px-2 py-1 text-xs text-amber-100">3B desteklenemedi; 2B görünüm açık</div>}
           </div>
 
-          <footer className="relative z-20 flex min-h-14 shrink-0 items-center justify-between gap-2 border-t border-white/10 bg-[#101d2c] px-2 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] sm:px-4">
-            <span className="hidden text-[11px] text-slate-400 xl:block">Ölçeksiz eğitsel hareket · Yapısal analiz değildir</span>
-            <div className="flex w-full items-center gap-2 sm:w-auto">
+          <footer className="relative z-20 flex shrink-0 flex-col gap-1.5 border-t border-white/10 bg-[#101d2c] px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4">
+            <div className="flex w-full min-w-0 items-center gap-2">
+              <span className="shrink-0 text-[11px] font-semibold text-slate-300">Sarsıntı</span>
+              <div role="group" aria-label="Görsel deprem sarsıntısı şiddeti" data-testid="irregularity-intensity-controls" className="flex min-w-0 flex-1 gap-1 overflow-x-auto overscroll-x-contain [scrollbar-width:none]">
+                {SHAKE_LEVELS.map(level=><button key={level.id} type="button" data-testid={"irregularity-intensity-"+level.id}
+                  aria-pressed={shakeLevel===level.id} disabled={!canAnimate} onClick={()=>setShakeLevel(level.id)}
+                  className={"min-h-9 shrink-0 whitespace-nowrap rounded-lg border px-2.5 text-[11px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-300 disabled:cursor-not-allowed disabled:opacity-40 "+
+                    (shakeLevel===level.id?"border-sky-300/75 bg-sky-300/20 text-sky-100":"border-white/10 bg-white/[0.035] text-slate-300 hover:bg-white/10")}>
+                  {level.label}
+                </button>)}
+              </div>
+            </div>
+            <div className="flex w-full items-center gap-2">
+              <span className="hidden flex-1 text-[11px] text-slate-400 xl:block">Ölçeksiz eğitsel hareket · Yapısal analiz değildir</span>
               <button type="button" data-testid="irregularity-playback" disabled={!canAnimate} aria-pressed={playing} onClick={()=>setPlaying(v=>!v)} className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-sky-300 px-3 text-xs font-bold text-[#0a1622] hover:bg-sky-200 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none">
                 {playing?<Pause size={17}/>:<Play size={17}/>}<span>{reducedMotion?"Hareket kapalı":playing?"Duraklat":"Depremi başlat"}</span>
               </button>

@@ -65,3 +65,45 @@ test("Invalid or zero-length segments are rejected rather than generating NaN",(
   assert.equal(segmentPose([0,0,0],[0,0,0]),null);
   assert.equal(segmentPose([0,0,0],[Infinity,1,0]),null);
 });
+
+test("Selectable shake levels are ordered and increase displacement in all scenarios", async () => {
+  const { SHAKE_LEVELS, DEFAULT_SHAKE_LEVEL, shakeStrength } = await import("../../src/lib/duzensizlik-simulatoru/intensity");
+  assert.equal(SHAKE_LEVELS.length,5);
+  assert.equal(DEFAULT_SHAKE_LEVEL,"strong");
+  for(const scenario of SCENARIO_IDS) {
+    let previous=0;
+    for(const preset of SHAKE_LEVELS){
+      const point:[number,number,number]=[3.2,LEVEL_HEIGHT*5,3.2];
+      const moved=jointAt(point,scenario,Math.PI/2,shakeStrength(preset.id));
+      const displacement=Math.hypot(moved[0]-point[0],moved[2]-point[2]);
+      assert.deepEqual(jointAt([0,0,0],scenario,Math.PI/2,preset.strength),[0,0,0]);
+      assert.ok(moved.every(Number.isFinite));
+      assert.ok(displacement>previous,scenario+" "+preset.id);
+      previous=displacement;
+    }
+  }
+});
+
+test("Extreme shake keeps segments joined and slab centers aligned", async () => {
+  const { MAX_SHAKE_STRENGTH } = await import("../../src/lib/duzensizlik-simulatoru/intensity");
+  const { slabPose } = await import("../../src/lib/duzensizlik-simulatoru/motion");
+  for(const scenario of SCENARIO_IDS) {
+    const blueprint=makeBlueprint(scenario);
+    for(const phase of [0,.7,Math.PI/2,Math.PI,Math.PI*1.5]){
+      for(const segment of blueprint.segments){
+        const a=jointAt(segment.a,scenario,phase,MAX_SHAKE_STRENGTH);
+        const b=jointAt(segment.b,scenario,phase,MAX_SHAKE_STRENGTH);
+        const pose=segmentPose(a,b);
+        assert.ok(pose&&pose.length>0&&pose.mid.every(Number.isFinite),scenario);
+      }
+      for(const slab of blueprint.slabs){
+        const center:[number,number,number]=[slab.cx,slab.level*LEVEL_HEIGHT,slab.cz];
+        const actual=jointAt(center,scenario,phase,MAX_SHAKE_STRENGTH);
+        const pose=slabPose(center,scenario,phase,MAX_SHAKE_STRENGTH);
+        assert.ok(pose.position.every(Number.isFinite)&&Number.isFinite(pose.yaw),scenario);
+        assert.ok(Math.abs(actual[0]-pose.position[0])<1e-8);
+        assert.ok(Math.abs(actual[2]-pose.position[2])<1e-8);
+      }
+    }
+  }
+});

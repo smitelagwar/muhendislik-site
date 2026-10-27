@@ -7,6 +7,7 @@ import { makeBlueprint, jointAt, segmentPose, slabPose, COLUMN_SECTION, BEAM_SEC
 import type { ScenarioId } from "@/lib/duzensizlik-simulatoru/scenarios";
 import { FOCUS_POINTS, focusAnchorAt, type FocusPoint } from "@/lib/duzensizlik-simulatoru/focus";
 import { cameraFitDistance, smootherStep } from "@/lib/duzensizlik-simulatoru/camera";
+import { MAX_SHAKE_STRENGTH } from "@/lib/duzensizlik-simulatoru/intensity";
 
 export type CameraView = "perspective" | "front" | "side" | "left" | "top";
 // The repo provides a minimal hand-written Three.js type shim for its CAD modules.
@@ -21,6 +22,7 @@ interface Props {
   cameraPulse: number;
   playing: boolean;
   speed: number;
+  intensity: number;
   showSlabs: boolean;
   showMembers: boolean;
   showHighlights: boolean;
@@ -164,6 +166,7 @@ export default function BuildingViewer(props: Props) {
       part.mesh.visible = part.kind==="highlight" ? latest.current.showHighlights : latest.current.showMembers;
     };
     const updateModel = (phase: number,intensity: number) => {
+      host.dataset.shakeIntensity = String(latest.current.intensity);
       for(const part of segments) updateSegment(part,phase,intensity);
       for(const surface of surfaces) {
         const pose = slabPose([surface.x,surface.y,surface.z],scenario,phase,intensity);
@@ -315,7 +318,11 @@ export default function BuildingViewer(props: Props) {
       const allowed=!motionPreference.matches;
       const running=latest.current.playing && allowed;
       if(running) elapsed+=dt*Math.max(.25,Math.min(2,latest.current.speed))*3.1;
-      if(running) blend+=(1-blend)*Math.min(1,dt*5.5);
+      if(running) {
+        // Smoothly approach the selected displacement amplitude without resetting the scene.
+        const target=Math.max(0,Math.min(MAX_SHAKE_STRENGTH,latest.current.intensity));
+        blend+=(target-blend)*Math.min(1,dt*4.5);
+      }
       if(!allowed && blend>0){blend=0;elapsed=0;updateModel(0,0);dirty=true;}
       const moving=running;
       if(moving) updateModel(elapsed,blend);
