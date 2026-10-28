@@ -90,6 +90,11 @@ export type BelgeStudioPdfPreviewProps = {
 type Point = { x: number; y: number };
 type Pointer = { id: number; point: Point };
 
+// Çift dokunma, mevcut PDF pan/pinch hareketlerinden bağımsız olarak tanınır.
+const BELGE_DOUBLE_TAP_MAX_MS = 320;
+const BELGE_DOUBLE_TAP_MAX_DISTANCE = 28;
+const BELGE_DOUBLE_TAP_ZOOM = 200;
+
 function distance(a: Point, b: Point): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
@@ -214,6 +219,7 @@ export function BelgeStudioPdfPreview({
   const layoutFreezeRef = useRef<{ width: number; height: number } | null>(null);
   const pendingLayoutRef = useRef(false);
   const panMovedRef = useRef(false);
+  const lastMobileTapRef = useRef<{ point: Point; at: number; page: number } | null>(null);
   const hotspotGeometryValidRef = useRef(false);
   zoomRef.current = zoomLevel;
   pageRef.current = currentPage;
@@ -1229,14 +1235,17 @@ export function BelgeStudioPdfPreview({
       return;
     }
     event.preventDefault();
-    cancelTransition();
-    smoothZoom.cancelSmoothZoom();
+    // Tek parmak dokunuşları devam eden zoom animasyonunu kesmesin.
+    // Pan başladığında veya ikinci parmak geldiğinde animasyon iptal edilir.
     event.currentTarget.setPointerCapture(event.pointerId);
     const point = getContainerPoint(event);
     const pointers = [...pointersRef.current.filter((pointer) => pointer.id !== event.pointerId), { id: event.pointerId, point }];
     pointersRef.current = pointers;
     if (pointers.length >= 2) {
       everMultitouchRef.current = true;
+      lastMobileTapRef.current = null;
+      cancelTransition();
+      smoothZoom.cancelSmoothZoom();
     }
     if (pointers.length === 1) {
       pendingAnchorRef.current = null;
@@ -1330,6 +1339,9 @@ export function BelgeStudioPdfPreview({
       if (!panMovedRef.current) {
         if (Math.hypot(dx, dy) <= BELGE_INLINE_TAP_MAX_MOVE) return;
         panMovedRef.current = true;
+        lastMobileTapRef.current = null;
+        cancelTransition();
+        smoothZoom.cancelSmoothZoom();
         setIsInteracting(true);
       }
       const element = event.currentTarget;
@@ -1369,7 +1381,56 @@ export function BelgeStudioPdfPreview({
         panStart !== null &&
         prevPointers.length === 1 &&
         Date.now() - panStart.startTime < BELGE_INLINE_TAP_MAX_MS;
-      if (isTap) handleTouchTap(endingPoint);
+      if (isTap) {
+        const frameRect = frameRef.current?.getBoundingClientRect();
+        const insidePdf = Boolean(
+          frameRect &&
+          panStart &&
+          panStart.point.x >= frameRect.left && panStart.point.x <= frameRect.right &&
+          panStart.point.y >= frameRect.top && panStart.point.y <= frameRect.bottom &&
+          endingPoint.x >= frameRect.left && endingPoint.x <= frameRect.right &&
+          endingPoint.y >= frameRect.top && endingPoint.y <= frameRect.bottom
+        );
+        const onEditableField = Boolean(
+          insidePdf &&
+          frameRect &&
+          hotspotGeometryValidRef.current &&
+          findInlineFieldAtPoint(inlineFields, endingPoint.x - frameRect.left, endingPoint.y - frameRect.top)
+        );
+        const canDoubleTap =
+          isMobileMode &&
+          insidePdf &&
+          !onEditableField &&
+          !isMobileSheetOpen &&
+          localStatus === "ready" &&
+          !generationPending &&
+          !generationError;
+        const previous = lastMobileTapRef.current;
+        const now = Date.now();
+        if (
+          canDoubleTap &&
+          previous &&
+          previous.page === pageRef.current &&
+          now - previous.at <= BELGE_DOUBLE_TAP_MAX_MS &&
+          distance(previous.point, endingPoint) <= BELGE_DOUBLE_TAP_MAX_DISTANCE
+        ) {
+          lastMobileTapRef.current = null;
+          if (fitModeRef.current === "page") {
+            // Yalnızca PDF'yi, dokunulan noktaya odaklanarak yakınlaştır.
+            setFitMode("custom");
+            smoothZoom.animateToZoom(BELGE_DOUBLE_TAP_ZOOM, endingPoint);
+          } else {
+            handleFit();
+          }
+          return;
+        }
+        lastMobileTapRef.current = canDoubleTap
+          ? { point: endingPoint, at: now, page: pageRef.current }
+          : null;
+        handleTouchTap(endingPoint);
+      } else {
+        lastMobileTapRef.current = null;
+      }
       return;
     }
     if (pinchingRef.current) {
@@ -1418,6 +1479,7 @@ export function BelgeStudioPdfPreview({
   };
 
   const handleFit = useCallback(() => {
+    lastMobileTapRef.current = null;
     setFitMode("page");
     if (!isMobileMode) setInlineSelectedField(null);
     clearFocusPadding();
@@ -1432,6 +1494,7 @@ export function BelgeStudioPdfPreview({
   }, [setFitMode, isMobileMode, startFitTransition, clearFocusPadding, smoothZoom]);
 
   const handleFitWidth = useCallback(() => {
+    lastMobileTapRef.current = null;
     setFitMode("width");
     if (!isMobileMode) setInlineSelectedField(null);
     clearFocusPadding();
@@ -1464,6 +1527,7 @@ export function BelgeStudioPdfPreview({
   }, [setFitMode, isMobileMode, startFitTransition, clearFocusPadding, smoothZoom]);
 
   const handleToolbarZoom = (value: number) => {
+    lastMobileTapRef.current = null;
     cancelTransition();
     smoothZoom.cancelSmoothZoom();
     cancelFocusScroll();
@@ -1513,6 +1577,7 @@ export function BelgeStudioPdfPreview({
   const userManualPageChoiceRef = useRef<{ page: number; eventId: number } | null>(null);
 
   const handlePageChange = (page: number, isUserInteraction = true) => {
+    lastMobileTapRef.current = null;
     cancelTransition();
     smoothZoom.cancelSmoothZoom();
     cancelFocusScroll();
@@ -2078,7 +2143,7 @@ export function BelgeStudioPdfPreview({
         ref={containerRef}
         tabIndex={0}
         role="region"
-        aria-label="PDF sayfası; Ctrl veya Cmd ve fare tekerleğiyle ya da iki parmakla yakınlaştırın"
+        aria-label="PDF sayfası; mobilde çift dokunarak yakınlaştırın veya sığdırın, iki parmakla yakınlaştırın"
         title="Ctrl / Cmd + fare tekerleği: PDF yakınlaştırma. Normal kaydırma: sayfa içinde gezinme."
         aria-busy={showLoading && !hasValidRenderedBitmap}
         data-testid="belge-studio-preview-canvas"
