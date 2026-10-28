@@ -355,3 +355,18 @@ export function downloadDetailDxf(detail: RebarDetail) {
   anchor.click();
   URL.revokeObjectURL(url);
 }
+
+export { exportPaftaToDxf } from "./pafta-dxf";
+import type { PaftaSheetData } from "./pafta-engine";
+import { exportPaftaToDxf } from "./pafta-dxf";
+
+export function downloadPaftaDxf(sheet: PaftaSheetData, model: CadModel) {
+  const content = exportPaftaToDxf(sheet, model);
+  const blob = new Blob([content], { type: "application/dxf" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${sheet.sheetNo}_${sheet.title.replace(/\s+/g, "_")}.dxf`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}

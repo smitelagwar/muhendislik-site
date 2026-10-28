@@ -100,19 +100,19 @@ test("TBDY 2018 analysis, visualization modes, foundations, stairs and pafta lay
   // 5. Pafta Layout Mode via "Çizimler" -> "Yeni Pafta Oluştur" (40202)
   await page.getByRole("tab", { name: "Çizimler", exact: true }).click();
   await page.locator('button[data-command-id="40202"]').click();
-  await expect(page.getByTestId("hsyncad-plan")).toHaveAttribute("data-pafta-mode", "true");
-  await expect(page.locator(".hcad-pafta-frame")).toBeVisible();
-  await expect(page.getByText("hsynCAD - STATİK UYGULAMA PLANI")).toBeVisible();
+  await expect(page.getByTestId("hsyncad-pafta-viewer")).toBeVisible();
 
   // Toggle Pafta mode off
   await page.locator('button[data-command-id="40202"]').click();
-  await expect(page.getByTestId("hsyncad-plan")).toHaveAttribute("data-pafta-mode", "false");
-  await expect(page.locator(".hcad-pafta-frame")).not.toBeVisible();
+  await expect(page.getByTestId("hsyncad-pafta-viewer")).not.toBeVisible();
+  await expect(page.getByTestId("hsyncad-plan")).toBeVisible();
 
   // 6. Test Kalıp Planı via Betonarme drawings dropdown (11307 -> 11990)
   await page.getByRole("button", { name: "Betonarme alt komutları" }).first().click();
   await page.getByRole("menuitem", { name: "Kalıp Planı" }).click();
-  await expect(page.getByTestId("hsyncad-plan")).toHaveAttribute("data-pafta-mode", "true");
+  await expect(page.getByTestId("hsyncad-pafta-viewer")).toBeVisible();
+  await page.getByTestId("pafta-close").click();
+  await expect(page.getByTestId("hsyncad-plan")).toBeVisible();
 
   // 7. Test Kiriş Açılımları DXF download via dropdown (11307 -> 63389)
   await page.getByRole("button", { name: "Betonarme alt komutları" }).first().click();

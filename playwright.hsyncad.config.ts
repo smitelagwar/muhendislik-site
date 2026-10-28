@@ -11,7 +11,7 @@ export default defineConfig({
   expect: { timeout: 8_000 },
   reporter: "list",
   use: {
-    baseURL: process.env.HSYNCAD_TEST_URL || "http://127.0.0.1:3127",
+    baseURL: process.env.HSYNCAD_TEST_URL || "http://127.0.0.1:3142",
     viewport: { width: 1440, height: 1080 },
     actionTimeout: 8_000,
     navigationTimeout: 45_000,

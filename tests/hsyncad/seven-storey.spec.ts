@@ -55,8 +55,7 @@ test("7-storey commercial building sample loads from bottom-bar and passes full 
   // 3. Test Pafta Mode
   await page.getByRole("tab", { name: "Çizimler", exact: true }).click();
   await page.locator('button[data-command-id="40202"]').click();
-  await expect(page.getByTestId("hsyncad-plan")).toHaveAttribute("data-pafta-mode", "true");
-  await expect(page.locator(".hcad-pafta-frame")).toBeVisible();
+  await expect(page.getByTestId("hsyncad-pafta-viewer")).toBeVisible();
 
   expect(errors).toEqual([]);
 });
