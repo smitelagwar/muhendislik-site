@@ -1,0 +1,62 @@
+name: belgeler-readability-e2e
+
+on:
+  pull_request:
+    paths:
+      - "src/components/belge-studio-**"
+      - "src/components/*-studio.tsx"
+      - "src/hooks/use-belge-studio-readability.ts"
+      - "src/lib/belge-studio-readability.ts"
+      - "src/app/globals.css"
+      - "tests/site-audit/belgeler-readability-stage2.spec.ts"
+      - ".github/workflows/belgeler-readability-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browsers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Browser tests (form, PDF, responsive, accessibility controls)
+        run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-readability-stage2.spec.ts --project=chromium-desktop-1366
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+      - name: Existing Belgeler interactions (drawer, Form View, inline editing)
+        run: >-
+          npx playwright test --config=playwright.site.config.ts
+          tests/site-audit/belgeler-mobile-drawer.spec.ts
+          tests/site-audit/belgeler-form-view.spec.ts
+          tests/site-audit/belgeler-inline-edit.spec.ts
+          --project=chromium-desktop-1366
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+      - name: Real PDF round-trip and screen-reader accessibility audit
+        run: >-
+          npx playwright test --config=playwright.site.config.ts
+          tests/site-audit/belgeler-functional-audit.spec.ts
+          --project=chromium-desktop-1920
+          --grep 'düzenleme, temizleme ve geri alma PDF içeriğini korumalı|ciddi erişilebilirlik'
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+      - name: Preserve failure screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: belge-readability-e2e-artifacts
+          path: |
+            test-results/site-audit
+            playwright-report/site-audit
+          retention-days: 7

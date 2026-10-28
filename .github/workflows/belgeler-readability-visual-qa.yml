@@ -1,0 +1,42 @@
+name: belgeler-readability-visual-qa
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/belgeler-readability-visual-qa.yml"
+      - "tests/site-audit/belgeler-readability-stage2.spec.ts"
+      - "src/app/globals.css"
+      - "src/components/*-studio.tsx"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Capture desktop and mobile screenshots across scales
+        run: >-
+          npx playwright test --config=playwright.site.config.ts
+          tests/site-audit/belgeler-readability-stage2.spec.ts
+          --project=chromium-desktop-1366
+          --grep "high zoom visual snapshots"
+        env:
+          CI: "true"
+          PLAYWRIGHT_PRODUCTION_SERVER: "0"
+      - name: Export screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: belgeler-readability-screen-captures
+          path: test-results/site-audit
+          retention-days: 7

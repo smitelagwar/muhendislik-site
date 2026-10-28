@@ -1,0 +1,27 @@
+name: belgeler-readability-policy
+
+on:
+  pull_request:
+    paths:
+      - "src/lib/belge-studio-readability.ts"
+      - "src/hooks/use-belge-studio-readability.ts"
+      - "tests/belgeler/belge-readability-policy.test.ts"
+      - ".github/workflows/belgeler-readability-policy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Readability preference policy unit tests
+        run: npx tsx --test tests/belgeler/belge-readability-policy.test.ts

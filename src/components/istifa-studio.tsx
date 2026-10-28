@@ -9,6 +9,7 @@ import {
 } from "@/lib/belge-studio-layout";
 import { useBelgeStudioMobileViewport } from "@/hooks/use-belge-studio-mobile-viewport";
 import { useBelgeStudioFormView } from "@/hooks/use-belge-studio-form-view";
+import { useBelgeStudioReadability } from "@/hooks/use-belge-studio-readability";
 import { useBelgeStudioPdfFocus } from "@/hooks/use-belge-studio-pdf-focus";
 import { useBelgeFieldFocus } from "@/hooks/use-belge-field-focus";
 import { useBelgeStudioDocument } from "@/hooks/use-belge-studio-document";
@@ -84,6 +85,7 @@ export function IstifaStudio({
         : "PDF önizlemesi hazırlanıyor.";
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
+  const readability = useBelgeStudioReadability();
   const { scrollContainerRef, contentWrapperRef, contentWrapperProps, ...formView } = useBelgeStudioFormView({ isModal });
   void contentWrapperRef;
   const pdfFocus = useBelgeStudioPdfFocus({
@@ -269,6 +271,14 @@ export function IstifaStudio({
       <div
         ref={studioRootRef}
         data-studio-locked={isModal ? undefined : "true"}
+        data-belge-readability-root=""
+        data-belge-panel-view={activeTabMobile}
+        data-belge-readability-active={readability.settings.uiScale !== 100 || readability.settings.textScale !== 100 || readability.settings.highContrast || readability.settings.comfortableReading || readability.settings.largeTargets ? "true" : undefined}
+        data-belge-ui-large={readability.settings.uiScale >= 150 || readability.settings.textScale >= 150 ? "true" : undefined}
+        data-belge-high-contrast={readability.settings.highContrast ? "true" : undefined}
+        data-belge-comfortable={readability.settings.comfortableReading ? "true" : undefined}
+        data-belge-large-targets={readability.settings.largeTargets ? "true" : undefined}
+        style={readability.rootStyle}
         className={`flex flex-col bg-background text-foreground w-full max-w-full min-w-0 h-full overflow-hidden ${
           isModal
             ? "max-h-[96vh] rounded-2xl border border-border shadow-2xl"
@@ -311,6 +321,7 @@ export function IstifaStudio({
           }`}
           {...formFocusContainerProps}
         >
+          <div className="belge-readability-form-content">
           <div {...contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-istifa-dilekcesi" layouts={layouts} excludedFields={["tarih", "tc_deger", "iletisim_deger", "adres_deger"]} />
 
@@ -514,6 +525,7 @@ export function IstifaStudio({
           </BelgeStudioSection>
 
           </div>
+          </div>
         </div>
 
         <div
@@ -564,6 +576,7 @@ export function IstifaStudio({
         documentId="santiye-sefi-istifa-dilekcesi"
         templateFilename="SANTIYE_SEFI_ISTIFA_DILEKCESI_BOS.pdf"
         formView={formView}
+        readability={readability}
       />
         <BelgeShareDialog share={shareApi} documentTitle="Şantiye Şefi İstifa Dilekçesi" />
       </div>

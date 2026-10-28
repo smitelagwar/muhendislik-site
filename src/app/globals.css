@@ -2191,3 +2191,274 @@ body:has([data-testid="hsyncad-app-shell"]) {
   overflow: clip;
   overscroll-behavior: none;
 }
+
+
+/* Belge stüdyosu okunabilirlik katmanı.
+   Scope intentionally excludes PDF canvas, annotation coordinates and exported PDF bytes.
+   Defaults (100% / no options) preserve the existing visual layout. */
+[data-belge-readability-root] .belge-readability-form-content {
+  /* Never shrink the form's *layout* box to compensate for CSS zoom.
+     That made 175–200% input content half-width and unreadable. */
+  min-width: 0;
+  width: 100%;
+}
+
+[data-belge-readability-root][data-belge-ui-large="true"] [data-belge-form-content] .grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+[data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-desktop-actions"] {
+  display: none !important;
+}
+[data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-mobile-actions"] {
+  display: flex !important;
+}
+[data-belge-readability-root][data-belge-ui-large="true"] .belge-preview-right > [class~="lg:flex"] {
+  display: none !important;
+}
+[data-belge-readability-root][data-belge-ui-large="true"] .belge-preview-more {
+  display: flex !important;
+}
+
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-top-header"] {
+  height: auto;
+  min-height: calc(56px * var(--belge-ui-scale, 1));
+  gap: max(6px, calc(6px * var(--belge-ui-scale, 1)));
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-top-header"] h1,
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-top-header"] h2 {
+  font-size: calc(0.875rem * var(--belge-ui-scale, 1) * var(--belge-text-scale, 1)) !important;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-top-header"] button,
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-top-header"] a,
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-actions"] button {
+  min-height: calc(44px * var(--belge-target-scale, 1));
+  font-size: calc(0.75rem * var(--belge-ui-scale, 1) * var(--belge-text-scale, 1));
+  line-height: 1.25;
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-actions"] button svg,
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-top-header"] button svg {
+  flex-shrink: 0;
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-actions"] {
+  padding-block: max(8px, calc(8px * var(--belge-ui-scale, 1)));
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-form-scroll"] input,
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-form-scroll"] select,
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-form-scroll"] textarea {
+  font-size: calc(0.75rem * var(--belge-text-scale, 1)) !important;
+  line-height: 1.5;
+  min-width: 0;
+  max-width: 100%;
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-belge-form-content] label {
+  font-size: calc(0.6875rem * var(--belge-text-scale, 1)) !important;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-belge-form-content] textarea {
+  min-height: calc(88px * var(--belge-text-scale, 1));
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-belge-form-content] [class~="text-xs"] {
+  font-size: calc(0.75rem * var(--belge-text-scale, 1)) !important;
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-belge-form-content] [class~="text-sm"] {
+  font-size: calc(0.875rem * var(--belge-text-scale, 1)) !important;
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-belge-form-content] [class~="text-[10px]"] {
+  font-size: calc(10px * var(--belge-text-scale, 1)) !important;
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-belge-form-content] [class~="text-[11px]"] {
+  font-size: calc(11px * var(--belge-text-scale, 1)) !important;
+}
+
+[data-belge-readability-root][data-belge-comfortable="true"] [data-belge-form-content] {
+  line-height: 1.75;
+  letter-spacing: 0.015em;
+}
+[data-belge-readability-root][data-belge-comfortable="true"] [data-belge-form-content] textarea {
+  line-height: 1.85;
+  min-height: 110px;
+}
+[data-belge-readability-root][data-belge-comfortable="true"] [data-belge-form-content] input,
+[data-belge-readability-root][data-belge-comfortable="true"] [data-belge-form-content] select {
+  min-height: 44px;
+}
+
+[data-belge-readability-root][data-belge-large-targets="true"] [data-testid="belge-studio-form-scroll"] button,
+[data-belge-readability-root][data-belge-large-targets="true"] [data-testid="belge-studio-form-scroll"] input,
+[data-belge-readability-root][data-belge-large-targets="true"] [data-testid="belge-studio-form-scroll"] select {
+  min-height: 52px;
+}
+[data-belge-readability-root][data-belge-large-targets="true"] [data-testid="belge-studio-actions"] button {
+  min-height: 52px;
+}
+
+[data-belge-readability-root][data-belge-high-contrast="true"] [data-belge-form-content] input,
+[data-belge-readability-root][data-belge-high-contrast="true"] [data-belge-form-content] textarea,
+[data-belge-readability-root][data-belge-high-contrast="true"] [data-belge-form-content] select,
+[data-belge-readability-root][data-belge-high-contrast="true"] [data-belge-form-content] button,
+[data-belge-readability-root][data-belge-high-contrast="true"] [data-testid="belge-studio-actions"] button {
+  border-width: 2px;
+  border-color: currentColor;
+}
+[data-belge-readability-root][data-belge-high-contrast="true"] :focus-visible {
+  outline: 3px solid #b45309;
+  outline-offset: 2px;
+}
+.dark [data-belge-readability-root][data-belge-high-contrast="true"] :focus-visible {
+  outline-color: #fbbf24;
+}
+
+@media (max-width: 639px) {
+  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-mobile-actions"] {
+    display: grid !important;
+    grid-template-columns: minmax(52px, auto) minmax(0, 1fr);
+    grid-auto-rows: minmax(44px, auto);
+    align-items: stretch;
+  }
+  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-mobile-action-share-btn"] {
+    display: none !important;
+  }
+  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-mobile-more-btn"] {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    height: 100%;
+  }
+  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-mobile-actions"] > button[aria-label="Formu Düzenle"],
+  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-mobile-actions"] > button[aria-label="Canlı PDF Önizle"] {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-mobile-actions"] > button:last-child {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  [data-belge-readability-root][data-belge-ui-large="true"] [data-testid="belge-studio-mobile-actions"] button {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+@media (forced-colors: active) {
+  [data-belge-readability-root][data-belge-high-contrast="true"] :focus-visible {
+    outline-color: Highlight;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-belge-readability-root] [data-belge-form-content] *,
+  [data-belge-readability-root] [data-testid="belge-studio-actions"] * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* Dropdown portals are mounted outside the studio root; options own their vars. */
+[data-testid="belge-readability-options"] :is(button, summary, label) {
+  font-size: clamp(12px, calc(12px * var(--belge-ui-scale, 1) * var(--belge-text-scale, 1)), 28px);
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+[data-testid="belge-readability-options"] button:disabled {
+  opacity: 0.45;
+}
+[data-testid="belge-readability-options"][data-high-contrast="true"] button,
+[data-testid="belge-readability-options"][data-high-contrast="true"] label {
+  border-color: currentColor;
+}
+
+
+/* Dialog portal is outside the studio; derive controls from explicit settings. */
+[data-belge-readability-drawer="true"] :is(button, a, summary, label, p, span) {
+  font-size: clamp(12px, calc(12px * var(--belge-ui-scale, 1) * var(--belge-text-scale, 1)), 28px);
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+[data-belge-readability-drawer="true"] :is(button, a) {
+  min-height: calc(44px * var(--belge-target-scale, 1));
+}
+[data-belge-readability-drawer="true"][data-belge-high-contrast="true"] :is(button, a):focus-visible {
+  outline: 3px solid #b45309;
+  outline-offset: 2px;
+}
+.dark [data-belge-readability-drawer="true"][data-belge-high-contrast="true"] :is(button, a):focus-visible {
+  outline-color: #fbbf24;
+}
+[data-belge-readability-root][data-belge-high-contrast="true"] .text-muted-foreground {
+  color: #111827 !important;
+}
+.dark [data-belge-readability-root][data-belge-high-contrast="true"] .text-muted-foreground {
+  color: #f9fafb !important;
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-preview-toolbar"] .preview-tool-button {
+  min-width: calc(36px * min(var(--belge-ui-scale, 1), 1.4));
+  min-height: calc(36px * min(var(--belge-ui-scale, 1), 1.4));
+}
+
+/* On touch-size viewports keep editable text >=16 CSS px to avoid iOS auto-zoom. */
+@media (max-width: 1023px) {
+  [data-belge-readability-root][data-belge-readability-active="true"] [data-testid="belge-studio-form-scroll"] :is(input, select, textarea) {
+    font-size: max(16px, calc(0.75rem * var(--belge-text-scale, 1))) !important;
+  }
+}
+
+
+/* High-zoom readable work mode: a single full-width work pane.
+   The footer's existing Formu Düzenle / PDF Önizle action is now meaningful
+   on desktop as well as on mobile, instead of leaving a narrow form sidebar. */
+[data-belge-readability-root][data-belge-ui-large="true"][data-belge-panel-view="preview"]
+  [data-testid="belge-studio-form-scroll"] {
+  display: none !important;
+}
+[data-belge-readability-root][data-belge-ui-large="true"][data-belge-panel-view="form"]
+  [data-testid="belge-studio-form-scroll"] {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  flex: 1 1 auto !important;
+}
+[data-belge-readability-root][data-belge-ui-large="true"][data-belge-panel-view="form"]
+  [aria-label="PDF önizleme paneli"] {
+  display: none !important;
+}
+[data-belge-readability-root][data-belge-ui-large="true"][data-belge-panel-view="preview"]
+  [aria-label="PDF önizleme paneli"] {
+  display: flex !important;
+  position: relative !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  width: 100% !important;
+  flex: 1 1 auto !important;
+}
+[data-belge-readability-root][data-belge-ui-large="true"]
+  [data-belge-form-content] .truncate {
+  white-space: normal !important;
+  text-overflow: clip !important;
+  overflow-wrap: anywhere !important;
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-belge-form-content] :is(input,select,textarea) {
+  font-size: clamp(14px, calc(0.75rem * var(--belge-ui-scale,1) * var(--belge-text-scale,1)), 36px) !important;
+  min-height: calc(32px * min(var(--belge-ui-scale,1), 1.8));
+  max-width: 100%;
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-belge-form-content] label,
+[data-belge-readability-root][data-belge-readability-active="true"] [data-belge-form-content] [class~="text-xs"],
+[data-belge-readability-root][data-belge-readability-active="true"] [data-belge-form-content] [class~="text-[11px]"] {
+  font-size: clamp(12px, calc(11px * var(--belge-ui-scale,1) * var(--belge-text-scale,1)), 32px) !important;
+  line-height: 1.45;
+}
+[data-belge-readability-root][data-belge-readability-active="true"] [data-belge-form-content] [class~="text-[10px]"] {
+  font-size: clamp(11px, calc(10px * var(--belge-ui-scale,1) * var(--belge-text-scale,1)), 28px) !important;
+}
+[data-belge-readability-root][data-belge-ui-large="true"] [data-belge-form-content] [class~="grid"] > * {
+  min-width: 0;
+}
+[data-belge-readability-root][data-belge-ui-large="true"] [data-belge-form-content] textarea {
+  height: auto;
+  min-height: 140px;
+  overflow-wrap: anywhere;
+}
