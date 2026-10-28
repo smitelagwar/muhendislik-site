@@ -26,6 +26,7 @@
     "check:content-quality:main": "tsx scripts/audit-content-quality.mjs --scope=main",
     "check:deprem-content": "tsx scripts/check-deprem-content.ts",
     "check:deprem-infrastructure": "tsx scripts/check-deprem-infrastructure.ts",
+    "check:tbdy-stage1": "tsx scripts/check-tbdy-stage1.ts",
     "check:deprem-phase8": "tsx scripts/check-deprem-phase8.ts",
     "check:deprem-phase9": "tsx scripts/check-deprem-phase9.ts",
     "check:deprem-release": "npm run check:deprem-phase8 && npm run check:deprem-content && npm run check:content-quality && npm run check:site-quality && npm run check:navigation && npm run check:visual-system && npm run lint && npx tsc --noEmit && npm run build && npm run check:smoke && npm run check:deprem-phase9",
@@ -167,7 +168,8 @@
     "check:pdf-v4:gate": "node scripts/pdf-v4-run.mjs gate",
     "check:pdf-v4:gate:mobile-slow": "node scripts/pdf-v4-run.mjs gate --cpu=4 --project=mobile",
     "check:pdf-v4:compat": "node scripts/pdf-v4-run.mjs baseline --project=compat",
-    "check:pdf-v4:report": "node scripts/pdf-v4-report.mjs"
+    "check:pdf-v4:report": "node scripts/pdf-v4-report.mjs",
+    "check:tbdy-stage2": "tsx scripts/check-tbdy-stage2.ts"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^3.1.0",

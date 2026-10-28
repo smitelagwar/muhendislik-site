@@ -60,8 +60,8 @@ function localAssetExists(src: string, slug: string) {
   return fs.existsSync(path.resolve(ROOT, "public", clean.replace(/^\//, "")));
 }
 
-assert(depremArticles.length === 164, `FAZ 9 deprem makale sayısı 164 değil: ${depremArticles.length}`);
-assert(targets.length === 143, `FAZ 9 TS500 dışı hedef sayısı 143 değil: ${targets.length}`);
+assert(depremArticles.length === 175, `FAZ 9 deprem makale sayısı 175 değil: ${depremArticles.length}`);
+assert(targets.length === 154, `FAZ 9 TS500 dışı hedef sayısı 154 değil: ${targets.length}`);
 
 for (const article of targets) {
   assert(localAssetExists(article.image, article.slug), `Cover asset çözümlenemiyor: ${article.slug} -> ${article.image}`);
@@ -86,7 +86,7 @@ for (const article of targets) {
 
 const articleClientSource = read("src/components/article-client.tsx");
 assert(articleClientSource.includes("function TableViewer"), "TableViewer renderer bulunamadı.");
-assert(articleClientSource.includes('className="overflow-x-auto"'), "Tablo/formül yatay taşma koruması görünmüyor.");
+assert(articleClientSource.includes('className="overflow-x-auto'), "Tablo/formül yatay taşma koruması görünmüyor.");
 assert(articleClientSource.includes("dark:"), "Makale renderer dark-mode sınıfları içermiyor.");
 assert(articleClientSource.includes("ArticleFigure"), "Makale görsel renderer bulunamadı.");
 

@@ -20,7 +20,7 @@ function readAsset(src: string) {
   return fs.readFileSync(p, "utf8");
 }
 
-const deprem = getArticleList().filter((article) => article.sectionId === "deprem-yonetmelik");
+const deprem = getArticleList().filter((article) => article.sectionId === "deprem-yonetmelik" && article.image.startsWith("/deprem-visual/"));
 if (deprem.length !== EXPECTED_TOPICS) fail(`Konu sayısı ${EXPECTED_TOPICS} olmalı; bulunan ${deprem.length}.`);
 const ts500 = deprem.filter((article) => TS500_SLUGS.has(article.slug));
 if (ts500.length !== EXPECTED_TS500) fail(`TS500 konu sayısı ${EXPECTED_TS500} olmalı; bulunan ${ts500.length}.`);

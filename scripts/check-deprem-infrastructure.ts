@@ -51,9 +51,9 @@ assert(formula?.type === "formula" && formula.symbols.length === 3 && formula.sy
 
 const articles = getArticleList().filter((article) => article.sectionId === "deprem-yonetmelik");
 const targetArticles = articles.filter((article) => !TS500_SLUGS.has(article.slug));
-assert(articles.length === 164, `Etkin deprem makale sayısı 164 değil: ${articles.length}`);
+assert(articles.length === 175, `Etkin deprem makale sayısı 175 değil: ${articles.length}`);
 assert([...TS500_SLUGS].filter((slug) => articles.some((article) => article.slug === slug)).length === 21, "Etkin TS500 sayısı 21 değil.");
-assert(targetArticles.length === 143, `TS500 dışı hedef sayısı 143 değil: ${targetArticles.length}`);
+assert(targetArticles.length === 154, `TS500 dışı hedef sayısı 154 değil: ${targetArticles.length}`);
 
 for (const article of articles) {
   const presentation = getArticleAuthorPresentation(article);

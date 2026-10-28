@@ -7,6 +7,7 @@ on:
       - "src/components/site-shell.tsx"
       - "src/app/kategori/araclar/duzensizlik-simulatoru/**"
       - "tests/site-audit/irregularity-studio.spec.ts"
+      - "tests/site-audit/irregularity-comparison-*.spec.ts"
       - "tests/duzensizlik-simulatoru/**"
       - ".github/workflows/duzensizlik-simulatoru-e2e.yml"
   workflow_dispatch:
@@ -18,27 +19,34 @@ jobs:
   quality:
     name: Build / geometry / desktop / mobile
     runs-on: ubuntu-latest
+    # Pinned to package-lock @playwright/test 1.62.1; WebKit needs
+    # OS libraries that ubuntu-latest 26.04 no longer bundles.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with: { persist-credentials: false }
       - name: Install locked dependencies
         run: npm ci
-      - name: Install browser runtimes
-        run: npx playwright install --with-deps chromium webkit
       - name: Lint changed simulator
-        run: npx eslint src/components/duzensizlik-simulatoru src/lib/duzensizlik-simulatoru tests/site-audit/irregularity-studio.spec.ts tests/duzensizlik-simulatoru
+        run: npx eslint src/components/duzensizlik-simulatoru src/lib/duzensizlik-simulatoru tests/site-audit/irregularity-studio.spec.ts tests/site-audit/irregularity-comparison-teaching.spec.ts tests/site-audit/irregularity-comparison-responsive.spec.ts tests/duzensizlik-simulatoru
       - name: Typecheck
         run: npx tsc -p tsconfig.next.json --noEmit --incremental false
       - name: Pure geometry tests
         run: npx tsx --test tests/duzensizlik-simulatoru/*.test.ts
       - name: Production build
         run: npm run build
+      - name: Verify pinned browser runtimes
+        timeout-minutes: 3
+        run: npx playwright install chromium webkit
       - name: Chromium desktop and mobile + WebKit mobile
         env: { PLAYWRIGHT_PRODUCTION_SERVER: "1" }
         run: >
           npx playwright test --config=playwright.site.config.ts
           tests/site-audit/irregularity-studio.spec.ts
+          tests/site-audit/irregularity-comparison-teaching.spec.ts
+          tests/site-audit/irregularity-comparison-responsive.spec.ts
           --project=chromium-desktop-1366
           --project=chromium-mobile-390
           --project=chromium-mobile-320

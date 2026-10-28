@@ -6,6 +6,8 @@ import { X } from "lucide-react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-context";
 import { useBelgeStudioTheme } from "@/hooks/use-belge-studio-theme";
+import { BelgeStudioReadabilityMenu } from "@/components/belge-studio-readability-menu";
+import type { BelgeReadabilityControls } from "@/hooks/use-belge-studio-readability";
 import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
 import {
   BelgeBackIcon,
@@ -38,6 +40,7 @@ export interface BelgeStudioMobileActionsSheetProps {
   downloadBlank: () => Promise<void>;
   blankDownloading: boolean;
   formView?: BelgeStudioFormViewControls;
+  readability?: BelgeReadabilityControls;
 }
 
 /**
@@ -60,9 +63,11 @@ export function BelgeStudioMobileActionsSheet({
   downloading,
   downloadBlank,
   blankDownloading,
+  readability,
 }: BelgeStudioMobileActionsSheetProps) {
   const { drawerOpen, closeDrawer, triggerElement, preview, extraActions } = useBelgeStudioMobileContext();
   const { isDark, toggle: toggleTheme } = useBelgeStudioTheme();
+  const desktopReadability = readability?.isDesktopViewport ? readability : undefined;
   const closeReasonRef = useRef<"share" | "print" | "default">("default");
   const timerRef = useRef<number | null>(null);
 
@@ -112,6 +117,9 @@ export function BelgeStudioMobileActionsSheet({
 
         <DialogPrimitive.Content
           data-testid="belge-mobile-actions-drawer"
+          data-belge-readability-drawer={desktopReadability ? "true" : undefined}
+          data-belge-high-contrast={desktopReadability?.settings.highContrast ? "true" : undefined}
+          style={desktopReadability?.rootStyle}
           className="fixed inset-x-0 bottom-0 z-50 flex flex-col max-h-[min(85dvh,640px)] rounded-t-2xl border-t border-border bg-background shadow-2xl outline-none data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom motion-reduce:animate-none"
           onCloseAutoFocus={(e) => {
             const reason = closeReasonRef.current;
@@ -214,6 +222,17 @@ export function BelgeStudioMobileActionsSheet({
                 </span>
               </button>
             </div>
+
+            {/* Readability settings are intentionally unavailable below lg (1024px).
+                The high-zoom desktop layout still uses this shared actions drawer. */}
+            {desktopReadability && (
+              <details className="hidden rounded-xl border border-border bg-card/70 p-3 lg:block" data-testid="belge-mobile-readability-section">
+                <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-semibold text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">Arayüz ve Okunabilirlik · %{desktopReadability.settings.uiScale}</summary>
+                <div className="border-t border-border pt-3">
+                  <BelgeStudioReadabilityMenu readability={desktopReadability} embedded />
+                </div>
+              </details>
+            )}
 
             {/* 2. Üç Eşit İşlem Düğmesi (Örnek Veri, Temizle, Geri Al) */}
             <div className="grid grid-cols-3 gap-2">

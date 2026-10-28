@@ -3,6 +3,7 @@ import path from "path";
 import type { SiteSectionId } from "./site-sections";
 import type { DepremSeriesId, RegulationStatus } from "./deprem-content-types";
 import { DEPREM_TOPIC_ARTICLES } from "./deprem-topic-articles";
+import { TBDY_STAGE2_ARTICLES } from "./tbdy-stage2-articles";
 import { normalizeExistingDepremArticle } from "./deprem-existing-overrides";
 import { applyDepremPilotOverride, getDepremPilotContentSignature } from "./deprem-pilot-articles";
 import { applyDepremPhase3Override, getDepremPhase3ContentSignature } from "./deprem-phase3-articles";
@@ -13,6 +14,7 @@ import { applyDepremPhase7Override, DEPREM_PHASE7_SLUGS, getDepremPhase7ContentS
 import { applyDepremRolloutEnhancement, getDepremRolloutSignature } from "./deprem-rollout";
 import { TS500_ARTICLES, TS500_SLUGS } from "./ts500-content";
 import { normalizeDepremContentAuthor } from "./content-author";
+import { applyTBDYStage1Figures } from "./tbdy-stage1-figures";
 
 export interface ArticleData {
     slug: string;
@@ -102,6 +104,12 @@ function parseArticles(fileContent: string) {
             normalizedArticles[article.slug] = article;
         }
 
+        // TBDY 2018 yeni bölüm rehberleri; mevcut slug sahipliği korunur.
+        for (const article of TBDY_STAGE2_ARTICLES) {
+            if (normalizedArticles[article.slug]) throw new Error("TBDY rehber slug çakışması: " + article.slug);
+            normalizedArticles[article.slug] = article;
+        }
+
         // FAZ 2 pilotları ve teknik gövde override'ları önce uygulanır.
         // Rollout enhancement, makalenin sahibi olan en son teknik fazdan sonra çalışır.
         // Böylece eski fazların donmuş source-of-truth sırası korunurken yeni fazlar
@@ -124,7 +132,7 @@ function parseArticles(fileContent: string) {
                       ? applyDepremRolloutEnhancement(phase4Article)
                       : applyDepremRolloutEnhancement(phase3Article);
 
-            normalizedArticles[slug] = DEPREM_PHASE7_SLUGS.has(slug)
+            const finalized = DEPREM_PHASE7_SLUGS.has(slug)
                 ? { ...rolloutArticle, updatedAt: phase7Article.updatedAt }
                 : DEPREM_PHASE6_SLUGS.has(slug)
                   ? { ...rolloutArticle, updatedAt: phase6Article.updatedAt }
@@ -133,6 +141,8 @@ function parseArticles(fileContent: string) {
                     : DEPREM_PHASE4_SLUGS.has(slug)
                       ? { ...rolloutArticle, updatedAt: phase4Article.updatedAt }
                       : rolloutArticle;
+
+            normalizedArticles[slug] = applyTBDYStage1Figures(finalized);
         }
 
         return Object.fromEntries(
@@ -191,6 +201,7 @@ export function getArticlesCacheSignature(): string {
         getDepremPhase6ContentSignature(),
         getDepremPhase7ContentSignature(),
         getDepremRolloutSignature(),
+        TBDY_STAGE2_ARTICLES.map((a) => a.slug + ":" + a.updatedAt + ":" + a.sections.length).join("|"),
     ].filter(Boolean).join("|");
     return `${getArticleCache().signature}:${supplementalSignature}`;
 }

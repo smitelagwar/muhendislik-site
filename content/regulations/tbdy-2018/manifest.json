@@ -1,0 +1,393 @@
+{
+  "sourceId": "tbdy-2018:user-upload:2026-10-27",
+  "version": "uploaded-pdf-2026-10-27",
+  "sourceSha256": "b3d0ab5480a57044709e9c517d10c6f6595a1273b2f73c108c94d0fade7bb154",
+  "regulation": "Türkiye Bina Deprem Yönetmeliği 2018",
+  "title": "Deprem Etkisi Altında Binaların Tasarımı İçin Esaslar",
+  "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+  "officialTextUrl": "https://www.resmigazete.gov.tr/eskiler/2018/03/20180318M1-2.htm",
+  "sourcePdfPages": 416,
+  "bodyFirstPdfPage": 22,
+  "bodyPdfPages": 395,
+  "sourceEditionCurrency": "not-verified",
+  "officialSourceByteEquality": "not-compared",
+  "published": false,
+  "validatedEngineeringContent": false,
+  "validationStatus": "extracted-unverified",
+  "sections": [
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-01",
+      "title": "Genel Hükümler",
+      "pdfPage": 22,
+      "pdfPageStart": 22,
+      "pdfPageEnd": 26,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-01.md",
+      "gitBlobSha": "bcbad9365c350dd55233462dfa2f5af00ee9a5a8",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-02",
+      "title": "Deprem Yer Hareketi",
+      "pdfPage": 27,
+      "pdfPageStart": 27,
+      "pdfPageEnd": 34,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-02.md",
+      "gitBlobSha": "546153c10054ad78d5304960770747c401010ad2",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-03",
+      "title": "Değerlendirme ve Tasarım için Genel Esaslar",
+      "pdfPage": 35,
+      "pdfPageStart": 35,
+      "pdfPageEnd": 46,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-03.md",
+      "gitBlobSha": "a3081fcf67716aef91fda12205f790cb4d7e4df4",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-04",
+      "title": "Dayanıma Göre Tasarım — Hesap Esasları",
+      "pdfPage": 47,
+      "pdfPageStart": 47,
+      "pdfPageEnd": 90,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-04.md",
+      "gitBlobSha": "1fcc09158f9f56e1daf96e3b188bcc225af83e63",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-05",
+      "title": "Şekildeğiştirmeye Göre Hesap Esasları",
+      "pdfPage": 91,
+      "pdfPageStart": 91,
+      "pdfPageEnd": 123,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-05.md",
+      "gitBlobSha": "5f32499394edc7fac825f269245e094aa62e6320",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-06",
+      "title": "Yapısal Olmayan Bina Elemanları",
+      "pdfPage": 124,
+      "pdfPageStart": 124,
+      "pdfPageEnd": 128,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-06.md",
+      "gitBlobSha": "489225513d7b4c2ae87cddc11db75f4c76c6901c",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-07",
+      "title": "Yerinde Dökme Betonarme Taşıyıcı Sistemler",
+      "pdfPage": 129,
+      "pdfPageStart": 129,
+      "pdfPageEnd": 163,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-07.md",
+      "gitBlobSha": "f291c0664eccf4acea5d80c6a167489a833c7bc8",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-08",
+      "title": "Önüretimli Betonarme Taşıyıcı Sistemler",
+      "pdfPage": 164,
+      "pdfPageStart": 164,
+      "pdfPageEnd": 180,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-08.md",
+      "gitBlobSha": "5d4c1b594268a572c28c6179a651232b0cd41dd1",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-09",
+      "title": "Çelik Bina Taşıyıcı Sistemleri",
+      "pdfPage": 181,
+      "pdfPageStart": 181,
+      "pdfPageEnd": 238,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-09.md",
+      "gitBlobSha": "1ac9e9fd11b8a3fd8c93a08e89ecf643cbbac346",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-10",
+      "title": "Hafif Çelik Bina Taşıyıcı Sistemleri",
+      "pdfPage": 239,
+      "pdfPageStart": 239,
+      "pdfPageEnd": 263,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-10.md",
+      "gitBlobSha": "60bd5995a1ea65926db13280a06070034950e132",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-11",
+      "title": "Yığma Bina Taşıyıcı Sistemleri",
+      "pdfPage": 264,
+      "pdfPageStart": 264,
+      "pdfPageEnd": 277,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-11.md",
+      "gitBlobSha": "1e7dbd8befc2510bab63dca5cf39666acb199ed4",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-12",
+      "title": "Ahşap Bina Taşıyıcı Sistemleri",
+      "pdfPage": 278,
+      "pdfPageStart": 278,
+      "pdfPageEnd": 287,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-12.md",
+      "gitBlobSha": "505dbe2441a504861010d2ef215bb6254682465e",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-13",
+      "title": "Yüksek Bina Taşıyıcı Sistemleri",
+      "pdfPage": 288,
+      "pdfPageStart": 288,
+      "pdfPageEnd": 300,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-13.md",
+      "gitBlobSha": "9b3b1ce45b1ce39ba2492717de13b22fd1f2099d",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-14",
+      "title": "Yalıtımlı Bina Taşıyıcı Sistemleri",
+      "pdfPage": 301,
+      "pdfPageStart": 301,
+      "pdfPageEnd": 326,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-14.md",
+      "gitBlobSha": "1c135732493a988642a2a32fe915231962d542e3",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-15",
+      "title": "Mevcut Binaların Değerlendirilmesi ve Güçlendirme Tasarımı",
+      "pdfPage": 327,
+      "pdfPageStart": 327,
+      "pdfPageEnd": 357,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-15.md",
+      "gitBlobSha": "6677cf09d6e3053552edf56e37de54d84a806dc9",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-16",
+      "title": "Temel Zemini ve Temellerin Tasarımı",
+      "pdfPage": 358,
+      "pdfPageStart": 358,
+      "pdfPageEnd": 394,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-16.md",
+      "gitBlobSha": "71afbc08560353c8c8c2022b523d101ed7b044f6",
+      "relatedFigures": []
+    },
+    {
+      "sourceId": "tbdy-2018:user-upload:2026-10-27",
+      "version": "uploaded-pdf-2026-10-27",
+      "sectionId": "bolum-17",
+      "title": "Basitleştirilmiş Betonarme Tasarımı",
+      "pdfPage": 395,
+      "pdfPageStart": 395,
+      "pdfPageEnd": 416,
+      "sourceUrl": "https://www.afad.gov.tr/kurumlar/afad.gov.tr/2309/files/TBDY_2018.pdf",
+      "validationStatus": "extracted-unverified",
+      "file": "sections/bolum-17.md",
+      "gitBlobSha": "7228d57fda9955af504de4cbc4610356c8aae8e9",
+      "relatedFigures": []
+    }
+  ],
+  "appendices": [
+    {
+      "id": "3A",
+      "pdfPage": 45,
+      "printedPage": 24
+    },
+    {
+      "id": "4A",
+      "pdfPage": 81,
+      "printedPage": 60
+    },
+    {
+      "id": "4B",
+      "pdfPage": 84,
+      "printedPage": 63
+    },
+    {
+      "id": "4C",
+      "pdfPage": 90,
+      "printedPage": 69
+    },
+    {
+      "id": "5A",
+      "pdfPage": 106,
+      "printedPage": 85
+    },
+    {
+      "id": "5B",
+      "pdfPage": 109,
+      "printedPage": 88
+    },
+    {
+      "id": "5C",
+      "pdfPage": 119,
+      "printedPage": 98
+    },
+    {
+      "id": "8A",
+      "pdfPage": 178,
+      "printedPage": 157
+    },
+    {
+      "id": "8B",
+      "pdfPage": 180,
+      "printedPage": 159
+    },
+    {
+      "id": "9A",
+      "pdfPage": 221,
+      "printedPage": 200
+    },
+    {
+      "id": "9B",
+      "pdfPage": 223,
+      "printedPage": 202
+    },
+    {
+      "id": "9C",
+      "pdfPage": 237,
+      "printedPage": 216
+    },
+    {
+      "id": "10A",
+      "pdfPage": 257,
+      "printedPage": 236
+    },
+    {
+      "id": "10B",
+      "pdfPage": 258,
+      "printedPage": 237
+    },
+    {
+      "id": "10C",
+      "pdfPage": 262,
+      "printedPage": 241
+    },
+    {
+      "id": "13A",
+      "pdfPage": 299,
+      "printedPage": 278
+    },
+    {
+      "id": "14A",
+      "pdfPage": 322,
+      "printedPage": 301
+    },
+    {
+      "id": "14B",
+      "pdfPage": 325,
+      "printedPage": 304
+    },
+    {
+      "id": "15A",
+      "pdfPage": 345,
+      "printedPage": 324
+    },
+    {
+      "id": "15B",
+      "pdfPage": 348,
+      "printedPage": 327
+    },
+    {
+      "id": "15C",
+      "pdfPage": 353,
+      "printedPage": 332
+    },
+    {
+      "id": "16A",
+      "pdfPage": 381,
+      "printedPage": 360
+    },
+    {
+      "id": "16B",
+      "pdfPage": 383,
+      "printedPage": 362
+    },
+    {
+      "id": "16C",
+      "pdfPage": 386,
+      "printedPage": 365
+    },
+    {
+      "id": "16D",
+      "pdfPage": 394,
+      "printedPage": 373
+    }
+  ],
+  "pageIndex": "page-index.json",
+  "validationReport": "validation-report.json",
+  "searchIndex": "search-index.json",
+  "searchCapabilities": [
+    "clause-number",
+    "normalized-turkish-text",
+    "pdf-page-links"
+  ],
+  "previewPolicy": "preview-only-until-validated"
+}

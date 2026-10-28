@@ -1,6 +1,7 @@
 import type { ArticleData } from "./articles-data";
 import type { DepremSeriesId, RegulationStatusItem } from "./deprem-content-types";
 import { normalizeSearchValue } from "./search-utils";
+import { getTBDYArticleMeta } from "./tbdy-guide";
 
 export type { DepremSeriesId } from "./deprem-content-types";
 
@@ -219,7 +220,7 @@ export const REGULATION_STATUS_ITEMS: readonly RegulationStatusItem[] = [
     title: "Türkiye Bina Deprem Yönetmeliği 2018",
     status: "in-force",
     statusLabel: "Yürürlükte",
-    verifiedAt: "11 Ağustos 2026",
+    verifiedAt: "27 Ekim 2026",
     href: "https://www.afad.gov.tr/turkiye-bina-deprem-yonetmeligi",
     note: "18 Mart 2018 tarihli metin; 1 Ocak 2019'dan beri yürürlükte.",
   },
@@ -291,6 +292,11 @@ export function createDepremArticleSummary(article: ArticleData): DepremArticleS
   if (article.sectionId !== "deprem-yonetmelik") return null;
 
   const series = getDepremSeriesForArticle(article);
+  const guide = getTBDYArticleMeta(article.slug);
+  const sectionTitles = article.sections.flatMap((section) => [section.title, ...section.subsections.map((sub) => sub.title)]);
+  const clauseTokens = [...new Set(article.sections.flatMap((section) =>
+    section.content.match(/\b(?:\d{1,2}\.){1,3}\d{1,2}\b/g) ?? [],
+  ))].slice(0, 80);
   const searchText = normalizeValues([
     article.slug,
     article.title,
@@ -302,6 +308,10 @@ export function createDepremArticleSummary(article: ArticleData): DepremArticleS
     ...(article.keywords ?? []),
     series.label,
     series.description,
+    ...sectionTitles,
+    ...clauseTokens,
+    ...(guide?.clauses ?? []),
+    ...(guide ? ["TBDY", ...guide.chapters.map((chapter) => "Bölüm " + chapter)] : []),
   ]);
 
   return {
@@ -334,6 +344,10 @@ export function sortDepremArticleSummaries(
   return [...articles].sort((left, right) => {
     const priorityDifference = getDepremSeriesById(left.seriesId).priority - getDepremSeriesById(right.seriesId).priority;
     if (priorityDifference !== 0) return priorityDifference;
+    if (left.seriesId === "tbdy" && right.seriesId === "tbdy") {
+      const orderDifference = (getTBDYArticleMeta(left.slug)?.order ?? 500) - (getTBDYArticleMeta(right.slug)?.order ?? 500);
+      if (orderDifference !== 0) return orderDifference;
+    }
     return (sourceIndex.get(left.slug) ?? Number.MAX_SAFE_INTEGER) - (sourceIndex.get(right.slug) ?? Number.MAX_SAFE_INTEGER);
   });
 }

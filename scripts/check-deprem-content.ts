@@ -12,15 +12,15 @@ import {
 import { TOOLS } from "../src/lib/tools-data";
 import { TS500_SLUGS } from "../src/lib/ts500-content";
 
-const EXPECTED_TOTAL = 164;
+const EXPECTED_TOTAL = 175;
 const EXPECTED_TOPIC_COUNT = 56;
 const EXPECTED_TS500_COUNT = 21;
-const EXPECTED_TARGET_COUNT = 143;
+const EXPECTED_TARGET_COUNT = 154;
 const OLD_TOOL_ROUTE = "/deprem-yonetmelik/araclar/";
 const GENERIC_COVER_PATTERNS = [/\/covers\/yonetmelik\.svg$/i, /placeholder/i, /generic/i, /default/i];
 
 const EXPECTED_SERIES_COUNTS: Record<DepremSeriesId, number> = {
-  tbdy: 36,
+  tbdy: 47,
   "tbdy-betonarme": 22,
   ts500: 21,
   "mevcut-guclendirme": 13,

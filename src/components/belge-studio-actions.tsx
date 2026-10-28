@@ -6,6 +6,8 @@ import type { BelgeDocumentId } from "@/lib/belgeler-pdf-profiles";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BelgeStudioFormViewMenu } from "@/components/belge-studio-form-view-menu";
+import { BelgeStudioReadabilityMenu } from "@/components/belge-studio-readability-menu";
+import type { BelgeReadabilityControls } from "@/hooks/use-belge-studio-readability";
 import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
 import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-context";
 import { BelgeStudioMobileActionsSheet } from "@/components/belge-studio-mobile-actions-sheet";
@@ -37,6 +39,7 @@ type BelgeStudioActionsProps = {
   documentId: BelgeDocumentId;
   templateFilename: string;
   formView?: BelgeStudioFormViewControls;
+  readability?: BelgeReadabilityControls;
 };
 
 /**
@@ -197,6 +200,7 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
 
         {/* Sağ Grup: [Form Görünümü] [Boş form indir] [Yazdır] [Paylaş] [PDF İndir] */}
         <div className="flex items-center gap-2">
+          {props.readability && <BelgeStudioReadabilityMenu readability={props.readability} />}
           {/* Form Görünümü ve Boş form indir kesinlikle yan yana, bölünmez alt grup */}
           <div className="inline-flex items-center gap-2 shrink-0">
             {props.formView && (
@@ -284,6 +288,7 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
         downloadBlank={downloadBlank}
         blankDownloading={blankDownloading}
         formView={props.formView}
+        readability={props.readability}
       />
     </footer>
   );

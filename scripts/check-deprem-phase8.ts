@@ -5,8 +5,8 @@ import { DEPREM_SERIES, getDepremSeriesForArticle } from "../src/lib/deprem-seri
 import { TOOLS } from "../src/lib/tools-data";
 import { TS500_SLUGS } from "../src/lib/ts500-content";
 
-const EXPECTED_TOTAL = 164;
-const EXPECTED_TARGET = 143;
+const EXPECTED_TOTAL = 175;
+const EXPECTED_TARGET = 154;
 const OLD_TOOL_PREFIX = "/deprem-yonetmelik/araclar/";
 const GENERIC_COVER_PATTERNS = [/\/covers\/yonetmelik\.svg$/i, /placeholder/i, /generic/i, /default/i];
 const BANNED_EDITORIAL_PHRASES = [
