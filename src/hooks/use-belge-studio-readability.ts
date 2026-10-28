@@ -93,7 +93,7 @@ export function useBelgeStudioReadability() {
     "--belge-target-scale": settings.largeTargets ? 1.18 : 1,
   }), [settings.uiScale, settings.textScale, settings.largeTargets]);
 
-  return { settings, update, resetScale, resetAll, rootStyle };
+  return { settings, update, resetScale, resetAll, rootStyle, isDesktopViewport };
 }
 
 export type BelgeReadabilityControls = ReturnType<typeof useBelgeStudioReadability>;
