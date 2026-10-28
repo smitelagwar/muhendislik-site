@@ -426,10 +426,9 @@ export function InsaatRuhsatiStudio({
           {...formFocusContainerProps}
         >
           <div
-            className="belge-readability-form-content"
+            className="belge-readability-form-content w-full max-w-full"
             style={{
               zoom: resizer.isDesktop && resizer.derivedZoom !== 1 ? resizer.derivedZoom : undefined,
-              minWidth: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
             }}
           >
           <div {...contentWrapperProps}>
