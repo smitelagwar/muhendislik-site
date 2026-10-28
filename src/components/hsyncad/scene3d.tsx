@@ -1,25 +1,33 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Maximize2 } from "lucide-react";
 // Explicit supported exports use Three's complete installed types. The legacy
 // document viewer has its own narrow ambient "three" declarations.
 import * as ThreeRuntime from "three";
 import type * as ThreeTypes from "three/src/Three.js";
 import { OrbitControls, type OrbitControlsEventMap } from "three/addons/controls/OrbitControls.js";
 import type { Controls } from "three/src/extras/Controls.js";
-import type { CadModel } from "@/lib/hsyncad/model";
-import { elementFootprint, elementVerticalRange } from "@/lib/hsyncad/geometry";
+import { isSolidElement, type CadModel } from "@/lib/hsyncad/model";
+import { layerState } from "@/lib/hsyncad/definitions";
 import { resolveJunctions, type JunctionResult } from "@/lib/hsyncad/junctions";
-import { extendedAxisEndpoints } from "@/lib/hsyncad/axes";
+import { axisSegments } from "@/lib/hsyncad/axes";
 
 const THREE = ThreeRuntime as unknown as typeof ThreeTypes;
 
+import type { AnalysisResult } from "@/lib/hsyncad/analysis";
+
 interface Scene3DProps {
   model: CadModel;
+  light?: boolean;
   selectedId: string | null;
   onSelect: (id: string) => void;
   hiddenLayers: string[];
   junctions?: JunctionResult;
+  fitKey?: number;
+  viewRequest?: { mode: string; revision: number };
+  analysisResult?: AnalysisResult | null;
+  analysisViewMode?: string;
 }
 
 // Restore only the official inherited lifecycle/event types hidden by that shim.
@@ -55,7 +63,7 @@ function disposeObjects(root: ThreeTypes.Object3D) {
 }
 
 /** One model unit is one metre. Plan +Y maps to world -Z; world +Y is elevation. */
-export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, junctions }: Scene3DProps) {
+export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, junctions, fitKey = 0, light = true, viewRequest, analysisResult, analysisViewMode }: Scene3DProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<SceneRuntime | null>(null);
   const selectRef = useRef(onSelect);
@@ -82,7 +90,7 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.setClearColor(0x18232e);
+    renderer.setClearColor(light ? 0xffffff : 0x18232e);
     renderer.domElement.style.display = "block";
     renderer.domElement.style.width = "100%";
     renderer.domElement.style.height = "100%";
@@ -114,7 +122,7 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
     fillLight.position.set(-8, 6, -7);
     scene.add(fillLight);
 
-    const grid = new THREE.GridHelper(100, 100, 0x53677b, 0x2d3e4f);
+    const grid = new THREE.GridHelper(100, 100, light ? 0xb7bcc4 : 0x53677b, light ? 0xe2e5f2 : 0x2d3e4f);
     grid.position.y = -0.012;
     scene.add(grid);
     const axes = new THREE.AxesHelper(1.5);
@@ -134,7 +142,10 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
     };
     const fit = () => {
       const bounds = new THREE.Box3().setFromObject(elements);
-      if (bounds.isEmpty()) bounds.set(new THREE.Vector3(-1, 0, -5), new THREE.Vector3(5, 3, 1));
+      if (bounds.isEmpty()) {
+        controls.target.set(2, 0, -2); camera.position.set(12, 4, 12);
+        camera.near = 0.01; camera.far = 100000; camera.updateProjectionMatrix(); controls.update(); render(); return;
+      }
       const center = bounds.getCenter(new THREE.Vector3());
       const size = bounds.getSize(new THREE.Vector3());
       const radius = Math.max(size.length() * 0.5, 3);
@@ -220,7 +231,7 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
       renderer.domElement.remove();
       runtimeRef.current = null;
     };
-  }, []);
+  }, [light]);
 
   useEffect(() => {
     const runtime = runtimeRef.current;
@@ -231,63 +242,58 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
     const floors = new Map(model.floors.map((floor) => [floor.id, floor]));
     const elementsById = new Map(model.elements.map((e) => [e.id, e]));
     let solidCount = 0;
+    for (const e of model.elements) if (e.type === "slabEdge" && layerState(model, e.layer, e.floorId).visible && !hiddenLayers.includes(e.layer)) {
+      const floor = floors.get(e.floorId)!;
+      const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(e.start.x, floor.elevation + floor.height + (e.topOffset ?? 0) + 0.005, -e.start.y), new THREE.Vector3(e.end.x, floor.elevation + floor.height + (e.endTopOffset ?? e.topOffset ?? 0) + 0.005, -e.end.y)]);
+      const line = new THREE.Line(geometry, new THREE.LineDashedMaterial({ color: e.color ?? 0xd577ae, dashSize: 0.12, gapSize: 0.08 }));
+      line.computeLineDistances(); runtime.elements.add(line);
+    }
 
     for (const element of model.elements) {
-      if (element.type !== "axis" || hiddenLayers.includes(element.layer)) continue;
+      if (element.type !== "axis" || (!layerState(model, element.layer, element.floorId).visible || hiddenLayers.includes(element.layer))) continue;
       const floor = floors.get(element.floorId);
       if (!floor) continue;
-      const [start, end] = extendedAxisEndpoints(element);
-      const geometry = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(start.x, floor.elevation + 0.015, -start.y),
-        new THREE.Vector3(end.x, floor.elevation + 0.015, -end.y),
-      ]);
-      const line = new THREE.Line(geometry, new THREE.LineDashedMaterial({ color: 0x91a5b8, dashSize: 0.2, gapSize: 0.1 }));
-      line.computeLineDistances();
-      runtime.elements.add(line);
+      const sections = axisSegments(element);
+      for (const section of sections) {
+        const geometry = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(section.a.x, floor.elevation + 0.015, -section.a.y),
+          new THREE.Vector3(section.b.x, floor.elevation + 0.015, -section.b.y),
+        ]);
+        const color = section.color ?? model.layers?.find(l => l.name === element.layer)?.color ?? 0x91a5b8;
+        const line = new THREE.Line(geometry, section.style === "solid" ? new THREE.LineBasicMaterial({ color }) : new THREE.LineDashedMaterial({ color, dashSize: 0.2, gapSize: 0.1 }));
+        line.computeLineDistances(); runtime.elements.add(line);
+      }
     }
 
     if (resolvedJunctions.status === "resolved" && resolvedJunctions.parts.length > 0) {
       for (const part of resolvedJunctions.parts) {
         const element = elementsById.get(part.elementId);
-        if (element && hiddenLayers.includes(element.layer)) continue;
+        if (element && (!layerState(model, element.layer, element.floorId).visible || hiddenLayers.includes(element.layer))) continue;
         if (part.footprint.length < 3) continue;
         const depth = part.top - part.bottom;
         if (depth <= 1e-6) continue;
-        const shape = new THREE.Shape(part.footprint.map((p) => new THREE.Vector2(p.x, p.y)));
-        const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, steps: 1 });
-        geometry.rotateX(-Math.PI / 2);
-        geometry.translate(0, part.bottom, 0);
+        let geometry: ThreeTypes.BufferGeometry;
+        if (part.faces) {
+          const positions: number[] = [];
+          for (const face of part.faces) for (let i = 1; i + 1 < face.length; i++) for (const p of [face[0], face[i], face[i + 1]]) positions.push(p.x, p.z, -p.y);
+          geometry = new THREE.BufferGeometry();
+          geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+        } else {
+          const shape = new THREE.Shape(part.footprint.map(p => new THREE.Vector2(p.x, p.y)));
+          geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, steps: 1 });
+          geometry.rotateX(-Math.PI / 2);
+          geometry.translate(0, part.bottom, 0);
+        }
+        const analysisMember = analysisResult?.members[part.elementId];
+        const capacityColor = analysisMember ? (analysisMember.capacityRatio > 1.0 ? 0xef4444 : analysisMember.capacityRatio > 0.70 ? 0xf59e0b : 0x22c55e) : undefined;
+        const layerColor = element?.layer === "Temeller" ? 0x8b5cf6 : element?.layer === "Merdivenler" ? 0xec4899 : (element?.color ?? model.layers?.find(l => l.name === element?.layer)?.color ?? COLORS[part.type]);
+        const baseColor = (analysisViewMode === "capacity" && capacityColor !== undefined) ? capacityColor : layerColor;
         geometry.computeVertexNormals();
-        const material = new THREE.MeshStandardMaterial({ color: COLORS[part.type], roughness: 0.78, metalness: 0.04 });
+        const material = new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.78, metalness: 0.04 });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.name = element?.name ?? part.type;
         mesh.userData.elementId = part.elementId;
-        mesh.userData.baseColor = COLORS[part.type];
-        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 25), new THREE.LineBasicMaterial({ color: 0x263849, transparent: true, opacity: 0.65 }));
-        mesh.add(edges);
-        runtime.elements.add(mesh);
-        solidCount += 1;
-      }
-    } else {
-      for (const element of model.elements) {
-        if (element.type === "axis" || hiddenLayers.includes(element.layer)) continue;
-        const floor = floors.get(element.floorId);
-        if (!floor) continue;
-        const footprint = elementFootprint(element);
-        if (footprint.length < 3) continue;
-        const [bottom, top] = elementVerticalRange(element, floor);
-        const depth = top - bottom;
-        if (depth <= 1e-6) continue;
-        const shape = new THREE.Shape(footprint.map((point) => new THREE.Vector2(point.x, point.y)));
-        const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, steps: 1 });
-        geometry.rotateX(-Math.PI / 2);
-        geometry.translate(0, bottom, 0);
-        geometry.computeVertexNormals();
-        const material = new THREE.MeshStandardMaterial({ color: COLORS[element.type], roughness: 0.78, metalness: 0.04 });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.name = element.name;
-        mesh.userData.elementId = element.id;
-        mesh.userData.baseColor = COLORS[element.type];
+        mesh.userData.baseColor = new THREE.Color(baseColor).getHex();
         const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 25), new THREE.LineBasicMaterial({ color: 0x263849, transparent: true, opacity: 0.65 }));
         mesh.add(edges);
         runtime.elements.add(mesh);
@@ -299,13 +305,35 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
     // These values describe the generated THREE scene, not only React's input model.
     viewport.dataset.renderedSolidCount = String(solidCount);
     viewport.dataset.volumeSize = JSON.stringify(size.toArray());
-    viewport.dataset.modelSignature = JSON.stringify(model.elements.filter((element) => !hiddenLayers.includes(element.layer)));
+    viewport.dataset.modelSignature = JSON.stringify(model.elements.filter((element) => !(!layerState(model, element.layer, element.floorId).visible || hiddenLayers.includes(element.layer))));
     if (solidCount > 0 && !runtime.didFitModel) {
       runtime.didFitModel = true;
       runtime.fit();
     }
     runtime.render();
-  }, [model, hiddenLayers, junctions]);
+  }, [model, hiddenLayers, junctions, analysisResult, analysisViewMode]);
+
+  useEffect(() => {
+    if (!fitKey) return;
+    const frame = requestAnimationFrame(() => runtimeRef.current?.fit());
+    return () => cancelAnimationFrame(frame);
+  }, [fitKey]);
+
+  useEffect(() => {
+    const runtime = runtimeRef.current;
+    if (!runtime || !viewRequest) return;
+    const directions: Record<string, [number, number, number]> = {
+      perspective: [1, .85, 1], top: [0, 1, .0001], bottom: [0, -1, .0001],
+      left: [-1, 0, 0], right: [1, 0, 0], front: [0, 0, 1], back: [0, 0, -1], iso: [1, 1, 1],
+    };
+    const direction = viewRequest.mode === "perspective" && !runtime.elements.children.length ? [1, .3, 1] as const : directions[viewRequest.mode];
+    if (!direction) return;
+    runtime.fit();
+    const distance = runtime.camera.position.distanceTo(runtime.controls.target);
+    runtime.camera.position.copy(runtime.controls.target).addScaledVector(new THREE.Vector3(...direction).normalize(), distance);
+    runtime.controls.update(); runtime.render();
+    if (viewportRef.current) viewportRef.current.dataset.view = viewRequest.mode;
+  }, [viewRequest, light]);
 
   useEffect(() => {
     const runtime = runtimeRef.current;
@@ -326,20 +354,18 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
     runtime.render();
   }, [selectedId, model, hiddenLayers, junctions]);
 
-  const solidCount = model.elements.filter((element) => element.type !== "axis" && !hiddenLayers.includes(element.layer)).length;
+  const solidCount = junctions?.status === "failed" ? 0 : model.elements.filter(isSolidElement).filter(element => layerState(model, element.layer, element.floorId).visible && !hiddenLayers.includes(element.layer)).length;
 
   return (
     <section className="hcad-scene3d" data-testid="hsyncad-3d" data-solid-count={solidCount} style={{ display: "flex", flexDirection: "column", minWidth: 0, minHeight: 0, height: "100%", background: "var(--hc-panel, #18232e)", overflow: "hidden" }} aria-label="3B Perspektif Penceresi">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "9px 12px", borderBottom: "1px solid var(--hc-border, #34414d)", color: "var(--hc-text, #edf1f4)" }}>
-        <div style={{ minWidth: 0 }}>
-          <h2 style={{ fontSize: 12, fontWeight: 650, margin: 0 }}>3B Perspektif Penceresi</h2>
-          <p style={{ fontSize: 10, color: "var(--hc-muted, #a8b9c8)", margin: "3px 0 0" }}>Sürükle: döndür · İki parmak: yakınlaştır</p>
-        </div>
-        <button type="button" data-testid="hsyncad-3d-fit" onClick={() => runtimeRef.current?.fit()} style={{ padding: "7px 9px", minHeight: 36, fontSize: 11, borderRadius: 6, border: "1px solid var(--hc-border, #34414d)", color: "inherit", background: "transparent", cursor: "pointer", flexShrink: 0 }}>Modeli sığdır</button>
+      <div className="hcad-view-heading">
+        <span><i className="hcad-dot" /><h2 style={{ fontSize: "inherit", fontWeight: 600, margin: 0 }}>3B Perspektif Penceresi</h2></span>
+        <button type="button" data-testid="hsyncad-3d-fit" aria-label="3B modeli sığdır" title="Modeli sığdır · Sürükle: döndür, iki parmak: yakınlaştır" onClick={() => runtimeRef.current?.fit()} style={{ padding: "3px 7px", minHeight: 25, fontSize: 10, flexShrink: 0 }}><Maximize2 size={13} />Sığdır</button>
       </div>
-      <div ref={viewportRef} data-testid="hsyncad-3d-viewport" style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden", background: "#18232e" }}>
+      <div ref={viewportRef} data-testid="hsyncad-3d-viewport" style={{ flex: 1, minHeight: 0, position: "relative", overflow: "hidden", background: light ? "#ffffff" : "#18232e" }}>
         {renderError && <p role="alert" style={{ position: "absolute", zIndex: 1, inset: 20, padding: 16, color: "#ffe0b3", background: "#243440", borderRadius: 8, fontSize: 13 }}>{renderError}</p>}
-        {!renderError && solidCount === 0 && <div style={{ pointerEvents: "none", position: "absolute", zIndex: 1, inset: 0, display: "grid", placeItems: "center", padding: 24, color: "#b8c9d8", textAlign: "center", fontSize: 12 }}>2B pencerede oluşturduğunuz yapı burada yükselir.</div>}
+        {junctions?.status === "failed" && <p role="alert" className="hcad-scene-error">Birleşim üretilemedi. Çakışan brüt katılar gizlendi. {junctions.error}</p>}
+        {!renderError && junctions?.status !== "failed" && solidCount === 0 && <div className="hcad-empty-scene" style={{ pointerEvents: "none", position: "absolute", zIndex: 1, inset: 0, display: "grid", placeItems: "center", padding: 24, color: "#b8c9d8", textAlign: "center", fontSize: 12 }}>2B pencerede oluşturduğunuz yapı burada yükselir.</div>}
         <div style={{ pointerEvents: "none", position: "absolute", zIndex: 1, bottom: 12, left: 12, color: "#b8c9d8", fontFamily: "monospace", fontSize: 10, display: "flex", gap: 10 }}>
           <span style={{ color: "#efa58d" }}>X</span><span style={{ color: "#8bd4bf" }}>Y</span><span style={{ color: "#8db6eb" }}>Z ↑</span><span>1 birim = 1 m</span>
         </div>

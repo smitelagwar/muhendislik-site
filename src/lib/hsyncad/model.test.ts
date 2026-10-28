@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createDemoModel, createEmptyModel, translateElement, validateModel, type CadElement, type CadModel, type ColumnElement, type SlabElement } from "./model";
 import { elementFootprint, elementVerticalRange, isSimplePolygon, polygonArea, snapPoint } from "./geometry";
 import { calculateQuantities } from "./quantities";
-import { buildAxisGrid, createAxisElement, createParallelAxis, extendedAxisEndpoints, nextAxisName, parseAxisSpacings } from "./axes";
+import { buildAxisGrid, createParallelAxis, extendedAxisEndpoints, nextAxisName, parseAxisSpacings } from "./axes";
 import { resolveJunctions } from "./junctions";
 
 const base = { id: "element-1", name: "E1", floorId: "floor-0", materialId: "concrete", layer: "Yapı" };

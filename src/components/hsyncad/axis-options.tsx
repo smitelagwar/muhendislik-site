@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import type { AxisElement, CadElement } from "@/lib/hsyncad/model";
-import { buildAxisGrid, createParallelAxis, nextAxisName, parseAxisSpacings, type AxisDrawingOptions, type AxisGridInput } from "@/lib/hsyncad/axes";
+import { buildAxisGrid, nextAxisName, parseAxisSpacings, type AxisDrawingOptions, type AxisGridInput } from "@/lib/hsyncad/axes";
 import styles from "./axis-options.module.css";
+import { AxisSettings } from "./element-settings";
 
 type Props = {
   options: AxisDrawingOptions;
@@ -13,6 +14,7 @@ type Props = {
   materialId: string;
   selectedId?: string | null;
   onCreateGrid: (axes: AxisElement[]) => void;
+  unit: "m" | "cm"; offsetDistance: number; onOffsetDistance: (distance: number) => void; onOffset: () => void;
 };
 
 const number = (value: string) => value.trim() ? Number(value.trim().replace(",", ".")) : Number.NaN;
@@ -49,12 +51,11 @@ function GridPreview({ axes, input }: { axes: AxisElement[]; input: AxisGridInpu
   </div>;
 }
 
-export default function AxisOptions({ options, onChange, elements, floorId, materialId, selectedId, onCreateGrid }: Props) {
+export default function AxisOptions({ options, onChange, elements, floorId, materialId, selectedId, onCreateGrid, unit, offsetDistance, onOffsetDistance, onOffset }: Props) {
   const [xSpacings, setXSpacings] = useState("4;4");
   const [ySpacings, setYSpacings] = useState("3;5");
   const [originX, setOriginX] = useState("0");
   const [originY, setOriginY] = useState("0");
-  const [parallelDistance, setParallelDistance] = useState("4");
   const [actionError, setActionError] = useState<string | null>(null);
   const suggestedName = nextAxisName(elements, options.direction, floorId);
   const axes = elements.filter((element): element is AxisElement => element.type === "axis" && element.floorId === floorId);
@@ -62,13 +63,14 @@ export default function AxisOptions({ options, onChange, elements, floorId, mate
   const grid = useMemo(() => {
     try {
       const input: AxisGridInput = {
+        ...options, name: undefined,
         origin: { x: number(originX), y: number(originY) },
         xSpacings: parseAxisSpacings(xSpacings), ySpacings: parseAxisSpacings(ySpacings),
         extension: options.extension, labelSide: options.labelSide, floorId, materialId,
       };
       return { input, axes: buildAxisGrid(input, elements), error: null };
     } catch (error) { return { input: null, axes: [], error: error instanceof Error ? error.message : "Aks sistemi değerlerini kontrol edin." }; }
-  }, [originX, originY, xSpacings, ySpacings, options.extension, options.labelSide, floorId, materialId, elements]);
+  }, [originX, originY, xSpacings, ySpacings, options, floorId, materialId, elements]);
 
   function createGrid() {
     if (!grid.input) return;
@@ -80,16 +82,11 @@ export default function AxisOptions({ options, onChange, elements, floorId, mate
   }
 
   function createParallel() {
-    if (!parallelSource) return;
-    try {
-      const axis = createParallelAxis(parallelSource, number(parallelDistance), elements, options.name);
-      axis.extension = options.extension; axis.labelSide = options.labelSide;
-      onCreateGrid([axis]);
-      setActionError(null);
-    } catch (error) { setActionError(error instanceof Error ? error.message : "Paralel aks oluşturulamadı."); }
+    onOffset();
   }
 
   return <section className={styles.root} aria-label="Aks oluşturma seçenekleri" data-testid="hsyncad-axis-options">
+    <details className="hcad-axis-advanced"><summary>Aks genel ayarları</summary><AxisSettings draft={{ ...options, id: "new-axis", type: "axis", start: { x: 0, y: 0 }, end: { x: 1, y: 0 }, floorId, materialId, layer: "Akslar" }} onChange={next => { const keys = ["suffix", "minor", "extensionStart", "extensionEnd", "drawInside", "drawOutside", "outsideColor", "outsideLineStyle", "straighten", "color", "lineStyle"] as const; onChange({ ...options, ...Object.fromEntries(keys.map(key => [key, next[key]])) }); }} /></details>
     <div className={styles.mainRow}>
       <div className={styles.modeGroup}>
         <span className={styles.caption}>AKS YÖNÜ</span>
@@ -97,9 +94,11 @@ export default function AxisOptions({ options, onChange, elements, floorId, mate
           {([{ direction: "horizontal", label: "Yatay", glyph: "─" }, { direction: "vertical", label: "Düşey", glyph: "│" }, { direction: "free", label: "İki nokta", glyph: "╱" }] as const).map(({ direction, label, glyph }) => <button key={direction} type="button" data-testid={`hsyncad-axis-${direction}`} aria-pressed={options.direction === direction} className={options.direction === direction ? "active" : ""} onClick={() => { onChange({ ...options, direction }); setActionError(null); }}><span aria-hidden="true">{glyph}</span>{label}</button>)}
         </div>
       </div>
+      <label className={styles.field}><span>Ofset ({unit}) · sayı + Enter</span><input aria-label="Aks ofset mesafesi" data-testid="axis-offset-input" inputMode="decimal" value={Number.isFinite(offsetDistance) ? +(offsetDistance * (unit === "cm" ? 100 : 1)).toFixed(6) : ""} onChange={event => onOffsetDistance(number(event.target.value) * (unit === "cm" ? 0.01 : 1))} onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); createParallel(); } }} /></label>
+      <button type="button" onClick={createParallel} title="Son veya seçili akstan devam">Ofset oluştur ↵</button>
       <label className={styles.field}><span>Aks adı</span><input data-testid="hsyncad-axis-name" value={options.name} placeholder={`${suggestedName} (otomatik)`} maxLength={160} onChange={(event) => onChange({ ...options, name: event.target.value })} /><small>Sonraki: {suggestedName}</small></label>
-      <label className={styles.field}><span>Uç uzatma (m)</span><input data-testid="hsyncad-axis-extension" type="number" step="0.1" min="0" max="1000000" value={Number.isFinite(options.extension) ? options.extension : ""} onChange={(event) => onChange({ ...options, extension: event.target.value === "" ? Number.NaN : Number(event.target.value) })} /></label>
-      <label className={styles.field}><span>Aks başlığı</span><select data-testid="hsyncad-axis-label-side" value={options.labelSide} onChange={(event) => onChange({ ...options, labelSide: event.target.value as AxisDrawingOptions["labelSide"] })}><option value="both">İki uçta</option><option value="start">Başlangıçta</option><option value="end">Bitişte</option></select></label>
+      <label className={styles.field}><span>Ortak uç uzatma (m)</span><input data-testid="hsyncad-axis-extension" type="number" step="0.1" min="0" max="1000000" value={Number.isFinite(options.extension) ? options.extension : ""} onChange={(event) => onChange({ ...options, extension: event.target.value === "" ? Number.NaN : Number(event.target.value), extensionStart: undefined, extensionEnd: undefined })} /></label>
+      <label className={styles.field}><span>Aks başlığı</span><select data-testid="hsyncad-axis-label-side" value={options.labelSide} onChange={(event) => onChange({ ...options, labelSide: event.target.value as AxisDrawingOptions["labelSide"] })}><option value="both">İki uçta</option><option value="start">Başlangıçta</option><option value="end">Bitişte</option><option value="none">Başlıksız</option></select></label>
       <p className={styles.guide}>{options.direction === "free" ? "Başlangıç ve bitiş için iki nokta seçin." : `${options.direction === "horizontal" ? "Yatay" : "Düşey"} aksı yerleştirmek için tek nokta seçin.`}<small>Boşluk: yön değiştir · Esc: iptal · Tüm ölçüler metre</small></p>
     </div>
     <div className={styles.extensions}>
@@ -123,7 +122,7 @@ export default function AxisOptions({ options, onChange, elements, floorId, mate
         <summary data-testid="hsyncad-axis-parallel-toggle">Mesafeyle paralel aks</summary>
         <div className={styles.parallelBody}>
           <p className={styles.note}>{parallelSource ? <>Referans: <b>{parallelSource.name}</b> ({parallelSource.id === selectedId ? "seçili aks" : "bu kattaki son aks"}). Pozitif mesafe yatayda +Y, düşeyde +X; serbest aksta sol yöndür.</> : "Önce aktif katta bir aks oluşturun."}</p>
-          <label className={styles.field}><span>Referanstan mesafe (m)</span><input data-testid="hsyncad-axis-parallel-distance" inputMode="decimal" value={parallelDistance} onChange={(event) => setParallelDistance(event.target.value)} /></label>
+          <label className={styles.field}><span>Referanstan mesafe ({unit})</span><input data-testid="hsyncad-axis-parallel-distance" inputMode="decimal" value={Number.isFinite(offsetDistance) ? +(offsetDistance * (unit === "cm" ? 100 : 1)).toFixed(6) : ""} onChange={event => onOffsetDistance(number(event.target.value) * (unit === "cm" ? 0.01 : 1))} /></label>
           <button type="button" data-testid="hsyncad-axis-parallel-create" disabled={!parallelSource || !Number.isFinite(options.extension) || options.extension < 0} onClick={createParallel}>Paralel aks oluştur</button>
         </div>
       </details>

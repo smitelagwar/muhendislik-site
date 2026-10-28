@@ -1,15 +1,15 @@
 import type { AxisElement, CadElement, Point } from "./model";
 
 export type AxisDirection = "horizontal" | "vertical" | "free";
-export type AxisLabelSide = "both" | "start" | "end";
-export type AxisDrawingOptions = {
+export type AxisLabelSide = "both" | "start" | "end" | "none";
+export type AxisDrawingOptions = Pick<AxisElement, "suffix" | "minor" | "extensionStart" | "extensionEnd" | "drawInside" | "drawOutside" | "outsideColor" | "outsideLineStyle" | "straighten" | "color" | "lineStyle"> & {
   direction: AxisDirection;
   /** Empty means the next unused automatic name. */
   name: string;
   extension: number;
   labelSide: AxisLabelSide;
 };
-export type AxisGridInput = {
+export type AxisGridInput = Partial<AxisDrawingOptions> & {
   origin: Point;
   xSpacings: number[];
   ySpacings: number[];
@@ -93,13 +93,14 @@ export function createAxisElement(input: AxisInput, existing: CadElement[]): Axi
   const name = input.name?.trim() || nextAxisName(existing, input.direction, input.floorId);
   if (name.length > 160) throw new Error("Aks adı en fazla 160 karakter olabilir.");
   const onFloor = existing.filter((element): element is AxisElement => element.type === "axis" && element.floorId === input.floorId);
-  if (onFloor.some((axis) => axis.name.trim().toUpperCase() === name.toUpperCase())) throw new Error(`Bu katta “${name}” adlı aks zaten var. Başka ad girin veya otomatik adı kullanın.`);
+  if (onFloor.some(axis => `${axis.name}${axis.suffix ?? ""}`.trim().toUpperCase() === `${name}${input.suffix ?? ""}`.trim().toUpperCase())) throw new Error(`Bu katta “${name}${input.suffix ?? ""}” adlı aks zaten var. Başka ad girin veya otomatik adı kullanın.`);
   const coincident = onFloor.find((axis) => sameAxisLine({ start, end }, axis));
   if (coincident) throw new Error(`Bu doğru üzerinde ${coincident.name} aksı zaten var. Yeni bir konum seçin.`);
   return {
     id: `axis-${crypto.randomUUID()}`, type: "axis", name,
     floorId: input.floorId, materialId: input.materialId, layer: input.layer ?? "Akslar",
     start, end, orientation: input.direction, labelSide: input.labelSide, extension: input.extension,
+    ...Object.fromEntries(["suffix", "minor", "extensionStart", "extensionEnd", "drawInside", "drawOutside", "outsideColor", "outsideLineStyle", "straighten", "color", "lineStyle"].filter(key => input[key as keyof AxisInput] !== undefined).map(key => [key, input[key as keyof AxisInput]])),
   };
 }
 
@@ -151,7 +152,7 @@ export function createParallelAxis(source: AxisElement, distance: number, existi
   if (length < EPSILON) throw new Error("Kaynak aksın uzunluğu sıfır olamaz.");
   const direction: AxisDirection = Math.abs(dy) < EPSILON ? "horizontal" : Math.abs(dx) < EPSILON ? "vertical" : "free";
   const offset = direction === "horizontal" ? { x: 0, y: distance } : direction === "vertical" ? { x: distance, y: 0 } : { x: -dy / length * distance, y: dx / length * distance };
-  return createAxisElement({
+  return createAxisElement({ ...source,
     start: { x: source.start.x + offset.x, y: source.start.y + offset.y },
     end: { x: source.end.x + offset.x, y: source.end.y + offset.y },
     direction, name, floorId: source.floorId, materialId: source.materialId, layer: source.layer,
@@ -163,9 +164,33 @@ export function createParallelAxis(source: AxisElement, distance: number, existi
 export function extendedAxisEndpoints(axis: AxisElement): [Point, Point] {
   const dx = axis.end.x - axis.start.x, dy = axis.end.y - axis.start.y, length = Math.hypot(dx, dy);
   const extension = axis.extension ?? 0;
+  const first = axis.extensionStart ?? extension, last = axis.extensionEnd ?? extension;
   if (length < EPSILON) return [{ ...axis.start }, { ...axis.end }];
   return [
-    { x: axis.start.x - dx / length * extension, y: axis.start.y - dy / length * extension },
-    { x: axis.end.x + dx / length * extension, y: axis.end.y + dy / length * extension },
+    { x: axis.start.x - (axis.straighten && first > 0 ? Math.sign(dx || 1) : dx / length) * first, y: axis.start.y - (axis.straighten && first > 0 ? 0 : dy / length) * first },
+    { x: axis.end.x + (axis.straighten && last > 0 ? Math.sign(dx || 1) : dx / length) * last, y: axis.end.y + (axis.straighten && last > 0 ? 0 : dy / length) * last },
   ];
+}
+
+/** Negative deltas shorten the inside line; positive tails use the outside style. */
+export function axisSegments(axis: AxisElement): { a: Point; b: Point; color?: string; style?: AxisElement["lineStyle"] }[] {
+  const [first, last] = extendedAxisEndpoints(axis);
+  const startDelta = axis.extensionStart ?? axis.extension ?? 0;
+  const endDelta = axis.extensionEnd ?? axis.extension ?? 0;
+  return [
+    ...(axis.drawInside === false ? [] : [{ a: startDelta < 0 ? first : axis.start, b: endDelta < 0 ? last : axis.end, color: axis.color, style: axis.lineStyle }]),
+    ...(axis.drawOutside === false ? [] : [
+      ...(startDelta > 0 ? [{ a: first, b: axis.start, color: axis.outsideColor ?? axis.color, style: axis.outsideLineStyle }] : []),
+      ...(endDelta > 0 ? [{ a: axis.end, b: last, color: axis.outsideColor ?? axis.color, style: axis.outsideLineStyle }] : []),
+    ]),
+  ];
+}
+
+/** Keep support-line intersections inside the visible axis frame when the grid grows. */
+export function expandAxisFrame(elements: CadElement[], floorId: string): CadElement[] {
+  const axes = elements.filter((e): e is AxisElement => e.type === "axis" && e.floorId === floorId);
+  const xs = axes.flatMap(a => [a.start.x, a.end.x]), ys = axes.flatMap(a => [a.start.y, a.end.y]);
+  if (!axes.length) return elements;
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  return elements.map(e => e.type !== "axis" || e.floorId !== floorId ? e : Math.abs(e.start.y - e.end.y) < EPSILON ? { ...e, start: { x: e.start.x <= e.end.x ? minX : maxX, y: e.start.y }, end: { x: e.start.x <= e.end.x ? maxX : minX, y: e.end.y } } : Math.abs(e.start.x - e.end.x) < EPSILON ? { ...e, start: { x: e.start.x, y: e.start.y <= e.end.y ? minY : maxY }, end: { x: e.end.x, y: e.start.y <= e.end.y ? maxY : minY } } : e);
 }

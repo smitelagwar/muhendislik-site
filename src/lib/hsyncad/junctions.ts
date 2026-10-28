@@ -1,6 +1,8 @@
 import earcut from "earcut";
 import { elementFootprint, elementVerticalRange, polygonArea } from "./geometry";
-import { validateModel, type CadModel, type Point, type SolidElement } from "./model";
+import { isSolidElement, validateModel, type CadModel, type Point, type SolidElement } from "./model";
+import { resolvePolyhedra, type Point3 } from "./polyhedra";
+import { connectionElevationWarnings } from "./connection-diagnostics";
 
 /** Metres. Geometry within this tolerance is considered coincident. */
 export const JUNCTION_EPSILON = 1e-8;
@@ -14,6 +16,7 @@ export type SolidPart = {
   bottom: number;
   top: number;
   volume: number;
+  faces?: Point3[][];
 };
 export type JunctionElementQuantity = { grossVolume: number; netVolume: number | null };
 export type JunctionResult = {
@@ -142,8 +145,12 @@ export function resolveJunctions(input: CadModel, options: JunctionOptions = {})
   try {
     if (!Number.isFinite(budget.maximum) || budget.maximum < 1 || !Number.isFinite(maxParts) || maxParts < 1) throw new Error("Geçersiz birleşim işlem sınırı.");
     const model = validateModel(input);
+    if (model.elements.some(e => e.type === "slab" && ((e.slopeX ?? 0) !== 0 || (e.slopeY ?? 0) !== 0) || e.type === "column" && ((e.leanX ?? 0) !== 0 || (e.leanY ?? 0) !== 0) || e.type === "beam" && (e.endTopOffset ?? e.topOffset ?? 0) !== (e.topOffset ?? 0))) {
+      const result = resolvePolyhedra(model, options);
+      return result.status === "resolved" ? { ...result, warnings: connectionElevationWarnings(model) } : result;
+    }
     const floors = new Map(model.floors.map(f => [f.id, f]));
-    const prepared: Prepared[] = model.elements.filter((element): element is SolidElement => element.type !== "axis").map(element => {
+    const prepared: Prepared[] = model.elements.filter(isSolidElement).map(element => {
       const [bottom, top] = elementVerticalRange(element, floors.get(element.floorId)!);
       const footprint = elementFootprint(element);
       const volume = polygonArea(footprint) * (top - bottom);
@@ -162,6 +169,7 @@ export function resolveJunctions(input: CadModel, options: JunctionOptions = {})
       for (const current of active) {
         let remaining = current.polygons;
         for (const blocker of blockers) {
+          if (!remaining.some(subject => boxesOverlap(subject.bounds, blocker.bounds))) continue;
           const next: Convex[] = [];
           for (const subject of remaining) {
             next.push(...subtractConvex(subject, blocker, budget));
@@ -191,7 +199,7 @@ export function resolveJunctions(input: CadModel, options: JunctionOptions = {})
     for (const [id, quantity] of Object.entries(byElement)) {
       if (quantity.netVolume! > quantity.grossVolume + Math.max(1e-8, quantity.grossVolume * 1e-8)) throw new Error(`${id}: birleşim hesabı hacim tutarlılığı sağlanamadı; net metraj ve 3B katılar üretilmedi.`);
     }
-    return { status: "resolved", parts, grossVolume, netVolume, overlapVolume: Math.max(0, grossVolume - netVolume), byElement, warnings: [], epsilon: JUNCTION_EPSILON };
+    return { status: "resolved", parts, grossVolume, netVolume, overlapVolume: Math.max(0, grossVolume - netVolume), byElement, warnings: connectionElevationWarnings(model), epsilon: JUNCTION_EPSILON };
   } catch (cause) {
     const error = cause instanceof Error ? cause.message : "Birleşim hesabı tamamlanamadı.";
     for (const quantity of Object.values(byElement)) quantity.netVolume = null;

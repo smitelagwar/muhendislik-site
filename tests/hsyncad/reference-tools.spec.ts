@@ -1,0 +1,65 @@
+import { expect, test, type Page } from "@playwright/test";
+import type { CadModel } from "../../src/lib/hsyncad/model";
+const model = (page: Page): Promise<CadModel> => page.evaluate(() => JSON.parse(localStorage.getItem("hsyncad.model.v1")!));
+async function ready(page: Page) { await page.goto("/kategori/araclar/hsyncad"); await expect(page.getByTestId("hsyncad-workbench")).toHaveAttribute("data-ready", "true"); }
+async function point(page: Page, x: number, y: number) { await page.getByTestId("coordinate-x").fill(String(x)); await page.getByTestId("coordinate-y").fill(String(y)); await page.getByTestId("coordinate-place").click(); }
+test("distance, angle and area measurements persist, undo and stay outside structural quantities", async ({ page }) => {
+  await ready(page); await page.getByRole("tab", { name: "Araçlar", exact: true }).click(); await page.getByTestId("ribbon-measureDistance").click();
+  await point(page, 0, 0); await point(page, 3, 4);
+  await expect(page.getByTestId("reference-record").first()).toContainText("5 m");
+  await page.getByTestId("tool-measureAngle").click();
+  await point(page, 4, 0); await point(page, 0, 0); await point(page, 0, 3);
+  await expect(page.getByTestId("reference-record").nth(1)).toContainText("90°");
+  await page.getByTestId("tool-measureArea").click();
+  for (const [x, y] of [[0, 0], [4, 0], [4, 3], [0, 3]]) await point(page, x, y);
+  await page.getByTestId("finish-measure-area").click();
+  await expect(page.getByTestId("reference-record").nth(2)).toContainText("12 m² · Çevre 14 m");
+  await expect(page.getByTestId("quantity-net")).toHaveText("0,000");
+  expect((await model(page)).elements).toHaveLength(0);
+  await page.getByRole("button", { name: "Alan / çevre 1 kaydını sil", exact: true }).click();
+  await expect.poll(async () => (await model(page)).drafting?.items.length).toBe(2);
+  await page.getByRole("button", { name: "Geri al", exact: true }).click();
+  await page.reload(); await expect.poll(async () => (await model(page)).drafting?.items.length).toBe(3);
+  expect(await page.locator('[data-drafting-kind="measureArea"]').count()).toBe(1);
+});
+test("reference line drives a rotated local origin and a perpendicular beam", async ({ page }) => {
+  await ready(page); await page.getByTestId("quick-referenceLine").click();
+  await point(page, 10, 20); await point(page, 10, 24);
+  await page.getByRole("combobox", { name: "Referans doğrusu" }).selectOption({ label: "Referans çizgisi 1" });
+  await page.getByRole("button", { name: "Lokal sistem yap", exact: true }).click();
+  await page.getByRole("tab", { name: "Betonarme", exact: true }).click();
+  await page.getByTestId("tool-column").click(); await point(page, 2, 0);
+  const column = (await model(page)).elements.find(e => e.type === "column");
+  expect(column?.type === "column" && column.position).toEqual({ x: 10, y: 22 });
+  await page.getByTestId("tool-beam").click();
+  await page.getByRole("tab", { name: "Çizimler", exact: true }).click();
+  await page.getByTestId("hsyncad-context-bar").getByRole("button", { name: "Dik", exact: true }).click();
+  await page.getByRole("combobox", { name: "Koordinat giriş yöntemi" }).selectOption("xy");
+  await point(page, 0, 0); await point(page, 3, 4);
+  const beam = (await model(page)).elements.find(e => e.type === "beam");
+  expect(beam?.type === "beam" && beam.end.x).toBeCloseTo(-5, 6);
+  expect(beam?.type === "beam" && beam.end.y).toBeCloseTo(0, 6);
+  await page.getByRole("button", { name: "Global sistem", exact: true }).click();
+  expect((await model(page)).drafting?.frames?.["floor-0"].enabled).toBe(false);
+});
+test("desktop dock, movable coordinate box, light/dark scene and mobile reference tools remain usable", async ({ page }) => {
+  await ready(page); await expect(page.getByTestId("desktop-inspector-toggle")).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator(".hcad-inspector-content")).toBeHidden();
+  const form = page.locator(".hcad-coordinate-box"), start = (await form.boundingBox())!;
+  const handle = page.getByTitle("Koordinat kutusunu sürükleyin"); const b = (await handle.boundingBox())!;
+  await page.mouse.move(b.x + 15, b.y + 5); await page.mouse.down(); await page.mouse.move(b.x + 95, b.y + 40, { steps: 5 }); await page.mouse.up();
+  expect((await form.boundingBox())!.x).toBeGreaterThan(start.x + 60);
+  await page.getByRole("tab", { name: /^Görün(üm|tü)$/ }).click();
+  await page.getByRole("button", { name: "Koyu çalışma alanı", exact: true }).click();
+  await expect(page.getByTestId("hsyncad-workbench")).toHaveAttribute("data-cad-theme", "dark");
+  await page.getByRole("button", { name: "Açık çalışma alanı", exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const coordinateButton = (await page.getByTestId("hsyncad-coordinate-toggle").boundingBox())!;
+  const planTitle = (await page.locator(".hcad-plan .hcad-view-heading > span").first().boundingBox())!;
+  expect(planTitle.x).toBeGreaterThanOrEqual(coordinateButton.x + coordinateButton.width);
+  await page.getByTestId("quick-measureDistance").click();
+  await page.getByTestId("hsyncad-coordinate-toggle").click(); await point(page, 0, 0); await point(page, 3, 4);
+  await page.getByTestId("hsyncad-inspector-toggle").click();
+  await expect(page.getByTestId("reference-record").first()).toContainText("5 m");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

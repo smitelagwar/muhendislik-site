@@ -1,16 +1,18 @@
 import type { CadElement, CadModel, Point } from "@/lib/hsyncad/model";
 import { createEmptyModel } from "@/lib/hsyncad/model";
+import type { DraftingTool } from "@/lib/hsyncad/drafting";
 
-export type Tool = CadElement["type"] | "select" | "move" | "pan";
+export type Tool = CadElement["type"] | "select" | "move" | "pan" | DraftingTool;
 export const TYPE_NAMES: Record<CadElement["type"], string> = {
-  axis: "Aks", column: "Kolon", beam: "Kiriş", wall: "Perde", slab: "Döşeme",
+  axis: "Aks", column: "Kolon", beam: "Kiriş", wall: "Perde", slab: "Döşeme", slabEdge: "Döşeme kenarı",
 };
 export const TYPE_COLORS: Record<CadElement["type"], string> = {
-  axis: "#8496ab", column: "#d99a31", beam: "#4e94e8", wall: "#25aa97", slab: "#9d80dd",
+  axis: "#8496ab", column: "#d99a31", beam: "#4e94e8", wall: "#25aa97", slab: "#9d80dd", slabEdge: "#d577ae",
 };
 export const LAYERS = ["Akslar", "Kolonlar", "Kirişler", "Perdeler", "Döşemeler"];
 export const TYPE_LAYERS: Record<CadElement["type"], string> = {
   axis: LAYERS[0], column: LAYERS[1], beam: LAYERS[2], wall: LAYERS[3], slab: LAYERS[4],
+  slabEdge: "Döşeme kenarları",
 };
 export type History = { present: CadModel; past: CadModel[]; future: CadModel[] };
 export type HistoryAction = { type: "commit"; model: CadModel } | { type: "restore"; model: CadModel } | { type: "undo" | "redo" };

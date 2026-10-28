@@ -1,0 +1,44 @@
+.root { flex: 0 0 auto; order: 0; min-width: 0; position: relative; font-family: "Segoe UI", Arial, sans-serif; }
+.titlebar { height: 21px; display: flex; gap: 9px; align-items: center; background: #08a5b5; color: #063940; padding: 0 6px; }
+.root .titlebar h1 { font-size: 11px; margin: 0; font-weight: 700; }
+.titlebar a { color: inherit; display: grid; place-items: center; }
+.titlebar .quick { display: flex; align-items: center; gap: 2px; }
+.root .quick button { min-height: 19px; width: 22px; border: 0; background: transparent; border-radius: 0; padding: 1px; }
+.project { flex: 1; min-width: 0; text-align: center; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.titlebar small { font-size: 9px; }
+.tabrow { display: flex; height: 25px; align-items: stretch; background: linear-gradient(var(--hc-panel), var(--hc-raised)); border-bottom: 1px solid var(--hc-border); }
+.tabs { display: flex; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.root .tabs button, .root .file > button { border: 1px solid transparent; border-bottom: 0; border-radius: 3px 3px 0 0; min-height: 24px; padding: 2px 9px; font-size: 10px; background: transparent; }
+.root .tabs button[aria-selected="true"] { border-color: var(--hc-border); background: var(--hc-panel); color: var(--hc-accent); }
+.file { position: relative; }
+.root .file > button { background: #12899a; color: white; padding-inline: 13px; }
+.availability { font-size: 9px; color: var(--hc-muted); margin: auto 8px auto auto; white-space: nowrap; }
+.search { position: relative; flex: 0 1 150px; display: flex; padding: 2px 4px; }
+.root .search input { font-size: 10px; min-height: 19px; height: 19px; width: 100%; padding: 1px 5px; border-radius: 0; background: var(--hc-panel); }
+.ribbon { display: flex; height: 76px; background: linear-gradient(var(--hc-panel), var(--hc-bg)); border-bottom: 1px solid var(--hc-border); overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+.panel { flex: 0 0 auto; padding: 2px 3px 0; display: flex; flex-direction: column; border-right: 1px solid var(--hc-border); min-width: 46px; }
+.commands { display: flex; flex-flow: column wrap; align-content: flex-start; height: 57px; gap: 0 1px; }
+.panelLabel { font-size: 9px; line-height: 15px; height: 15px; text-align: center; color: var(--hc-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+.command { display: flex; position: relative; flex: 0 0 auto; }
+.root .command button { min-height: 0; border: 1px solid transparent; border-radius: 2px; padding: 1px; background: transparent; color: var(--hc-text); }
+.root .command button:disabled { opacity: .53; }
+.root .command button[aria-pressed="true"] { border-color: #7eafbd; background: var(--hc-highlight); }
+.large { height: 57px; flex-direction: column; min-width: 42px; max-width: 60px; }
+.root .large > button:first-child { flex-direction: column; gap: 1px; height: 47px; padding: 1px 3px; }
+.large span { max-width: 56px; font-size: 10px; line-height: 11px; white-space: normal; text-align: center; }
+.large svg { flex-shrink: 0; }
+.root .large > button:only-child { height: 57px; justify-content: flex-start; padding-top: 3px; }
+.root .large .drop { height: 10px; padding: 0; }
+.small { height: 19px; }
+.root .small > button:first-child { height: 19px; width: 23px; }
+.root .small .drop { width: 9px; height: 19px; padding: 0; }
+.separator { width: 2px; height: 57px; flex: 0 0 auto; border-left: 1px solid var(--hc-border); opacity: .4; margin: 0 2px; }
+.menu, .fileMenu, .searchResults { position: fixed; z-index: 100; min-width: 240px; max-width: 310px; max-height: min(70vh, 650px); overflow: auto; border: 1px solid var(--hc-border); box-shadow: 1px 3px 9px #0004; background: var(--hc-panel); padding: 3px; }
+.fileMenu { top: 46px; left: 2px; }
+.searchResults { top: 46px; right: 2px; }
+.root .menu button, .root .fileMenu button, .root .searchResults button { display: flex; justify-content: flex-start; width: 100%; min-height: 27px; padding: 4px 6px; border: 0; border-radius: 0; font-size: 11px; white-space: normal; text-align: left; }
+.menu button svg { flex-shrink: 0; }
+.menu button span { flex: 1; }
+.menu small, .searchResults small { color: var(--hc-muted); font-size: 9px; margin-left: auto; }
+.menu hr { border: 0; border-top: 1px solid var(--hc-border); margin: 3px; }
+.nested { padding-left: 12px; border-left: 1px solid var(--hc-border); }

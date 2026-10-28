@@ -1,6 +1,12 @@
 # hsynCAD — inceleme ve tasarım notu
 
+**28 Ekim devamı:** [Gerçek Ribbon ve güncel kullanım](hsyncad-arayuz.md), [taze REA/Help kanıtı](hsyncad-rea-devam-2026-10-28.md), [bağlantı ve metraj düzeltmeleri](hsyncad-model-devam-2026-10-28.md). Eski Giriş/Görünüm/Proje/Katlar sekme tarifleri tarihsel kalmıştır: yapı elemanları Betonarme, görünüm Görüntü, kat ayarları Kat listesi/Kat Genel Ayarları, örnekler Dosya menüsündedir. Koordinat kutusunda Enter kilitler; ↵ noktayı ekler.
+
 Tarih: 25 Ekim 2026. Kapsam: tarayıcıda kişisel 2B/3B yapı elemanı modelleme ve geometrik metraj MVP'si.
+
+**26 Ekim arayüz düzenlemesi:** İlk satır çizim komutları, daraltılmış Ribbon, gruplu özellikler ve mobil yerleşim için [arayüz notuna](hsyncad-arayuz.md) bakın. REA bulguları ile özgün web tasarımı kararları burada ayrı belirtilmiştir; özgün kaynak haritası kalıcı yerel arşivde korunur.
+
+**Güncel çalışan entegrasyon:** [REA seçeneklerinin modele/2B/3B/metraja bağlanması](hsyncad-rea-entegrasyon.md). Daire/poligon/eğik kolon, eğri/eğimli kiriş, eğrisel perde, eğimli katmanlı döşeme, katman kilidi, yakalama ayarları ve rapor gruplaması burada tanımlıdır. Aşağıdaki tarihsel ikinci aşama notları canlı ideCAD davranışının bütünüyle çözüldüğünü göstermez.
 
 ## REA ile ideCAD'den bulduklarım
 
@@ -30,11 +36,11 @@ REA kaynak içeriklerini opak veri olarak raporlar. Aşağıdaki UI bulguları, 
 Bu kararlar özgün web uygulamasına aittir; ideCAD algoritmaları olarak yorumlanmamalıdır.
 
 - **Entegrasyon:** Next.js App Router'da `/kategori/araclar/hsyncad`. Araç katalog/registry/SEO/kanıt kayıtlarında ayrı araç. Var olan belge CAD/DWG görüntüleme motorundan bağımsızdır. Ek bağımlılık yok; mevcut React, TypeScript, Three.js ve lucide kullanılır. Stiller yalnız çalışma alanına kapsamlanır; açık/koyu tema desteklenir.
-- **Tek model:** `src/lib/hsyncad/model.ts` içindeki sürümlü `CadModel` yalnız JSON değerleri taşır: `schemaVersion`, ad, katlar, malzemeler ve ayrıştırılmış eleman tipleri. Bütün geometri SI metre cinsindedir. Kat için taban kotu/yükseklik, her eleman için kalıcı kimlik/kat/malzeme/katman vardır. Gelecekteki statik-betonarme hesap modülleri bu kimlikleri ve geometriyi okuyabilir; model sürümüne uygun doğrulama ile genişletilebilir. MVP'de TBDY hesabı yoktur.
-- **Yerleştirme:** Aks/kiriş/perde iki nokta; kolon kesit merkezinde tek nokta; döşeme en az üç köşeli basit kapalı poligon. Konkav döşeme desteklenir, kendiyle kesişen poligon reddedilir. Koordinat kutusu ve komut satırı mutlak X/Y metre kabul eder. Aks kesişimi → uç (kolon merkezi dahil) → orta nokta → ızgara sırası özgün bir tercihtir. Yakın aday toleransı ekranda 10 pikseldir; ölçeğe göre dünya birimine çevrilir. Yakalama kapatılabilir. Dik çizim seçeneği vardır.
-- **Görünümler:** SVG plan yalnız aktif kattaki görünür katmanları çizer. Three.js perspektif bütün katlardaki görünür elemanları aynı `elementFootprint` / `elementVerticalRange` fonksiyonlarından üretir; üçgenlenmiş kapalı hacimler gerçek boyuttadır. Plan +Y, 3B dünyada −Z; yükseklik 3B +Y olur. 2B tekerlek/yakınlaştırma düğmeleri ve tek parmak Kaydır aracı; iki parmakla pan/pinch. 3B OrbitControls döndürme/yakınlaştırma/kaydırma. Mobilde görünümler alt alta gelir.
-- **Düzenleme:** Seçim, özellik formu, iki referans noktasına göre taşıma, silme, 80 adımlık geri al/yinele. Katlar geometrik seviyedir; katmanlar yalnız görünürlüğü kontrol eder. Gizli katmanlar metrajdan çıkarılmaz. Kiriş/döşeme üstü kat üst kotuna, kolon/perde tabanı kat taban kotuna bağlıdır; kolon/perde yüksekliği bağımsız eleman özelliğidir.
-- **Metraj:** Brüt hacim taban alanı × yükseklik. Tüm katılar eksenlere paralel dikdörtgense z/x kesitleri ve y aralık taramasıyla tam hacim birleşimi hesaplanır; çift/üçlü çakışmalar bir kez sayılır. Ortak hacim kolon → perde → kiriş → döşeme önceliğiyle sınıflandırılır. Eğik eleman/dikdörtgen olmayan döşeme veya işlem bütçesi aşımı halinde tüm model brüt hacme döner ve panel açık uyarı verir. Kalıp daima brüt: kolon/perde çevre × yükseklik; kiriş `(b+2h)L+2bh`; döşeme `alan+çevre×kalınlık`. Birleşim kalıp temas yüzeyleri düşülmez; boşluk/fire/donatı dahil değildir.
+- **Tek model:** `model.ts` içindeki JSON `CadModel` sürüm 1'i korur; yeni eleman alanları, `layers`, `snap`, `toolDefaults` ve kat `layerStates` isteğe bağlı uzantılardır. Bütün geometri SI metredir. Kat/materyal/eleman kimlikleri ve bütün referanslar doğrulanır. Statik/TBDY hesap modülü yoktur.
+- **Yerleştirme:** Aks yatay/düşey modda tek, serbest modda iki nokta; kiriş/perde iki nokta, kolon tek referans, döşeme basit kapalı poligondur. Koordinat kutusu mutlak/göreli/kutupsal giriş; komut satırı mutlak X/Y kabul eder. Yakalama önceliği kesişim→uç→orta→ızgara özgün bir tercihtir; türler ve piksel toleransı ayarlanır. Aks kesişimleri destek doğrularında hesaplanır. Ağ büyüdüğünde görünür aks çerçevesi genişler; paralel aks son oluşturulana ilerler.
+- **Görünümler:** SVG aktif katı, Three.js bütün görünür katları aynı modelden çizer. Plan +Y, 3B −Z; yükseklik 3B +Y'dir. Mobilde 2B/3B anahtarı tek görünüm açar; metraj/özellikler çekme panelindedir. Dokunmatik pan/pinch ve OrbitControls korunur. Katman rengi/eleman rengi, plan çizgi/tarama seçenekleri ve düğüm gösterimi bağlanmıştır.
+- **Düzenleme:** Kesit/kot/konum/malzeme/katman, oluşturma varsayılanları, taşıma, silme, 80 adımlık geçmiş. Yeni kolon/perdeler kat tavanına bağlı; eski mod belirtilmemiş dosyalar fixed kalır. Katlar üste/alta eklenir, kopyalanır, elemanlarıyla silinir. Katmanlar görünürlük ve kilit taşır; gizli/kilitli elemanlar metrajdan çıkarılmaz. Mimari kot farkı yalnız referans gösterimidir.
+- **Metraj:** Yatay prizmalarda dışbükey çokgen farkı/Z dilimi; eğimli kiriş/döşeme ve eğik kolonda düzlemle çokyüzlü kırpma. Ortak hacim kolon→perde→kiriş→döşeme ve kimlik sırasıyla bir kez atanır. 3B aynı ayrık parçaları çizer. Hata halinde net `null`, katı model boş ve belirgin hata mesajı vardır; brüt katılara dönüş yoktur. Kalıp brüttür. Kat/tip/materyal/eleman raporları ve CSV; elle girilen donatı kg ve plan alanından yük toplamları ayrıca sunulur. Geometri/formül kabulleri güncel entegrasyon belgesindedir.
 - **Kayıt ve doğrulama:** Model tarayıcı `localStorage` içinde `hsyncad.model.v1` anahtarında saklanır; JSON indir/aç ile taşınabilir. Girdi tümüyle doğrulanmadan mevcut model değiştirilmez. Sürüm, benzersiz kimlikler, kat/malzeme referansları, sonlu/pozitif boyutlar ve basit poligon şartları kontrol edilir. İçe aktarma 5 MB; model 1000 eleman, 100 kat ve 200 döşeme köşesiyle sınırlıdır. Bunlar tarayıcı MVP sınırlarıdır.
 
 ## İkinci Aşama REA İncelemesi: Aks Çizim Seçenekleri, Kotlar ve Birleşim Kesişimleri (26 Ekim 2026)
@@ -54,7 +60,7 @@ Kullanıcının geri bildirimi doğrultusunda ideCAD Statik 11 Deneme PE dosyas�
   - **Otomatik Adlandırma:** Düşey akslar `1, 2, 3...`, yatay akslar `A, B, C... AA, AB...` kuralıyla çakışmasız otomatik ad alır.
   - **Ölçülü Aks Ağı (Grid):** Noktalı virgülle ayrılan açıklıklarla (`4;4,5;3` gibi) X ve Y yönünde tek işlemde tam ölçekli aks sistemi üretimi ve SVG önizlemesi.
   - **Mesafeyle Paralel Aks:** Seçili veya son akstan istenen ofset mesafesiyle paralel yeni aks oluşturma.
-  - **Uzantı ve Balonlar:** `extendedAxisEndpoints` fonksiyonu ile aks çizgileri plan ve 3B görünümde modelin dışına taşarak okunur; balonlar `labelSide` ("both" | "start" | "end") seçeneğine göre çizilir.
+  - **Uzantı ve Balonlar:** `extendedAxisEndpoints` fonksiyonu ile aks çizgileri plan ve 3B görünümde modelin dışına taşarak okunur; balonlar `labelSide` ("both" | "start" | "end" | "none") seçeneğine göre çizilir.
 
 ### 2. Eleman Kot Hiyerarşisi
 - **İncelenen ideCAD Mantığı:** Kolon ve perdelerin alt kotu kat tabanına veya bağımsız alt kot farkına bağlanabilir; tavan kotu kat yüksekliğine göre otomatik kilitlenebilir (`story`). Kiriş ve döşemelerin üst kotu ise doğrudan kat tavan kotuna referanslıdır.
@@ -72,3 +78,23 @@ Kullanıcının geri bildirimi doğrultusunda ideCAD Statik 11 Deneme PE dosyas�
   - **Metraj Tam Eşliği:** `calculateQuantities(model, junctions)` fonksiyonu 3B sahnede çizilen aynı katı parçaları kullanarak net hacmi hesaplar. Böylece 3B görünüm ile metraj tablosundaki m³ değerleri birebir örtüşür.
 
 Uygulama sonlu eleman, deprem/dinamik analiz, pafta veya DWG aktarımı yapmaz. Geliştirme ve doğrulama yereldir; Vercel dağıtımı yapılmadı. Kullanım ve doğrulama kaydı: [hsyncad-test.md](hsyncad-test.md).
+
+
+## 27 Ekim 2026 — resmî Help ile çizim akışının tamamlanması
+
+[Güncel kullanım, kaynak ayrımı, mimari ve kapsam](hsyncad-cizim-akisi.md). REA JSON’ları tekrar incelendi; kolon/kiriş/perde/döşeme yerleştirme sırası resmî Help üzerinden araştırıldı. Yeni ölçüm, lokal koordinat ve referans araçları aynı modele bağlandı. Kaynak arşivi `C:\Users\hsyn\Desktop\hsyncad\incelemeler\idecad-rea\help-cizim-akisi-2026-10-27` altındadır; özgün büyük JSON dosyaları korunur.
+
+
+## Yeni REA Ribbon kanıtı — 27 Ekim
+
+[Gerçek ana/alt komut hiyerarşisi, kapsam ve düzeltilen masaüstü hataları](hsyncad-rea-denetim.md). Eski seçilmiş haritada atlanan dört RT_RIBBON XML şablonu çözüldü: 917 benzersiz ID–sembol çifti, 3.885 komut yerleşimi. Kalıcı arşiv `denetim-2026-10-27` altındadır.
+
+## Kalıcı kullanıcı tercihi — 28 Ekim 2026
+
+Kullanıcı çelik yapılarla ve çelik birleşim işleriyle ilgilenmiyor. Çelik modelleme, çelik tasarım, çelik birleşim ve çelik detay/metraj geliştirmeleri hsynCAD ürün kapsamı dışındadır. Açık yeni talep olmadıkça bunlara zaman ayrılmayacak ve üstte Çelik/Birleşim sekmeleri yeniden eklenmeyecektir. Görünür ürün 10 sekmedir; diğer sekmelerde açıkça Çelik/STEEL olarak etiketlenen komutlar da süzülür. Arama ve klavye sekme geçişi aynı ürün kapsamını kullanır. REA'nın 12 sekmeli ham kaynak manifesti araştırma kanıtı olarak değiştirilmeden korunur; ürün görünümü `product-ribbon.ts` ile ayrılır.
+
+## Kullanıcı kapsamı ve uçtan uca denetim — 28 Ekim 2026
+
+Çelik ve Birleşim sekmeleri kaldırıldı; çelik işleri kalıcı olarak kapsam dışı. Ham REA manifesti korunur, ürün10sekme kullanır. [Komut bağlantı envanteri](hsyncad-komut-baglanti-denetimi.md) kaynakta bağlı/kısmi/pasif komutları ayırır. [Boş modelden gerçek kullanıcı denemesi](hsyncad-gercek-kullanici-denetimi.md) iki katlı yapının yalnız arayüzle çizilip düzenlenmesini, metraj ve gerçek JSON/CSV indirmelerini ve yeniden açılmasını belgeler. Başarılı geometrik modelleme akışı bütün komutların veya tam statik proje tesliminin tamamlandığı anlamına gelmez.
+
+Yanlış12572bağlantısı kaldırıldı: Kontur Seçerek Döşeme Oluştur artık elle poligon modunu başlatmaz. Köşelerle çiz gerçek web çizim bandında kullanılabilir. Kat listesi/ızgara/lokal orijin/düğüm yakalama/döşeme kenarı ayarlarının kısmi web karşılıkları yıldız ve açıklama taşır. Diğer pasif komutların durumu değişmedi.

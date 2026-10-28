@@ -1,0 +1,102 @@
+.box .title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+  padding: 1px 4px;
+  font: 10px "Segoe UI", Arial, sans-serif;
+  user-select: none;
+}
+.box .title strong { flex: 1; font-weight: 400; }
+.box .title .close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 16px;
+  width: 16px;
+  min-height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.box .fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2px 5px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+.box .fields .field {
+  display: grid;
+  grid-template-columns: 11px 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 20px;
+}
+.box .fields .field label {
+  display: block;
+  margin: 0;
+  padding: 0;
+  font: 10px "Segoe UI", Arial, sans-serif;
+  color: var(--hc-text);
+}
+.box .fields .field > input:not([type="checkbox"]) {
+  width: 100%;
+  min-width: 0;
+  min-height: 20px;
+  height: 20px;
+  padding: 0 3px;
+  border: 1px solid var(--hc-border);
+  border-radius: 0;
+  background: var(--hc-panel);
+  font: 10px Consolas, monospace;
+  text-align: right;
+}
+.box .fields .field > input[type="checkbox"] {
+  width: 10px;
+  height: 10px;
+  min-height: 10px;
+  margin: 0;
+  padding: 0;
+  accent-color: #12859d;
+}
+.box .fields .field[data-locked="true"] > input:not([type="checkbox"]) {
+  color: #125e73;
+  border-color: #4a99ad;
+  background: #e2f2f7;
+}
+.box .fields .field > input:disabled { opacity: .5; }
+.box .fields .field > input[readonly] { background: var(--hc-bg); color: var(--hc-muted); }
+.box .fields .spacer { width: 10px; }
+.box .fields .entry {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.box .fields .entry select {
+  flex: 1;
+  width: 45px;
+  min-width: 0;
+  min-height: 20px;
+  height: 20px;
+  padding: 0;
+  font: 9px "Segoe UI", Arial, sans-serif;
+}
+.box .fields .entry span { font: 9px "Segoe UI", Arial, sans-serif; }
+.box .fields .entry button {
+  flex: 0 0 22px;
+  width: 22px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0;
+  font-size: 14px;
+}
+.box .help {
+  margin-top: 3px;
+  padding: 0;
+  font: 8px "Segoe UI", Arial, sans-serif;
+  text-align: center;
+  white-space: nowrap;
+}

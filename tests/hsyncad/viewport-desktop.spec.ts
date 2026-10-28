@@ -20,6 +20,7 @@ test("hsynCAD fills the desktop viewport; only inspector/axis panels can scroll"
   await expect(page.getByTestId("hsyncad-view-3d")).toBeHidden();
   await expect(page.getByTestId("hsyncad-inspector-toggle")).toBeHidden();
 
+  await page.getByTestId("desktop-inspector-toggle").click();
   const geometry = () => page.evaluate(() => {
     const box = (selector: string) => {
       const element = document.querySelector(selector);
@@ -89,7 +90,7 @@ test("hsynCAD fills the desktop viewport; only inspector/axis panels can scroll"
   await page.getByTestId("tool-axis").click();
   await expect(page.getByTestId("hsyncad-axis-options-slot")).toBeVisible();
   expect((await geometry()).doc.scrollHeight).toBeLessThanOrEqual((await geometry()).doc.clientHeight + 1);
-  await page.getByRole("tab", { name: "Proje" }).click();
+  await page.getByRole("button", { name: "Dosya işlemleri", exact: true }).click();
   expect((await geometry()).doc.scrollY).toBeLessThanOrEqual(1);
   expect(errors).toEqual([]);
 });

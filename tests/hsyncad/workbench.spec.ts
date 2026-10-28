@@ -46,11 +46,13 @@ test("complete placement, snap, 2D/3D edits, history, floors, layers and invalid
   await page.getByRole("button", { name: "Dik çizim", exact: true }).click();
   await page.getByTestId("tool-column").click();
   await clickWorld(page, 2.04, 0.03);
+  await page.getByTestId("confirm-column").click();
   await solids(page, 1);
   expect((await signature(page)).find((e) => e.type === "column")?.position).toEqual({ x: 2, y: 0 });
-  await page.getByTestId("tool-beam").click(); await point(page, 2, 0); await point(page, 6, 0);
+  await page.getByTestId("tool-beam").click(); await page.getByTestId("continuous-toggle").uncheck(); await point(page, 2, 0); await point(page, 6, 0);
   await page.getByTestId("tool-wall").click(); await point(page, 2, 2); await point(page, 6, 2);
   await page.getByTestId("tool-slab").click();
+  await page.getByTestId("slab-mode-polygon").click();
   for (const [x, y] of [[2, 0], [6, 0], [6, 4], [2, 4]]) await point(page, x, y);
   await page.getByTestId("finish-slab").click(); await solids(page, 4);
   await expect(page.getByTestId("hsyncad-plan")).toHaveAttribute("data-element-count", "6");
@@ -89,16 +91,16 @@ test("complete placement, snap, 2D/3D edits, history, floors, layers and invalid
 
   await page.getByRole("button", { name: "Metraj", exact: true }).click();
   const netBefore = await page.getByTestId("quantity-net").textContent();
-  await page.getByRole("tab", { name: "Görünüm", exact: true }).click();
+  await page.getByRole("tab", { name: "Görüntü", exact: true }).click();
   await page.getByLabel("Perdeler", { exact: true }).uncheck(); await solids(page, 3);
   await expect(page.getByTestId("quantity-net")).toHaveText(netBefore!);
   await page.getByLabel("Perdeler", { exact: true }).check(); await solids(page, 4);
-  await page.getByRole("tab", { name: "Katlar", exact: true }).click();
+  await page.getByRole("tab", { name: "Betonarme", exact: true }).click(); await page.getByTestId("hsyncad-native-ribbon").getByRole("button", { name: "Kat listesi", exact: true }).click();
   await page.getByLabel("Kat yüksekliği (m)", { exact: true }).fill("4");
   await page.getByRole("button", { name: "Katı güncelle", exact: true }).click();
   await expect.poll(async () => JSON.parse((await scene(page).getAttribute("data-volume-size"))!)[1]).toBeCloseTo(4);
   await page.getByRole("button", { name: "Yeni kat", exact: true }).click();
-  await page.getByRole("tab", { name: "Giriş", exact: true }).click();
+  await page.getByRole("tab", { name: "Betonarme", exact: true }).click();
   await page.getByTestId("tool-column").click(); await point(page, 0, 0); await solids(page, 5);
   await expect(plan).toHaveAttribute("data-element-count", "1");
   await expect(page.getByTestId("active-floor").locator("option:checked")).toContainText("1. Kat");
@@ -131,8 +133,8 @@ test("known 4x4 quantities, JSON roundtrip, persistence, 3D orbit and tool hub",
   await expect(page.getByTestId("hsyncad-message")).toContainText("geri yüklendi");
   await page.getByTestId("hsyncad-import").setInputFiles({ name: "bozuk.json", mimeType: "application/json", buffer: Buffer.from('{"schemaVersion":999}') });
   await expect(page.getByTestId("hsyncad-message")).toContainText("Dosya açılamadı"); await solids(page, 10);
-  await page.getByRole("tab", { name: "Proje", exact: true }).click();
-  await page.getByRole("button", { name: "Yeni model", exact: true }).click(); await solids(page, 0);
+  await page.getByRole("button", { name: "Dosya işlemleri", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Yeni model", exact: true }).click(); await solids(page, 0);
   await page.getByTestId("hsyncad-import").setInputFiles(jsonPath); await solids(page, 10);
   await page.goto("/kategori/araclar");
   const card = page.locator('a[href="/kategori/araclar/hsyncad"]').filter({ hasText: "hsynCAD" }).first();
@@ -184,9 +186,9 @@ test("mobile single-pane 2D/3D switching, inspector focus, pinch/pan, touch and 
     await page.getByTestId("tool-column").click();
     await plan.scrollIntoViewIfNeeded();
     const tap = await worldPoint(page, 2, 1);
-    await page.touchscreen.tap(tap.x, tap.y); await solids(page, 11);
-    await page.getByRole("tab", { name: "Giriş", exact: true }).click();
-    await page.getByRole("button", { name: "Geri al", exact: true }).click(); await solids(page, 10);
+    await page.touchscreen.tap(tap.x, tap.y); await page.getByTestId("confirm-column-floating").click(); await solids(page, 11);
+    await page.getByRole("tab", { name: /^(Giriş|Betonarme)$/ }).click();
+    await page.getByRole("button", { name: "Geri al", exact: true }).first().click(); await solids(page, 10);
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: testInfo.outputPath("mobil-koyu.png"), fullPage: true });
     await page.evaluate(() => localStorage.setItem("theme", "light"));

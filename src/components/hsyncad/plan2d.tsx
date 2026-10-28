@@ -1,21 +1,35 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Maximize2, Minus, Plus } from "lucide-react";
 import type { CadElement, Point } from "@/lib/hsyncad/model";
 import { elementFootprint, snapPoint } from "@/lib/hsyncad/geometry";
-import { extendedAxisEndpoints } from "@/lib/hsyncad/axes";
+import { referenceSnapCandidates, projectOnReference, type DraftingItem, type ReferenceFrame } from "@/lib/hsyncad/drafting";
+import DraftingOverlay from "./drafting-overlay";
+import { regionLabelPoint } from "@/lib/hsyncad/regions";
+import { axisSegments, extendedAxisEndpoints } from "@/lib/hsyncad/axes";
 import { distance, insidePolygon, roundPoint, segmentDistance, TYPE_COLORS, type Tool } from "./editor-state";
+import { DEFAULT_SNAP, type SnapSettings, type LineStyle } from "@/lib/hsyncad/definitions";
+import { constrainPoint } from "@/lib/hsyncad/drawing";
+import type { PointAction } from "./use-drawing-session";
+import type { AnalysisResult } from "@/lib/hsyncad/analysis";
 
 type Props = {
   elements: CadElement[]; tool: Tool; selectedId: string | null; pending: Point[];
   snapping: boolean; ortho: boolean; gridStep: number; fitKey: number;
-  onPoint: (p: Point) => void; onSelect: (id: string | null) => void;
+  onPoint: (p: Point, action?: PointAction) => void; onSelect: (id: string | null) => void;
   onCursor: (p: Point, snap: string) => void; onZoom: (zoom: number) => void;
+  snapSettings?: SnapSettings; lockedLayers?: string[]; layerColors?: Record<string, string | undefined>;
+  draftingItems?: DraftingItem[]; referenceFrame?: ReferenceFrame; showGrid?: boolean;
+  coordinateConstraint?: (point: Point) => Point;
+  preview?: CadElement; unit?: "m" | "cm"; lengthLock?: number | null; angleLock?: number | null; fallbackAngle?: number; regionPicking?: boolean;
+  analysisResult?: AnalysisResult | null; analysisViewMode?: "none" | "displacement" | "moment" | "shear" | "capacity"; paftaMode?: boolean;
 };
-const SNAP_LABELS: Record<string, string> = { intersection: "Aks kesişimi", endpoint: "Uç nokta", midpoint: "Orta nokta", grid: "Izgara", none: "Serbest" };
+const MIN_SCALE = 1e-6;
+const SNAP_LABELS: Record<string, string> = { intersection: "Aks kesişimi", endpoint: "Uç nokta", midpoint: "Orta nokta", grid: "Izgara", none: "Serbest", reference: "Referans doğrusu" };
 
-export default function Plan2D({ elements, tool, selectedId, pending, snapping, ortho, gridStep, fitKey, onPoint, onSelect, onCursor, onZoom }: Props) {
+const dash = (style: LineStyle | undefined, fallback: LineStyle = "solid") => (style ?? fallback) === "dashdot" ? "9 5 2 5" : style === "dashed" ? "6 4" : undefined;
+export default function Plan2D({ elements, tool, selectedId, pending, snapping, ortho, gridStep, fitKey, onPoint, onSelect, onCursor, onZoom, snapSettings = DEFAULT_SNAP, lockedLayers = [], layerColors = {}, preview, unit = "m", lengthLock = null, angleLock = null, fallbackAngle = 0, regionPicking = false, draftingItems = [], referenceFrame, showGrid = true, coordinateConstraint, analysisResult, analysisViewMode = "none", paftaMode = false }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 490 });
   const [camera, setCamera] = useState({ x: 2, y: 2, scale: 48 });
@@ -23,15 +37,20 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
   const [snapKind, setSnapKind] = useState("none");
   const pointers = useRef(new Map<number, Point>());
   const gesture = useRef({ start: { x: 0, y: 0 }, last: { x: 0, y: 0 }, moved: false, pinch: false, pan: false });
+  const candidates = useMemo(() => referenceSnapCandidates(elements, draftingItems), [elements, draftingItems]);
   const screen = (p: Point) => ({ x: size.width / 2 + (p.x - camera.x) * camera.scale, y: size.height / 2 - (p.y - camera.y) * camera.scale });
   const world = (p: Point) => ({ x: camera.x + (p.x - size.width / 2) / camera.scale, y: camera.y - (p.y - size.height / 2) / camera.scale });
   const fit = useCallback(() => {
-    const points = elements.flatMap((e) => e.type === "axis" ? [e.start, e.end] : elementFootprint(e));
+    const points = [
+      ...elements.flatMap((e) => e.type === "axis" ? [e.start, e.end] : elementFootprint(e)),
+      ...draftingItems.flatMap(item => item.points),
+      ...(referenceFrame?.enabled ? [referenceFrame.origin] : []),
+    ].filter(point => Number.isFinite(point.x) && Number.isFinite(point.y));
     if (!points.length) { setCamera({ x: 2, y: 2, scale: 48 }); return; }
     const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
     const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-    setCamera({ x: (minX + maxX) / 2, y: (minY + maxY) / 2, scale: Math.max(8, Math.min(100, (size.width - 110) / Math.max(1, maxX - minX), (size.height - 120) / Math.max(1, maxY - minY))) });
-  }, [elements, size]);
+    setCamera({ x: (minX + maxX) / 2, y: (minY + maxY) / 2, scale: Math.max(MIN_SCALE, Math.min(100, (size.width - 110) / Math.max(1, maxX - minX), (size.height - 120) / Math.max(1, maxY - minY))) });
+  }, [elements, draftingItems, referenceFrame, size]);
   const fitRef = useRef(fit);
   useEffect(() => { fitRef.current = fit; }, [fit]);
   useEffect(() => { if (fitKey) { const id = requestAnimationFrame(() => fitRef.current()); return () => cancelAnimationFrame(id); } }, [fitKey]);
@@ -50,7 +69,7 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
       const rect = el!.getBoundingClientRect();
       const x = event.clientX - rect.left - rect.width / 2, y = event.clientY - rect.top - rect.height / 2;
       setCamera((old) => {
-        const scale = Math.max(6, Math.min(350, old.scale * Math.exp(-event.deltaY * 0.0015)));
+        const scale = Math.max(MIN_SCALE, Math.min(350, old.scale * Math.exp(-event.deltaY * 0.0015)));
         return { scale, x: old.x + x / old.scale - x / scale, y: old.y - y / old.scale + y / scale };
       });
     }
@@ -61,35 +80,44 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
     const rect = event.currentTarget.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
-  function resolve(p: Point) {
+  function resolve(p: Point, shift = false) {
     let value = world(p);
     let locked: { coordinate: keyof Point; value: number } | null = null;
-    if (ortho && pending.length && tool !== "slab") {
+    if ((ortho || shift) && pending.length && tool !== "slab") {
       const anchor = pending[pending.length - 1];
       locked = Math.abs(value.x - anchor.x) > Math.abs(value.y - anchor.y)
         ? { coordinate: "y", value: anchor.y } : { coordinate: "x", value: anchor.x };
       value = { ...value, [locked.coordinate]: locked.value };
     }
-    const snapped = snapping ? snapPoint(value, elements, 10 / camera.scale, gridStep) : { point: value, kind: "none" };
+    const snapped = snapping && !regionPicking ? snapPoint(value, elements, snapSettings.tolerancePx / camera.scale, gridStep, snapSettings, candidates) : { point: value, kind: "none" };
+    if (snapping && !regionPicking && (snapped.kind === "none" || snapped.kind === "grid")) { const projected = projectOnReference(value, draftingItems, snapSettings.tolerancePx / camera.scale); if (projected) { snapped.point = projected; snapped.kind = "reference"; } }
     // A nearby endpoint/grid must not pull an orthogonal segment off its line.
     // The projected point is not that endpoint, so do not show an endpoint marker.
     if (locked && Math.abs(snapped.point[locked.coordinate] - locked.value) > 1e-9) {
       snapped.point = { ...snapped.point, [locked.coordinate]: locked.value };
       snapped.kind = "none";
     }
-    const point = roundPoint(snapped.point);
+    if (pending.length && tool !== "column" && (lengthLock !== null || angleLock !== null)) {
+      const constrained = constrainPoint(pending[pending.length - 1], snapped.point, lengthLock, angleLock, fallbackAngle);
+      if (distance(constrained, snapped.point) > 1e-6) snapped.kind = "none";
+      snapped.point = constrained;
+    }
+    const constrained = coordinateConstraint?.(snapped.point) ?? snapped.point;
+    if (distance(constrained, snapped.point) > 1e-6) snapped.kind = "none";
+    const point = roundPoint(constrained);
     setCursor(point); setSnapKind(snapped.kind); onCursor(point, SNAP_LABELS[snapped.kind]);
     return point;
   }
   function select(p: Point) {
-    const tolerance = 8 / camera.scale;
+    const tolerance = snapSettings.selectionPx / camera.scale;
     // Structural edges win over the containing slab so small members remain selectable.
-    const priority = { column: 0, beam: 1, wall: 2, axis: 3, slab: 4 };
+    const priority = { column: 0, beam: 1, wall: 2, slabEdge: 3, axis: 4, slab: 5 };
     const ordered = [...elements].sort((a, b) => priority[a.type] - priority[b.type]);
     const hit = ordered.find((e) => {
+      if (lockedLayers.includes(e.layer)) return false;
+      if (e.type === "slabEdge") return segmentDistance(p, e.start, e.end) < tolerance;
       if (e.type === "axis") {
-        const [a, b] = extendedAxisEndpoints(e);
-        return segmentDistance(p, a, b) < tolerance;
+        return axisSegments(e).some(({ a, b }) => segmentDistance(p, a, b) < tolerance);
       }
       const poly = elementFootprint(e);
       return insidePolygon(p, poly) || poly.some((a, i) => segmentDistance(p, a, poly[(i + 1) % poly.length]) < tolerance);
@@ -97,7 +125,7 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
     onSelect(hit?.id ?? null);
   }
   const min = world({ x: 0, y: size.height }), max = world({ x: size.width, y: 0 });
-  const displayStep = gridStep * Math.max(1, Math.ceil(15 / (gridStep * camera.scale)));
+  const displayStep = gridStep * Math.max(1, Math.ceil(40 / (gridStep * camera.scale)));
   const gridXs: number[] = [], gridYs: number[] = [];
   for (let x = Math.ceil(min.x / displayStep) * displayStep; x <= max.x; x += displayStep) gridXs.push(x);
   for (let y = Math.ceil(min.y / displayStep) * displayStep; y <= max.y; y += displayStep) gridYs.push(y);
@@ -106,7 +134,7 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
   const origin = screen({ x: 0, y: 0 });
   return <section className="hcad-view hcad-plan" aria-label="2B Çizim Penceresi">
     <div className="hcad-view-heading"><span><i className="hcad-dot" />2B Çizim Penceresi</span><span className="hcad-view-tag">ÜST GÖRÜNÜŞ</span></div>
-    <div ref={host} className="hcad-plan-stage" data-testid="hsyncad-plan" data-camera={JSON.stringify(camera)} data-element-count={elements.length}>
+    <div ref={host} className="hcad-plan-stage" data-testid="hsyncad-plan" data-camera={JSON.stringify(camera)} data-element-count={elements.length} data-analysis-mode={analysisViewMode} data-pafta-mode={paftaMode ? "true" : "false"}>
       <svg width="100%" height="100%" role="img" aria-label="Etkileşimli yapı planı" style={{ touchAction: "none", cursor: tool === "pan" ? "grab" : tool === "select" ? "default" : "crosshair" }}
         onContextMenu={(event) => event.preventDefault()}
         onPointerDown={(event) => {
@@ -126,7 +154,7 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
               const center1 = { x: (before[0].x + before[1].x) / 2, y: (before[0].y + before[1].y) / 2 };
               const center2 = { x: (after[0].x + after[1].x) / 2, y: (after[0].y + after[1].y) / 2 };
               setCamera((old) => {
-                const scale = Math.max(6, Math.min(350, old.scale * (d1 > 0 ? d2 / d1 : 1)));
+                const scale = Math.max(MIN_SCALE, Math.min(350, old.scale * (d1 > 0 ? d2 / d1 : 1)));
                 return { scale, x: old.x + (center1.x - size.width / 2) / old.scale - (center2.x - size.width / 2) / scale, y: old.y - (center1.y - size.height / 2) / old.scale + (center2.y - size.height / 2) / scale };
               });
               return;
@@ -137,7 +165,7 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
             if (g.pan) setCamera((old) => ({ ...old, x: old.x - dx / old.scale, y: old.y + dy / old.scale }));
             g.last = p;
           }
-          resolve(p);
+          resolve(p, event.shiftKey);
         }}
         onPointerUp={(event) => {
           const g = gesture.current;
@@ -145,18 +173,23 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
           if (g.moved || g.pinch || g.pan) return;
           const p = local(event);
           if (tool === "select" || (tool === "move" && !selectedId)) select(world(p));
-          else onPoint(resolve(p));
+          else onPoint(resolve(p, event.shiftKey), { source: "canvas", ctrlKey: event.ctrlKey });
         }}
         onPointerCancel={(event) => { pointers.current.delete(event.pointerId); gesture.current.pinch = true; }}>
         <title>Metre tabanlı yapı planı. Eleman yerleştirmek için tıklayın; hassas giriş için koordinat kutusunu kullanın.</title>
-        <g className="hcad-grid">{gridXs.map((x, i) => <line key={`x${i}`} x1={screen({ x, y: 0 }).x} x2={screen({ x, y: 0 }).x} y1={0} y2={size.height} />)}{gridYs.map((y, i) => <line key={`y${i}`} x1={0} x2={size.width} y1={screen({ x: 0, y }).y} y2={screen({ x: 0, y }).y} />)}</g>
+        {showGrid && <g className="hcad-grid">{gridXs.map((x, i) => <line key={`x${i}`} x1={screen({ x, y: 0 }).x} x2={screen({ x, y: 0 }).x} y1={0} y2={size.height} />)}{gridYs.map((y, i) => <line key={`y${i}`} x1={0} x2={size.width} y1={screen({ x: 0, y }).y} y2={screen({ x: 0, y }).y} />)}</g>}
         <g className="hcad-origin"><line x1={0} x2={size.width} y1={origin.y} y2={origin.y} /><line x1={origin.x} x2={origin.x} y1={0} y2={size.height} /></g>
         {gridXs.filter((_, i) => i % 2 === 0).map((x, i) => <text className="hcad-ruler" key={i} x={screen({ x, y: 0 }).x + 4} y={size.height - 8}>{+x.toFixed(2)}</text>)}
-        {rendered.map((e) => {
-          const color = TYPE_COLORS[e.type], selected = e.id === selectedId;
+        {rendered.map((e, index) => {
+          const analysisMember = analysisResult?.members[e.id];
+          const capacityColor = analysisMember ? (analysisMember.capacityRatio > 1.0 ? "#ef4444" : analysisMember.capacityRatio > 0.70 ? "#f59e0b" : "#22c55e") : undefined;
+          const baseColor = e.layer === "Temeller" ? "#8b5cf6" : e.layer === "Merdivenler" ? "#ec4899" : (e.color ?? layerColors[e.layer] ?? TYPE_COLORS[e.type]);
+          const color = (analysisViewMode === "capacity" && capacityColor) ? capacityColor : baseColor;
+          const selected = e.id === selectedId;
           const points = e.type === "axis" ? [e.start, e.end] : elementFootprint(e);
-          const center = e.type === "column" ? e.position : { x: points.reduce((s, p) => s + p.x, 0) / points.length, y: points.reduce((s, p) => s + p.y, 0) / points.length };
+          const center = e.type === "slab" ? e.labelPosition ?? regionLabelPoint(e.points) : e.type === "column" ? e.position : { x: points.reduce((s, p) => s + p.x, 0) / points.length, y: points.reduce((s, p) => s + p.y, 0) / points.length };
           const label = screen(center);
+          if (e.type === "slabEdge") return <g key={e.id} data-element-id={e.id} data-element-type="slabEdge"><polyline points={path(points)} stroke={selected ? "#fbbf24" : color} strokeDasharray="7 4" strokeWidth={selected ? 3 : 1.5} fill="none" /><text x={label.x} y={label.y - 6} fill={color} fontSize={9}>{e.name}</text></g>;
           if (e.type === "axis") {
             const extended = extendedAxisEndpoints(e);
             const showStart = e.labelSide === "start" || e.labelSide === "both" || !e.labelSide;
@@ -164,34 +197,70 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
             const sStart = screen(extended[0]), sEnd = screen(extended[1]);
             return (
               <g key={e.id} data-element-id={e.id} data-element-type="axis">
-                <polyline points={path(extended)} fill="none" stroke={selected ? "#f59e0b" : color} strokeDasharray="9 5 2 5" strokeWidth={selected ? 3 : 1.3} />
+                {axisSegments(e).map((line, i) => <polyline key={i} points={path([line.a, line.b])} fill="none" stroke={selected ? "#f59e0b" : line.color ?? color} strokeDasharray={dash(line.style, "dashdot")} strokeWidth={selected ? 3 : 1.3} />)}
                 {showStart && (
                   <g>
                     <circle cx={sStart.x} cy={sStart.y} r={12} fill="var(--hc-panel)" stroke={selected ? "#f59e0b" : color} />
-                    <text x={sStart.x} y={sStart.y + 4} textAnchor="middle" fill={selected ? "#f59e0b" : color} fontSize={10}>{e.name}</text>
+                    <text x={sStart.x} y={sStart.y + 4} textAnchor="middle" fill={selected ? "#f59e0b" : color} fontSize={10}>{e.name}{e.suffix}</text>
                   </g>
                 )}
                 {showEnd && (
                   <g>
                     <circle cx={sEnd.x} cy={sEnd.y} r={12} fill="var(--hc-panel)" stroke={selected ? "#f59e0b" : color} />
-                    <text x={sEnd.x} y={sEnd.y + 4} textAnchor="middle" fill={selected ? "#f59e0b" : color} fontSize={10}>{e.name}</text>
+                    <text x={sEnd.x} y={sEnd.y + 4} textAnchor="middle" fill={selected ? "#f59e0b" : color} fontSize={10}>{e.name}{e.suffix}</text>
                   </g>
                 )}
               </g>
             );
           }
           return <g key={e.id} data-element-id={e.id} data-element-type={e.type}>
-            <polygon points={path(points)} fill={color} fillOpacity={e.type === "slab" ? 0.12 : 0.45} stroke={selected ? "#fbbf24" : color} strokeWidth={selected ? 3 : 1.5} />
+            {e.hatch && <defs><pattern id={`hcad-pattern-${index}`} width={8} height={8} patternUnits="userSpaceOnUse" patternTransform={`rotate(${e.type === "slab" ? e.hatchAngle ?? 0 : 45})`}><line x1={0} y1={0} x2={8} y2={0} stroke={color} strokeWidth={1} /></pattern></defs>}
+            <polygon points={path(points)} fill={e.hatch ? `url(#hcad-pattern-${index})` : color} fillOpacity={e.filled === false && !e.hatch ? 0 : e.type === "slab" ? 0.2 : 0.45} stroke={selected ? "#fbbf24" : color} strokeDasharray={dash(e.lineStyle)} strokeWidth={selected ? 3 : 1.5} />
+            {e.type === "column" && ((e.leanX ?? 0) !== 0 || (e.leanY ?? 0) !== 0) && <polygon points={path(points.map(p => ({ x: p.x + (e.leanX ?? 0), y: p.y + (e.leanY ?? 0) })))} fill="none" stroke={color} strokeDasharray="4 3" />}
+            {e.type === "slab" && e.referenceVisible && <g><polyline points={path([e.points[0], { x: e.points[0].x + 1, y: e.points[0].y }])} stroke={color} strokeWidth={3} /><text x={screen(e.points[0]).x + 8} y={screen(e.points[0]).y + 14} fill={color} fontSize={10}>X %{e.slopeX ?? 0} · Y %{e.slopeY ?? 0}</text></g>}
             <text x={label.x + 8} y={label.y - 8} fill={color} fontSize={10} fontFamily="var(--font-mono)" paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={3}>{e.name}</text>
+            {analysisViewMode === "moment" && analysisMember && (
+              <text x={label.x + 8} y={label.y + 8} fill="#3b82f6" fontSize={9} fontFamily="var(--font-mono)" fontWeight="bold" paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={2}>M:{analysisMember.momentKnm.toFixed(1)}kNm</text>
+            )}
+            {analysisViewMode === "shear" && analysisMember && (
+              <text x={label.x + 8} y={label.y + 8} fill="#06b6d4" fontSize={9} fontFamily="var(--font-mono)" fontWeight="bold" paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={2}>V:{analysisMember.shearKn.toFixed(1)}kN</text>
+            )}
+            {analysisViewMode === "capacity" && analysisMember && (
+              <text x={label.x + 8} y={label.y + 8} fill={color} fontSize={9} fontFamily="var(--font-mono)" fontWeight="bold" paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={2}>%{(analysisMember.capacityRatio * 100).toFixed(0)}</text>
+            )}
             {selected && points.map((p, i) => { const s = screen(p); return <rect key={i} x={s.x - 3} y={s.y - 3} width={6} height={6} fill="#fbbf24" />; })}
           </g>;
         })}
-        {pending.length > 0 && <><polyline points={path(cursor ? [...pending, cursor] : pending)} stroke="#e3a342" strokeWidth={2} strokeDasharray="5 4" fill={tool === "slab" ? "#e3a34222" : "none"} />{pending.map((p, i) => { const s = screen(p); return <circle key={i} cx={s.x} cy={s.y} r={5} fill="#e3a342" />; })}</>}
+        {paftaMode && (
+          <g className="hcad-pafta-frame" pointerEvents="none">
+            <rect x={12} y={12} width={size.width - 24} height={size.height - 24} fill="none" stroke="#3b82f6" strokeWidth={2} />
+            <rect x={16} y={16} width={size.width - 32} height={size.height - 32} fill="none" stroke="#3b82f6" strokeWidth={0.7} />
+            <g transform={`translate(${size.width - 240} ${size.height - 80})`}>
+              <rect width={220} height={60} fill="var(--hc-panel)" stroke="#3b82f6" strokeWidth={1} />
+              <line x1={0} y1={20} x2={220} y2={20} stroke="#3b82f6" strokeWidth={0.5} />
+              <line x1={0} y1={40} x2={220} y2={40} stroke="#3b82f6" strokeWidth={0.5} />
+              <line x1={110} y1={20} x2={110} y2={60} stroke="#3b82f6" strokeWidth={0.5} />
+              <text x={10} y={14} fill="var(--hc-accent)" fontSize={10} fontWeight="bold">hsynCAD - STATİK UYGULAMA PLANI</text>
+              <text x={10} y={34} fill="var(--hc-text)" fontSize={9}>ÖLÇEK: 1 / 50</text>
+              <text x={120} y={34} fill="var(--hc-text)" fontSize={9}>KOT: ±0.00 m</text>
+              <text x={10} y={54} fill="var(--hc-muted)" fontSize={9}>TBDY 2018 / TS 500</text>
+              <text x={120} y={54} fill="var(--hc-accent)" fontSize={9}>PAFTA NO: S-01</text>
+            </g>
+          </g>
+        )}
+        {snapSettings.showNodes && [...candidates.endpoint, ...candidates.intersection].map((p, i) => <circle key={`node-${i}`} cx={screen(p).x} cy={screen(p).y} r={snapSettings.nodeRadius} fill="#27bca6" pointerEvents="none" />)}
+        <DraftingOverlay items={draftingItems} frame={referenceFrame} screen={screen} size={size} scale={camera.scale} tool={tool} pending={pending} cursor={cursor} unit={unit} />
+        {preview && cursor && <g data-testid="hsyncad-placement-preview" data-preview-type={preview.type} pointerEvents="none">
+          {preview.type === "axis" || preview.type === "slabEdge" ? <polyline points={path(preview.type === "axis" ? extendedAxisEndpoints(preview) : elementFootprint(preview))} stroke="#ed8b22" strokeWidth={2} strokeDasharray="7 4" fill="none" /> : <polygon points={path(elementFootprint(preview))} stroke={preview.type === "slab" && regionPicking ? "#ed5757" : "#ed8b22"} strokeWidth={2} fill={preview.type === "slab" && regionPicking ? "#ed575720" : "#ed8b2228"} />}
+          {preview.type === "column" && <g><circle cx={screen(preview.position).x} cy={screen(preview.position).y} r={4} fill="#ed8b22" /><text x={screen(preview.position).x + 12} y={screen(preview.position).y + 22} fill="#ed8b22" fontSize={11}>{(preview.rotation ?? 0).toFixed(1)}°</text></g>}
+          {preview.type === "slab" && preview.labelPosition && <text x={screen(preview.labelPosition).x} y={screen(preview.labelPosition).y} fill="#ed5757" fontSize={12}>D · yazı konumu</text>}
+        </g>}
+        {pending.length > 0 && tool !== "column" && <><polyline points={path(cursor ? [...pending, cursor] : pending)} stroke="#e3a342" strokeWidth={1} strokeDasharray="5 4" fill="none" />{pending.map((p, i) => { const s = screen(p); return <circle key={i} cx={s.x} cy={s.y} r={4} fill="#e3a342" />; })}{cursor && <text x={screen(cursor).x + 14} y={screen(cursor).y + 22} fill="#ed8b22" fontSize={11}>{(distance(pending[pending.length - 1], cursor) * (unit === "cm" ? 100 : 1)).toLocaleString("tr-TR", { maximumFractionDigits: 2 })} {unit} · {(Math.atan2(cursor.y - pending[pending.length - 1].y, cursor.x - pending[pending.length - 1].x) * 180 / Math.PI).toFixed(1)}°</text>}</>}
         {cursor && tool !== "select" && tool !== "pan" && <g transform={`translate(${screen(cursor).x} ${screen(cursor).y})`} pointerEvents="none"><path d="M-14 0H14M0-14V14" stroke="#fbbf24" strokeWidth={1} />{snapKind !== "none" && <rect x={-5} y={-5} width={10} height={10} fill="none" stroke="#40cfb6" strokeWidth={2} />}</g>}
         <g transform={`translate(24 ${size.height - 42})`}><path d="M0 0H28M0 0V-28" fill="none" stroke="#7c8fa2" /><text x={30} y={4} fill="#7c8fa2" fontSize={10}>X</text><text x={-3} y={-33} fill="#7c8fa2" fontSize={10}>Y</text></g>
       </svg>
-      {!elements.length && <div className="hcad-empty-plan"><span>İlk çizgiyle başlayın.</span><small>Bir araç seçin, plana tıklayın veya koordinat girin.</small></div>}
-      <div className="hcad-canvas-controls"><button type="button" title="Yakınlaştır" aria-label="2B yakınlaştır" onClick={() => setCamera((c) => ({ ...c, scale: Math.min(350, c.scale * 1.25) }))}><Plus size={16} /></button><button type="button" title="Uzaklaştır" aria-label="2B uzaklaştır" onClick={() => setCamera((c) => ({ ...c, scale: Math.max(6, c.scale / 1.25) }))}><Minus size={16} /></button><button type="button" title="Çizimi sığdır" aria-label="Çizimi sığdır" onClick={fit}><Maximize2 size={16} /></button></div>
+      {!elements.length && tool === "select" && <div className="hcad-empty-plan"><span>İlk çizgiyle başlayın.</span><small>Bir araç seçin, plana tıklayın veya koordinat girin.</small></div>}
+      <div className="hcad-canvas-controls"><button type="button" title="Yakınlaştır" aria-label="2B yakınlaştır" onClick={() => setCamera((c) => ({ ...c, scale: Math.min(350, c.scale * 1.25) }))}><Plus size={16} /></button><button type="button" title="Uzaklaştır" aria-label="2B uzaklaştır" onClick={() => setCamera((c) => ({ ...c, scale: Math.max(MIN_SCALE, c.scale / 1.25) }))}><Minus size={16} /></button><button type="button" title="Çizimi sığdır" aria-label="Çizimi sığdır" onClick={fit}><Maximize2 size={16} /></button></div>
       <div className="hcad-plan-hint">{tool === "pan" ? "Sürükleyerek kaydırın" : "Tekerlek: yakınlaştır · İki parmak: kaydır / yakınlaştır"}</div>
     </div>
   </section>;

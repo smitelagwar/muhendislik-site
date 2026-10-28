@@ -99,7 +99,9 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
+            // Development chunk names are stable across edits. An immutable
+            // response can hydrate new HTML with an old workbench bundle.
+            value: process.env.NODE_ENV === "development" ? "no-store, max-age=0" : "public, max-age=31536000, immutable",
           },
         ],
       },
