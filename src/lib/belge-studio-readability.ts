@@ -2,10 +2,11 @@ export const BELGE_READABILITY_KEY = "belge-studio:readability:v1";
 export const UI_SCALE_MIN = 90;
 export const UI_SCALE_MAX = 200;
 export const UI_SCALE_STEP = 5;
-export const TEXT_SCALE_MIN = 100;
+export const TEXT_SCALE_MIN = 90;
 export const TEXT_SCALE_MAX = 200;
 export const TEXT_SCALE_STEP = 10;
 export const UI_SCALE_PRESETS = [90, 100, 115, 125, 150, 175, 200] as const;
+export const TEXT_SCALE_PRESETS = [90, 100, 110, 120, 140] as const;
 
 export type BelgeReadabilitySettings = {
   uiScale: number;

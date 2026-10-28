@@ -85,13 +85,13 @@ export function useBelgeStudioReadability() {
     writeSettings({ ...settings, ...changes });
   }, [settings]);
 
-  const resetScale = useCallback(() => update({ uiScale: 100 }), [update]);
+  const resetScale = useCallback(() => update({ uiScale: 100, textScale: 100 }), [update]);
   const resetAll = useCallback(() => writeSettings({ ...DEFAULT_BELGE_READABILITY }), []);
   const rootStyle = useMemo<ReadabilityRootStyle>(() => ({
-    "--belge-ui-scale": settings.uiScale / 100,
+    "--belge-ui-scale": 1,
     "--belge-text-scale": settings.textScale / 100,
-    "--belge-target-scale": settings.largeTargets ? 1.18 : 1,
-  }), [settings.uiScale, settings.textScale, settings.largeTargets]);
+    "--belge-target-scale": 1,
+  }), [settings.textScale]);
 
   return { settings, update, resetScale, resetAll, rootStyle, isDesktopViewport };
 }

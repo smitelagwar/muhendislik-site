@@ -13,6 +13,7 @@
 
 import React, { useId } from "react";
 import { ChevronDown, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
+import { BelgePdfFocusEnterIcon } from "@/components/belge-studio-icons";
 import type { BelgeStudioSectionDefinition } from "@/lib/belge-studio-sections";
 import type { UseBelgeStudioSectionsReturn } from "@/hooks/use-belge-studio-sections";
 import { BELGE_UX_FLAGS } from "@/lib/belge-ux-config";
@@ -110,6 +111,7 @@ export interface BelgeStudioSectionMasterControlsProps {
   onOpenAll?: () => void;
   onCloseOthers?: () => void;
   allOpen?: boolean;
+  onTogglePdfFocus?: () => void;
 }
 
 export function BelgeStudioSectionMasterControls({
@@ -117,6 +119,7 @@ export function BelgeStudioSectionMasterControls({
   onOpenAll,
   onCloseOthers,
   allOpen,
+  onTogglePdfFocus,
 }: BelgeStudioSectionMasterControlsProps) {
   if (!BELGE_UX_FLAGS.ACCORDION) return null;
 
@@ -138,27 +141,42 @@ export function BelgeStudioSectionMasterControls({
   };
 
   return (
-    <div className="flex items-center justify-end gap-1 px-1 py-0.5 text-xs">
+    <div className="flex items-center justify-between gap-1 px-1 py-0.5 mb-1.5 text-xs">
+      {/* Sol taraf: Diğerlerini Kapat / Tümünü Aç */}
       <button
         type="button"
         data-testid="belge-sections-toggle-all"
         onClick={handleToggle}
-        className="inline-flex min-h-[44px] sm:min-h-[32px] items-center gap-1 px-2 py-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 transition-colors cursor-pointer"
+        className="inline-flex min-h-[36px] sm:min-h-[30px] items-center gap-1 px-2 py-1 text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 transition-colors cursor-pointer"
         title={isAllOpen ? "Diğerlerini Kapat" : "Tümünü Aç"}
       >
         {isAllOpen ? (
           <>
-            <ChevronsDownUp className="h-3.5 w-3.5 text-muted-foreground" />
+            <ChevronsDownUp className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <span className="sr-only">Tümünü Kapat </span>
             <span className="font-medium">Diğerlerini Kapat</span>
           </>
         ) : (
           <>
-            <ChevronsUpDown className="h-3.5 w-3.5 text-amber-500" />
+            <ChevronsUpDown className="h-3.5 w-3.5 text-amber-500 shrink-0" />
             <span className="font-medium">Tümünü Aç</span>
           </>
         )}
       </button>
+
+      {/* Sağ taraf (onun yerine): PDF'ye Odaklan tuşu */}
+      {onTogglePdfFocus && (
+        <button
+          type="button"
+          onClick={onTogglePdfFocus}
+          data-testid="belge-panel-collapse-btn"
+          className="hidden lg:inline-flex min-h-[30px] items-center gap-1.5 px-2 py-1 text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 transition-all cursor-pointer text-xs font-medium border border-transparent hover:border-amber-500/25"
+          title="Soldaki formu kapatıp PDF'ye odaklan"
+        >
+          <BelgePdfFocusEnterIcon className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+          <span>PDF&apos;ye Odaklan</span>
+        </button>
+      )}
     </div>
   );
 }

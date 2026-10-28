@@ -20,6 +20,7 @@ import { BelgeShareDialog } from "@/components/belge-paylasim/belge-share-dialog
 import { BelgePdfLayoutWarnings } from "@/components/belge-pdf-layout-warnings";
 import { BelgeFieldGuidanceView, evaluateFieldGuidance } from "@/components/belge-field-guidance";
 import {
+  BelgePdfFocusExitIcon,
   BelgeResetIcon,
 } from "@/components/belge-studio-icons";
 import { useBelgeAutoDraft } from "@/hooks/use-belge-auto-draft";
@@ -323,17 +324,30 @@ export function TaahhutnameStudio({
           role="region"
           aria-label="Belge form alanları"
           data-testid="belge-studio-form-scroll"
-          className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
+          className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} transition-all duration-300 ease-in-out ${
             pdfFocus.isPdfFocus
-              ? "hidden"
+              ? "hidden lg:block lg:overflow-hidden lg:pointer-events-none lg:opacity-0"
               : activeTabMobile === "form"
                 ? "block"
                 : "hidden lg:block"
           }`}
           style={{
-            width: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
-            minWidth: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
-            maxWidth: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
+            width: resizer.isDesktop
+              ? pdfFocus.isPdfFocus
+                ? "0px"
+                : `${resizer.panelWidth}px`
+              : undefined,
+            minWidth: resizer.isDesktop
+              ? pdfFocus.isPdfFocus
+                ? "0px"
+                : `${resizer.panelWidth}px`
+              : undefined,
+            maxWidth: resizer.isDesktop
+              ? pdfFocus.isPdfFocus
+                ? "0px"
+                : `${resizer.panelWidth}px`
+              : undefined,
+            borderRightWidth: resizer.isDesktop && pdfFocus.isPdfFocus ? "0px" : undefined,
           }}
           {...formFocusContainerProps}
         >
@@ -341,12 +355,16 @@ export function TaahhutnameStudio({
             className="belge-readability-form-content"
             style={{
               zoom: resizer.isDesktop && resizer.derivedZoom !== 1 ? resizer.derivedZoom : undefined,
+              minWidth: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
             }}
           >
           <div {...contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-taahhutnamesi" layouts={layouts} excludedFields={["tc_kimlik_no", "telefon", "adres", "yapi_adresi", "yapi_sahibi_adresi", "tarih"]} />
 
-          <BelgeStudioSectionMasterControls sectionsApi={sectionsApi} />
+          <BelgeStudioSectionMasterControls
+            sectionsApi={sectionsApi}
+            onTogglePdfFocus={pdfFocus.onTogglePdfFocus}
+          />
 
           {/* Section: Şantiye Şefi Kimlik ve Oda Bilgileri */}
           <BelgeStudioSection
@@ -624,13 +642,13 @@ export function TaahhutnameStudio({
         </div>
 
         {/* Masaüstü Sürüklenebilir Panel Ayırıcı */}
-        <BelgeStudioResizer resizer={resizer} />
+        {!pdfFocus.isPdfFocus && <BelgeStudioResizer resizer={resizer} />}
 
         <div
           id="taahhutname-mobile-panel-preview"
           role="region"
           aria-label="PDF önizleme paneli"
-          className={`flex flex-1 min-h-0 min-w-0 ${
+          className={`relative flex flex-1 min-h-0 min-w-0 ${
             pdfFocus.isPdfFocus
               ? "w-full"
               : activeTabMobile === "preview"
@@ -638,6 +656,19 @@ export function TaahhutnameStudio({
                 : "absolute inset-0 invisible pointer-events-none lg:static lg:visible lg:pointer-events-auto"
           }`}
         >
+          {/* Masaüstünde form kapalıyken formu geri açan zarif buton */}
+          {pdfFocus.isPdfFocus && (
+            <button
+              type="button"
+              onClick={pdfFocus.onTogglePdfFocus}
+              data-testid="belge-panel-expand-floating-btn"
+              className="hidden lg:inline-flex absolute left-3 top-3 z-30 items-center gap-1.5 rounded-lg border border-border/80 bg-background/95 px-3 py-1.5 text-xs font-semibold text-foreground shadow-lg backdrop-blur hover:bg-secondary hover:text-amber-600 transition-all cursor-pointer animate-in fade-in slide-in-from-left-2 duration-200"
+              title="Formu tekrar göster"
+            >
+              <BelgePdfFocusExitIcon className="h-4 w-4 text-amber-500 shrink-0" />
+              <span>Formu Göster</span>
+            </button>
+          )}
           <BelgeStudioPdfPreview
             snapshot={snapshot}
             generationPending={document.status === "generating"}
