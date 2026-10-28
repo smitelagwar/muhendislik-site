@@ -313,7 +313,7 @@ export function BetonDokumStudio({
           role="region"
           aria-label="Belge form alanları"
           data-testid="belge-studio-form-scroll"
-          className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} transition-all duration-300 ease-in-out ${
+          className={`${BELGE_STUDIO_FORM_SCROLL_CLASS} ${
             pdfFocus.isPdfFocus
               ? "hidden lg:block lg:overflow-hidden lg:pointer-events-none lg:opacity-0"
               : activeTabMobile === "form"
@@ -337,6 +337,9 @@ export function BetonDokumStudio({
                 : `${resizer.panelWidth}px`
               : undefined,
             borderRightWidth: resizer.isDesktop && pdfFocus.isPdfFocus ? "0px" : undefined,
+            transition: resizer.isDesktop && !resizer.isDragging
+              ? "width 280ms cubic-bezier(0.4,0,0.2,1), min-width 280ms cubic-bezier(0.4,0,0.2,1), max-width 280ms cubic-bezier(0.4,0,0.2,1), opacity 200ms ease"
+              : "none",
           }}
           {...formFocusContainerProps}
         >

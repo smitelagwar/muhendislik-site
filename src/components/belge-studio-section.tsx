@@ -164,17 +164,17 @@ export function BelgeStudioSectionMasterControls({
         )}
       </button>
 
-      {/* Sağ taraf (onun yerine): PDF'ye Odaklan tuşu */}
+      {/* Sağ taraf: PDF'ye Odaklan — icon-only (tooltip ile), taşmayı önlemek için sadece ikon */}
       {onTogglePdfFocus && (
         <button
           type="button"
           onClick={onTogglePdfFocus}
           data-testid="belge-panel-collapse-btn"
-          className="hidden lg:inline-flex min-h-[30px] items-center gap-1.5 px-2 py-1 text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 transition-all cursor-pointer text-xs font-medium border border-transparent hover:border-amber-500/25"
-          title="Soldaki formu kapatıp PDF'ye odaklan"
+          className="hidden lg:inline-flex shrink-0 h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 border border-transparent hover:border-amber-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 transition-colors cursor-pointer"
+          title="PDF'ye Odaklan — formu kapat (Ctrl+Shift+F)"
+          aria-label="PDF'ye Odaklan — formu kapat"
         >
           <BelgePdfFocusEnterIcon className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-          <span>PDF&apos;ye Odaklan</span>
         </button>
       )}
     </div>
