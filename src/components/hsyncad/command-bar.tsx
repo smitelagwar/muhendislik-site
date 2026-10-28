@@ -128,8 +128,8 @@ export default function CommandBar(p: Props) {
       <div ref={fileRoot} className={styles.file}>
         <button type="button" aria-label="Dosya işlemleri" aria-expanded={fileOpen} onClick={() => { setFileOpen(v => !v); setMenu(null); }}>Dosya</button>
         {fileOpen && <div className={styles.fileMenu} role="menu">{[
-          [-1, "Yeni model", "new"], [11300, "Model aç", "open"], [11320, "JSON kaydet", "save"], [-2, "4 × 4 m örneği aç", "model"], [-3, "Gelişmiş örneği aç", "model"], [-4, "Çizim akışı örneği", "model"],
-        ].map(([id, label, icon]) => <button type="button" role="menuitem" key={id} data-testid={id === -2 ? "load-demo" : id === -3 ? "load-feature-demo" : id === -4 ? "load-workflow-demo" : undefined} onClick={() => execute(Number(id))}><CadIcon name={icon as CadIconName} size={18} />{label}</button>)}</div>}
+          [-1, "Yeni model", "new"], [11300, "Model aç", "open"], [11320, "JSON kaydet", "save"], [-2, "4 × 4 m örneği aç", "model"], [-3, "Gelişmiş örneği aç", "model"], [-4, "Çizim akışı örneği", "model"], [-5, "7 Katlı Plaza (1536 m²)", "model"],
+        ].map(([id, label, icon]) => <button type="button" role="menuitem" key={id} data-testid={id === -2 ? "load-demo" : id === -3 ? "load-feature-demo" : id === -4 ? "load-workflow-demo" : id === -5 ? "load-seven-storey-demo" : undefined} onClick={() => execute(Number(id))}><CadIcon name={icon as CadIconName} size={18} />{label}</button>)}</div>}
       </div>
       <div className={styles.tabs} role="tablist" aria-label="Çizim sekmeleri" onKeyDown={event => {
         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;

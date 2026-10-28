@@ -11,6 +11,7 @@ import { addStorey, DEFAULT_SNAP, layerState, setLayerState } from "@/lib/hsynca
 import { copyElementsToFloor, reconcileConnections, removeWithDependents } from "@/lib/hsyncad/relationships";
 import { createFeatureDemo } from "@/lib/hsyncad/feature-demo";
 import { createWorkflowDemo } from "@/lib/hsyncad/workflow-demo";
+import { createSevenStoreyCommercialBuilding } from "@/lib/hsyncad/seven-storey-demo";
 import { DRAFTING_NAMES, isDraftingTool, localToWorld, worldToLocal } from "@/lib/hsyncad/drafting";
 import { constrainPoint } from "@/lib/hsyncad/drawing";
 import { useReferenceTools } from "./use-reference-tools";
@@ -463,6 +464,7 @@ export default function HsynCadWorkbench() {
     [-2]: { run: () => replaceModel(createDemoModel(), "4 × 4 m ölçülü örnek açıldı.") },
     [-3]: { run: () => replaceModel(createFeatureDemo(), "Gelişmiş örnek açıldı.") },
     [-4]: { run: () => replaceModel(createWorkflowDemo(), "Bağlı çizim akışı örneği açıldı.") },
+    [-5]: { run: () => replaceModel(createSevenStoreyCommercialBuilding(), "7 Katlı Plaza (1536 m² / Kat) perdeli ve radye temelli model açıldı.") },
     11300: { run: () => fileInput.current?.click() }, 11320: { run: exportFile },
     12590: { run: () => selectTool("axis"), active: tool === "axis" },
     12580: { run: () => selectTool("axis"), hint: "Yeni aks seçeneklerini açar" },
@@ -662,6 +664,7 @@ export default function HsynCadWorkbench() {
       {tab === "Proje" && <button type="button" onClick={() => setSettings("materials")}>Malzeme tanımları</button>}
       {tab === "Proje" && <button type="button" data-testid="load-feature-demo" onClick={() => replaceModel(createFeatureDemo(), "Gelişmiş örnek açıldı. Daire/poligon/eğik kolon, eğrisel perde ve eğimli katmanlı döşemeyi seçerek inceleyin.")}>Gelişmiş örneği aç</button>}
       {tab === "Proje" && <button type="button" data-testid="load-workflow-demo" onClick={() => replaceModel(createWorkflowDemo(), "Bağlı örnek açıldı. Bir aksı taşıyınca kolonlar, kirişler, orta perde ve döşeme sınırları birlikte güncellenir.")}>Çizim akışı örneği</button>}
+      {tab === "Proje" && <button type="button" data-testid="load-seven-storey-demo" onClick={() => replaceModel(createSevenStoreyCommercialBuilding(), "7 Katlı Plaza (1536 m² / Kat) perdeli ve radye temelli model açıldı.")}><Box size={18} />7 Katlı Plaza (1536 m²)</button>}
     </div>
     {editOperation && <SettingsDialog title="Seçili elemanı düzenle" onClose={() => setEditOperation(null)}><EditDialog operation={editOperation} onApply={(dx, dy, angle, count) => { if (!selected) return; try { if (layerState(model, selected.layer, selected.floorId).locked) throw new Error("Katman kilitli."); const changed = editElement(selected, editOperation, dx, dy, angle, count); const replace = editOperation === "rotate" || editOperation === "mirror"; if (commit({ ...model, elements: replace ? model.elements.map(e => e.id === selected.id ? changed[0] : e) : [...model.elements, ...changed] }, "Düzenleme uygulandı; geri alınabilir.")) setEditOperation(null); } catch (error) { setMessage(error instanceof Error ? error.message : "Düzenleme uygulanamadı."); } }} /></SettingsDialog>}
     {analysisOpen && <SettingsDialog title="TBDY 2018 Yapı Analizi ve Betonarme Tasarım" onClose={() => setAnalysisOpen(false)}>
@@ -716,7 +719,7 @@ export default function HsynCadWorkbench() {
     <div className="hcad-command"><ChevronRight size={16} /><label htmlFor="hcad-command">Komut</label><form onSubmit={(e) => { e.preventDefault(); runCommand(); }}><input id="hcad-command" data-testid="hsyncad-command" autoComplete="off" value={command} onChange={(e) => setCommand(e.target.value)} placeholder={`${instruction} · Koordinat: 4 0 · sil / geri / iptal / bitir`} /><button type="submit" aria-label="Komutu çalıştır">↵</button></form></div>
     <div className="hcad-feedback-row">
     <div className="hcad-message" role="status" data-testid="hsyncad-message"><span className="hcad-live"><i /></span>{message}</div>
-    <div className="hcad-bottom-help"><span><RotateCcw size={13} />Ctrl+Z: geri al · Delete: sil · Esc: iptal</span><button type="button" onClick={() => replaceModel(createDemoModel(), "4 × 4 m örnek açıldı. Önceki model Geri al ile geri getirilebilir.")}>Ölçülü örnekle başla <ChevronRight size={14} /></button></div>
+    <div className="hcad-bottom-help"><span><RotateCcw size={13} />Ctrl+Z: geri al · Delete: sil · Esc: iptal</span><button type="button" onClick={() => replaceModel(createDemoModel(), "4 × 4 m örnek açıldı. Önceki model Geri al ile geri getirilebilir.")}>Ölçülü örnekle başla <ChevronRight size={14} /></button><button type="button" data-testid="bottom-load-seven-storey" onClick={() => replaceModel(createSevenStoreyCommercialBuilding(), "7 Katlı Plaza (1536 m² / Kat) perdeli ve radye temelli model açıldı.")} style={{ marginLeft: 8, background: "var(--hc-accent-subtle, #3b82f620)", borderColor: "var(--hc-accent, #3b82f6)", color: "var(--hc-accent, #3b82f6)" }}>🏢 7 Katlı Plaza (1536 m²) <ChevronRight size={14} /></button></div>
     </div>
     <footer className="hcad-statusbar"><span><Eye size={12} />{snapLabel}</span><span>{floor.name} · {visibleElements.length} eleman</span><span>X {number(cursor.x, 2)} <b>Y {number(cursor.y, 2)}</b></span><span className="hcad-unit">Birim: <b>m · Giriş: {drawing.unit}</b></span><span data-testid="hsyncad-zoom">Yakınlaştırma: %{zoom}</span></footer>
   </div>;
