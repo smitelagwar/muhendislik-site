@@ -36,6 +36,7 @@ import {
 } from "@/components/belge-studio-section";
 import { useBelgeStudioResizer } from "@/hooks/use-belge-studio-resizer";
 import { BelgeStudioResizer } from "@/components/belge-studio-resizer";
+import { maskPhone, maskDate } from "@/lib/belge-input-mask";
 import {
   ISTIFA_DILEKCESI_DEFAULT_DATA,
   IstifaDilekcesiData,
@@ -445,7 +446,7 @@ export function IstifaStudio({
                   type="text"
                   id={getFieldId("tarih")}
                   value={formData.tarih || ""}
-                  onChange={(e) => handleFieldChange("tarih", e.target.value)}
+                  onChange={(e) => handleFieldChange("tarih", maskDate(e.target.value))}
                   onBlur={() => markFieldTouched("tarih")}
                   placeholder="29.12.2025"
                   aria-describedby="istifa-tarih-guidance"
@@ -518,7 +519,7 @@ export function IstifaStudio({
                   inputMode="tel"
                   autoComplete="tel"
                   value={formData.iletisim_deger || ""}
-                  onChange={(e) => handleFieldChange("iletisim_deger", e.target.value)}
+                  onChange={(e) => handleFieldChange("iletisim_deger", maskPhone(e.target.value))}
                   onBlur={() => markFieldTouched("iletisim_deger")}
                   placeholder="0566 666 66 66"
                   aria-describedby="istifa-iletisim_deger-guidance"

@@ -36,6 +36,7 @@ import {
 } from "@/components/belge-studio-section";
 import { useBelgeStudioResizer } from "@/hooks/use-belge-studio-resizer";
 import { BelgeStudioResizer } from "@/components/belge-studio-resizer";
+import { maskDate } from "@/lib/belge-input-mask";
 import {
   BETON_DOKUM_DEFAULT_DATA,
   BetonDokumData,
@@ -383,7 +384,7 @@ export function BetonDokumStudio({
                   type="text"
                   id={getFieldId("tarih")}
                   value={formData.tarih || ""}
-                  onChange={(e) => handleFieldChange("tarih", e.target.value)}
+                  onChange={(e) => handleFieldChange("tarih", maskDate(e.target.value))}
                   onBlur={() => markFieldTouched("tarih")}
                   placeholder="10.08.2026"
                   aria-describedby="beton-dokum-tarih-guidance"

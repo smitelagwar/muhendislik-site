@@ -39,6 +39,7 @@ import {
 } from "@/components/belge-studio-section";
 import { useBelgeStudioResizer } from "@/hooks/use-belge-studio-resizer";
 import { BelgeStudioResizer } from "@/components/belge-studio-resizer";
+import { maskPhone, maskDate } from "@/lib/belge-input-mask";
 import {
   INSAAT_RUHSATI_DEFAULT_DATA,
   InsaatRuhsatiData,
@@ -453,7 +454,7 @@ export function InsaatRuhsatiStudio({
                   type="text"
                   id={getFieldId("tarih")}
                   value={formData.tarih || ""}
-                  onChange={(e) => handleFieldChange("tarih", e.target.value)}
+                  onChange={(e) => handleFieldChange("tarih", maskDate(e.target.value))}
                   onBlur={() => markFieldTouched("tarih")}
                   placeholder="08.12.2023"
                   aria-describedby="insaat-ruhsati-tarih-guidance"
@@ -584,7 +585,7 @@ export function InsaatRuhsatiStudio({
                 inputMode="tel"
                 autoComplete="tel"
                 value={formData.tel || ""}
-                onChange={(e) => handleFieldChange("tel", e.target.value)}
+                onChange={(e) => handleFieldChange("tel", maskPhone(e.target.value, { hasTelPrefix: true }))}
                 onBlur={() => markFieldTouched("tel")}
                 placeholder="Tel: 0566 666 66 66"
                 aria-describedby="insaat-ruhsati-tel-guidance"

@@ -36,6 +36,7 @@ import {
 } from "@/components/belge-studio-section";
 import { useBelgeStudioResizer } from "@/hooks/use-belge-studio-resizer";
 import { BelgeStudioResizer } from "@/components/belge-studio-resizer";
+import { maskDate } from "@/lib/belge-input-mask";
 import {
   SOZLESME_DEFAULT_DATA,
   SozlesmeData,
@@ -606,7 +607,7 @@ export function SozlesmeStudio({
                   type="text"
                   id={getFieldId("sozlesme_tarihi")}
                   value={formData.sozlesme_tarihi || ""}
-                  onChange={(e) => handleFieldChange("sozlesme_tarihi", e.target.value)}
+                  onChange={(e) => handleFieldChange("sozlesme_tarihi", maskDate(e.target.value))}
                   onBlur={() => markFieldTouched("sozlesme_tarihi")}
                   placeholder="01.05.2026"
                   aria-describedby="sozlesme-sozlesme_tarihi-guidance"

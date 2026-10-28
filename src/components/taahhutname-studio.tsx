@@ -36,6 +36,7 @@ import {
 } from "@/components/belge-studio-section";
 import { useBelgeStudioResizer } from "@/hooks/use-belge-studio-resizer";
 import { BelgeStudioResizer } from "@/components/belge-studio-resizer";
+import { maskPhone, maskDate } from "@/lib/belge-input-mask";
 import {
   TAAHHUTNAME_DEFAULT_DATA,
   TaahhutnameData,
@@ -450,7 +451,7 @@ export function TaahhutnameStudio({
                   inputMode="tel"
                   autoComplete="tel"
                   value={formData.telefon || ""}
-                  onChange={(e) => handleFieldChange("telefon", e.target.value)}
+                  onChange={(e) => handleFieldChange("telefon", maskPhone(e.target.value))}
                   onBlur={() => markFieldTouched("telefon")}
                   placeholder="0566 666 66 66"
                   aria-describedby="taahhut-telefon-guidance"
@@ -611,7 +612,7 @@ export function TaahhutnameStudio({
                   type="text"
                   id={getFieldId("tarih")}
                   value={formData.tarih || ""}
-                  onChange={(e) => handleFieldChange("tarih", e.target.value)}
+                  onChange={(e) => handleFieldChange("tarih", maskDate(e.target.value))}
                   onBlur={() => markFieldTouched("tarih")}
                   placeholder="16.08.2026"
                   aria-describedby="taahhut-tarih-guidance"
