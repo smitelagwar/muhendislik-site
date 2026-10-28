@@ -30,7 +30,8 @@ async function setScale(page: Page, uiScale: number, textScale = 100) {
     window.dispatchEvent(new Event("belge-readability:change"));
   }, {uiScale, textScale});
   const root = page.locator('[data-belge-readability-root]').first();
-  if (uiScale >= 150 || textScale >= 150) await expect(root).toHaveAttribute("data-belge-ui-large", "true");
+  const desktop = await page.evaluate(() => window.matchMedia("(min-width: 1024px)").matches);
+  if (desktop && (uiScale >= 150 || textScale >= 150)) await expect(root).toHaveAttribute("data-belge-ui-large", "true");
   else await expect(root).not.toHaveAttribute("data-belge-ui-large");
 }
 
@@ -112,13 +113,49 @@ test.describe("Belgeler — Arayüz ve Okunabilirlik: Stage 2", () => {
         await more.click();
         const drawer = page.getByTestId("belge-mobile-actions-drawer");
         await expect(drawer).toBeVisible();
-        await expect(drawer.getByTestId("belge-mobile-readability-section")).toBeVisible();
-        await drawer.getByTestId("belge-mobile-readability-section").locator("summary").first().click();
-        await expect(drawer.getByTestId("belge-readability-options")).toBeVisible();
+        // Mobile and tablet must not expose desktop-only readability controls,
+        // even if a saved desktop scale is 200%.
+        await expect(drawer.getByTestId("belge-mobile-readability-section")).toHaveCount(0);
+        await expect(drawer.getByTestId("belge-readability-options")).toHaveCount(0);
+        await expect(page.getByTestId("belge-readability-trigger")).toBeHidden();
+        await expect(page.locator('[data-belge-readability-root]').first()).not.toHaveAttribute("data-belge-readability-active");
         await page.keyboard.press("Escape");
         await expect(drawer).toBeHidden();
       }
     }
+  });
+
+  test("desktop preference is suspended on phones and restored on desktop", async ({page}) => {
+    await page.setViewportSize({width:1366,height:768});
+    await visit(page);
+    await page.evaluate(() => {
+      localStorage.setItem("belge-studio:readability:v1", JSON.stringify({
+        version:1, uiScale:125, textScale:140, highContrast:true,
+        comfortableReading:true, largeTargets:true
+      }));
+      window.dispatchEvent(new Event("belge-readability:change"));
+    });
+    const root = page.locator('[data-belge-readability-root]').first();
+    await expect(root).toHaveAttribute("data-belge-high-contrast","true");
+    await expect(page.getByTestId("belge-readability-trigger")).toBeVisible();
+
+    await page.setViewportSize({width:390,height:844});
+    await expect(root).not.toHaveAttribute("data-belge-high-contrast");
+    await expect(root).not.toHaveAttribute("data-belge-readability-active");
+    await expect(page.getByTestId("belge-readability-trigger")).toBeHidden();
+    await page.getByTestId("belge-mobile-more-btn").click();
+    const drawer = page.getByTestId("belge-mobile-actions-drawer");
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByText("Arayüz ve Okunabilirlik")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+
+    await page.setViewportSize({width:1366,height:768});
+    await expect(root).toHaveAttribute("data-belge-high-contrast","true");
+    await expect(page.getByTestId("belge-readability-trigger")).toBeVisible();
+    await expect(page.getByTestId("belge-readability-trigger")).toContainText("%125");
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("belge-studio:readability:v1") || "{}"));
+    expect(saved.uiScale).toBe(125);
+    expect(saved.highContrast).toBe(true);
   });
 
   test("long form text, zoom controls, and PDF focus do not lose form data", async ({page}) => {
