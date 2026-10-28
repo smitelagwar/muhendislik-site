@@ -28,6 +28,8 @@ describe("Belge Stüdyosu — Input Masking Testleri", () => {
     });
 
     it("10 haneli (5XX...) mobil numara girilirse başına 0 ekleyerek maskelemelidir", () => {
+      assert.equal(maskPhone("5"), "05");
+      assert.equal(maskPhone("532"), "0532");
       assert.equal(maskPhone("5661234567"), "0566 123 45 67");
     });
 

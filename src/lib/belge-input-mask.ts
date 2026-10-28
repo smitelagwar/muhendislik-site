@@ -33,8 +33,8 @@ export function maskPhone(raw: string, options?: MaskPhoneOptions): string {
   // +90 veya 90 ile yapıştırıldıysa baştaki 90'ı 0'a çevir
   if (digits.startsWith("90") && digits.length >= 11) {
     digits = "0" + digits.slice(2);
-  } else if (digits.startsWith("5") && digits.length >= 10) {
-    // 5XX... (10 hane) olarak girildiyse başına 0 ekle
+  } else if (!digits.startsWith("0") && digits.length > 0) {
+    // Kullanıcı 0 yazmadan doğrudan 5... veya alan kodu yazdıysa otomatik 0 ile başlat
     digits = "0" + digits;
   }
 
