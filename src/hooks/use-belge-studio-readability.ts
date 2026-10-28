@@ -14,6 +14,17 @@ type ReadabilityRootStyle = CSSProperties & {
 };
 
 const CHANGE_EVENT = "belge-readability:change";
+const DESKTOP_QUERY = "(min-width: 1024px)";
+
+function subscribeDesktopViewport(onChange: () => void): () => void {
+  const media = window.matchMedia(DESKTOP_QUERY);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+
+function desktopViewportSnapshot(): boolean {
+  return window.matchMedia(DESKTOP_QUERY).matches;
+}
 // Storage-denied browsers still need a functioning in-memory preference.
 let memoryValue: string | null = null;
 
@@ -53,7 +64,14 @@ export function useBelgeStudioReadability() {
   // useSyncExternalStore has a stable server snapshot; no hydration mismatch
   // and no synchronous setState in effects.
   const serialized = useSyncExternalStore(subscribe, currentSnapshot, () => null);
-  const settings = useMemo<BelgeReadabilitySettings>(() => {
+  // The custom readability feature is desktop-only. On tablets and phones, keep
+  // the stored preference intact but render the studio with its original layout.
+  const isDesktopViewport = useSyncExternalStore(
+    subscribeDesktopViewport,
+    desktopViewportSnapshot,
+    () => true,
+  );
+  const storedSettings = useMemo<BelgeReadabilitySettings>(() => {
     if (!serialized) return { ...DEFAULT_BELGE_READABILITY };
     try {
       return parseBelgeReadability(JSON.parse(serialized)) ?? { ...DEFAULT_BELGE_READABILITY };
@@ -61,6 +79,7 @@ export function useBelgeStudioReadability() {
       return { ...DEFAULT_BELGE_READABILITY };
     }
   }, [serialized]);
+  const settings = isDesktopViewport ? storedSettings : DEFAULT_BELGE_READABILITY;
 
   const update = useCallback((changes: Partial<BelgeReadabilitySettings>) => {
     writeSettings({ ...settings, ...changes });
