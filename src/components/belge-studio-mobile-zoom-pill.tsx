@@ -135,7 +135,7 @@ export function BelgeStudioMobileZoomPill({
             disabled={disabled}
             aria-label="Genişliğe Sığdır"
             title="Genişliğe Sığdır"
-            className={`relative flex h-7 w-7 items-center justify-center rounded-full text-foreground/80 hover:bg-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-40 cursor-pointer before:absolute before:-inset-2 before:content-[''] ${
+            className={`belge-tablet-landscape-only relative h-7 w-7 items-center justify-center rounded-full text-foreground/80 hover:bg-secondary hover:text-foreground disabled:pointer-events-none disabled:opacity-40 cursor-pointer before:absolute before:-inset-2 before:content-[''] ${
               fitMode === "width" ? "text-amber-600 dark:text-amber-400 bg-amber-500/15" : ""
             }`}
           >

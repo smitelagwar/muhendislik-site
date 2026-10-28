@@ -33,6 +33,8 @@ import {
   BelgeStudioSection,
   BelgeStudioSectionMasterControls,
 } from "@/components/belge-studio-section";
+import { useBelgeStudioResizer } from "@/hooks/use-belge-studio-resizer";
+import { BelgeStudioResizer } from "@/components/belge-studio-resizer";
 import {
   BETON_DOKUM_DEFAULT_DATA,
   BetonDokumData,
@@ -86,6 +88,7 @@ export function BetonDokumStudio({
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const readability = useBelgeStudioReadability();
+  const resizer = useBelgeStudioResizer();
   const { scrollContainerRef, contentWrapperRef, contentWrapperProps, ...formView } = useBelgeStudioFormView({ isModal });
   void contentWrapperRef;
   const pdfFocus = useBelgeStudioPdfFocus({
@@ -316,9 +319,19 @@ export function BetonDokumStudio({
                 ? "block"
                 : "hidden lg:block"
           }`}
+          style={{
+            width: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
+            minWidth: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
+            maxWidth: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
+          }}
           {...formFocusContainerProps}
         >
-          <div className="belge-readability-form-content">
+          <div
+            className="belge-readability-form-content"
+            style={{
+              zoom: resizer.isDesktop && resizer.derivedZoom !== 1 ? resizer.derivedZoom : undefined,
+            }}
+          >
           <div {...contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="beton-dokum-tutanagi" layouts={layouts} excludedFields={["tarih", "yer"]} />
 
@@ -546,6 +559,9 @@ export function BetonDokumStudio({
           </div>
           </div>
         </div>
+
+        {/* Masaüstü Sürüklenebilir Panel Ayırıcı */}
+        <BelgeStudioResizer resizer={resizer} />
 
         <div
           id="beton-dokum-mobile-panel-preview"

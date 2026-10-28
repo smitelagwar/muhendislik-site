@@ -33,6 +33,8 @@ import {
   BelgeStudioSection,
   BelgeStudioSectionMasterControls,
 } from "@/components/belge-studio-section";
+import { useBelgeStudioResizer } from "@/hooks/use-belge-studio-resizer";
+import { BelgeStudioResizer } from "@/components/belge-studio-resizer";
 import {
   TAAHHUTNAME_DEFAULT_DATA,
   TaahhutnameData,
@@ -86,6 +88,7 @@ export function TaahhutnameStudio({
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const readability = useBelgeStudioReadability();
+  const resizer = useBelgeStudioResizer();
   const { scrollContainerRef, contentWrapperRef, contentWrapperProps, ...formView } = useBelgeStudioFormView({ isModal });
   void contentWrapperRef;
   const pdfFocus = useBelgeStudioPdfFocus({
@@ -327,9 +330,19 @@ export function TaahhutnameStudio({
                 ? "block"
                 : "hidden lg:block"
           }`}
+          style={{
+            width: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
+            minWidth: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
+            maxWidth: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
+          }}
           {...formFocusContainerProps}
         >
-          <div className="belge-readability-form-content">
+          <div
+            className="belge-readability-form-content"
+            style={{
+              zoom: resizer.isDesktop && resizer.derivedZoom !== 1 ? resizer.derivedZoom : undefined,
+            }}
+          >
           <div {...contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-taahhutnamesi" layouts={layouts} excludedFields={["tc_kimlik_no", "telefon", "adres", "yapi_adresi", "yapi_sahibi_adresi", "tarih"]} />
 
@@ -609,6 +622,9 @@ export function TaahhutnameStudio({
           </div>
           </div>
         </div>
+
+        {/* Masaüstü Sürüklenebilir Panel Ayırıcı */}
+        <BelgeStudioResizer resizer={resizer} />
 
         <div
           id="taahhutname-mobile-panel-preview"

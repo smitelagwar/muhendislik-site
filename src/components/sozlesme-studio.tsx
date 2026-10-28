@@ -33,6 +33,8 @@ import {
   BelgeStudioSection,
   BelgeStudioSectionMasterControls,
 } from "@/components/belge-studio-section";
+import { useBelgeStudioResizer } from "@/hooks/use-belge-studio-resizer";
+import { BelgeStudioResizer } from "@/components/belge-studio-resizer";
 import {
   SOZLESME_DEFAULT_DATA,
   SozlesmeData,
@@ -86,6 +88,7 @@ export function SozlesmeStudio({
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const readability = useBelgeStudioReadability();
+  const resizer = useBelgeStudioResizer();
   const { scrollContainerRef, contentWrapperRef, contentWrapperProps, ...formView } = useBelgeStudioFormView({ isModal });
   void contentWrapperRef;
   const pdfFocus = useBelgeStudioPdfFocus({
@@ -331,9 +334,19 @@ export function SozlesmeStudio({
                 ? "block"
                 : "hidden lg:block"
           }`}
+          style={{
+            width: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
+            minWidth: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
+            maxWidth: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
+          }}
           {...formFocusContainerProps}
         >
-          <div className="belge-readability-form-content">
+          <div
+            className="belge-readability-form-content"
+            style={{
+              zoom: resizer.isDesktop && resizer.derivedZoom !== 1 ? resizer.derivedZoom : undefined,
+            }}
+          >
           <div {...contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-sozlesmesi" layouts={layouts} excludedFields={["adres", "ucret", "sozlesme_tarihi"]} />
 
@@ -625,6 +638,9 @@ export function SozlesmeStudio({
           </div>
           </div>
         </div>
+
+        {/* Masaüstü Sürüklenebilir Panel Ayırıcı */}
+        <BelgeStudioResizer resizer={resizer} />
 
         <div
           id="sozlesme-mobile-panel-preview"

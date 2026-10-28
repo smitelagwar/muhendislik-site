@@ -1390,6 +1390,19 @@ body:has([data-studio-locked="true"]) > div.flex.min-h-screen > main.flex-grow {
   outline-offset: 2px;
 }
 
+/* Belge Stüdyosu — Tablet Yatay Modu Düğme Kuralı:
+   Mobilde (telefonlarda hem dikey hem yatay) ve dikey moddaki tabletlerde "Genişliğe Sığdır" gösterilmez.
+   Yalnızca tablet yatay modunda (min-width: 768px, min-height: 550px, orientation: landscape, max-width: 1023px) gösterilir. */
+.belge-tablet-landscape-only {
+  display: none !important;
+}
+
+@media (min-width: 768px) and (min-height: 550px) and (orientation: landscape) and (max-width: 1023px) {
+  .belge-tablet-landscape-only {
+    display: inline-flex !important;
+  }
+}
+
 .belge-preview-panel {
   container-type: inline-size;
 }

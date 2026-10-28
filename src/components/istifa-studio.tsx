@@ -33,6 +33,8 @@ import {
   BelgeStudioSection,
   BelgeStudioSectionMasterControls,
 } from "@/components/belge-studio-section";
+import { useBelgeStudioResizer } from "@/hooks/use-belge-studio-resizer";
+import { BelgeStudioResizer } from "@/components/belge-studio-resizer";
 import {
   ISTIFA_DILEKCESI_DEFAULT_DATA,
   IstifaDilekcesiData,
@@ -86,6 +88,7 @@ export function IstifaStudio({
 
   useBelgeStudioMobileViewport(studioRootRef, !isModal);
   const readability = useBelgeStudioReadability();
+  const resizer = useBelgeStudioResizer();
   const { scrollContainerRef, contentWrapperRef, contentWrapperProps, ...formView } = useBelgeStudioFormView({ isModal });
   void contentWrapperRef;
   const pdfFocus = useBelgeStudioPdfFocus({
@@ -319,9 +322,19 @@ export function IstifaStudio({
                 ? "block"
                 : "hidden lg:block"
           }`}
+          style={{
+            width: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
+            minWidth: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
+            maxWidth: resizer.isDesktop ? `${resizer.panelWidth}px` : undefined,
+          }}
           {...formFocusContainerProps}
         >
-          <div className="belge-readability-form-content">
+          <div
+            className="belge-readability-form-content"
+            style={{
+              zoom: resizer.isDesktop && resizer.derivedZoom !== 1 ? resizer.derivedZoom : undefined,
+            }}
+          >
           <div {...contentWrapperProps}>
           <BelgePdfLayoutWarnings documentId="santiye-sefi-istifa-dilekcesi" layouts={layouts} excludedFields={["tarih", "tc_deger", "iletisim_deger", "adres_deger"]} />
 
@@ -527,6 +540,9 @@ export function IstifaStudio({
           </div>
           </div>
         </div>
+
+        {/* Masaüstü Sürüklenebilir Panel Ayırıcı */}
+        <BelgeStudioResizer resizer={resizer} />
 
         <div
           id="istifa-mobile-panel-preview"

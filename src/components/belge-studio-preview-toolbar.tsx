@@ -267,7 +267,7 @@ export function BelgeStudioPreviewToolbar({
                 <DropdownMenuItem
                   onSelect={onFitWidth}
                   disabled={disabled}
-                  className="min-h-11 gap-2 rounded-lg cursor-pointer"
+                  className="belge-tablet-landscape-only min-h-11 gap-2 rounded-lg cursor-pointer"
                   data-testid="belge-preview-mobile-fit-width-item"
                 >
                   <BelgeFitWidthIcon className="h-4 w-4" />
