@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default function AnalysisDialog({ model, result, onRun, onClose, onSetViewMode }: Props) {
-  const [activeTab, setActiveTab] = useState<"summary" | "storeys" | "columns" | "beams" | "settings">("summary");
+  const [activeTab, setActiveTab] = useState<"summary" | "storeys" | "columns" | "beams" | "joints" | "irregularities" | "settings">("summary");
   const [settings, setSettings] = useState<AnalysisSettings>(result?.settings ?? DEFAULT_ANALYSIS_SETTINGS);
 
   return (
@@ -33,6 +33,8 @@ export default function AnalysisDialog({ model, result, onRun, onClose, onSetVie
         <button type="button" className={activeTab === "storeys" ? "active" : ""} onClick={() => setActiveTab("storeys")}>Kat & Göreli Öteleme</button>
         <button type="button" className={activeTab === "columns" ? "active" : ""} onClick={() => setActiveTab("columns")}>Kolon Tahkikleri</button>
         <button type="button" className={activeTab === "beams" ? "active" : ""} onClick={() => setActiveTab("beams")}>Kiriş Donatıları</button>
+        <button type="button" className={activeTab === "joints" ? "active" : ""} onClick={() => setActiveTab("joints")}>Birleşim & Güçlü Kolon</button>
+        <button type="button" className={activeTab === "irregularities" ? "active" : ""} onClick={() => setActiveTab("irregularities")}>Düzensizlikler</button>
         <button type="button" className={activeTab === "settings" ? "active" : ""} onClick={() => setActiveTab("settings")}>Deprem Parametreleri</button>
       </div>
 
@@ -209,6 +211,105 @@ export default function AnalysisDialog({ model, result, onRun, onClose, onSetVie
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {activeTab === "joints" && result && (
+          <div className="hcad-table-container">
+            <table className="hcad-analysis-table">
+              <thead>
+                <tr>
+                  <th>Kolon Adı</th>
+                  <th>Birleşim Türü</th>
+                  <th>Ve (kN)</th>
+                  <th>Vmax (kN)</th>
+                  <th>Ve / Vmax</th>
+                  <th>ΣMc / ΣMb</th>
+                  <th>Zımbalama Vd/Vpr</th>
+                  <th>Tahkik Sonucu</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.values(result.joints).map(joint => {
+                  const moment = result.columnBeamMoments[joint.columnId];
+                  const punch = result.punching[joint.columnId];
+                  return (
+                    <tr key={joint.columnId}>
+                      <td><strong>{joint.columnName}</strong></td>
+                      <td>{joint.isConfined ? "Kuşatılmış" : "Kuşatılmamış"}</td>
+                      <td>{joint.shearDemandKn.toFixed(1)} kN</td>
+                      <td>{joint.shearCapacityKn.toFixed(1)} kN</td>
+                      <td>%{(joint.shearRatio * 100).toFixed(1)}</td>
+                      <td>{moment ? moment.ratio.toFixed(2) : "-"}</td>
+                      <td>{punch ? `%${(punch.punchingRatio * 100).toFixed(1)}` : "-"}</td>
+                      <td>
+                        <span className={`hcad-status-tag ${joint.pass && (moment?.pass ?? true) && (punch?.pass ?? true) ? "pass" : "fail"}`}>
+                          {joint.pass && (moment?.pass ?? true) && (punch?.pass ?? true) ? "UYGUN" : "KONTROL ET"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === "irregularities" && result && (
+          <div className="hcad-table-container">
+            <div className="hcad-irregularity-section">
+              <h4>A1 — Burulma Düzensizliği Kontrolü (TBDY 2018 Tablo 3.6, Limit: ηbi ≤ 1.20)</h4>
+              <table className="hcad-analysis-table">
+                <thead>
+                  <tr>
+                    <th>Kat Adı</th>
+                    <th>Burulma Katsayısı ηbi</th>
+                    <th>Düzensizlik Durumu</th>
+                    <th>Sonuç</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.irregularities.torsionalA1.map(item => (
+                    <tr key={item.floorId}>
+                      <td><strong>{item.floorName}</strong></td>
+                      <td>{item.etaBi.toFixed(2)}</td>
+                      <td>{item.hasA1 ? "A1 Düzensizliği Var (ηbi > 1.20)" : "A1 Düzensizliği Yok (Düzenli)"}</td>
+                      <td>
+                        <span className={`hcad-status-tag ${item.pass ? "pass" : "fail"}`}>
+                          {item.pass ? "UYGUN" : "AŞILDI"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <h4 style={{ marginTop: "16px" }}>B2 — Komşu Katlar Arası Dayanım / Yumuşak Kat Düzensizliği (Limit: 0.67 ≤ ηki ≤ 1.50)</h4>
+              <table className="hcad-analysis-table">
+                <thead>
+                  <tr>
+                    <th>Kat Adı</th>
+                    <th>Öteleme Oranı Katsayısı ηki</th>
+                    <th>Yumuşak Kat Durumu</th>
+                    <th>Sonuç</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.irregularities.softStoreyB2.map(item => (
+                    <tr key={item.floorId}>
+                      <td><strong>{item.floorName}</strong></td>
+                      <td>{item.etaKi.toFixed(2)}</td>
+                      <td>{item.hasB2 ? "B2 Yumuşak Kat Belirlendi" : "B2 Yumuşak Kat Yok"}</td>
+                      <td>
+                        <span className={`hcad-status-tag ${item.pass ? "pass" : "fail"}`}>
+                          {item.pass ? "UYGUN" : "DİKKAT"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

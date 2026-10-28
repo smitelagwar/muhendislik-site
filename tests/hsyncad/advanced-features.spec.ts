@@ -44,6 +44,14 @@ test("TBDY 2018 analysis, visualization modes, foundations, stairs and pafta lay
   await dialog.getByRole("button", { name: "Kiriş Donatıları" }).click();
   await expect(dialog.getByText("Önerilen Donatı")).toBeVisible();
 
+  await dialog.getByRole("button", { name: "Birleşim & Güçlü Kolon" }).click();
+  await expect(dialog.getByText("Birleşim Türü")).toBeVisible();
+  await expect(dialog.getByText("ΣMc / ΣMb")).toBeVisible();
+
+  await dialog.getByRole("button", { name: "Düzensizlikler" }).click();
+  await expect(dialog.getByText("A1 — Burulma Düzensizliği Kontrolü")).toBeVisible();
+  await expect(dialog.getByText("B2 — Komşu Katlar Arası Dayanım")).toBeVisible();
+
   await dialog.getByRole("button", { name: "Deprem Parametreleri" }).click();
   await expect(dialog.getByText("Kısa Periyot Tasarım Spektral İvmesi SDS")).toBeVisible();
 
@@ -100,6 +108,18 @@ test("TBDY 2018 analysis, visualization modes, foundations, stairs and pafta lay
   await page.locator('button[data-command-id="40202"]').click();
   await expect(page.getByTestId("hsyncad-plan")).toHaveAttribute("data-pafta-mode", "false");
   await expect(page.locator(".hcad-pafta-frame")).not.toBeVisible();
+
+  // 6. Test Kalıp Planı via Betonarme drawings dropdown (11307 -> 11990)
+  await page.getByRole("button", { name: "Betonarme alt komutları" }).first().click();
+  await page.getByRole("menuitem", { name: "Kalıp Planı" }).click();
+  await expect(page.getByTestId("hsyncad-plan")).toHaveAttribute("data-pafta-mode", "true");
+
+  // 7. Test Kiriş Açılımları DXF download via dropdown (11307 -> 63389)
+  await page.getByRole("button", { name: "Betonarme alt komutları" }).first().click();
+  const beamDownloadPromise = page.waitForEvent("download");
+  await page.getByRole("menuitem", { name: "Kiriş Açılımları" }).click();
+  const beamDxf = await beamDownloadPromise;
+  expect(beamDxf.suggestedFilename()).toContain(".dxf");
 
   expect(errors).toEqual([]);
 });

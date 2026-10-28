@@ -34,26 +34,33 @@ Tekrarlanan komut farklı sekmelerde yeniden yer alabilir; yerleşim ve benzersi
 | Raporlar | 34 | 0 | 1 | 33 |
 | Çizimler | 136 | 9 | 4 | 123 |
 
-## 28 Ekim 2026 İkinci Aşama Güncellemesi — Analiz, Temel, Merdiven, Düzenleme ve DXF
+## 28 Ekim 2026 İkinci ve Üçüncü Aşama Güncellemeleri — Analiz, Temel, Merdiven, Düzenleme, Birleşim Güvenliği, Donatı Detaylandırma ve DXF
 
-Kullanıcının ideCAD masaüstü deneyimine yaklaşma ve kişisel mühendislik kullanımı talebi doğrultusunda, statik modelleme ve analiz için kritik komutlar gerçek hesap ve görselleştirme motorlarıyla bağlanmıştır:
+Kullanıcının ideCAD masaüstü deneyimine yaklaşma ve kişisel statik mühendislik kullanımı hedefi doğrultusunda, TBDY 2018 ve TS 500 yönetmeliklerinin zorunlu kıldığı ileri düzey tahkikler ve donatı pafta çizimleri bağlanmıştır:
 
-| Ölçü | İlk Aşama | 2. Aşama (Güncel) |
-|---|---:|---:|
-| Benzersiz Bağlı Komut ID | 37 | **93** |
-| TBDY 2018 Analiz & Tasarım | 0 | **6** (11760, 11710, 11800, 12030, 12033, 12034) |
-| Kesit Tesirleri & Kapasite Görselleştirme | 0 | **6** (11820, 11840, 11839, 12109, 12079, 15736) |
-| Temel & Zemin (Tekil, Sürekli, Radye, Bağ Kirişi) | 0 | **7** (12710, 12750, 12690, 12700, 12430, 14170, 14180) |
-| Merdiven Modelleme & Geometri | 0 | **4** (13830, 13840, 13880, 62790) |
-| CAD Eleman Düzenleme (Döndür, Simetri, Kopyala, Ofset, Çoğalt) | 1 | **6** (40122, 13230, 12490, 13670, 13220, 13090) |
-| AutoCAD ASCII DXF Çıktısı | 0 | **1** (11330) |
-| Pafta Düzeni & Çizim Çerçevesi | 0 | **3** (40202, 40227, 12000) |
-| Statik & Donatı Raporları | 1 | **5** (12190, 12186, 40163, 40164, 12210) |
+| Ölçü | 1. Aşama | 2. Aşama | 3. Aşama (Güncel) |
+|---|---:|---:|---:|
+| Benzersiz Bağlı Komut ID | 37 | 93 | **114** |
+| TBDY 2018 İleri Düzey Tahkikler | 0 | 6 | **15** (11760, 11710, 11800, 12030, 12033, 12034, 12035, 12050, 12220, 12260, 11910, 12411, 12037, 2725, 2618) |
+| Betonarme Çizimleri & Açılımlar | 0 | 4 | **11** (11990, 2465, 63389, 63386, 12000, 11980, 11940, 11930, 62791, 40202, 40227) |
+| Kesit Tesirleri & Kapasite Görselleştirme | 0 | 6 | **6** (11820, 11840, 11839, 12109, 12079, 15736) |
+| Temel & Zemin (Tekil, Sürekli, Radye, Bağ Kirişi) | 0 | 7 | **7** (12710, 12750, 12690, 12700, 12430, 14170, 14180) |
+| Merdiven Modelleme & Geometri | 0 | 4 | **4** (13830, 13840, 13880, 62790) |
+| CAD Eleman Düzenleme (Döndür, Simetri, Kopyala, Ofset, Çoğalt) | 1 | 6 | **6** (40122, 13230, 12490, 13670, 13220, 13090) |
+| AutoCAD ASCII DXF Çıktısı | 0 | 1 | **3** (11330 genel plan, 63389 kiriş açılımı DXF, 2465 kolon aplikasyon DXF) |
+| Detaylı Mühendislik Raporları | 1 | 5 | **11** (12190, 12186, 40163, 40164, 12210, 14440, 14500, 12150, 12260, 12220, 12035) |
 
-### Yeni Eklenen Gerçek İşleyiciler
+### Eklenen Gerçek İşleyiciler ve Mühendislik Yetenekleri
 - **TBDY 2018 Eşdeğer Deprem Yükü & Analiz Motoru (`src/lib/hsyncad/analysis.ts`):** Bina ağırlığı $W = \sum (G + nQ)$, doğal titreşim periyodu $T_1 = C_t H_N^{3/4}$, spektral ivme $S_{aR}(T_1)$, taban kesme kuvveti $V_t$, kat ötelenmeleri $\delta_i \le 0.008$, kolon eksenel gerilme kontrolü $N_d / (A_c f_{cd}) \le 0.40$, kiriş açıklık/mesnet momentleri ve donatı alanı hesabı ($A_s$), etriye sıklaştırma aralıkları.
-- **TBDY 2018 Analiz ve Tasarım Modali (`src/components/hsyncad/analysis-dialog.tsx`):** Özet Rapor, Kat & Göreli Öteleme Tablosu, Kolon Tahkikleri Tablosu, Kiriş Donatıları Tablosu, Deprem Parametreleri Formu ($S_{DS}, S_{D1}, R, I, n$), DXF indirme.
-- **2B ve 3B Analiz Görselleştirme:** Moment diyagramı (M3), kesme kuvveti (V2), kapasite oranı haritası (yeşil < 0.70, sarı 0.70-1.00, kırmızı > 1.00).
+- **Kolon-Kiriş Birleşim Bölgesi Kesme Güvenliği (TBDY 2018 §7.5):** Kolon-kiriş düğüm noktalarında kesme talebi $V_e = 1.25 f_{yk} (A_{s1} + A_{s2}) - V_{kolon}$ ve kapasite $V_{max} = 1.7 b_j h_c f_{ctd}$ (kuşatılmış) veya $1.0 b_j h_c f_{ctd}$ (kuşatılmamış) tahkiki.
+- **Güçlü Kolon - Zayıf Kiriş Kontrolü (TBDY 2018 §7.3.3):** Her kolon düğümünde kolon moment kapasiteleri toplamı ile kiriş moment kapasiteleri toplamı oranı ($\sum M_c / \sum M_b \ge 1.20$) denetimi.
+- **A1 Burulma Düzensizliği Tahkiki (TBDY 2018 Tablo 3.6):** Kat ötelenmeleri üzerinden $\eta_{bi} = (\Delta_i)_{max} / (\Delta_i)_{ort} \le 1.20$ kontrolü.
+- **B2 Yumuşak Kat Düzensizliği Tahkiki (TBDY 2018 Tablo 3.6):** Komşu katlar arası rijitlik/öteleme katsayısı $\eta_{ki} \le 1.50$ denetimi.
+- **Zımbalama Güvenliği Kontrolü (TS 500 §13.4):** Kolon-döşeme / kolon-temel birleşiminde kritik çevre $u_p$ ve zımbalama kuvveti $V_d \le V_{pr}$ kontrolü.
+- **Kiriş Boyuna Donatı Açılımları Motoru (`src/lib/hsyncad/detailing.ts`):** Üst montaj donatısı ($2\Phi14$), mesnet ilaveleri ($2\Phi16$), alt düz donatı ($3\Phi16$), sarılma bölgesi ($2h$ mesafede $\Phi8/10$) ve orta bölge ($\Phi8/20$) etriyeleri, boyuna profil ve donatı metraj tablosu ($kg$ ve poz dökümü).
+- **Kolon Aplikasyon Detayı Motoru (`src/lib/hsyncad/detailing.ts`):** $b \times h$ kolon enkesiti, $8\Phi16$ boyuna donatı düzeni, $135^\circ$ deprem kancalı çevre etriyesi, çiroz donatıları ve kaçıklık ölçülendirmeleri.
+- **AutoCAD ASCII DXF Detay Export (`src/lib/hsyncad/dxf-export.ts`):** Kiriş boyuna açılımları ve kolon aplikasyon kesitlerinin metraj tablolarıyla birlikte doğrudan AutoCAD / ideCAD uyumlu DXF dosyası olarak dışa aktarılması.
+- **TBDY 2018 Analiz ve Tasarım Modali (`src/components/hsyncad/analysis-dialog.tsx`):** 7 sekmeli analiz konsolu: Özet Rapor, Kat & Göreli Öteleme, Kolon Tahkikleri, Kiriş Donatıları, Birleşim & Güçlü Kolon, Düzensizlikler, Deprem Parametreleri Formu ($S_{DS}, S_{D1}, R, I, n$), DXF indirme.
 - **Temel Sistemleri (`src/lib/hsyncad/foundations.ts`):** Kolon altına Tekil Temel, kiriş boyunca Sürekli Temel, yapı altına Radye Temel plağı, Temel Bağ Kirişi. Zemin taşıma gücü gerilme kontrolü ($q_{soil} \le q_{safe}$).
 - **Merdiven Modelleme (`src/lib/hsyncad/stairs.ts`):** Rıht, basamak genişliği, Blondel konfor formülü ($2s + a = 60-64\text{ cm}$), eğimli betonarme plak geometrisi ve kalıp/hacim hesabı.
 - **CAD Düzenleme Motoru (`src/lib/hsyncad/edit-commands.ts`):** Eleman döndürme (Rotate), simetri (Mirror), kopyalama (Copy), öteleme (Offset), matris çoğaltma (Array).

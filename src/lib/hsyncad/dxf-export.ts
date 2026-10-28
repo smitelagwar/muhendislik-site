@@ -1,5 +1,6 @@
 import type { CadModel, ColumnElement, BeamElement, WallElement, SlabElement, AxisElement } from "./model";
 import { elementFootprint, distance } from "./geometry";
+import type { RebarDetail } from "./detailing";
 
 /**
  * Generates an AutoCAD ASCII DXF (Release 12 / 2000 compatible)
@@ -30,7 +31,7 @@ export function exportModelToDxf(model: CadModel, floorId?: string): string {
   // Layer table
   add(0, "TABLE");
   add(2, "LAYER");
-  add(70, 9); // number of layers
+  add(70, 11); // number of layers
 
   const defineLayer = (name: string, color: number) => {
     add(0, "LAYER");
@@ -49,6 +50,8 @@ export function exportModelToDxf(model: CadModel, floorId?: string): string {
   defineLayer("TEMELLER", 8);    // Gray
   defineLayer("OLCUDUZEYI", 2);  // Yellow
   defineLayer("YAZILAR", 7);     // White
+  defineLayer("DONATI", 1);      // Red
+  defineLayer("ANTET", 7);       // White
 
   add(0, "ENDTAB");
   add(0, "ENDSEC");
@@ -207,6 +210,148 @@ export function downloadDxfFile(model: CadModel, floorId?: string) {
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = `${(model.name || "hsyncad-proje").replace(/\s+/g, "_")}.dxf`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Exports rebar detailing geometry and schedule to standard AutoCAD ASCII DXF.
+ */
+export function exportDetailToDxf(detail: RebarDetail): string {
+  const lines: string[] = [];
+
+  const add = (code: number, value: string | number) => {
+    lines.push(code.toString());
+    lines.push(typeof value === "number" ? Number(value.toFixed(4)).toString() : value.toString());
+  };
+
+  // HEADER SECTION
+  add(0, "SECTION");
+  add(2, "HEADER");
+  add(9, "$ACADVER");
+  add(1, "AC1009");
+  add(9, "$INSUNITS");
+  add(70, 4); // 4 = Millimetres / Centimetres
+  add(0, "ENDSEC");
+
+  // TABLES SECTION
+  add(0, "SECTION");
+  add(2, "TABLES");
+  add(0, "TABLE");
+  add(2, "LAYER");
+  add(70, 7);
+
+  const defineLayer = (name: string, color: number) => {
+    add(0, "LAYER");
+    add(2, name);
+    add(70, 0);
+    add(62, color);
+    add(6, "CONTINUOUS");
+  };
+
+  defineLayer("0", 7);
+  defineLayer("KIRISLER", 6);
+  defineLayer("KOLONLAR", 5);
+  defineLayer("DONATI", 1);
+  defineLayer("OLCUDUZEYI", 2);
+  defineLayer("YAZILAR", 7);
+  defineLayer("ANTET", 7);
+
+  add(0, "ENDTAB");
+  add(0, "ENDSEC");
+
+  add(0, "SECTION");
+  add(2, "BLOCKS");
+  add(0, "ENDSEC");
+
+  // ENTITIES SECTION
+  add(0, "SECTION");
+  add(2, "ENTITIES");
+
+  for (const l of detail.lines) {
+    add(0, "LINE");
+    add(8, l.layer);
+    add(10, l.x1);
+    add(20, l.y1);
+    add(30, 0);
+    add(11, l.x2);
+    add(21, l.y2);
+    add(31, 0);
+  }
+
+  for (const c of detail.circles) {
+    add(0, "CIRCLE");
+    add(8, c.layer);
+    add(10, c.cx);
+    add(20, c.cy);
+    add(30, 0);
+    add(40, c.r);
+  }
+
+  for (const t of detail.texts) {
+    add(0, "TEXT");
+    add(8, t.layer);
+    add(10, t.x);
+    add(20, t.y);
+    add(30, 0);
+    add(40, t.height);
+    add(1, t.text);
+    if (t.angle) add(50, t.angle);
+  }
+
+  // Draw title and antet
+  add(0, "TEXT");
+  add(8, "ANTET");
+  add(10, 0);
+  add(20, -50);
+  add(30, 0);
+  add(40, 10);
+  add(1, detail.title);
+
+  add(0, "TEXT");
+  add(8, "ANTET");
+  add(10, 0);
+  add(20, -65);
+  add(30, 0);
+  add(40, 7);
+  add(1, detail.scaleText);
+
+  // Rebar Schedule Table
+  let tableY = -85;
+  add(0, "TEXT");
+  add(8, "YAZILAR");
+  add(10, 0);
+  add(20, tableY);
+  add(30, 0);
+  add(40, 8);
+  add(1, "DONATI METRAJ LİSTESİ");
+
+  tableY -= 15;
+  for (const item of detail.rebarSchedule) {
+    const row = `Poz ${item.mark}: ${item.count}Φ${item.diameterMm} - L=${item.lengthCm}cm - ${item.shape} - Ağr: ${item.totalWeightKg} kg`;
+    add(0, "TEXT");
+    add(8, "YAZILAR");
+    add(10, 0);
+    add(20, tableY);
+    add(30, 0);
+    add(40, 6);
+    add(1, row);
+    tableY -= 12;
+  }
+
+  add(0, "ENDSEC");
+  add(0, "EOF");
+
+  return lines.join("\r\n");
+}
+
+export function downloadDetailDxf(detail: RebarDetail) {
+  const content = exportDetailToDxf(detail);
+  const blob = new Blob([content], { type: "application/dxf" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${detail.name.toLowerCase()}_donati_detayi.dxf`;
   anchor.click();
   URL.revokeObjectURL(url);
 }

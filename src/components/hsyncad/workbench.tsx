@@ -28,9 +28,10 @@ import EditDialog from "./edit-dialog";
 import { editElement, type EditOperation } from "@/lib/hsyncad/edit-commands";
 import AnalysisDialog from "./analysis-dialog";
 import { runStructuralAnalysis, type AnalysisResult, type AnalysisSettings } from "@/lib/hsyncad/analysis";
-import { downloadDxfFile } from "@/lib/hsyncad/dxf-export";
+import { downloadDxfFile, downloadDetailDxf } from "@/lib/hsyncad/dxf-export";
 import { addPadFootingToColumn, addStripFootingToBeam, addRaftFoundation } from "@/lib/hsyncad/foundations";
 import { addStairToModel } from "@/lib/hsyncad/stairs";
+import { generateBeamDetail, generateColumnDetail } from "@/lib/hsyncad/detailing";
 import type { ColumnElement, BeamElement } from "@/lib/hsyncad/model";
 import DrawingToolbar from "./drawing-toolbar";
 import NativeCoordinateBox from "./coordinate-box";
@@ -524,6 +525,65 @@ export default function HsynCadWorkbench() {
     40202: { run: () => setPaftaMode(p => !p), active: paftaMode },
     40227: { run: () => setPaftaMode(p => !p), active: paftaMode },
     12000: { run: () => { setFloorId(model.floors[0].id); setPaftaMode(true); } },
+    11990: { run: () => { setPaftaMode(true); setMessage("Kalıp Planı ve pafta anteti açıldı."); }, active: paftaMode },
+    2465: { run: () => {
+      const col = (selected?.type === "column" ? selected : model.elements.find(e => e.type === "column")) as ColumnElement | undefined;
+      if (col) {
+        const detail = generateColumnDetail(col, analysisResult ?? undefined);
+        downloadDetailDxf(detail);
+        setMessage(`${col.name} Kolon Aplikasyon Detayı DXF olarak indirildi.`);
+      } else {
+        setMessage("Modelde kolon bulunamadı.");
+      }
+    } },
+    63389: { run: () => {
+      const beam = (selected?.type === "beam" ? selected : model.elements.find(e => e.type === "beam")) as BeamElement | undefined;
+      if (beam) {
+        const detail = generateBeamDetail(beam, analysisResult ?? undefined);
+        downloadDetailDxf(detail);
+        setMessage(`${beam.name} Kiriş Boyuna Donatı Açılımı DXF olarak indirildi.`);
+      } else {
+        setMessage("Modelde kiriş bulunamadı.");
+      }
+    } },
+    63386: { run: () => {
+      const col = (selected?.type === "column" ? selected : model.elements.find(e => e.type === "column")) as ColumnElement | undefined;
+      if (col) {
+        const detail = generateColumnDetail(col, analysisResult ?? undefined);
+        downloadDetailDxf(detail);
+        setMessage(`${col.name} Kolon Düşey Açılımı indirildi.`);
+      } else {
+        setMessage("Modelde kolon bulunamadı.");
+      }
+    } },
+    11980: { run: () => { setFloorId(model.floors[0].id); setPaftaMode(true); setMessage("Sürekli Temel Çizim Planı açıldı."); } },
+    11940: { run: () => { addFooting(); setMessage("Tekil Temel oluşturuldu ve aplikasyon planına eklendi."); } },
+    11930: { run: () => { startElement("beam", { width: 0.3, height: 0.5 }); setMessage("Temel Bağ Kirişi çizim aracı etkin."); } },
+    11910: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); setMessage("Kolon-Kiriş Birleşim Kesiti ve Güvenliği açıldı."); } },
+    62791: { run: addStair },
+    12260: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
+    12220: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
+    12035: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
+    12050: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
+    12411: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
+    12037: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
+    14440: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
+    14500: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
+    12150: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
+    2725: { run: () => setMessage("TBDY 2018 Yük Kombinasyonları: 1.4G+1.6Q, G+Q±Ex, G+Q±Ey, 0.9G±Ex, 0.9G±Ey analizde etkin.") },
+    11309: { run: () => setTab("Proje") },
+    2618: { run: () => {
+      if (selected?.type === "beam" || selected?.type === "column") {
+        const res = analysisResult?.members[selected.id];
+        if (res) {
+          setMessage(`${selected.name}: Gerekli Donatı As = ${res.requiredRebarCm2.toFixed(2)} cm² (${res.providedRebarText})`);
+        } else {
+          setMessage("Donatı alanı için önce analizi çalıştırın.");
+        }
+      } else {
+        setMessage("Donatı alanı hesabı için bir kolon veya kiriş seçin.");
+      }
+    } },
     12190: { run: () => setSettings("report") },
     12186: { run: () => setSettings("report") },
     40163: { run: () => setSettings("report") },

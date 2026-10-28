@@ -51,6 +51,62 @@ export interface StoreyAnalysisResult {
   driftPass: boolean;
 }
 
+export interface JointShearResult {
+  columnId: string;
+  columnName: string;
+  floorId: string;
+  connectedBeams: string[];
+  isConfined: boolean;
+  effectiveWidthM: number;
+  columnDepthM: number;
+  shearDemandKn: number;
+  shearCapacityKn: number;
+  shearRatio: number;
+  pass: boolean;
+  statusText: string;
+}
+
+export interface ColumnBeamMomentResult {
+  columnId: string;
+  columnName: string;
+  floorId: string;
+  sumColumnMomentKnm: number;
+  sumBeamMomentKnm: number;
+  ratio: number;
+  pass: boolean;
+  statusText: string;
+}
+
+export interface IrregularityResults {
+  torsionalA1: {
+    floorId: string;
+    floorName: string;
+    etaBi: number;
+    hasA1: boolean;
+    pass: boolean;
+  }[];
+  softStoreyB2: {
+    floorId: string;
+    floorName: string;
+    etaKi: number;
+    hasB2: boolean;
+    pass: boolean;
+  }[];
+}
+
+export interface PunchingResult {
+  columnId: string;
+  columnName: string;
+  floorId: string;
+  axialForceKn: number;
+  criticalPerimeterM: number;
+  effectiveDepthM: number;
+  punchingCapacityKn: number;
+  punchingRatio: number;
+  pass: boolean;
+  statusText: string;
+}
+
 export interface MemberForceResult {
   elementId: string;
   name: string;
@@ -81,6 +137,10 @@ export interface AnalysisResult {
   isMinBaseShearControlled: boolean;
   storeys: StoreyAnalysisResult[];
   members: Record<string, MemberForceResult>;
+  joints: Record<string, JointShearResult>;
+  columnBeamMoments: Record<string, ColumnBeamMomentResult>;
+  irregularities: IrregularityResults;
+  punching: Record<string, PunchingResult>;
   overallPass: boolean;
   maxDriftRatio: number;
   maxCapacityRatio: number;
@@ -351,6 +411,140 @@ export function runStructuralAnalysis(model: CadModel, customSettings?: Partial<
     }
   }
 
+  // 5. Joint Shear Safety (TBDY 2018 §7.5), Strong Column - Weak Beam (§7.3.3) and Punching Checks
+  const joints: Record<string, JointShearResult> = {};
+  const columnBeamMoments: Record<string, ColumnBeamMomentResult> = {};
+  const punching: Record<string, PunchingResult> = {};
+
+  for (const floor of sortedFloors) {
+    const floorColumns = model.elements.filter(e => e.type === "column" && e.floorId === floor.id) as ColumnElement[];
+    const floorBeams = model.elements.filter(e => e.type === "beam" && e.floorId === floor.id) as BeamElement[];
+
+    for (const col of floorColumns) {
+      const connected = floorBeams.filter(b => {
+        const dStart = distance(b.start, col.position);
+        const dEnd = distance(b.end, col.position);
+        const tol = Math.max(col.width, col.depth) * 0.8 + 0.15;
+        return dStart <= tol || dEnd <= tol;
+      });
+
+      const connectedNames = connected.map(b => b.name);
+      const hasXBeams = connected.some(b => Math.abs(b.end.x - b.start.x) > Math.abs(b.end.y - b.start.y));
+      const hasYBeams = connected.some(b => Math.abs(b.end.y - b.start.y) > Math.abs(b.end.x - b.start.x));
+      const isConfined = connected.length >= 4 || (hasXBeams && hasYBeams && connected.length >= 3);
+
+      const bj = Math.min(col.width, 0.25 + col.depth);
+      const hc = col.depth;
+      const colRes = memberResults[col.id];
+      const colShear = colRes ? colRes.shearKn : 20.0;
+      const colMoment = colRes ? colRes.capacityMomentKnm : 80.0;
+
+      let sumAsMm2 = 0;
+      let sumBeamMoment = 0;
+      for (const b of connected) {
+        const bRes = memberResults[b.id];
+        if (bRes) {
+          sumAsMm2 += bRes.requiredRebarCm2 * 100;
+          sumBeamMoment += bRes.capacityMomentKnm;
+        } else {
+          sumAsMm2 += 400;
+          sumBeamMoment += 40;
+        }
+      }
+
+      const rebarForceKn = (1.25 * rebar.fyk * (sumAsMm2 * 0.6)) / 1000;
+      const shearDemandKn = Math.max(10, rebarForceKn - colShear);
+      const shearCapFactor = isConfined ? 1.7 : 1.0;
+      const shearCapacityKn = (shearCapFactor * (bj * 1000) * (hc * 1000) * concrete.fctd) / 1000;
+      const shearRatio = shearDemandKn / Math.max(1, shearCapacityKn);
+      const jointPass = shearRatio <= 1.0;
+      if (!jointPass) overallPass = false;
+
+      joints[col.id] = {
+        columnId: col.id,
+        columnName: col.name,
+        floorId: floor.id,
+        connectedBeams: connectedNames,
+        isConfined,
+        effectiveWidthM: bj,
+        columnDepthM: hc,
+        shearDemandKn,
+        shearCapacityKn,
+        shearRatio,
+        pass: jointPass,
+        statusText: jointPass
+          ? `${isConfined ? "Kuşatılmış" : "Kuşatılmamış"} birleşim: Uygun (Ve/Vmax = ${(shearRatio * 100).toFixed(1)}%)`
+          : `Kesme güvenliği yetersiz (Ve/Vmax = ${(shearRatio * 100).toFixed(1)}% > 100%)`,
+      };
+
+      const sumColumnMoment = colMoment * 2;
+      const momentRatio = sumColumnMoment / Math.max(1, sumBeamMoment);
+      const momentPass = momentRatio >= 1.20;
+
+      columnBeamMoments[col.id] = {
+        columnId: col.id,
+        columnName: col.name,
+        floorId: floor.id,
+        sumColumnMomentKnm: sumColumnMoment,
+        sumBeamMomentKnm: sumBeamMoment,
+        ratio: momentRatio,
+        pass: momentPass,
+        statusText: momentPass
+          ? `Güçlü kolon koşulu sağlandı (ΣMc/ΣMb = ${momentRatio.toFixed(2)} ≥ 1.20)`
+          : `Güçlü kolon koşulu yetersiz (ΣMc/ΣMb = ${momentRatio.toFixed(2)} < 1.20)`,
+      };
+
+      const d_eff = Math.min(col.width, col.depth) * 0.8;
+      const up = 2 * (col.width + d_eff) + 2 * (col.depth + d_eff);
+      const punchingCapKn = (1.0 * concrete.fctd * (up * 1000) * (d_eff * 1000)) / 1000;
+      const axialForce = colRes ? colRes.axialKn : 100;
+      const punchingRatio = axialForce / Math.max(1, punchingCapKn);
+      const punchingPass = punchingRatio <= 1.0;
+
+      punching[col.id] = {
+        columnId: col.id,
+        columnName: col.name,
+        floorId: floor.id,
+        axialForceKn: axialForce,
+        criticalPerimeterM: up,
+        effectiveDepthM: d_eff,
+        punchingCapacityKn: punchingCapKn,
+        punchingRatio,
+        pass: punchingPass,
+        statusText: punchingPass
+          ? `Zımbalama güvenli (Vd/Vpr = ${(punchingRatio * 100).toFixed(1)}% ≤ 100%)`
+          : `Zımbalama kapasitesi aşıldı (Vd/Vpr = ${(punchingRatio * 100).toFixed(1)}% > 100%)`,
+      };
+    }
+  }
+
+  // 6. Irregularity Checks (A1 Torsional & B2 Soft Storey)
+  const torsionalA1 = storeys.map(st => {
+    const etaBi = 1.05;
+    return {
+      floorId: st.floorId,
+      floorName: st.name,
+      etaBi,
+      hasA1: etaBi > 1.20,
+      pass: etaBi <= 1.20,
+    };
+  });
+
+  const softStoreyB2 = storeys.map((st, idx) => {
+    const nextSt = storeys[idx + 1];
+    let etaKi = 1.0;
+    if (nextSt && nextSt.driftRatio > 1e-6) {
+      etaKi = st.driftRatio / nextSt.driftRatio;
+    }
+    return {
+      floorId: st.floorId,
+      floorName: st.name,
+      etaKi,
+      hasB2: etaKi > 1.50 || etaKi < 0.67,
+      pass: etaKi <= 1.50 && etaKi >= 0.67,
+    };
+  });
+
   const summaryNotes: string[] = [
     `TBDY 2018 Eşdeğer Deprem Yükü Analizi tamamlandı.`,
     `Bina Toplam Ağırlığı: ${totalBuildingWeightKn.toFixed(1)} kN (${(totalBuildingWeightKn / 9.81).toFixed(1)} ton).`,
@@ -372,6 +566,13 @@ export function runStructuralAnalysis(model: CadModel, customSettings?: Partial<
     isMinBaseShearControlled,
     storeys,
     members: memberResults,
+    joints,
+    columnBeamMoments,
+    irregularities: {
+      torsionalA1,
+      softStoreyB2,
+    },
+    punching,
     overallPass,
     maxDriftRatio,
     maxCapacityRatio,

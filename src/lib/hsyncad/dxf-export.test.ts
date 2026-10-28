@@ -1,7 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createDemoModel } from "./model";
-import { exportModelToDxf } from "./dxf-export";
+import { exportModelToDxf, exportDetailToDxf } from "./dxf-export";
+import { generateBeamDetail } from "./detailing";
+import type { BeamElement } from "./model";
 
 test("DXF export generates valid ASCII DXF structure with standard layers", () => {
   const model = createDemoModel();
@@ -24,4 +26,16 @@ test("DXF export filters elements by floor if floorId is provided", () => {
 
   assert.ok(dxf.length > 500, "Geçerli DXF metni üretilmeli");
   assert.ok(dxf.includes("KOLONLAR"));
+});
+
+test("exportDetailToDxf generates beam detailing DXF with rebar layers and schedule", () => {
+  const model = createDemoModel();
+  const beam = model.elements.find(e => e.type === "beam") as BeamElement;
+  const detail = generateBeamDetail(beam);
+  const dxf = exportDetailToDxf(detail);
+
+  assert.ok(dxf.includes("DONATI"), "DONATI katmanı bulunmalı");
+  assert.ok(dxf.includes("KIRISLER"), "KIRISLER katmanı bulunmalı");
+  assert.ok(dxf.includes("DONATI METRAJ LİSTESİ"), "Donatı metraj tablosu metni bulunmalı");
+  assert.ok(dxf.includes("EOF"), "DXF EOF ile sonlanmalı");
 });

@@ -51,3 +51,29 @@ test("Higher seismic hazard or ductility changes base shear accordingly", () => 
 
   assert.ok(highHazard.baseShearKn > lowHazard.baseShearKn, "Yüksek ivme daha büyük taban kesme kuvveti üretmeli");
 });
+
+test("Joint shear safety, strong column, irregularities and punching are evaluated", () => {
+  const model = createDemoModel();
+  const result = runStructuralAnalysis(model);
+
+  const columns = model.elements.filter(e => e.type === "column");
+  for (const col of columns) {
+    const joint = result.joints[col.id];
+    assert.ok(joint, `Kolon ${col.name} birleşim kesme kontrolünde bulunmalı`);
+    assert.ok(joint.shearDemandKn > 0);
+    assert.ok(joint.shearCapacityKn > 0);
+    assert.ok(joint.shearRatio >= 0);
+
+    const momentCheck = result.columnBeamMoments[col.id];
+    assert.ok(momentCheck, `Kolon ${col.name} güçlü kolon tahkikinde bulunmalı`);
+    assert.ok(momentCheck.sumColumnMomentKnm > 0);
+    assert.ok(momentCheck.ratio >= 0);
+
+    const punch = result.punching[col.id];
+    assert.ok(punch, `Kolon ${col.name} zımbalama kontrolünde bulunmalı`);
+    assert.ok(punch.punchingCapacityKn > 0);
+  }
+
+  assert.ok(result.irregularities.torsionalA1.length > 0);
+  assert.ok(result.irregularities.softStoreyB2.length > 0);
+});
