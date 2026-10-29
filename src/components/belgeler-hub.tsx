@@ -279,17 +279,17 @@ export function BelgelerHub() {
       <BelgelerGlassBg />
       <AmbientOceanCanvas enabled={isOceanEnabled} />
 
-      <div className="relative z-10 mx-auto max-w-[1440px] px-5 pt-5 sm:px-8 sm:pt-7 lg:px-12 xl:px-16">
-        <div data-whale-protect className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative z-20 mx-auto max-w-[1440px] px-5 pt-5 sm:px-8 sm:pt-7 lg:px-12 xl:px-16">
+        <div data-whale-protect className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">Belgeler ve Şablonlar</h1>
             <p className="mt-1 text-sm text-muted-foreground">Doldurulabilir PDF belgelerini arayın ve önizleyin.</p>
           </div>
 
-          <div className="flex max-w-full flex-wrap items-center gap-2.5 self-start sm:self-center">
+          <div className="flex max-w-full flex-wrap items-center gap-2.5 self-start lg:self-center">
             <BelgelerOfflinePrepare />
             <div className="hidden [@media(min-width:768px)_and_(hover:hover)_and_(pointer:fine)]:block">
-            <button
+              <button
               type="button"
               onClick={toggleOcean}
               aria-pressed={isOceanEnabled}
@@ -324,7 +324,7 @@ export function BelgelerHub() {
                   {isOceanEnabled ? "Açık" : "Kapalı"}
                 </span>
               </span>
-            </button>
+              </button>
             </div>
           </div>
         </div>
