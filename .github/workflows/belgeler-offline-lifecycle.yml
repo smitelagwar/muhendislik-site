@@ -32,6 +32,7 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-offline-lifecycle-f5.spec.ts --project=chromium-desktop-1366
+      - run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-offline-pwa-stage1.spec.ts tests/site-audit/belgeler-offline-resume-home.spec.ts --project=chromium-desktop-1366
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
