@@ -67,5 +67,6 @@ test("other portal routes are outside the registered SW scope", async ({ page })
   const scope = await page.evaluate(async () => (await navigator.serviceWorker.ready).scope);
   expect(scope).toMatch(/\/belgeler\/?$/);
   const scopes = await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).map((r) => r.scope));
-  expect(scopes.every((s) => /\/belgeler\/?$/.test(s))).toBeTruthy();
+  // A separate root worker is intentionally allowed, but its fetch handler only handles '/'.
+  expect(scopes.every((s) => /\/belgeler\/?$/.test(s) || new URL(s).pathname === "/")).toBeTruthy();
 });

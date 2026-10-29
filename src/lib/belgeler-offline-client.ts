@@ -17,7 +17,7 @@ export function readPreparationJournal(): PreparationJournal | null {
     const raw=localStorage.getItem(JOURNAL_KEY);
     if(!raw)return null;
     const value=JSON.parse(raw) as PreparationJournal;
-    if(value.version!==3 || value.scripts!==buildScriptSignature() ||
+    if(value.version!==3 || typeof value.scripts!=="string" ||
        !Number.isFinite(value.updatedAt) || value.total<1) return null;
     return value;
   }catch{return null}
