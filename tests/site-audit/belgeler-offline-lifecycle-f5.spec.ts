@@ -21,8 +21,27 @@ test("root-worker registration, completed cache and 15 F5 reloads stay consisten
   }));
   expect(before.controller).toMatch(/\/belgeler-sw\.js$/);
   expect(before.cache).toBeGreaterThan(5);
+  const debug = async () => page.evaluate(async () => {
+    const raw = localStorage.getItem("belgeler:pwa:ready:v1");
+    const stamp = raw ? JSON.parse(raw) as { scripts:string; offlineVersion:string } : null;
+    const current = [...document.querySelectorAll<HTMLScriptElement>("script[src*='/_next/static/']")]
+      .map(x => new URL(x.src).pathname).sort();
+    const saved = stamp?.scripts?.split("|") ?? [];
+    const pageCache = await caches.open("belgeler-offline-v4-pages");
+    const assetCache = await caches.open("belgeler-offline-v4-assets");
+    return {
+      version:stamp?.offlineVersion,
+      savedScripts:saved.length, actualScripts:current.length,
+      unexpected:current.filter(x=>!saved.includes(x)).slice(0,8),
+      missing:saved.filter(x=>!current.includes(x)).slice(0,8),
+      pageCount:(await pageCache.keys()).length, assetCount:(await assetCache.keys()).length,
+      controller:navigator.serviceWorker.controller?.scriptURL,
+    };
+  });
+  console.log("BEFORE_F5",JSON.stringify(await debug()));
   for (let i=0; i<15; i++) {
     await page.reload({waitUntil:"domcontentloaded"});
+    if (i === 0) console.log("AFTER_FIRST_F5",JSON.stringify(await debug()));
     await expect(primary).toHaveText(/^Çevrimdışı hazır$/, {timeout:20000});
     await expect(primary).not.toContainText("Eksik indirmeye");
   }
