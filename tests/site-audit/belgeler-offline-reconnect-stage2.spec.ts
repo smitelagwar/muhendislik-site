@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
-test.use({ serviceWorkers: "allow" });
+// Route mocks do not intercept traffic initiated from a Service Worker.
+// PWA scope and offline navigation are validated in the separate stage1 spec.
+test.use({ serviceWorkers: "block" });
 
 const DOC="/belgeler/beton-dokum-tutanagi";
 test("reconnected queued share queries existing operation first and makes exactly one POST",async({page,context})=>{
