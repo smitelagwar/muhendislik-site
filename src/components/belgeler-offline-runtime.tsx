@@ -20,7 +20,7 @@ export function BelgelerOfflineRuntime() {
     let cancelled = false;
     const start = () => {
       const invoke = () => { if (!cancelled) void registerBelgelerOffline().catch(() => {}); };
-      if ("requestIdleCallback" in window) window.requestIdleCallback(invoke, { timeout: 3000 });
+      if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(invoke, { timeout: 3000 });
       else window.setTimeout(invoke, 350);
     };
     if (document.readyState === "complete") start();
