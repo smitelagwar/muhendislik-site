@@ -26,6 +26,38 @@ try{
     if(state.includes("Çevrimdışı hazır")&&!state.includes("hazırlanıyor"))break;
     if(state.includes("başarısız")||state.includes("Kaynak indirilemedi")||state.includes("Önbelleğe alınamadı")||state.includes("COMPONENT_GONE"))break;
   }
+  const readyBeforeOffline=state.includes("Çevrimdışı hazır")&&!state.includes("hazırlanıyor");
+  if(readyBeforeOffline){
+    const paths=[
+      "/belgeler/beton-dokum-tutanagi",
+      "/belgeler/santiye-sefi-taahhutnamesi",
+      "/belgeler/santiye-sefi-istifa-dilekcesi",
+      "/belgeler/insaat-ruhsati-dilekcesi",
+      "/belgeler/santiye-sefi-sozlesmesi",
+    ];
+    await context.setOffline(true);
+    try{
+      for(const path of paths){
+        await page.goto("https://muhendislik-site.vercel.app"+path,{waitUntil:"domcontentloaded",timeout:30000});
+        const canvas=page.getByTestId("belge-studio-preview-canvas").locator("canvas").first();
+        await page.waitForFunction(() => {
+          const c=document.querySelector("[data-testid='belge-studio-preview-canvas'] canvas");
+          return c instanceof HTMLCanvasElement && c.height>200 && c.width>200;
+        },null,{timeout:45000});
+        console.log("OFFLINE_PDF_PASS",path,await canvas.evaluate(c=>({width:c.width,height:c.height})));
+        if(path.includes("beton-dokum-tutanagi")){
+          const button=page.getByRole("button",{name:"PDF İndir",exact:true}).first();
+          await button.waitFor({timeout:20000});
+          const downloadPromise=page.waitForEvent("download",{timeout:30000});
+          await button.click();
+          const dl=await downloadPromise;
+          console.log("OFFLINE_PDF_DOWNLOAD",dl.suggestedFilename());
+          if(!dl.suggestedFilename().endsWith(".pdf"))throw Error("Offline download did not produce a PDF");
+        }
+      }
+      console.log("LIVE_OFFLINE_5_OF_5_OK");
+    } finally {await context.setOffline(false);}
+  }
   await fs.mkdir("test-results/live-prep",{recursive:true});
   await page.screenshot({path:"test-results/live-prep/final.png",fullPage:true}).catch(()=>{});
   const body=(await page.locator("body").innerText().catch(()=>"")).slice(0,3000);
