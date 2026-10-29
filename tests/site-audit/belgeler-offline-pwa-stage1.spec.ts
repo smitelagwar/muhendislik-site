@@ -12,7 +12,7 @@ test.use({ serviceWorkers: "allow" });
 test("belge catalog and all five PDF previews survive a cold offline reload", async ({ page, context }) => {
   test.setTimeout(300_000);
   await page.goto("/belgeler", { waitUntil: "domcontentloaded" });
-  const prepare = page.getByTestId("belgeler-offline-prepare").getByRole("button");
+  const prepare = page.getByTestId("belgeler-offline-prepare").getByRole("button", {name: /Çevrimdışı (kullanıma hazırla|hazır|hazırlanıyor)/}).first();
   await expect(prepare).toBeVisible();
   await prepare.click();
   await expect(prepare).toHaveText(/^Çevrimdışı hazır$/, { timeout: 250_000 });

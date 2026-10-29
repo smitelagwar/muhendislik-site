@@ -18,7 +18,7 @@ export interface OfflineShareIntent {
 const DB_NAME = "belgeler-offline-share-v1";
 const STORE = "intents";
 const SECRET = /^[A-Za-z0-9_-]{43}$/;
-const VALID_DOCS = new Set(["beton-dokum","taahhutname","istifa","insaat-ruhsati","sozlesme"]);
+const VALID_DOCS = new Set(["beton-dokum-tutanagi","santiye-sefi-taahhutnamesi","santiye-sefi-istifa-dilekcesi","insaat-ruhsati-dilekcesi","santiye-sefi-sozlesmesi"]);
 function valid(v: unknown): v is OfflineShareIntent {
   if (!v || typeof v !== "object") return false;
   const x = v as OfflineShareIntent;
