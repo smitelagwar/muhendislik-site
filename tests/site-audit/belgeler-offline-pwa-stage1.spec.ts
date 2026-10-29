@@ -15,7 +15,7 @@ test("belge catalog and all five PDF previews survive a cold offline reload", as
   const prepare = page.getByTestId("belgeler-offline-prepare").getByRole("button");
   await expect(prepare).toBeVisible();
   await prepare.click();
-  await expect(prepare).toHaveText(/Çevrimdışı hazır/, { timeout: 250_000 });
+  await expect(prepare).toHaveText(/^Çevrimdışı hazır$/, { timeout: 250_000 });
 
   const scope = await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration("/belgeler");
@@ -56,8 +56,8 @@ test("belge catalog and all five PDF previews survive a cold offline reload", as
 test("other portal routes are outside the registered SW scope", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/belgeler");
-  await page.waitForFunction(async () => !!(await navigator.serviceWorker.getRegistration("/belgeler")), { timeout: 20000 });
+  const scope = await page.evaluate(async () => (await navigator.serviceWorker.ready).scope);
+  expect(scope).toMatch(/\/belgeler\/?$/);
   const scopes = await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).map((r) => r.scope));
-  expect(scopes.some((s) => /\/belgeler\/?$/.test(s))).toBeTruthy();
-  expect(scopes.some((s) => s.endsWith("/") && !s.endsWith("/belgeler"))).toBeFalsy();
+  expect(scopes.every((s) => /\/belgeler\/?$/.test(s))).toBeTruthy();
 });
