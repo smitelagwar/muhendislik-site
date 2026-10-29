@@ -1045,14 +1045,27 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
     window.addEventListener("online",resume);
     window.addEventListener("pageshow",resume);
     document.addEventListener("visibilitychange",resume);
-    const timer=queuedShare && queuedShare.status!=="blocked" ?
-      window.setTimeout(resume,Math.max(1200,Math.min(300000,(queuedShare.nextRetryAt||Date.now())-Date.now()+300))) : undefined;
-    if(queuedShare) void processQueuedShare().catch(()=>{});
+    // A one-shot timer could fire during another tab's lease and never wake again.
+    // Keep rearming while this visible document has an unfinished intent, without Background Sync.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      if (!active || !queuedShare || queuedShare.status === "blocked") return;
+      const now = Date.now();
+      const earliest = Math.max(
+        now + 15_000,
+        queuedShare.nextRetryAt || 0,
+        queuedShare.leaseUntil && queuedShare.leaseUntil > now ? queuedShare.leaseUntil + 750 : 0,
+        nextOutboxProbeRef.current,
+      );
+      timer = window.setTimeout(() => { if (active) { resume(); schedule(); } },
+        Math.min(60_000, Math.max(1000, earliest - now)));
+    };
+    if (queuedShare) { resume(); schedule(); }
     return ()=>{active=false;window.removeEventListener("online",resume);
       window.removeEventListener("pageshow",resume);
       document.removeEventListener("visibilitychange",resume);
       if(timer)clearTimeout(timer)};
-  },[documentId,processQueuedShare,queuedShare?.clientRequestId,queuedShare?.nextRetryAt,queuedShare?.status]);
+  },[documentId,processQueuedShare,queuedShare?.clientRequestId,queuedShare?.nextRetryAt,queuedShare?.leaseUntil,queuedShare?.status]);
 
   const revokeLink = useCallback(async (viewTokenParam?: string, manageTokenParam?: string): Promise<boolean> => {
     const targetViewToken = viewTokenParam || activeLink?.viewToken;
