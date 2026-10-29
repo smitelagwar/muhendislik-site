@@ -25,7 +25,8 @@ jobs:
       - run: npx tsx --test tests/belgeler/offline-resume-home-contract.test.ts tests/belgeler/offline-pwa-scope.test.ts tests/belgeler/offline-outbox-contract.test.ts
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-offline-resume-home.spec.ts tests/site-audit/belgeler-offline-pwa-stage1.spec.ts tests/site-audit/belgeler-offline-outbox-stage2.spec.ts --project=chromium-mobile-390
+      - run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-offline-resume-home.spec.ts tests/site-audit/belgeler-offline-pwa-stage1.spec.ts --project=chromium-mobile-390
+      - run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-offline-outbox-stage2.spec.ts --project=chromium-desktop-1366
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
