@@ -284,7 +284,12 @@ function getShareApiError(response: Response, data: unknown, isJson: boolean): s
       : `İstek güvenlik filtresi tarafından sınırlandırıldı (HTTP 429).${retryAfter ? ` Yaklaşık ${retryAfter} sonra tekrar deneyin.` : ""} Bu yanıt günlük kota bilgisi değildir.`);
   }
   if (response.status === 403 && !isJson) return "İstek güvenlik filtresi tarafından reddedildi (HTTP 403). Biraz sonra yeniden deneyin.";
-  if (response.status === 503) return message ?? "Paylaşım servisi geçici olarak kullanılamıyor. Lütfen birazdan tekrar deneyin.";
+  if (response.status >= 500) {
+    const id = record && typeof record.requestCorrelationId === "string" &&
+      /^[0-9a-f-]{36}$/i.test(record.requestCorrelationId) ? record.requestCorrelationId : null;
+    const explanation = message ?? "Paylaşım sunucusu geçici olarak yanıt veremiyor. Daha sonra aynı işlemle tekrar deneyin.";
+    return id ? explanation + " (Destek kodu: " + id + ")" : explanation;
+  }
   if (response.status === 409) return message ?? "Bu bağlantı oluşturma işlemi devam ediyor veya çakışma oluştu.";
   if (response.status === 413) return message ?? "Form verisi boyut sınırını (64 KiB) aştı.";
   if (!isJson) return `Sunucu beklenmeyen bir yanıt verdi (HTTP ${response.status}).`;
@@ -387,15 +392,34 @@ async function readOperationStatus(
     Math.min(OPERATION_TIMEOUT_MS, remaining),
     signal,
   );
-  if (response.status === 404) return { kind: "not-found" };
-  if (response.status === 409) return { kind: "failed" };
-  if (response.status === 410) return { kind: "terminal" };
+  return parseShareOperationStatusResponse(response);
+}
+
+/** Only authenticated, code-bearing status responses may change recovery state.
+ * An intermediary's HTML 404/409/410 must never be mistaken for a definitive
+ * missing/failed/expired operation (which could trigger an unsafe retry). */
+export async function parseShareOperationStatusResponse(response: Response): Promise<OperationStatus> {
+  const isJson = (response.headers.get("content-type") ?? "").toLowerCase().includes("application/json");
+  if (response.status === 404 || response.status === 409 || response.status === 410) {
+    let code: unknown;
+    if (isJson) {
+      try {
+        const body: unknown = await response.json();
+        if (body && typeof body === "object" && !Array.isArray(body)) {
+          code = (body as Record<string, unknown>).code;
+        }
+      } catch { /* malformed status responses are not authoritative */ }
+    }
+    if (response.status === 404 && code === "OPERATION_NOT_FOUND") return { kind: "not-found" };
+    if (response.status === 409 && code === "CREATE_FAILED") return { kind: "failed" };
+    if (response.status === 410 && code === "OPERATION_EXPIRED") return { kind: "terminal" };
+    throw new ShareHttpError(response.status,
+      "İşlem durumunun güvenilir yanıtı alınamadı (HTTP " + response.status + "). Önceki istek korunuyor.");
+  }
   const data = await parseShareCreateResponse(response);
-  if (response.status === 202 || data.status === "pending") return { kind: "pending" };
-  if (data.code === "OPERATION_NOT_FOUND") return { kind: "not-found" };
-  if (data.code === "CREATE_FAILED") return { kind: "failed" };
-  if (data.code === "OPERATION_EXPIRED") return { kind: "terminal" };
-  return { kind: "ready", data };
+  if (response.status === 202 && data.status === "pending") return { kind: "pending" };
+  if (response.status === 200 && data.status === "ready") return { kind: "ready", data };
+  throw new Error("İşlem durumu doğrulanamadı. Önceki bağlantı isteği korunuyor.");
 }
 
 async function pollOperationStatus(record: ShareRecoveryRecord, signal: AbortSignal): Promise<OperationStatus> {
@@ -675,7 +699,13 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
         setError("Önceki bağlantı isteği sunucuda sürüyor. Yeni bir istek gönderilmeden sonucu yeniden kontrol edin.");
       } else {
         setRecoveryStatus("unresolved");
-        setError("Önceki bağlantı isteğinin sonucu henüz kesinleşmedi. Form değişmişse önce bu işlem güvenle çözümlenir.");
+        if (result.kind === "failed") {
+          setError("Önceki paylaşım tamamlanamadı. Aynı güvenli istekle yeniden denemek için Bağlantı oluştur'a basın.");
+        } else if (result.kind === "not-found") {
+          setError("Önceki işlem sunucuda bulunamadı. İstek kimliği korundu; aynı işlemle yeniden deneyebilirsiniz.");
+        } else {
+          setError("Önceki işlemin süresi dolmuş veya işlem iptal edilmiş. Güncel belge için yeni bağlantı oluşturabilirsiniz.");
+        }
       }
     } catch (cause) {
       setRecoveryStatus("unresolved");

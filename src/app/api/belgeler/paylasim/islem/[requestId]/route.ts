@@ -1,7 +1,7 @@
 import { BelgeShareRuntimeError } from "@/lib/belge-paylasim/config";
 import { getBrowserIdentity } from "@/lib/belge-paylasim/browser-identity";
 import { getShareOperationStatus } from "@/lib/belge-paylasim/service-core";
-import { validateSameOrigin } from "@/lib/belge-paylasim/request-validation";
+import { RequestValidationError, validateSameOrigin } from "@/lib/belge-paylasim/request-validation";
 import { isValidReplayProof } from "@/lib/belge-paylasim/tokens";
 import { buildBelgeShareUrl, PublicSiteOriginError } from "@/lib/site-config";
 import {
@@ -27,7 +27,10 @@ export async function GET(request: Request, { params }: RouteParams) {
   const requestCorrelationId = createRequestCorrelationId();
   const startedAt = performance.now();
   try {
-    validateSameOrigin(request);
+    // Browser same-origin GET requests may legitimately omit Origin.
+    // Still reject cross-site Fetch Metadata, an explicit null/foreign Origin,
+    // and any Host/URL mismatch. Mutating endpoints remain strict.
+    validateSameOrigin(request, { allowMissingOrigin: true });
     const { requestId } = await params;
     const identity = getBrowserIdentity(request);
     const replayProof = request.headers.get("x-belge-share-replay-proof");
@@ -62,6 +65,9 @@ export async function GET(request: Request, { params }: RouteParams) {
       documentId: operation.record.documentId,
     }, 200, requestCorrelationId);
   } catch (error) {
+    if (error instanceof RequestValidationError) {
+      return shareErrorResponse(error.code, error.message, error.statusCode, requestCorrelationId);
+    }
     if (error instanceof BelgeShareRuntimeError) {
       logShareRequestFailure(requestCorrelationId, "runtime", startedAt);
       return shareErrorResponse(error.code, error.message, error.statusCode, requestCorrelationId);

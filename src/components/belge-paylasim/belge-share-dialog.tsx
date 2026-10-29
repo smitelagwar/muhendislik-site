@@ -541,8 +541,8 @@ export function BelgeShareDialog({ share, documentTitle, hasSensitiveOrSampleDat
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="font-semibold">Bağlantı durumu: {share.connectionState === "offline" ? "İnternet yok" :
               share.connectionState === "weak" ? "Zayıf bağlantı" :
-              share.connectionState === "online" ? "Bağlı" : "Kontrol ediliyor"}</span>
-            <span className="text-muted-foreground">Yerel taslak, sunucu paylaşımından ayrıdır.</span>
+              share.connectionState === "online" ? "İnternete bağlı" : "Kontrol ediliyor"}</span>
+            <span className="text-muted-foreground">İnternet erişimi, paylaşım sunucusunun hazır veya bağlantının oluşturulmuş olduğu anlamına gelmez. Yerel taslak ayrıdır.</span>
           </div>
           {share.queuedShare ? (
             <div className="space-y-2" role="status" aria-live="polite">
