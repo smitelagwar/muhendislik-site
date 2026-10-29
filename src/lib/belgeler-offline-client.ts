@@ -122,12 +122,37 @@ async function fetchCore(url:string):Promise<void> {
   try{
     const response=await fetch(url,{signal:controller.signal,cache:"reload"});
     if(!response.ok||response.redirected)throw new Error("Kaynak indirilemedi: "+url);
-    const bytes=new Uint8Array(await response.arrayBuffer());
+    const buffer=await response.arrayBuffer();
+    const bytes=new Uint8Array(buffer);
     if(bytes.byteLength<8)throw new Error("Boş kaynak: "+url);
     if(kind==="pdf"&&new TextDecoder().decode(bytes.slice(0,5))!=="%PDF-")
       throw new Error("PDF imzası doğrulanamadı: "+url);
+    const contentType=(response.headers.get("content-type")||"").toLowerCase();
+    if(kind==="asset"&&contentType.includes("text/html"))
+      throw new Error("Kaynak yerine HTML döndü: "+url);
+
+    // Service Worker may return a valid response without successfully writing it
+    // (e.g. on mobile after a background/foreground transition). Do not rely on
+    // that implicit write: persist each verified, public, same-origin CORE file
+    // explicitly before marking the step complete. Only this allowlisted CORE
+    // loop calls fetchCore; no drafts or user-generated PDFs are stored here.
+    const cache=await caches.open(ASSET_CACHE);
+    const key=new URL(url,location.origin).pathname;
+    if(!(await cachedResource(url,kind))){
+      const headers=new Headers({
+        "Content-Type":kind==="pdf"?"application/pdf":contentType||"application/octet-stream",
+      });
+      try{
+        await cache.put(key,new Response(buffer,{status:200,headers}));
+      }catch(cause){
+        const quota=cause instanceof Error&&cause.name==="QuotaExceededError";
+        throw new Error((quota
+          ?"Cihazın çevrimdışı depolama alanı dolu: "
+          :"Tarayıcı dosyayı çevrimdışı depolamaya yazamadı: ")+url);
+      }
+    }
     if(!(await cachedResource(url,kind)))
-      throw new Error("Önbelleğe alınamadı: "+url);
+      throw new Error("Önbellek doğrulaması başarısız: "+url);
   }finally{clearTimeout(timeout)}
 }
 function renderStarted(frame: HTMLIFrameElement): boolean {
