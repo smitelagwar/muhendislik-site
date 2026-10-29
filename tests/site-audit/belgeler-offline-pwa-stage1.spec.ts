@@ -43,11 +43,19 @@ test("belge catalog and all five PDF previews survive a cold offline reload", as
       console.log("OFFLINE_NAV_DEBUG", JSON.stringify(after));
     }
     await expect(page.locator("[data-testid='belge-studio-preview-canvas'] canvas")).toBeVisible({ timeout: 25_000 });
-    const dimensions = await page.locator("[data-testid='belge-studio-preview-canvas'] canvas").evaluate(
-      (canvas) => ({ width: (canvas as HTMLCanvasElement).width, height: (canvas as HTMLCanvasElement).height })
-    );
-    expect(dimensions.width).toBeGreaterThan(200);
-    expect(dimensions.height).toBeGreaterThan(200);
+    // Canvas exists at its HTML default 300x150 before PDF.js paints. Wait for rasterized page.
+    await expect.poll(
+      async () => page.locator("[data-testid='belge-studio-preview-canvas'] canvas").evaluate(
+        (canvas) => ({ width: (canvas as HTMLCanvasElement).width, height: (canvas as HTMLCanvasElement).height })
+      ),
+      { timeout: 30_000, message: "PDF sayfası çevrimdışı çizilmedi: " + route }
+    ).toMatchObject({ width: expect.any(Number), height: expect.any(Number) });
+    await expect.poll(
+      async () => page.locator("[data-testid='belge-studio-preview-canvas'] canvas").evaluate(
+        (canvas) => (canvas as HTMLCanvasElement).height
+      ),
+      { timeout: 30_000 }
+    ).toBeGreaterThan(200);
   }
   await page.goto("/belgeler");
   await expect(page.getByRole("heading", { name: "Belgeler ve Şablonlar" })).toBeVisible();
