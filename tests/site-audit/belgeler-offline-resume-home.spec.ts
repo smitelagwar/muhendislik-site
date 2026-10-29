@@ -21,14 +21,14 @@ test("background/page restart continues cached offline preparation; offline home
     return match?Number(match[1]):0;
   },{timeout:50000}).toBeGreaterThan(2);
   const count=await page.evaluate(async()=> {
-    const cache=await caches.open("belgeler-offline-v3-assets");
+    const cache=await caches.open("belgeler-offline-v4-assets");
     return (await cache.keys()).length;
   });
   expect(count).toBeGreaterThan(1);
   await page.goto("/belgeler/beton-dokum-tutanagi",{waitUntil:"domcontentloaded"});
   await page.goto("/belgeler",{waitUntil:"domcontentloaded"});
   await expect(button).toHaveText(/^Çevrimdışı hazır$/,{timeout:230000});
-  expect(await page.evaluate(async()=> (await (await caches.open("belgeler-offline-v3-assets")).keys()).length)).toBeGreaterThanOrEqual(count);
+  expect(await page.evaluate(async()=> (await (await caches.open("belgeler-offline-v4-assets")).keys()).length)).toBeGreaterThanOrEqual(count);
   // Root worker must be registered without taking over the more specific Belgeler scope.
   await expect.poll(async()=>page.evaluate(async()=> (await navigator.serviceWorker.getRegistrations())
     .some(r=>new URL(r.scope).pathname==="/" && r.active?.scriptURL.endsWith("/belgeler-home-sw.js"))),{timeout:15000}).toBe(true);

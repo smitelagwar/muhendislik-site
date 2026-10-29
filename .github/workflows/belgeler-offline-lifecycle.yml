@@ -1,0 +1,42 @@
+name: Belgeler PWA lifecycle F5 release gate
+on:
+  pull_request:
+    paths:
+      - "src/lib/belgeler-offline-client.ts"
+      - "src/components/belgeler-offline-prepare.tsx"
+      - "public/belgeler-sw.js"
+      - "public/belgeler-home-sw.js"
+      - "tests/belgeler/offline-*.test.ts"
+      - "tests/site-audit/belgeler-offline-*.spec.ts"
+      - ".github/workflows/belgeler-offline-lifecycle.yml"
+permissions:
+  contents: read
+jobs:
+  pwa-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI: "true"
+      NEXT_PUBLIC_BELGELER_OFFLINE_PWA: "1"
+      BELGE_SHARE_SECRET: "ci-only-safe-32-byte-placeholder-key-for-tests"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx eslint src/lib/belgeler-offline-client.ts src/components/belgeler-offline-prepare.tsx tests/site-audit/belgeler-offline-lifecycle-f5.spec.ts
+      - run: npx tsc --noEmit --incremental false -p tsconfig.next.json
+      - run: npx tsx --test tests/belgeler/offline-pwa-scope.test.ts tests/belgeler/offline-resume-home-contract.test.ts tests/belgeler/offline-outbox-contract.test.ts
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-offline-lifecycle-f5.spec.ts --project=chromium-desktop-1366
+      - run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-offline-pwa-stage1.spec.ts tests/site-audit/belgeler-offline-resume-home.spec.ts --project=chromium-desktop-1366
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: belgeler-pwa-lifecycle-f5-debug
+          path: |
+            test-results/
+            playwright-report/

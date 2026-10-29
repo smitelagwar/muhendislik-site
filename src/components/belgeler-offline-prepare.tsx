@@ -23,6 +23,8 @@ function getServerSupport() { return false; }
 export function BelgelerOfflinePrepare() {
   const available = useSyncExternalStore(subscribeSupport, getSupport, getServerSupport);
   const [ready, setReady] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [starting, setStarting] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null);
   const isIos = useSyncExternalStore(subscribeSupport,
     () => /iPhone|iPad|iPod/.test(navigator.userAgent), getServerSupport);
@@ -58,37 +60,73 @@ export function BelgelerOfflinePrepare() {
     };
   }, [detailsOpen]);
   useEffect(() => {
-    if (available){
-      void readOfflineReady().then(setReady);
-      // Resumption is invoked asynchronously after hydration, never during render.
-      const journal=readPreparationJournal();
-      if(journal) {
-        queueMicrotask(()=>setProgress({state:"paused",detail:"Kesilen hazırlık bulundu — devam ediliyor",
-          completed:journal.completed,total:journal.total}));
-        queueMicrotask(()=>void window.dispatchEvent(new Event("belgeler-resume-preparation")));
+    let alive = true;
+    let checkSerial = 0;
+    let pending = false;
+    const refreshState = async () => {
+      if (!available || runningRef.current || pending) return;
+      pending = true;
+      const serial = ++checkSerial;
+      try {
+        const valid = await readOfflineReady();
+        if (!alive || serial !== checkSerial || runningRef.current) return;
+        setReady(valid);
+        if (valid) {
+          setProgress(null);
+          setError("");
+        } else {
+          const journal = readPreparationJournal();
+          if (journal && journal.completed > 0) {
+            setProgress({ state:"paused", detail:"Eksik kaynaklar korunuyor", completed:journal.completed, total:journal.total });
+            window.dispatchEvent(new Event("belgeler-resume-preparation"));
+          } else {
+            setProgress(null);
+          }
+        }
+      } finally {
+        pending = false;
+        if (alive && serial === checkSerial) setChecking(false);
       }
-    }
-    const recheck = () => { if (available) void readOfflineReady().then(setReady); };
+    };
+    if (available) void refreshState();
+    else queueMicrotask(() => { if (alive) setChecking(false); });
+    const recheck = () => { if (!runningRef.current) void refreshState(); };
     window.addEventListener("pageshow", recheck);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "belgeler:pwa:ready:v1" || event.key === "belgeler:pwa:preparation:v3")
+        recheck();
+    };
+    window.addEventListener("storage", onStorage);
     const handler = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPrompt); };
     window.addEventListener("beforeinstallprompt", handler);
-    let alive=true;
-    if (!("serviceWorker" in navigator)) return () => { window.removeEventListener("pageshow",recheck); window.removeEventListener("beforeinstallprompt",handler); };
-    void navigator.serviceWorker.getRegistration("/belgeler").then(reg=>{
-      if(!reg||!alive)return;
-      setUpdateWaiting(Boolean(reg.waiting));
-      reg.addEventListener("updatefound",()=>{const incoming=reg.installing;
-        incoming?.addEventListener("statechange",()=>{if(incoming.state==="installed" && navigator.serviceWorker.controller && alive)setUpdateWaiting(true)})});
-    }).catch(()=>{});
-    return () => {alive=false;window.removeEventListener("pageshow", recheck);
-      window.removeEventListener("beforeinstallprompt",handler);};
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker.getRegistration("/belgeler").then(reg => {
+        if (!reg || !alive) return;
+        setUpdateWaiting(Boolean(reg.waiting));
+        reg.addEventListener("updatefound", () => {
+          const incoming = reg.installing;
+          incoming?.addEventListener("statechange", () => {
+            if (incoming.state === "installed" && navigator.serviceWorker.controller && alive)
+              setUpdateWaiting(true);
+          });
+        });
+      }).catch(() => {});
+    }
+    return () => {
+      alive = false;
+      ++checkSerial;
+      window.removeEventListener("pageshow", recheck);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
   }, [available]);
   useEffect(()=>{
     if(!available)return;
     let scheduled:number | undefined;
     const resume=()=>{
-      if(document.visibilityState!=="visible"||!navigator.onLine||runningRef.current)return;
-      if(!readPreparationJournal())return;
+      if(checking||ready||document.visibilityState!=="visible"||!navigator.onLine||runningRef.current)return;
+      const stored=readPreparationJournal();
+      if(!stored || stored.completed < 1)return;
       if(scheduled)window.clearTimeout(scheduled);
       scheduled=window.setTimeout(()=>{
         if(runningRef.current||document.visibilityState!=="visible"||!navigator.onLine)return;
@@ -115,20 +153,23 @@ export function BelgelerOfflinePrepare() {
       window.removeEventListener("online",resume);
       window.removeEventListener("belgeler-resume-preparation",resume);
     };
-  },[available]);
+  },[available,checking,ready]);
   if (!available) return null;
-  const busy = progress?.state === "loading" || progress?.state === "verifying";
+  const busy = starting || progress?.state === "loading" || progress?.state === "verifying";
   async function prepare(auto=false) {
     if(runningRef.current)return;
     if(auto && resumeAttemptRef.current>=3)return;
     runningRef.current=true;
+    setStarting(true);
     if(auto)resumeAttemptRef.current++;
     else resumeAttemptRef.current=0;
     setError("");
     setReady(false);
     const journal=readPreparationJournal();
-    setProgress({ state: "loading", detail: journal?"Eksik dosyalardan devam ediliyor":"Hazırlanıyor...",
-      completed:journal?.completed??0, total:journal?.total??1 });
+    // Worker activation is not a downloaded resource. Do not show a fictitious 0/1.
+    setProgress(journal && journal.completed > 0
+      ? {state:"paused", detail:"Önceki dosyalar doğrulanıyor", completed:journal.completed,total:journal.total}
+      : null);
     try {
       await prepareBelgelerOffline(setProgress);
       setReady(true);
@@ -138,8 +179,9 @@ export function BelgelerOfflinePrepare() {
       const message=cause instanceof Error?cause.message:"Hazırlama duraklatıldı.";
       setError(message);
       const state=readPreparationJournal();
-      setProgress({state:"paused",detail:"Duraklatıldı — internet gelince ya da uygulamaya dönünce devam edilecek",
-        completed:state?.completed??0,total:state?.total??1});
+      setProgress(state && state.completed > 0
+        ? {state:"paused",detail:"İndirilen kaynaklar korundu",completed:state.completed,total:state.total}
+        : null);
       // When a pending fetch times out during background suspension, schedule a bounded
       // retry on foreground. Never loop endlessly if browser storage is unavailable.
       if(auto && resumeAttemptRef.current<3 && document.visibilityState==="visible" && navigator.onLine){
@@ -148,6 +190,7 @@ export function BelgelerOfflinePrepare() {
       }
     }finally{
       runningRef.current=false;
+      setStarting(false);
       // If the browser suspended an active request, focus may already have fired
       // while it was in flight. Retry once it settles, using cached completed assets.
       if(pendingResumeRef.current && document.visibilityState==="visible"){
@@ -159,16 +202,16 @@ export function BelgelerOfflinePrepare() {
   return (
     <div ref={rootRef} data-testid="belgeler-offline-prepare" className="relative inline-flex max-w-full items-center">
       <div className="inline-flex max-w-full items-center overflow-hidden rounded-xl border border-black/10 bg-white/75 shadow-sm backdrop-blur-xl dark:border-white/15 dark:bg-white/[0.07]">
-        <button ref={statusButtonRef} type="button" disabled={busy}
+        <button ref={statusButtonRef} type="button" disabled={busy || checking}
           onClick={() => ready ? setDetailsOpen(open => !open) : void prepare(false)}
           className="inline-flex min-h-11 min-w-0 items-center gap-2 px-3 text-xs font-semibold text-foreground transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-500 disabled:cursor-progress dark:hover:bg-white/10">
-          {busy ? <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-amber-600" /> :
+          {busy || checking ? <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-amber-600" /> :
             ready ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" /> :
             progress?.state === "paused" ? <WifiOff className="h-4 w-4 shrink-0 text-amber-600" /> :
             <DownloadCloud className="h-4 w-4 shrink-0" />}
           <span className="truncate">
-            {busy ? "Çevrimdışı hazırlanıyor" : ready ? "Çevrimdışı hazır" :
-              progress?.state === "paused" ? "Eksik indirmeye devam et" : "Çevrimdışı kullanıma hazırla"}
+            {checking ? "Çevrimdışı kontrol ediliyor" : busy ? "Çevrimdışı hazırlanıyor" : ready ? "Çevrimdışı hazır" :
+              progress?.state === "paused" ? "Eksik indirmeye devam et" : error ? "Yeniden dene" : "Çevrimdışı kullanıma hazırla"}
           </span>
           {busy && progress && <span aria-hidden="true" className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 tabular-nums text-[10px] text-amber-700 dark:text-amber-300">{progress.completed}/{progress.total}</span>}
         </button>
@@ -181,7 +224,7 @@ export function BelgelerOfflinePrepare() {
         </button>
       </div>
       <span role="status" aria-live="polite" className="sr-only">
-        {busy && progress ? progress.detail + " (" + progress.completed + "/" + progress.total + ")" :
+        {checking ? "Çevrimdışı dosyalar kontrol ediliyor." : busy && progress ? progress.detail + " (" + progress.completed + "/" + progress.total + ")" :
           error ? error :
           progress?.state === "paused" ? "İndirme duraklatıldı; yeniden devam edilebilir." :
           ready ? "5 belge çevrimdışı kullanılabilir." : "Çevrimdışı hazırlama için internet gerekir."}
@@ -220,7 +263,7 @@ export function BelgelerOfflinePrepare() {
           {error && <p role="alert" className="mt-3 rounded-lg bg-amber-500/10 p-2.5 text-xs leading-5 text-amber-800 dark:text-amber-300">{error} — İndirilen dosyalar korunuyor.</p>}
           {progress?.state === "paused" && !error && <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">İndirme duraklatıldı. Eksik dosyalardan devam edilebilir.</p>}
           <div className="mt-3 flex flex-col gap-2 border-t border-black/10 pt-3 dark:border-white/10">
-            {!ready && !busy && (
+            {!ready && !busy && !checking && (
               <button type="button" onClick={() => void prepare(false)}
                 className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
                 <DownloadCloud className="h-4 w-4" />{progress?.state === "paused" ? "Eksik indirmeye devam et" : "Şimdi indir"}
