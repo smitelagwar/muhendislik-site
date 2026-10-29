@@ -92,6 +92,11 @@ export function BelgelerOfflinePrepare() {
     else queueMicrotask(() => { if (alive) setChecking(false); });
     const recheck = () => { if (!runningRef.current) void refreshState(); };
     window.addEventListener("pageshow", recheck);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "belgeler:pwa:ready:v1" || event.key === "belgeler:pwa:preparation:v3")
+        recheck();
+    };
+    window.addEventListener("storage", onStorage);
     const handler = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPrompt); };
     window.addEventListener("beforeinstallprompt", handler);
     if ("serviceWorker" in navigator) {
@@ -111,6 +116,7 @@ export function BelgelerOfflinePrepare() {
       alive = false;
       ++checkSerial;
       window.removeEventListener("pageshow", recheck);
+      window.removeEventListener("storage", onStorage);
       window.removeEventListener("beforeinstallprompt", handler);
     };
   }, [available]);
