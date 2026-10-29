@@ -12,7 +12,8 @@ test("root worker exclusively intercepts homepage navigation",()=>{
 });
 test("Belgeler worker scope and data privacy remain unchanged",()=>{
   const sw=src("public/belgeler-sw.js");
-  assert.match(sw,/belgeler-offline-v3/);
+  assert.match(sw,/belgeler-offline-v4/);
+  assert.match(sw,/belgeler-offline-v3-pages/);
   assert.match(sw,/url\.pathname\.startsWith\("\/api\/"\)/);
   assert.match(sw,/url\.pathname\.startsWith\("\/b\/"\)/);
   const client=src("src/lib/belgeler-offline-client.ts");
