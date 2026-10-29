@@ -54,6 +54,12 @@ async function put(cacheName, key, response, kind) {
   await (await caches.open(cacheName)).put(key, response.clone());
 }
 function keyFor(path) { return new Request(self.location.origin + path); }
+async function legacyMatch(name, key) {
+  // caches.open() creates the namespace: avoid recreating a deleted generation
+  // just because a navigation missed the current cache.
+  if (!(await caches.keys()).includes(name)) return undefined;
+  return (await caches.open(name)).match(key);
+}
 async function pageHandler(request, path) {
   const key = keyFor(path);
   const abort = new AbortController();
@@ -70,7 +76,7 @@ async function pageHandler(request, path) {
   // Prefer the newly verified generation. Keep v3 as an offline-only fallback
   // during the upgrade; never let cache insertion order choose HTML versions.
   const old = await (await caches.open(PAGE_CACHE)).match(key) ||
-    await (await caches.open("belgeler-offline-v3-pages")).match(key);
+    await legacyMatch("belgeler-offline-v3-pages", key);
   if (old) return old;
   return await caches.match(OFFLINE_PAGE) ||
     new Response("Çevrimdışı içerik henüz hazırlanmadı.", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
@@ -78,7 +84,7 @@ async function pageHandler(request, path) {
 async function assetHandler(request, path) {
   const key = keyFor(path);
   const old = await (await caches.open(ASSET_CACHE)).match(key) ||
-    await (await caches.open("belgeler-offline-v3-assets")).match(key);
+    await legacyMatch("belgeler-offline-v3-assets", key);
   if (old) return old;
   const result = await fetch(request);
   const kind = PDF.test(path) ? "pdf" : /\.(?:js|mjs)$/.test(path) ? "script" : "asset";
