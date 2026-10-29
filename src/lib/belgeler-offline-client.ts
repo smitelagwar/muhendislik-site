@@ -180,11 +180,46 @@ export async function readOfflineReady():Promise<boolean> {
     // including those injected only after hydration or a normal F5.
     for (const url of buildScriptSignature().split("|").filter(Boolean))
       if (!(await cachedResource(url,"asset"))) return false;
+    for (const url of await requiredNextAssets())
+      if (!(await cachedResource(url, "asset"))) return false;
     for(const url of ROUTES)if(!(await cachedResource(url,"page")))return false;
     for(const url of CORE)if(!(await cachedResource(url,url.endsWith(".pdf")?"pdf":"asset")))return false;
     return true;
   }catch{return false}
 }
+/** Gather public build assets required by the six cached HTML documents.
+ * Modern Next.js may inject or preload chunks asynchronously, so the initial
+ * catalog's script tags alone cannot represent the full offline build.
+ */
+async function requiredNextAssets(): Promise<string[]> {
+  const paths = new Set(buildScriptSignature().split("|").filter(Boolean));
+  const cache = await caches.open(PAGE_CACHE);
+  for (const route of ROUTES) {
+    const response = await cache.match(new URL(route, location.origin).pathname);
+    if (!response) continue;
+    const doc = new DOMParser().parseFromString(await response.text(), "text/html");
+    for (const node of doc.querySelectorAll<HTMLScriptElement | HTMLLinkElement>("script[src], link[href]")) {
+      const source = node.getAttribute("src") || node.getAttribute("href");
+      if (!source) continue;
+      try {
+        const uri = new URL(source, location.origin);
+        if (uri.origin === location.origin && uri.pathname.startsWith("/_next/static/"))
+          paths.add(uri.pathname);
+      } catch { /* malformed reference is not a cache target */ }
+    }
+  }
+  return [...paths].filter(path => path.startsWith("/_next/static/")).sort();
+}
+async function ensureNextAssets(onProgress:(detail:string)=>void): Promise<void> {
+  const paths = await requiredNextAssets();
+  for (const path of paths) {
+    if (!await cachedResource(path, "asset")) {
+      onProgress("Uygulama kaynakları tamamlanıyor");
+      await fetchCore(path);
+    }
+  }
+}
+
 async function fetchCore(url:string):Promise<void> {
   const kind=url.endsWith(".pdf")?"pdf":"asset";
   if(await cachedResource(url,kind))return; // a fully verified previous chunk survives background termination
@@ -324,6 +359,7 @@ async function runPreparation(onProgress:(p:PreparationProgress)=>void):Promise<
     completed++;
     update("verifying","PDF çizimi doğrulandı");
   }
+  await ensureNextAssets(detail => update("verifying", detail));
   completed++;
   for(const path of ROUTES)if(!await cachedResource(path,"page"))throw new Error("Eksik belge HTML: "+path);
   for(const url of CORE)if(!await cachedResource(url,url.endsWith(".pdf")?"pdf":"asset"))
