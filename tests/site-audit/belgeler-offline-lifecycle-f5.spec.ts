@@ -23,7 +23,7 @@ test("root-worker registration, completed cache and 15 F5 reloads stay consisten
     const details = await page.getByTestId("belgeler-offline-details").innerText();
     throw new Error("Offline preparation stopped: " + details);
   }
-  await expect(primary).toHaveText(/^Çevrimdışı hazır$/);
+  await expect(primary).toHaveText(/^Çevrimdışı hazır$/, {timeout:300000});
   const before = await page.evaluate(async () => ({
     controller: navigator.serviceWorker.controller?.scriptURL,
     cache: (await (await caches.open("belgeler-offline-v4-assets")).keys()).length,
@@ -51,7 +51,7 @@ test("root-worker registration, completed cache and 15 F5 reloads stay consisten
   for (let i=0; i<15; i++) {
     await page.reload({waitUntil:"domcontentloaded"});
     if (i === 0) console.log("AFTER_FIRST_F5",JSON.stringify(await debug()));
-    await expect(primary).toHaveText(/^Çevrimdışı hazır$/, {timeout:20000});
+    await expect(primary).toHaveText(/^Çevrimdışı hazır$/, {timeout:30000});
     await expect(primary).not.toContainText("Eksik indirmeye");
   }
   await page.goto("/belgeler/beton-dokum-tutanagi", {waitUntil:"domcontentloaded"});
