@@ -175,9 +175,9 @@ export function BelgelerOfflinePrepare() {
         <span aria-hidden="true" className="h-5 w-px shrink-0 bg-black/10 dark:bg-white/15" />
         <button type="button" aria-label="Çevrimdışı ayrıntılarını göster" aria-expanded={detailsOpen}
           aria-controls={detailsId} onClick={() => setDetailsOpen(open => !open)}
-          className="inline-flex min-h-11 min-w-10 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-500 dark:hover:bg-white/10">
+          className="relative inline-flex min-h-11 min-w-10 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-500 dark:hover:bg-white/10">
           <ChevronDown className={"h-4 w-4 transition-transform duration-200 motion-reduce:transition-none " + (detailsOpen ? "rotate-180" : "")} />
-          {updateWaiting && <span className="sr-only">Yeni sürüm mevcut</span>}
+          {updateWaiting && <span title="Yeni sürüm mevcut" className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-500" />}
         </button>
       </div>
       <span role="status" aria-live="polite" className="sr-only">
@@ -189,7 +189,7 @@ export function BelgelerOfflinePrepare() {
       {detailsOpen && (
         <div id={detailsId} role="region" aria-label="Çevrimdışı belgeler seçenekleri"
           data-testid="belgeler-offline-details"
-          className="absolute left-0 top-[calc(100%+10px)] z-[120] w-[min(320px,calc(100vw-2.5rem))] max-h-[min(70vh,420px)] overflow-y-auto rounded-2xl border border-black/10 bg-white/95 p-4 text-foreground shadow-[0_18px_60px_rgba(0,0,0,0.16)] backdrop-blur-2xl dark:border-white/15 dark:bg-zinc-900/95 sm:left-auto sm:right-0">
+          className="absolute left-0 top-[calc(100%+10px)] z-[120] w-[min(320px,calc(100vw-2.5rem))] max-h-[min(70vh,420px)] overflow-y-auto rounded-2xl border border-black/10 bg-white/95 p-4 text-foreground shadow-[0_18px_60px_rgba(0,0,0,0.16)] backdrop-blur-2xl dark:border-white/15 dark:bg-zinc-900/95 lg:left-auto lg:right-0">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold">Çevrimdışı belgeler</h2>
