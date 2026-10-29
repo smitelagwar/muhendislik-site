@@ -126,9 +126,9 @@ self.addEventListener("fetch", (event) => {
     const selfTest = await testClient(event);
     if (selfTest) {
       if (request.mode === "navigate" && allowedPage(path)) {
-        return await (await caches.open(request.mode === "navigate" ? PAGE_CACHE : ASSET_CACHE)).match(keyFor(path)) || Response.error();
+        return await (await caches.open(PAGE_CACHE)).match(keyFor(path)) || Response.error();
       }
-      if (allowedAsset(path)) return await caches.match(keyFor(path)) || Response.error();
+      if (allowedAsset(path)) return await (await caches.open(ASSET_CACHE)).match(keyFor(path)) || Response.error();
       return Response.error();
     }
     if (!safeRequest(request)) return fetch(request);
