@@ -14,7 +14,16 @@ test("root-worker registration, completed cache and 15 F5 reloads stay consisten
   await expect(primary).not.toHaveText(/0\/1/);
   await expect(primary).toHaveText(/Çevrimdışı kullanıma hazırla|Çevrimdışı hazır/, {timeout:25000});
   if (!/hazır$/.test((await primary.innerText()).trim())) await primary.click();
-  await expect(primary).toHaveText(/^Çevrimdışı hazır$/, {timeout:270000});
+  await page.waitForFunction(() => {
+    const label = document.querySelector("[data-testid='belgeler-offline-prepare'] button")?.textContent || "";
+    return label.includes("Çevrimdışı hazır") || label.includes("Eksik indirmeye devam et");
+  }, null, {timeout:300000});
+  if ((await primary.innerText()).includes("Eksik indirmeye")) {
+    await holder.getByRole("button", {name:"Çevrimdışı ayrıntılarını göster"}).click();
+    const details = await page.getByTestId("belgeler-offline-details").innerText();
+    throw new Error("Offline preparation stopped: " + details);
+  }
+  await expect(primary).toHaveText(/^Çevrimdışı hazır$/);
   const before = await page.evaluate(async () => ({
     controller: navigator.serviceWorker.controller?.scriptURL,
     cache: (await (await caches.open("belgeler-offline-v4-assets")).keys()).length,
