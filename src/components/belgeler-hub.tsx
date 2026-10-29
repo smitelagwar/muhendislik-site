@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { AmbientOceanCanvas } from "@/components/ambient-ocean-canvas";
 import { BelgelerGlassBg } from "@/components/belgeler-glass-bg";
+import { BelgelerOfflinePrepare } from "@/components/belgeler-offline-prepare";
 import { OceanEcosystemIcon } from "@/components/icons/ocean-ecosystem-icon";
 import {
   DOCUMENTS,
@@ -283,6 +284,7 @@ export function BelgelerHub() {
           <div>
             <h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">Belgeler ve Şablonlar</h1>
             <p className="mt-1 text-sm text-muted-foreground">Doldurulabilir PDF belgelerini arayın ve önizleyin.</p>
+            <div className="mt-3"><BelgelerOfflinePrepare /></div>
           </div>
 
           <div className="hidden flex-wrap items-center gap-2.5 self-start sm:self-center [@media(min-width:768px)_and_(hover:hover)_and_(pointer:fine)]:inline-flex">
