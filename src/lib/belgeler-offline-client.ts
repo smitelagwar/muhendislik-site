@@ -20,7 +20,7 @@ export function readPreparationJournal(): PreparationJournal | null {
     if(value.version!==3 || typeof value.scripts!=="string" ||
        !Number.isFinite(value.updatedAt) || value.total<1 ||
        value.completed < 0 || value.completed > value.total ||
-       value.scripts!==buildScriptSignature()) return null;
+       !compatibleScriptSignatures(value.scripts,buildScriptSignature())) return null;
     return value;
   }catch{return null}
 }
@@ -59,6 +59,18 @@ function buildScriptSignature(): string {
   if (typeof document === "undefined") return "";
   return [...document.querySelectorAll<HTMLScriptElement>("script[src*='/_next/static/']")]
     .map(tag => new URL(tag.src).pathname).sort().join("|");
+}
+/** Next.js can append additional script tags after hydration. The same build
+ * therefore has a different script *list* before/after F5. Strict equality
+ * produces a false "not ready". Preserve mismatched-build protection while
+ * permitting an ordered-in-time subset of the same hash-named chunks.
+ */
+function compatibleScriptSignatures(saved: string, current: string): boolean {
+  const first = saved.split("|").filter(Boolean);
+  const second = current.split("|").filter(Boolean);
+  if (!first.length || !second.length) return false;
+  const a = new Set(first), b = new Set(second);
+  return first.every(item => b.has(item)) || second.every(item => a.has(item));
 }
 function validEnvironment(): boolean {
   return typeof window !== "undefined" && ("serviceWorker" in navigator) &&
@@ -163,7 +175,11 @@ export async function readOfflineReady():Promise<boolean> {
     const stamp=JSON.parse(raw) as ReadyStamp & {offlineVersion?:string};
     if(stamp.offlineVersion!==OFFLINE_VERSION || stamp.version!==1 ||
        stamp.routes!==ROUTES.length || !stamp.scripts ||
-       stamp.scripts!==buildScriptSignature())return false;
+       !compatibleScriptSignatures(stamp.scripts,buildScriptSignature()))return false;
+    // Every currently loaded Next chunk must be in the offline asset cache,
+    // including those injected only after hydration or a normal F5.
+    for (const url of buildScriptSignature().split("|").filter(Boolean))
+      if (!(await cachedResource(url,"asset"))) return false;
     for(const url of ROUTES)if(!(await cachedResource(url,"page")))return false;
     for(const url of CORE)if(!(await cachedResource(url,url.endsWith(".pdf")?"pdf":"asset")))return false;
     return true;
