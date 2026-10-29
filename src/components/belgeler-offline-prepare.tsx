@@ -86,7 +86,7 @@ export function BelgelerOfflinePrepare() {
       }
     };
     if (available) void refreshState();
-    else setChecking(false);
+    else queueMicrotask(() => { if (alive) setChecking(false); });
     const recheck = () => { if (!runningRef.current) void refreshState(); };
     window.addEventListener("pageshow", recheck);
     const handler = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPrompt); };
