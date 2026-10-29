@@ -1,0 +1,33 @@
+{
+  "name": "İnşa Blog — Belgeler",
+  "short_name": "Belgeler",
+  "description": "Şantiye belgelerini çevrimdışı doldurun ve PDF oluşturun.",
+  "lang": "tr",
+  "dir": "ltr",
+  "id": "/belgeler",
+  "start_url": "/belgeler",
+  "scope": "/belgeler",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "/belgeler-pwa-icon/192",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/belgeler-pwa-icon/512",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/belgeler-pwa-icon/512",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ]
+}

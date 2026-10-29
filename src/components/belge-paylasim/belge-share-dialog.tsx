@@ -106,7 +106,7 @@ export function BelgeShareDialog({ share, documentTitle, hasSensitiveOrSampleDat
   else if (share.activeLink) createButtonLabel = "Güncel belge için yeni bağlantı oluştur";
 
   const createDisabled = !share.backendReady || !share.isReady || share.isCreating || share.isRecovering ||
-    isQuotaBlocked || isQuotaReserved;
+    isQuotaBlocked || isQuotaReserved || Boolean(share.queuedShare) || share.connectionState === "offline";
 
   return (
     <Dialog open={share.isOpen} onOpenChange={(open) => (!open ? share.closeShareDialog() : null)}>
@@ -535,6 +535,46 @@ export function BelgeShareDialog({ share, documentTitle, hasSensitiveOrSampleDat
             )}
           </div>
         )}
+
+        {/* This is a local *intent*, never a generated public link or cloud-saved document. */}
+        <section data-testid="belge-share-offline-queue" aria-label="Çevrimdışı paylaşım" className="space-y-2 rounded-xl border border-border/75 bg-secondary/30 p-3 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-semibold">Bağlantı durumu: {share.connectionState === "offline" ? "İnternet yok" :
+              share.connectionState === "weak" ? "Zayıf bağlantı" :
+              share.connectionState === "online" ? "Bağlı" : "Kontrol ediliyor"}</span>
+            <span className="text-muted-foreground">Yerel taslak, sunucu paylaşımından ayrıdır.</span>
+          </div>
+          {share.queuedShare ? (
+            <div className="space-y-2" role="status" aria-live="polite">
+              <p className="text-foreground">{share.queuedShare.status === "blocked" ?
+                "Belge değişti, kimlik doğrulaması yapılamadı veya işlem kalıcı olarak engellendi. Otomatik gönderim durduruldu." :
+                share.queuedShare.status === "sending" ?
+                "Sunucudan sonuç bekleniyor. Gerçek bağlantı henüz hazır değil." :
+                "Paylaşım isteği bu cihaza kaydedildi. Uygulama açıkken bağlantı geldiğinde kontrol edilecek."}</p>
+              <div className="flex flex-wrap gap-2">
+                {share.queuedShare.status !== "blocked" && (
+                  <Button type="button" variant="outline" size="sm" data-testid="belge-offline-retry"
+                    disabled={share.isCreating} onClick={() => void share.retryQueuedShare()}>
+                    Şimdi dene
+                  </Button>
+                )}
+                <Button type="button" variant="ghost" size="sm" data-testid="belge-offline-cancel"
+                  disabled={share.isCreating || (share.queuedShare.status === "sending" &&
+                    Boolean(share.queuedShare.leaseUntil && share.queuedShare.leaseUntil > 0))}
+                  onClick={() => void share.cancelQueuedShare()}>Bekleyen isteği iptal et</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-muted-foreground">İnternet yokken bağlantı üretilmez. Yalnızca sizin onayınızla gönderim niyeti saklanır; cihaz kapalıyken gönderim garantisi yoktur.</p>
+              <Button type="button" variant="outline" size="sm" data-testid="belge-offline-enqueue"
+                disabled={!share.isReady || share.isCreating || share.isRecovering}
+                onClick={() => void share.queueShareLink()}>
+                Bağlantı gelince paylaş
+              </Button>
+            </div>
+          )}
+        </section>
 
         <DialogFooter className="min-w-0 flex-col-reverse gap-2 border-t border-border/80 pt-3 sm:flex-row sm:justify-end">
           <DialogClose asChild>
