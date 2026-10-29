@@ -1047,7 +1047,7 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
     document.addEventListener("visibilitychange",resume);
     // A one-shot timer could fire during another tab's lease and never wake again.
     // Keep rearming while this visible document has an unfinished intent, without Background Sync.
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    let timer: number | undefined;
     const schedule = () => {
       if (!active || !queuedShare || queuedShare.status === "blocked") return;
       const now = Date.now();
