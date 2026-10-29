@@ -13,7 +13,10 @@ self.addEventListener("install",event=>{
   })());
   // Do not force reload of active editors.
 });
-self.addEventListener("activate",event=>{event.waitUntil(self.clients.claim())});
+// Do not call clients.claim() from the root-scoped worker. A claim would also
+// steal already-open /belgeler tabs from the narrower, document-specific worker.
+// New homepage navigations are controlled automatically by this registration.
+self.addEventListener("activate",event=>{event.waitUntil(Promise.resolve())});
 self.addEventListener("fetch",event=>{
   const req=event.request;
   const url=new URL(req.url);
