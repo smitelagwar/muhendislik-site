@@ -1,0 +1,37 @@
+name: Belgeler compact offline UI regression
+on:
+  pull_request:
+    paths:
+      - "src/components/belgeler-hub.tsx"
+      - "src/components/belgeler-offline-prepare.tsx"
+      - "tests/site-audit/belgeler-offline-compact-ui.spec.ts"
+      - ".github/workflows/belgeler-compact-ui.yml"
+permissions:
+  contents: read
+jobs:
+  compact-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CI: "true"
+      NEXT_PUBLIC_BELGELER_OFFLINE_PWA: "1"
+      BELGE_SHARE_SECRET: "ci-only-safe-32-byte-placeholder-key-for-tests"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx eslint src/components/belgeler-offline-prepare.tsx src/components/belgeler-hub.tsx tests/site-audit/belgeler-offline-compact-ui.spec.ts
+      - run: npx tsc -p tsconfig.next.json --noEmit --incremental false
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-offline-compact-ui.spec.ts --project=chromium-desktop-1366 --project=chromium-mobile-390
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: belgeler-compact-ui-diagnostics
+          path: |
+            test-results/
+            playwright-report/
