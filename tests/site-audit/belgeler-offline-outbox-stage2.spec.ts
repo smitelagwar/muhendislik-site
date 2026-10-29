@@ -17,7 +17,16 @@ test("offline intent persists, never POSTs while offline, and can be cancelled w
   await expect(page.getByTestId("belge-share-offline-queue")).toContainText("Paylaşım isteği bu cihaza kaydedildi");
   expect(submitted).toBe(0);
   await page.reload({waitUntil:"domcontentloaded"});
-  await page.getByTestId("belge-desktop-share-btn").click();
+  // Offline reload can briefly mount both a hidden and the visible studio action bar.
+  // Wait for the visible PDF and use the accessible button rather than a duplicated test id.
+  await expect.poll(
+    async () => page.getByTestId("belge-studio-preview-canvas").locator("canvas").first()
+      .evaluate(c => (c as HTMLCanvasElement).height),
+    {timeout:30000}
+  ).toBeGreaterThan(200);
+  const accessibleShare = page.getByRole("button", {name:"Paylaş",exact:true});
+  await expect(accessibleShare).toBeEnabled({timeout:30000});
+  await accessibleShare.click();
   await expect(page.getByTestId("belge-offline-cancel")).toBeVisible({timeout:20000});
   const count=await page.evaluate(async()=>{
     return new Promise<number>((resolve,reject)=>{
