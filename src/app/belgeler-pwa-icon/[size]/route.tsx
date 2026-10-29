@@ -1,7 +1,8 @@
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 
-export const runtime = "edge";
+// Node runtime avoids the Hobby plan's 1 MB Edge Function bundle limit.
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(
