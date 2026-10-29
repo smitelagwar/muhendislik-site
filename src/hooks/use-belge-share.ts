@@ -1037,11 +1037,20 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
       await processQueuedShare(true);
     } catch (cause) {setError(cause instanceof Error ? cause.message : "Tekrar deneme başarısız.");}
   },[documentId,processQueuedShare]);
+  // The parent studio passes a fresh getSnapshotValues closure on form edits.
+  // Preserve the newest callback without resubscribing/re-reading IndexedDB on every render.
+  const latestQueueProcessorRef = useRef(processQueuedShare);
+  useEffect(() => { latestQueueProcessorRef.current = processQueuedShare; }, [processQueuedShare]);
   // Works while this document is open/visible. No background sync, push or silent sending on a closed app.
   useEffect(() => {
     let active=true;
-    void getShareIntent(documentId).then(item=>{if(active)setQueuedShare(item)}).catch(()=>{});
-    const resume=()=>{if(document.visibilityState==="visible")void processQueuedShare().catch(()=>{})};
+    void getShareIntent(documentId).then(item=>{if(active)setQueuedShare(previous =>
+      previous?.clientRequestId === item?.clientRequestId &&
+      previous?.status === item?.status &&
+      previous?.attempts === item?.attempts &&
+      previous?.nextRetryAt === item?.nextRetryAt &&
+      previous?.leaseUntil === item?.leaseUntil ? previous : item)}).catch(()=>{});
+    const resume=()=>{if(document.visibilityState==="visible")void latestQueueProcessorRef.current().catch(()=>{})};
     window.addEventListener("online",resume);
     window.addEventListener("pageshow",resume);
     document.addEventListener("visibilitychange",resume);
@@ -1065,7 +1074,7 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
       window.removeEventListener("pageshow",resume);
       document.removeEventListener("visibilitychange",resume);
       if(timer)clearTimeout(timer)};
-  },[documentId,processQueuedShare,queuedShare?.clientRequestId,queuedShare?.nextRetryAt,queuedShare?.leaseUntil,queuedShare?.status]);
+  },[documentId,queuedShare?.clientRequestId,queuedShare?.nextRetryAt,queuedShare?.leaseUntil,queuedShare?.status]);
 
   const revokeLink = useCallback(async (viewTokenParam?: string, manageTokenParam?: string): Promise<boolean> => {
     const targetViewToken = viewTokenParam || activeLink?.viewToken;
