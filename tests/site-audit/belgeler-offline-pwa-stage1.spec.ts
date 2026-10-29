@@ -64,8 +64,12 @@ test("belge catalog and all five PDF previews survive a cold offline reload", as
 test("other portal routes are outside the registered SW scope", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/belgeler");
-  const scope = await page.evaluate(async () => (await navigator.serviceWorker.ready).scope);
-  expect(scope).toMatch(/\/belgeler\/?$/);
+  // The root offline-home worker may resolve navigator.serviceWorker.ready first.
+  // Wait for the more specific, active Belgeler registration, not the generic ready promise.
+  await expect.poll(async () => page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.getRegistration("/belgeler");
+    return registration?.active?.scriptURL.endsWith("/belgeler-sw.js") ? registration.scope : "";
+  }), { timeout: 20000 }).toMatch(/\/belgeler\/?$/);
   const scopes = await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).map((r) => r.scope));
   // A separate root worker is intentionally allowed, but its fetch handler only handles '/'.
   expect(scopes.every((s) => /\/belgeler\/?$/.test(s) || new URL(s).pathname === "/")).toBeTruthy();
