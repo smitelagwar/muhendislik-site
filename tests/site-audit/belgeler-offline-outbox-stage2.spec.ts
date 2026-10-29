@@ -9,7 +9,7 @@ test("offline intent persists, never POSTs while offline, and can be cancelled w
   await page.goto("/belgeler/beton-dokum-tutanagi");
   await expect(page.getByTestId("belge-studio-preview-canvas").locator("canvas")).toBeVisible();
   let submitted=0;
-  page.on("request",request=>{if(request.method()==="POST" && request.url().includes("/api/belgeler/paylasim"))submitted++});
+  page.on("request",request=>{if(request.method()==="POST" && new URL(request.url()).pathname === "/api/belgeler/paylasim")submitted++});
   await context.setOffline(true);
   await page.getByTestId("belge-desktop-share-btn").click();
   await expect(page.getByTestId("belge-offline-enqueue")).toBeVisible();
