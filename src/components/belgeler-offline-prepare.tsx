@@ -211,7 +211,7 @@ export function BelgelerOfflinePrepare() {
             <DownloadCloud className="h-4 w-4 shrink-0" />}
           <span className="truncate">
             {checking ? "Çevrimdışı kontrol ediliyor" : busy ? "Çevrimdışı hazırlanıyor" : ready ? "Çevrimdışı hazır" :
-              progress?.state === "paused" ? "Eksik indirmeye devam et" : "Çevrimdışı kullanıma hazırla"}
+              progress?.state === "paused" ? "Eksik indirmeye devam et" : error ? "Yeniden dene" : "Çevrimdışı kullanıma hazırla"}
           </span>
           {busy && progress && <span aria-hidden="true" className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 tabular-nums text-[10px] text-amber-700 dark:text-amber-300">{progress.completed}/{progress.total}</span>}
         </button>
