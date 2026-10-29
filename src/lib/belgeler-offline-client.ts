@@ -3,7 +3,7 @@ import { PDFJS_BASE, PDFJS_MAIN, PDFJS_POLYFILLS, PDFJS_WORKER } from "@/lib/pdf
 
 const READY_KEY = "belgeler:pwa:ready:v1"; // only anonymous installation metadata
 const JOURNAL_KEY = "belgeler:pwa:preparation:v3";
-const OFFLINE_VERSION = "belgeler-offline-v3";
+const OFFLINE_VERSION = "belgeler-offline-v4";
 const PAGE_CACHE = OFFLINE_VERSION + "-pages";
 const ASSET_CACHE = OFFLINE_VERSION + "-assets";
 const PREPARATION_STEPS = 5; // five raster checks, not the number of documents
@@ -67,21 +67,74 @@ export async function registerBelgelerOffline(): Promise<ServiceWorkerRegistrati
   if (!validEnvironment()) return null;
   return navigator.serviceWorker.register("/belgeler-sw.js", { scope: "/belgeler", updateViaCache: "none" });
 }
-async function waitForControl(): Promise<void> {
-  const isBelgeWorker=()=>navigator.serviceWorker.controller?.scriptURL.endsWith("/belgeler-sw.js")===true;
-  if(isBelgeWorker())return;
-  await new Promise<void>((resolve,reject)=>{
-    const timeout=window.setTimeout(()=>{
-      cleanup();reject(new Error("Belgeler PWA hizmeti etkinleşmedi. Sayfayı yeniden açıp deneyin."));
-    },12000);
-    const interval=window.setInterval(check,250);
-    function cleanup(){
-      clearTimeout(timeout);clearInterval(interval);
-      navigator.serviceWorker.removeEventListener("controllerchange",check);
+/** Match the *specific* Belgeler registration, not navigator.serviceWorker.ready:
+ * ready can resolve to the separate root homepage registration.
+ * Listeners are installed before the first check to avoid lost activation events.
+ */
+async function waitForControl(registration: ServiceWorkerRegistration): Promise<ServiceWorker> {
+  const expectedScope = new URL("/belgeler", location.origin).href;
+  if (registration.scope !== expectedScope && registration.scope !== expectedScope + "/")
+    throw new Error("Belgeler hizmetinin kapsamı beklenenden farklı.");
+  const current = () => {
+    const active = registration.active;
+    const controller = navigator.serviceWorker.controller;
+    return active?.state === "activated" && controller?.scriptURL === active.scriptURL &&
+      controller.scriptURL.endsWith("/belgeler-sw.js") ? controller : null;
+  };
+  const immediate = current();
+  if (immediate) return immediate;
+  return new Promise<ServiceWorker>((resolve, reject) => {
+    let completed = false;
+    const installed = new Set<ServiceWorker>();
+    const timeout = window.setTimeout(() => finish(new Error(
+      registration.waiting ? "Yeni çevrimdışı sürüm hazır. Önce 'Yeni sürüme geç' seçeneğini kullanın." :
+      "Belgeler hizmeti henüz sayfanın kontrolünü alamadı. İndirme başlamadı; yeniden deneyebilirsiniz."
+    )), 18000);
+    const onState = () => { const found = current(); if (found) finish(undefined, found); };
+    const onUpdate = () => { bind(registration.installing); onState(); };
+    function bind(worker: ServiceWorker | null) {
+      if (!worker || installed.has(worker)) return;
+      installed.add(worker);
+      worker.addEventListener("statechange", onState);
     }
-    function check(){if(isBelgeWorker()){cleanup();resolve()}}
-    navigator.serviceWorker.addEventListener("controllerchange",check);
-    check();
+    function finish(error?: Error, worker?: ServiceWorker) {
+      if (completed) return;
+      completed = true;
+      clearTimeout(timeout);
+      navigator.serviceWorker.removeEventListener("controllerchange", onState);
+      registration.removeEventListener("updatefound", onUpdate);
+      for (const item of installed) item.removeEventListener("statechange", onState);
+      if (error) reject(error);
+      else resolve(worker!);
+    }
+    navigator.serviceWorker.addEventListener("controllerchange", onState);
+    registration.addEventListener("updatefound", onUpdate);
+    bind(registration.installing);
+    bind(registration.waiting);
+    bind(registration.active);
+    onState();
+  });
+}
+async function readControllerVersion(worker: ServiceWorker): Promise<string> {
+  return await new Promise<string>((resolve, reject) => {
+    const channel = new MessageChannel();
+    const timer = window.setTimeout(() => {
+      channel.port1.close();
+      channel.port2.close();
+      reject(new Error("Çevrimdışı hizmet sürümü yanıt vermedi."));
+    }, 6000);
+    channel.port1.onmessage = (event: MessageEvent<{version?: string}>) => {
+      window.clearTimeout(timer);
+      channel.port1.close();
+      channel.port2.close();
+      resolve(event.data?.version || "");
+    };
+    try { worker.postMessage({type:"GET_VERSION"}, [channel.port2]); }
+    catch (error) {
+      window.clearTimeout(timer);
+      channel.port1.close(); channel.port2.close();
+      reject(error);
+    }
   });
 }
 async function cachedResource(path:string,kind:"pdf"|"page"|"asset"):Promise<boolean> {
@@ -206,21 +259,13 @@ async function runPreparation(onProgress:(p:PreparationProgress)=>void):Promise<
     throw new Error("Veri tasarrufu veya çok yavaş ağ etkin. Wi-Fi ile devam edin.");
   const registration=await registerBelgelerOffline();
   if(!registration)throw new Error("Çevrimdışı hizmet kaydedilemedi.");
-  await navigator.serviceWorker.ready;
-  await waitForControl();
-  // An installed old worker may still control an active editor. Never mix the old cached HTML
-  // with this build. User needs the existing 'Yeni sürüme geç' action to activate the waiting worker.
-  const worker=navigator.serviceWorker.controller;
-  if(!worker)throw new Error("PWA hizmeti henüz kontrolü almadı. Sayfayı yeniden açın.");
-  const version=await new Promise<string>((resolve,reject)=>{
-    const channel=new MessageChannel();
-    const timer=setTimeout(()=>{channel.port1.close();reject(new Error("Servis sürümü okunamadı"))},6000);
-    channel.port1.onmessage=(e:MessageEvent<{version?:string}>)=>{
-      clearTimeout(timer);channel.port1.close();resolve(e.data?.version||"")
-    };
-    worker.postMessage({type:"GET_VERSION"},[channel.port2]);
-  });
-  if(version!==OFFLINE_VERSION)throw new Error("Yeni çevrimdışı sürüm bekliyor. Belgeler'de 'Yeni sürüme geç' seçeneğini kullanın.");
+  const worker = await waitForControl(registration);
+  const version = await readControllerVersion(worker);
+  if (version !== OFFLINE_VERSION) {
+    throw new Error(registration.waiting ?
+      "Yeni çevrimdışı sürüm hazır. Önce 'Yeni sürüme geç' seçeneğini kullanın." :
+      "Eski çevrimdışı hizmet çalışıyor. Yeni sürüm tamamlanınca tekrar deneyin.");
+  }
   const total=CORE.length+ROUTES.length+PREPARATION_STEPS+1;
   let completed=0;
   const update=(state:PreparationProgress["state"],detail:string)=>{
@@ -299,10 +344,26 @@ export async function prepareBelgelerOffline(onProgress:(p:PreparationProgress)=
   activePreparation=perform().finally(()=>{activePreparation=null});
   return activePreparation;
 }
+/** Clear and preparation share the same Web Lock across tabs. No unrelated drafts,
+ * queue or root-home cache is touched. The previous offline generation is also
+ * explicitly removed only when the user requests deletion.
+ */
 export async function clearBelgelerOfflineFiles(): Promise<void> {
-  localStorage.removeItem(READY_KEY);
-  localStorage.removeItem(JOURNAL_KEY);
-  const names = await caches.keys();
-  await Promise.all(names.filter(name => name.startsWith("belgeler-offline-")).map(name => caches.delete(name)));
-  // Never delete localStorage draft keys, sharing records, or other portal assets.
+  const clear = async () => {
+    localStorage.removeItem(READY_KEY);
+    localStorage.removeItem(JOURNAL_KEY);
+    const names = await caches.keys();
+    const targets = names.filter(name => name.startsWith("belgeler-offline-"));
+    for (const name of targets) {
+      if (!await caches.delete(name)) throw new Error("Önbellek temizlenemedi: " + name);
+    }
+    const remaining = (await caches.keys()).filter(name => name.startsWith("belgeler-offline-"));
+    if (remaining.length) throw new Error("Bazı çevrimdışı dosyalar silinemedi.");
+  };
+  const locks = (navigator as Navigator & {locks?: LockManager}).locks;
+  if (locks) await locks.request("belgeler-offline-prepare", clear);
+  else if (activePreparation) {
+    await activePreparation.catch(() => {});
+    await clear();
+  } else await clear();
 }
