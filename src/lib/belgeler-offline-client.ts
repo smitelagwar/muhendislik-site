@@ -18,7 +18,9 @@ export function readPreparationJournal(): PreparationJournal | null {
     if(!raw)return null;
     const value=JSON.parse(raw) as PreparationJournal;
     if(value.version!==3 || typeof value.scripts!=="string" ||
-       !Number.isFinite(value.updatedAt) || value.total<1) return null;
+       !Number.isFinite(value.updatedAt) || value.total<1 ||
+       value.completed < 0 || value.completed > value.total ||
+       value.scripts!==buildScriptSignature()) return null;
     return value;
   }catch{return null}
 }
