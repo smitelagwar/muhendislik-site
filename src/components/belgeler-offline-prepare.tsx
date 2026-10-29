@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { CheckCircle2, DownloadCloud, RefreshCw, WifiOff } from "lucide-react";
+import { CheckCircle2, DownloadCloud, RefreshCw, WifiOff, Smartphone, Trash2 } from "lucide-react";
 import {
   prepareBelgelerOffline,
   readOfflineReady,
+  clearBelgelerOfflineFiles,
   type PreparationProgress,
 } from "@/lib/belgeler-offline-client";
 
+interface InstallPrompt extends Event { prompt: () => Promise<void>; userChoice: Promise<{outcome:string}> }
 function subscribeSupport() { return () => {}; }
 function getSupport() {
   return typeof window !== "undefined" && "serviceWorker" in navigator && "caches" in window &&
@@ -19,13 +21,30 @@ function getServerSupport() { return false; }
 export function BelgelerOfflinePrepare() {
   const available = useSyncExternalStore(subscribeSupport, getSupport, getServerSupport);
   const [ready, setReady] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null);
+  const isIos = useSyncExternalStore(subscribeSupport,
+    () => /iPhone|iPad|iPod/.test(navigator.userAgent), getServerSupport);
+  const standalone = useSyncExternalStore(subscribeSupport,
+    () => window.matchMedia("(display-mode: standalone)").matches ||
+      Boolean((navigator as Navigator & {standalone?:boolean}).standalone), getServerSupport);
+  const [updateWaiting, setUpdateWaiting] = useState(false);
   const [progress, setProgress] = useState<PreparationProgress | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
     if (available) void readOfflineReady().then(setReady);
     const recheck = () => { if (available) void readOfflineReady().then(setReady); };
     window.addEventListener("pageshow", recheck);
-    return () => window.removeEventListener("pageshow", recheck);
+    const handler = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPrompt); };
+    window.addEventListener("beforeinstallprompt", handler);
+    let alive=true;
+    void navigator.serviceWorker.getRegistration("/belgeler").then(reg=>{
+      if(!reg||!alive)return;
+      setUpdateWaiting(Boolean(reg.waiting));
+      reg.addEventListener("updatefound",()=>{const incoming=reg.installing;
+        incoming?.addEventListener("statechange",()=>{if(incoming.state==="installed" && navigator.serviceWorker.controller && alive)setUpdateWaiting(true)})});
+    }).catch(()=>{});
+    return () => {alive=false;window.removeEventListener("pageshow", recheck);
+      window.removeEventListener("beforeinstallprompt",handler);};
   }, [available]);
   if (!available) return null;
   const busy = progress?.state === "loading" || progress?.state === "verifying";
@@ -36,6 +55,7 @@ export function BelgelerOfflinePrepare() {
     try {
       await prepareBelgelerOffline(setProgress);
       setReady(true);
+      try { await navigator.storage?.persist?.(); } catch { /* Browser may deny persistent storage. */ }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Hazırlama başarısız oldu.");
       setProgress({ state: "failed", detail: "Eksik dosyalar var — yeniden deneyin.", completed: 0, total: 1 });
@@ -60,6 +80,30 @@ export function BelgelerOfflinePrepare() {
           ready ? "5 belge bu cihazda internet olmadan açılıp PDF olarak indirilebilir." :
           <><WifiOff className="mr-1 inline h-3 w-3" />İlk hazırlık için internet gerekir.</>}
       </p>
+      <div className="flex flex-wrap gap-2">
+        {!standalone && installPrompt && (
+          <button type="button" className="rounded-lg border border-border px-2 py-1 text-[11px]"
+            onClick={() => {void installPrompt.prompt().then(()=>installPrompt.userChoice).finally(()=>setInstallPrompt(null))}}>
+            <Smartphone className="mr-1 inline h-3 w-3" /> Ana ekrana yükle
+          </button>
+        )}
+        {isIos && !standalone && <span className="text-[11px] text-muted-foreground">iOS: Paylaş → Ana Ekrana Ekle</span>}
+        {ready && <button type="button" className="inline-flex items-center rounded-lg border border-border px-2 py-1 text-[11px]"
+          onClick={() => {if(!window.confirm("Yalnız çevrimdışı dosyalar silinecek. Kaydedilmiş taslaklar korunacak. Devam edilsin mi?"))return;
+            void clearBelgelerOfflineFiles().then(()=>setReady(false)).catch(()=>setError("Önbellek silinemedi."))}}>
+          <Trash2 className="mr-1 h-3 w-3" /> Çevrimdışı dosyaları sil
+        </button>}
+        {updateWaiting && <button type="button" className="rounded-lg border border-amber-500 px-2 py-1 text-[11px]"
+          onClick={() => {if(!window.confirm("Yeni sürüme geçmek için sayfa yeniden açılacak. Belgeler stüdyosundaki taslağınızı kaydettiğinizden emin olun."))return;
+            void navigator.serviceWorker.getRegistration("/belgeler").then(reg=>{
+              if(!reg?.waiting)return;
+              navigator.serviceWorker.addEventListener("controllerchange",()=>{if(sessionStorage.getItem("belgeler:pwa:updated")!=="yes"){
+                sessionStorage.setItem("belgeler:pwa:updated","yes");window.location.reload();}}, {once:true});
+              reg.waiting.postMessage({type:"ACTIVATE_UPDATE"});
+            })}}>
+          Yeni sürüme geç
+        </button>}
+      </div>
     </div>
   );
 }

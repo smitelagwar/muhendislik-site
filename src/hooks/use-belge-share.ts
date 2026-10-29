@@ -14,6 +14,13 @@ import {
   type BrowserShareQuotaSnapshot,
 } from "@/lib/belge-paylasim/browser-bootstrap";
 import { DOCUMENT_EDITABLE_FIELDS } from "@/lib/document-field-contracts";
+import { computeSchemaFingerprint } from "@/lib/belge-draft-storage";
+import {
+  getShareIntent, enqueueShareIntent, cancelShareIntent, claimShareIntent,
+  releaseShareIntent, markShareIntentBlocked, resetShareIntentRetry,
+  type OfflineShareIntent,
+} from "@/lib/belgeler-offline/outbox";
+import { probeConnectivity, type Connectivity } from "@/lib/belgeler-offline/connectivity";
 
 const OPERATION_TIMEOUT_MS = 8_000;
 const OPERATION_RECOVERY_WINDOW_MS = 18_000;
@@ -80,7 +87,12 @@ export interface UseBelgeShareReturn {
   isStoragePersistent: boolean;
   storageNotice: string | null;
   copyLink: (urlToCopy?: string) => Promise<boolean>;
-  createShareLink: () => Promise<void>;
+  createShareLink: () => Promise<boolean>;
+  queueShareLink: () => Promise<void>;
+  cancelQueuedShare: () => Promise<void>;
+  retryQueuedShare: () => Promise<void>;
+  queuedShare: OfflineShareIntent | null;
+  connectionState: Connectivity;
   revokeLink: (viewToken?: string, manageToken?: string) => Promise<boolean>;
   resetShareState: () => void;
   refreshDeviceLinks: () => void;
@@ -279,6 +291,9 @@ function getShareApiError(response: Response, data: unknown, isJson: boolean): s
   return message ?? `Bağlantı oluşturulamadı (HTTP ${response.status}).`;
 }
 
+export class ShareHttpError extends Error {
+  constructor(public readonly status: number, message: string) { super(message); this.name = "ShareHttpError"; }
+}
 export async function parseShareCreateResponse(response: Response): Promise<Record<string, unknown>> {
   const isJson = (response.headers.get("content-type") ?? "").toLowerCase().includes("application/json");
   let data: Record<string, unknown> | null = null;
@@ -294,7 +309,7 @@ export async function parseShareCreateResponse(response: Response): Promise<Reco
   }
 
   if (!response.ok && response.status !== 202) {
-    throw new Error(malformedJson
+    throw new ShareHttpError(response.status, malformedJson
       ? `Sunucu geçerli JSON yanıtı vermedi (HTTP ${response.status}).`
       : getShareApiError(response, data, isJson));
   }
@@ -495,6 +510,8 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
   const hasSensitiveOrSampleData = Object.values(currentSnapshotValues).some((value) => value.trim().length > 0);
 
   const [isOpen, setIsOpen] = useState(false);
+  const [queuedShare, setQueuedShare] = useState<OfflineShareIntent | null>(null);
+  const [connectionState, setConnectionState] = useState<Connectivity>("checking");
   const [isCreating, setIsCreating] = useState(false);
   const [isRecovering, setIsRecovering] = useState(false);
   const [recoveryStatus, setRecoveryStatus] = useState<"idle" | "checking" | "pending" | "unresolved">("idle");
@@ -522,6 +539,9 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
   const recoveryInFlightRef = useRef(false);
   const pendingRequestRef = useRef<PendingShareRequest | null>(null);
   const activeControllersRef = useRef(new Set<AbortController>());
+  const shareAttemptKindRef = useRef<"pending" | "retryable" | "blocked">("retryable");
+  const outboxFlightRef = useRef(false);
+  const nextOutboxProbeRef = useRef(0);
   const quotaFlightRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
@@ -621,6 +641,10 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
     }
     clearRecoveryRecord(documentId);
     pendingRequestRef.current = null;
+    // Deleting the matching durable queue never affects the existing draft.
+    void cancelShareIntent(documentId, record.clientRequestId)
+      .then(() => { if (mountedRef.current) setQueuedShare(null); })
+      .catch(() => { /* The same idempotent operation remains recoverable on next open. */ });
     if (generation === generationRef.current && mountedRef.current) {
       setActiveLink(link);
       setRecoveryStatus("idle");
@@ -673,9 +697,13 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
     setCopyFallbackUrl(null);
     refreshDeviceLinks();
     setIsOpen(true);
-    void refreshQuota();
-    void recoverPendingOperation();
-  }, [recoverPendingOperation, refreshDeviceLinks, refreshQuota]);
+    if (navigator.onLine) {
+      void refreshQuota();
+      void recoverPendingOperation();
+    }
+    void probeConnectivity().then(setConnectionState);
+    void getShareIntent(documentId).then(setQueuedShare).catch(() => {});
+  }, [documentId, recoverPendingOperation, refreshDeviceLinks, refreshQuota]);
 
   const closeShareDialog = useCallback(() => {
     // Closing the UI does not cancel an already accepted server operation.
@@ -742,19 +770,24 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
     return false;
   }, [activeLink?.url]);
 
-  const createShareLink = useCallback(async () => {
-    if (createInFlightRef.current) return;
+  const createShareLink = useCallback(async (): Promise<boolean> => {
+    shareAttemptKindRef.current = "retryable";
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setError("İnternet yok. Önce 'Bağlantı gelince paylaş' seçeneğini kullanın.");
+      return false;
+    }
+    if (createInFlightRef.current) return false;
     if (recoveryInFlightRef.current) {
       setError("Önceki bağlantı isteğinin sonucu kontrol ediliyor. Kontrol tamamlanınca yeniden deneyin.");
-      return;
+      return false;
     }
     if (!backendReady) {
       setError("Bağlantı oluşturma servisi hazırlanıyor. Sunucu entegrasyonu tamamlandığında aktif olacaktır.");
-      return;
+      return false;
     }
     if (!isReady || normalizedRevision === null) {
       setError("Güncel PDF hazırlanıyor. Hazır olduğunda bağlantı oluşturabilirsiniz.");
-      return;
+      return false;
     }
 
     createInFlightRef.current = true;
@@ -771,7 +804,33 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
       const fingerprint = await createShareSnapshotFingerprint(documentId, revision, values);
       setFingerprintResult({ seed: buildSnapshotSeed(documentId, revision, values), fingerprint });
 
+      // A durable offline intent has priority only when its immutable content digest still matches.
+      // Normal online sharing must continue even on browsers without IndexedDB.
+      const queued = await getShareIntent(documentId).catch(() => null);
+      if (queued) {
+        if (queued.status === "blocked" || queued.snapshotFingerprint !== fingerprint ||
+            queued.schemaFingerprint !== computeSchemaFingerprint(documentId as keyof typeof DOCUMENT_EDITABLE_FIELDS)) {
+          shareAttemptKindRef.current = "blocked";
+          setError("Belge değişti veya kuyruk engellendi. Eski isteği iptal edip yeniden onaylayın.");
+          return false;
+        }
+      }
       let request = pendingRequestRef.current;
+      if (queued && request && request.record.clientRequestId !== queued.clientRequestId) {
+        shareAttemptKindRef.current = "blocked";
+        setError("Önceki paylaşım işlemi çözümlenmeden farklı bir istek başlatılamaz.");
+        return false;
+      }
+      if (queued && !request) {
+        request = { record: {
+          clientRequestId: queued.clientRequestId,
+          replayProof: queued.replayProof,
+          documentId,
+          snapshotFingerprint: queued.snapshotFingerprint,
+          snapshotRevision: revision,
+          createdAt: queued.createdAt,
+        }, values };
+      }
       if (!request && typeof window !== "undefined") {
         const stored = readRecoveryRecord(documentId);
         if (stored) request = { record: stored, values: null };
@@ -781,17 +840,23 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
         const outcome = await pollOperationStatus(request.record, controller.signal);
         if (outcome.kind === "ready") {
           acceptReadyResult(outcome.data, request.record, generation);
-          return;
+          return true;
         }
         if (outcome.kind === "pending") {
           pendingRequestRef.current = request;
           setRecoveryStatus("pending");
           setError("Önceki bağlantı isteği sunucuda sürüyor. Sonuç kesinleşmeden yeni bir bağlantı oluşturulmaz.");
-          return;
+          shareAttemptKindRef.current = "pending";
+          return false;
         }
 
         const sameSnapshot = outcome.kind !== "terminal" && request.record.documentId === documentId &&
           request.record.snapshotFingerprint === fingerprint;
+        if (!sameSnapshot && queued) {
+          shareAttemptKindRef.current = "blocked";
+          setError("Sunucuda önceki istek süresi dolmuş veya belge değişmiş. Kuyruğu iptal edip yeniden onaylayın.");
+          return false;
+        }
         if (!sameSnapshot) {
           clearRecoveryRecord(documentId);
           pendingRequestRef.current = null;
@@ -840,10 +905,11 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
         const outcome = await pollOperationStatus(request.record, controller.signal);
         if (outcome.kind === "ready") {
           acceptReadyResult(outcome.data, request.record, generation);
-          return;
+          return true;
         }
         if (outcome.kind === "pending") {
           setRecoveryStatus("pending");
+          shareAttemptKindRef.current = "pending";
           throw new Error("Bağlantı isteği sunucuda sürüyor. Sonucu yeniden kontrol edebilirsiniz; ikinci bir kota hakkı kullanılmadı.");
         }
         if (outcome.kind === "failed") throw new Error("Bağlantı oluşturulamadı. Aynı güvenli istekle yeniden deneyebilirsiniz.");
@@ -851,14 +917,20 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
       }
 
       acceptReadyResult(data, request.record, generation);
+      return true;
     } catch (cause) {
+      if (cause instanceof ShareHttpError) {
+        shareAttemptKindRef.current = cause.status >= 400 && cause.status < 500 &&
+          cause.status !== 408 && cause.status !== 429 ? "blocked" : "retryable";
+      }
       if (mountedRef.current && generation === generationRef.current) {
         const isTransportFailure = cause instanceof TypeError ||
           (typeof DOMException !== "undefined" && cause instanceof DOMException);
         setError(isTransportFailure ? getShareTransportError(cause) : cause instanceof Error ? cause.message : getShareTransportError(cause));
         setRecoveryStatus(pendingRequestRef.current ? "unresolved" : "idle");
-        void refreshQuota();
+        if (navigator.onLine) void refreshQuota();
       }
+      return false;
     } finally {
       releaseController(controller);
       createInFlightRef.current = false;
@@ -875,6 +947,112 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
     refreshQuota,
     releaseController,
   ]);
+
+  const queueShareLink = useCallback(async () => {
+    if (!isReady || normalizedRevision === null) {
+      setError("PDF hazır olmadan bekleyen paylaşım kaydedilemez."); return;
+    }
+    if (pendingRequestRef.current || readRecoveryRecord(documentId)) {
+      setError("Önceki paylaşım isteğini çözmeden ikinci bir işlem kaydedilemez."); return;
+    }
+    try {
+      const values=filterShareSnapshotValues(documentId, getSnapshotValues ? getSnapshotValues() : {});
+      const hash=await createShareSnapshotFingerprint(documentId,null,values);
+      const item=await enqueueShareIntent({
+        documentId, snapshotFingerprint:hash,
+        schemaFingerprint:computeSchemaFingerprint(documentId as keyof typeof DOCUMENT_EDITABLE_FIELDS),
+        clientRequestId:createBrowserShareSecret(), replayProof:createBrowserShareSecret(),
+        createdAt:new Date().toISOString(),status:"queued",attempts:0,nextRetryAt:0,
+      });
+      setQueuedShare(item);
+      setError(null);
+    }catch(cause){
+      setError(cause instanceof Error ? cause.message : "Paylaşım kuyruğa alınamadı. PDF'yi indirin.");
+    }
+  },[documentId,getSnapshotValues,isReady,normalizedRevision]);
+  const cancelQueuedShare = useCallback(async () => {
+    try {
+      const item=await getShareIntent(documentId);
+      if (!item) {setQueuedShare(null);return}
+      if (item.status==="sending" && item.leaseUntil && item.leaseUntil>Date.now()) {
+        setError("İşlem sunucuya gönderiliyor; sonuç kontrol edilmeden iptal edilemez.");return;
+      }
+      await cancelShareIntent(documentId,item.clientRequestId);
+      setQueuedShare(null);
+      if (pendingRequestRef.current?.record.clientRequestId===item.clientRequestId) {
+        // A lost POST response can still have produced a real link on the server.
+        // Cancel only local future attempts; retain the session recovery proof.
+        setRecoveryStatus("unresolved");
+      }
+    }catch(cause){setError(cause instanceof Error?cause.message:"İptal kaydedilemedi.")}
+  },[documentId]);
+  const processQueuedShare = useCallback(async (manual=false) => {
+    if (typeof document==="undefined" || document.visibilityState!=="visible" ||
+        !backendReady || !isReady || normalizedRevision===null || createInFlightRef.current) return;
+    if (outboxFlightRef.current || (!manual && nextOutboxProbeRef.current > Date.now())) return;
+    outboxFlightRef.current = true;
+    try {
+    const item=await getShareIntent(documentId).catch(()=>null);
+    if(!item || item.status==="blocked" || (!manual && item.nextRetryAt>Date.now()))return;
+    const values=filterShareSnapshotValues(documentId,getSnapshotValues ? getSnapshotValues() : {});
+    const hash=await createShareSnapshotFingerprint(documentId,null,values).catch(()=>null);
+    if(hash!==item.snapshotFingerprint ||
+       item.schemaFingerprint!==computeSchemaFingerprint(documentId as keyof typeof DOCUMENT_EDITABLE_FIELDS)){
+      await markShareIntentBlocked(documentId).catch(()=>{});
+      setQueuedShare(await getShareIntent(documentId).catch(()=>null));
+      setError("Belge içeriği değişti. Yanlış sürüm paylaşılmadı; eski isteği iptal edip yeniden onaylayın.");
+      return;
+    }
+    const connectivity=await probeConnectivity();
+    setConnectionState(connectivity);
+    if(connectivity==="offline")return;
+    const token=createBrowserShareSecret();
+    const leased=await claimShareIntent(documentId,token).catch(()=>null);
+    if(!leased)return; // competing tab or retry backoff
+    setQueuedShare(leased);
+    let worked=false;
+    try {
+      await refreshQuota(); // Existing cookie/browser identity bootstrap — do not bypass it.
+      worked=await createShareLink(); // Existing status-first + replay-proof + idempotency workflow.
+      if(worked) {
+        await cancelShareIntent(documentId,leased.clientRequestId);
+      } else {
+        const blocked=shareAttemptKindRef.current==="blocked";
+        await releaseShareIntent(documentId,token,blocked?"blocked":"retryable",blocked?"identity":"server");
+      }
+    }catch{
+      await releaseShareIntent(documentId,token,"retryable","network").catch(()=>{});
+    }finally{
+      setQueuedShare(await getShareIntent(documentId).catch(()=>null));
+    }
+    } finally {
+      outboxFlightRef.current=false;
+      nextOutboxProbeRef.current=Date.now()+12000;
+    }
+  },[backendReady,createShareLink,documentId,getSnapshotValues,isReady,normalizedRevision,refreshQuota]);
+  const retryQueuedShare = useCallback(async () => {
+    try {
+      await resetShareIntentRetry(documentId);
+      setQueuedShare(await getShareIntent(documentId));
+      await processQueuedShare(true);
+    } catch (cause) {setError(cause instanceof Error ? cause.message : "Tekrar deneme başarısız.");}
+  },[documentId,processQueuedShare]);
+  // Works while this document is open/visible. No background sync, push or silent sending on a closed app.
+  useEffect(() => {
+    let active=true;
+    void getShareIntent(documentId).then(item=>{if(active)setQueuedShare(item)}).catch(()=>{});
+    const resume=()=>{if(document.visibilityState==="visible")void processQueuedShare().catch(()=>{})};
+    window.addEventListener("online",resume);
+    window.addEventListener("pageshow",resume);
+    document.addEventListener("visibilitychange",resume);
+    const timer=queuedShare && queuedShare.status!=="blocked" ?
+      window.setTimeout(resume,Math.max(1200,Math.min(300000,(queuedShare.nextRetryAt||Date.now())-Date.now()+300))) : undefined;
+    if(queuedShare) void processQueuedShare().catch(()=>{});
+    return ()=>{active=false;window.removeEventListener("online",resume);
+      window.removeEventListener("pageshow",resume);
+      document.removeEventListener("visibilitychange",resume);
+      if(timer)clearTimeout(timer)};
+  },[documentId,processQueuedShare,queuedShare?.clientRequestId,queuedShare?.nextRetryAt,queuedShare?.status]);
 
   const revokeLink = useCallback(async (viewTokenParam?: string, manageTokenParam?: string): Promise<boolean> => {
     const targetViewToken = viewTokenParam || activeLink?.viewToken;
@@ -965,6 +1143,11 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
     storageNotice,
     copyLink,
     createShareLink,
+    queueShareLink,
+    cancelQueuedShare,
+    retryQueuedShare,
+    queuedShare,
+    connectionState,
     revokeLink,
     resetShareState,
     refreshDeviceLinks,

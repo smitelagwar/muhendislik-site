@@ -1,0 +1,39 @@
+name: Belgeler offline PWA stage 2
+
+on:
+  push:
+    branches:
+      - feat/belgeler-offline-pwa-stage2-20261029
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    env:
+      CI: "true"
+      NEXT_PUBLIC_BELGELER_OFFLINE_PWA: "1"
+      BELGE_SHARE_SECRET: "ci-only-safe-32-byte-placeholder-key-for-tests"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx tsc -p tsconfig.next.json --noEmit
+      - run: npx eslint src/lib/belgeler-offline src/lib/belgeler-offline-client.ts src/hooks/use-belge-share.ts src/components/belgeler-offline-prepare.tsx src/components/belge-paylasim/belge-share-dialog.tsx
+      - run: npx tsx --test tests/belgeler/offline-pwa-scope.test.ts tests/belgeler/offline-outbox-contract.test.ts
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=playwright.site.config.ts tests/site-audit/belgeler-offline-outbox-stage2.spec.ts tests/site-audit/belgeler-offline-pwa-stage1.spec.ts --project=chromium-desktop-1366
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: belgeler-offline-stage2-evidence
+          path: |
+            test-results/
+            playwright-report/

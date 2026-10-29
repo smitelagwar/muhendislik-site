@@ -1,6 +1,6 @@
 /* Belgeler PWA / stage 1. Scope is /belgeler, never the full portal. */
 "use strict";
-const VERSION = "belgeler-offline-v1";
+const VERSION = "belgeler-offline-v2";
 const PAGE_CACHE = VERSION + "-pages";
 const ASSET_CACHE = VERSION + "-assets";
 const OFFLINE_PAGE = "/belgeler-offline.html";
@@ -19,7 +19,9 @@ const INSTALL_ASSETS = new Set([OFFLINE_PAGE, "/belgeler-pwa.webmanifest", "/ico
 function pathOf(url) { return new URL(url).pathname.replace(/\/$/, "") || "/"; }
 function allowedPage(path) { return ROUTES.has(path.replace(/\/$/, "")); }
 function allowedAsset(path) {
-  return path.startsWith("/_next/static/") || PDF.test(path) || FONTS.test(path) ||
+  const nextAsset = path.startsWith("/_next/static/") &&
+    !/^\/_next\/static\/chunks\/app\/(?!belgeler\/|layout-|error-|page-)/.test(path);
+  return nextAsset || PDF.test(path) || FONTS.test(path) ||
     PDFJS.test(path) || INSTALL_ASSETS.has(path) ||
     /^\/belgeler-pwa-icon\/(?:180|192|512)$/.test(path);
 }
