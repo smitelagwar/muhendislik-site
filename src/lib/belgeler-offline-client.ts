@@ -244,7 +244,9 @@ async function openAndInspect(path: string, cacheOnly: boolean): Promise<void> {
   frame.src = path + (cacheOnly ? "?__belgeler_cache_test=1" : "?__belgeler_prepare=1");
   document.body.appendChild(frame);
   try {
-    const deadline = Date.now() + 25000;
+    // Complex two-page forms can need extra time after a cold start. This is a
+    // bounded validation timeout, not a false success on an unpainted canvas.
+    const deadline = Date.now() + (cacheOnly ? 45000 : 35000);
     while (Date.now() < deadline) {
       if (renderStarted(frame)) return;
       await new Promise(resolve => setTimeout(resolve, 250));
