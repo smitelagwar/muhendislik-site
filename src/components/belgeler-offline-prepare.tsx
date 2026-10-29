@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { CheckCircle2, DownloadCloud, RefreshCw, WifiOff } from "lucide-react";
 import {
   prepareBelgelerOffline,
@@ -7,22 +7,26 @@ import {
   type PreparationProgress,
 } from "@/lib/belgeler-offline-client";
 
+function subscribeSupport() { return () => {}; }
+function getSupport() {
+  return typeof window !== "undefined" && "serviceWorker" in navigator && "caches" in window &&
+    window.isSecureContext && process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PUBLIC_BELGELER_OFFLINE_PWA !== "0";
+}
+function getServerSupport() { return false; }
+
 /** Deliberately placed on the catalog, not in the document studio toolbar. */
 export function BelgelerOfflinePrepare() {
-  const [available, setAvailable] = useState(false);
+  const available = useSyncExternalStore(subscribeSupport, getSupport, getServerSupport);
   const [ready, setReady] = useState(false);
   const [progress, setProgress] = useState<PreparationProgress | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
-    const supported = "serviceWorker" in navigator && "caches" in window &&
-      window.isSecureContext && process.env.NODE_ENV === "production" &&
-      process.env.NEXT_PUBLIC_BELGELER_OFFLINE_PWA !== "0";
-    setAvailable(supported);
-    if (supported) void readOfflineReady().then(setReady);
-    const recheck = () => { if (supported) void readOfflineReady().then(setReady); };
+    if (available) void readOfflineReady().then(setReady);
+    const recheck = () => { if (available) void readOfflineReady().then(setReady); };
     window.addEventListener("pageshow", recheck);
     return () => window.removeEventListener("pageshow", recheck);
-  }, []);
+  }, [available]);
   if (!available) return null;
   const busy = progress?.state === "loading" || progress?.state === "verifying";
   async function prepare() {
