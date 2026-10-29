@@ -151,13 +151,16 @@ export function BelgelerOfflinePrepare() {
     if(runningRef.current)return;
     if(auto && resumeAttemptRef.current>=3)return;
     runningRef.current=true;
+    setStarting(true);
     if(auto)resumeAttemptRef.current++;
     else resumeAttemptRef.current=0;
     setError("");
     setReady(false);
     const journal=readPreparationJournal();
-    setProgress({ state: "loading", detail: journal?"Eksik dosyalardan devam ediliyor":"Hazırlanıyor...",
-      completed:journal?.completed??0, total:journal?.total??1 });
+    // Worker activation is not a downloaded resource. Do not show a fictitious 0/1.
+    setProgress(journal && journal.completed > 0
+      ? {state:"paused", detail:"Önceki dosyalar doğrulanıyor", completed:journal.completed,total:journal.total}
+      : null);
     try {
       await prepareBelgelerOffline(setProgress);
       setReady(true);
@@ -167,8 +170,9 @@ export function BelgelerOfflinePrepare() {
       const message=cause instanceof Error?cause.message:"Hazırlama duraklatıldı.";
       setError(message);
       const state=readPreparationJournal();
-      setProgress({state:"paused",detail:"Duraklatıldı — internet gelince ya da uygulamaya dönünce devam edilecek",
-        completed:state?.completed??0,total:state?.total??1});
+      setProgress(state && state.completed > 0
+        ? {state:"paused",detail:"İndirilen kaynaklar korundu",completed:state.completed,total:state.total}
+        : null);
       // When a pending fetch times out during background suspension, schedule a bounded
       // retry on foreground. Never loop endlessly if browser storage is unavailable.
       if(auto && resumeAttemptRef.current<3 && document.visibilityState==="visible" && navigator.onLine){
@@ -177,6 +181,7 @@ export function BelgelerOfflinePrepare() {
       }
     }finally{
       runningRef.current=false;
+      setStarting(false);
       // If the browser suspended an active request, focus may already have fired
       // while it was in flight. Retry once it settles, using cached completed assets.
       if(pendingResumeRef.current && document.visibilityState==="visible"){
@@ -188,15 +193,15 @@ export function BelgelerOfflinePrepare() {
   return (
     <div ref={rootRef} data-testid="belgeler-offline-prepare" className="relative inline-flex max-w-full items-center">
       <div className="inline-flex max-w-full items-center overflow-hidden rounded-xl border border-black/10 bg-white/75 shadow-sm backdrop-blur-xl dark:border-white/15 dark:bg-white/[0.07]">
-        <button ref={statusButtonRef} type="button" disabled={busy}
+        <button ref={statusButtonRef} type="button" disabled={busy || checking}
           onClick={() => ready ? setDetailsOpen(open => !open) : void prepare(false)}
           className="inline-flex min-h-11 min-w-0 items-center gap-2 px-3 text-xs font-semibold text-foreground transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-500 disabled:cursor-progress dark:hover:bg-white/10">
-          {busy ? <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-amber-600" /> :
+          {busy || checking ? <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-amber-600" /> :
             ready ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" /> :
             progress?.state === "paused" ? <WifiOff className="h-4 w-4 shrink-0 text-amber-600" /> :
             <DownloadCloud className="h-4 w-4 shrink-0" />}
           <span className="truncate">
-            {busy ? "Çevrimdışı hazırlanıyor" : ready ? "Çevrimdışı hazır" :
+            {checking ? "Çevrimdışı kontrol ediliyor" : busy ? "Çevrimdışı hazırlanıyor" : ready ? "Çevrimdışı hazır" :
               progress?.state === "paused" ? "Eksik indirmeye devam et" : "Çevrimdışı kullanıma hazırla"}
           </span>
           {busy && progress && <span aria-hidden="true" className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 tabular-nums text-[10px] text-amber-700 dark:text-amber-300">{progress.completed}/{progress.total}</span>}
@@ -210,7 +215,7 @@ export function BelgelerOfflinePrepare() {
         </button>
       </div>
       <span role="status" aria-live="polite" className="sr-only">
-        {busy && progress ? progress.detail + " (" + progress.completed + "/" + progress.total + ")" :
+        {checking ? "Çevrimdışı dosyalar kontrol ediliyor." : busy && progress ? progress.detail + " (" + progress.completed + "/" + progress.total + ")" :
           error ? error :
           progress?.state === "paused" ? "İndirme duraklatıldı; yeniden devam edilebilir." :
           ready ? "5 belge çevrimdışı kullanılabilir." : "Çevrimdışı hazırlama için internet gerekir."}
@@ -249,7 +254,7 @@ export function BelgelerOfflinePrepare() {
           {error && <p role="alert" className="mt-3 rounded-lg bg-amber-500/10 p-2.5 text-xs leading-5 text-amber-800 dark:text-amber-300">{error} — İndirilen dosyalar korunuyor.</p>}
           {progress?.state === "paused" && !error && <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">İndirme duraklatıldı. Eksik dosyalardan devam edilebilir.</p>}
           <div className="mt-3 flex flex-col gap-2 border-t border-black/10 pt-3 dark:border-white/10">
-            {!ready && !busy && (
+            {!ready && !busy && !checking && (
               <button type="button" onClick={() => void prepare(false)}
                 className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
                 <DownloadCloud className="h-4 w-4" />{progress?.state === "paused" ? "Eksik indirmeye devam et" : "Şimdi indir"}
