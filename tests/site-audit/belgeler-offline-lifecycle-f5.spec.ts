@@ -17,10 +17,10 @@ test("root-worker registration, completed cache and 15 F5 reloads stay consisten
   await expect(primary).toHaveText(/^Çevrimdışı hazır$/, {timeout:270000});
   const before = await page.evaluate(async () => ({
     controller: navigator.serviceWorker.controller?.scriptURL,
-    cache: (await caches.open("belgeler-offline-v4-assets")).keys().then(rows=>rows.length),
+    cache: (await (await caches.open("belgeler-offline-v4-assets")).keys()).length,
   }));
   expect(before.controller).toMatch(/\/belgeler-sw\.js$/);
-  expect(await before.cache).toBeGreaterThan(5);
+  expect(before.cache).toBeGreaterThan(5);
   for (let i=0; i<15; i++) {
     await page.reload({waitUntil:"domcontentloaded"});
     await expect(primary).toHaveText(/^Çevrimdışı hazır$/, {timeout:20000});
