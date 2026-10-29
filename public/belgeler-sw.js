@@ -1,6 +1,6 @@
 /* Belgeler PWA / stage 1. Scope is /belgeler, never the full portal. */
 "use strict";
-const VERSION = "belgeler-offline-v3";
+const VERSION = "belgeler-offline-v4";
 const PAGE_CACHE = VERSION + "-pages";
 const ASSET_CACHE = VERSION + "-assets";
 const OFFLINE_PAGE = "/belgeler-offline.html";
@@ -67,14 +67,18 @@ async function pageHandler(request, path) {
     }
     if (response.ok) return response;
   } catch (_) { clearTimeout(timer); }
-  const old = await caches.match(key);
+  // Prefer the newly verified generation. Keep v3 as an offline-only fallback
+  // during the upgrade; never let cache insertion order choose HTML versions.
+  const old = await (await caches.open(PAGE_CACHE)).match(key) ||
+    await (await caches.open("belgeler-offline-v3-pages")).match(key);
   if (old) return old;
   return await caches.match(OFFLINE_PAGE) ||
     new Response("Çevrimdışı içerik henüz hazırlanmadı.", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
 }
 async function assetHandler(request, path) {
   const key = keyFor(path);
-  const old = await caches.match(key);
+  const old = await (await caches.open(ASSET_CACHE)).match(key) ||
+    await (await caches.open("belgeler-offline-v3-assets")).match(key);
   if (old) return old;
   const result = await fetch(request);
   const kind = PDF.test(path) ? "pdf" : /\.(?:js|mjs)$/.test(path) ? "script" : "asset";
@@ -116,7 +120,7 @@ self.addEventListener("fetch", (event) => {
     const selfTest = await testClient(event);
     if (selfTest) {
       if (request.mode === "navigate" && allowedPage(path)) {
-        return await caches.match(keyFor(path)) || Response.error();
+        return await (await caches.open(request.mode === "navigate" ? PAGE_CACHE : ASSET_CACHE)).match(keyFor(path)) || Response.error();
       }
       if (allowedAsset(path)) return await caches.match(keyFor(path)) || Response.error();
       return Response.error();
