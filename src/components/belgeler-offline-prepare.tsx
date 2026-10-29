@@ -62,8 +62,10 @@ export function BelgelerOfflinePrepare() {
   useEffect(() => {
     let alive = true;
     let checkSerial = 0;
+    let pending = false;
     const refreshState = async () => {
-      if (!available || runningRef.current) return;
+      if (!available || runningRef.current || pending) return;
+      pending = true;
       const serial = ++checkSerial;
       try {
         const valid = await readOfflineReady();
@@ -82,6 +84,7 @@ export function BelgelerOfflinePrepare() {
           }
         }
       } finally {
+        pending = false;
         if (alive && serial === checkSerial) setChecking(false);
       }
     };
