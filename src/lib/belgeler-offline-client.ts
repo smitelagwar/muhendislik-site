@@ -178,9 +178,9 @@ export async function readOfflineReady():Promise<boolean> {
        !compatibleScriptSignatures(stamp.scripts,buildScriptSignature()))return false;
     // Every currently loaded Next chunk must be in the offline asset cache,
     // including those injected only after hydration or a normal F5.
-    for (const url of buildScriptSignature().split("|").filter(Boolean))
-      if (!(await cachedResource(url,"asset"))) return false;
-    for (const url of await requiredNextAssets())
+    // Verify deterministic public HTML dependencies instead of the changing
+    // script-tag list appended during hydration, F5, or Next prefetch.
+    for (const url of await requiredNextAssets(false))
       if (!(await cachedResource(url, "asset"))) return false;
     for(const url of ROUTES)if(!(await cachedResource(url,"page")))return false;
     for(const url of CORE)if(!(await cachedResource(url,url.endsWith(".pdf")?"pdf":"asset")))return false;
@@ -191,8 +191,10 @@ export async function readOfflineReady():Promise<boolean> {
  * Modern Next.js may inject or preload chunks asynchronously, so the initial
  * catalog's script tags alone cannot represent the full offline build.
  */
-async function requiredNextAssets(): Promise<string[]> {
-  const paths = new Set(buildScriptSignature().split("|").filter(Boolean));
+async function requiredNextAssets(includeCurrentScripts = true): Promise<string[]> {
+  // DOM scripts change on every Next hydration. Only cached HTML is the stable
+  // offline contract; include live scripts when warming, never as an F5 gate.
+  const paths = new Set(includeCurrentScripts ? buildScriptSignature().split("|").filter(Boolean) : []);
   const cache = await caches.open(PAGE_CACHE);
   for (const route of ROUTES) {
     const response = await cache.match(new URL(route, location.origin).pathname);
