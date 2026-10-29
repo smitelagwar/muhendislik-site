@@ -9,19 +9,26 @@ const paths=[
   "/belgeler/santiye-sefi-sozlesmesi"
 ];
 
-test("touch viewport: offline preparation and five PDF previews still render", async({page,context})=>{
+test("touch viewport: offline preparation and five PDF previews still render", async({page,context,browserName})=>{
   test.setTimeout(300_000);
   await page.goto("/belgeler",{waitUntil:"domcontentloaded"});
   const prepare=page.getByTestId("belgeler-offline-prepare").getByRole("button",{name:/Çevrimdışı (kullanıma hazırla|hazır|hazırlanıyor)/}).first();
   await expect(prepare).toBeVisible({timeout:20000});
   await prepare.click();
   await expect(prepare).toHaveText(/^Çevrimdışı hazır$/,{timeout:260000});
-  await context.setOffline(true);
+  // Linux Playwright WebKit aborts document navigations when its CDP-style
+  // context.setOffline emulation is enabled, before the Service Worker can answer.
+  // For WebKit, the SW's cache-only gate refuses *every* uncached network request.
+  // Chromium continues to test actual context-wide offline mode.
+  const webkitCacheOnly = browserName === "webkit";
+  if (!webkitCacheOnly) await context.setOffline(true);
   for(const path of paths){
-    // WebKit's automation protocol can error on page.goto while context.setOffline is active.
-    // Navigate from the already controlled PWA document, as a user would by opening a form.
-    await page.evaluate(p => window.location.assign(p), path);
-    await page.waitForURL(url => url.pathname === path, {timeout:30000,waitUntil:"domcontentloaded"});
+    if (webkitCacheOnly) {
+      await page.goto(path+"?__belgeler_cache_test=1", {waitUntil:"domcontentloaded"});
+    } else {
+      await page.evaluate(p => window.location.assign(p), path);
+      await page.waitForURL(url => url.pathname === path, {timeout:30000,waitUntil:"domcontentloaded"});
+    }
     const toggle=page.getByRole("button",{name:"Canlı PDF Önizle",exact:true});
     if(await toggle.isVisible())await toggle.click();
     await expect.poll(async()=>{
@@ -30,7 +37,7 @@ test("touch viewport: offline preparation and five PDF previews still render", a
     },{timeout:30000,message:"offline mobile PDF canvas did not render: "+path}).toBeGreaterThan(200);
     await expect(page.getByRole("button",{name:"PDF İndir",exact:true}).first()).toBeVisible();
   }
-  await context.setOffline(false);
+  if (!webkitCacheOnly) await context.setOffline(false);
 });
 
 test("touch viewport: queued share can be explicitly cancelled without a real link",async({page,context})=>{
