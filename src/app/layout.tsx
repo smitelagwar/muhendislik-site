@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { Footer } from "@/components/footer";
 import { SiteShell } from "@/components/site-shell";
+import { SiteOfflineHomeRuntime } from "@/components/site-offline-home-runtime";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/toast-provider";
 import {
@@ -98,6 +99,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <ToastProvider>
             <SiteShell footer={<Footer />}>{children}</SiteShell>
+            <SiteOfflineHomeRuntime />
           </ToastProvider>
         </ThemeProvider>
       </body>

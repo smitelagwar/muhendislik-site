@@ -1,6 +1,6 @@
 /* Belgeler PWA / stage 1. Scope is /belgeler, never the full portal. */
 "use strict";
-const VERSION = "belgeler-offline-v2";
+const VERSION = "belgeler-offline-v3";
 const PAGE_CACHE = VERSION + "-pages";
 const ASSET_CACHE = VERSION + "-assets";
 const OFFLINE_PAGE = "/belgeler-offline.html";

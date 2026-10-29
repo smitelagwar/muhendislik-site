@@ -70,6 +70,20 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/belgeler-home-sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+        ],
+      },
+      {
+        source: "/belgeler-home-offline.html",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=300, must-revalidate" },
+          { key: "Content-Type", value: "text/html; charset=utf-8" },
+        ],
+      },
+      {
         source: "/belgeler-sw.js",
         headers: [
           { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },

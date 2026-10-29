@@ -1,10 +1,12 @@
 "use client";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { CheckCircle2, DownloadCloud, RefreshCw, WifiOff, Smartphone, Trash2 } from "lucide-react";
 import {
   prepareBelgelerOffline,
   readOfflineReady,
   clearBelgelerOfflineFiles,
+  readPreparationJournal,
+  pausePreparationJournal,
   type PreparationProgress,
 } from "@/lib/belgeler-offline-client";
 
@@ -29,14 +31,26 @@ export function BelgelerOfflinePrepare() {
       Boolean((navigator as Navigator & {standalone?:boolean}).standalone), getServerSupport);
   const [updateWaiting, setUpdateWaiting] = useState(false);
   const [progress, setProgress] = useState<PreparationProgress | null>(null);
+  const runningRef = useRef(false);
+  const resumeAttemptRef=useRef(0);
   const [error, setError] = useState("");
   useEffect(() => {
-    if (available) void readOfflineReady().then(setReady);
+    if (available){
+      void readOfflineReady().then(setReady);
+      // Resumption is invoked asynchronously after hydration, never during render.
+      const journal=readPreparationJournal();
+      if(journal) {
+        queueMicrotask(()=>setProgress({state:"paused",detail:"Kesilen hazırlık bulundu — devam ediliyor",
+          completed:journal.completed,total:journal.total}));
+        queueMicrotask(()=>void window.dispatchEvent(new Event("belgeler-resume-preparation")));
+      }
+    }
     const recheck = () => { if (available) void readOfflineReady().then(setReady); };
     window.addEventListener("pageshow", recheck);
     const handler = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPrompt); };
     window.addEventListener("beforeinstallprompt", handler);
     let alive=true;
+    if (!("serviceWorker" in navigator)) return () => { window.removeEventListener("pageshow",recheck); window.removeEventListener("beforeinstallprompt",handler); };
     void navigator.serviceWorker.getRegistration("/belgeler").then(reg=>{
       if(!reg||!alive)return;
       setUpdateWaiting(Boolean(reg.waiting));
@@ -46,19 +60,70 @@ export function BelgelerOfflinePrepare() {
     return () => {alive=false;window.removeEventListener("pageshow", recheck);
       window.removeEventListener("beforeinstallprompt",handler);};
   }, [available]);
+  useEffect(()=>{
+    if(!available)return;
+    let scheduled:number | undefined;
+    const resume=()=>{
+      if(document.visibilityState!=="visible"||!navigator.onLine||runningRef.current)return;
+      if(!readPreparationJournal())return;
+      if(scheduled)window.clearTimeout(scheduled);
+      scheduled=window.setTimeout(()=>{
+        if(runningRef.current||document.visibilityState!=="visible"||!navigator.onLine)return;
+        void prepare(true);
+      },450);
+    };
+    const visibility=()=>{
+      if(document.visibilityState==="hidden"){
+        pausePreparationJournal(); // Does NOT abort an in-flight network request.
+      }else{resume()}
+    };
+    document.addEventListener("visibilitychange",visibility);
+    window.addEventListener("focus",resume);
+    window.addEventListener("pageshow",resume);
+    window.addEventListener("online",resume);
+    window.addEventListener("belgeler-resume-preparation",resume);
+    const early=window.setTimeout(resume,650);
+    return()=>{
+      window.clearTimeout(early);if(scheduled)window.clearTimeout(scheduled);
+      document.removeEventListener("visibilitychange",visibility);
+      window.removeEventListener("focus",resume);
+      window.removeEventListener("pageshow",resume);
+      window.removeEventListener("online",resume);
+      window.removeEventListener("belgeler-resume-preparation",resume);
+    };
+  },[available]);
   if (!available) return null;
   const busy = progress?.state === "loading" || progress?.state === "verifying";
-  async function prepare() {
+  async function prepare(auto=false) {
+    if(runningRef.current)return;
+    if(auto && resumeAttemptRef.current>=3)return;
+    runningRef.current=true;
+    if(auto)resumeAttemptRef.current++;
+    else resumeAttemptRef.current=0;
     setError("");
     setReady(false);
-    setProgress({ state: "loading", detail: "Hazırlanıyor...", completed: 0, total: 1 });
+    const journal=readPreparationJournal();
+    setProgress({ state: "loading", detail: journal?"Eksik dosyalardan devam ediliyor":"Hazırlanıyor...",
+      completed:journal?.completed??0, total:journal?.total??1 });
     try {
       await prepareBelgelerOffline(setProgress);
       setReady(true);
+      resumeAttemptRef.current=0;
       try { await navigator.storage?.persist?.(); } catch { /* Browser may deny persistent storage. */ }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Hazırlama başarısız oldu.");
-      setProgress({ state: "failed", detail: "Eksik dosyalar var — yeniden deneyin.", completed: 0, total: 1 });
+      const message=cause instanceof Error?cause.message:"Hazırlama duraklatıldı.";
+      setError(message);
+      const state=readPreparationJournal();
+      setProgress({state:"paused",detail:"Duraklatıldı — internet gelince ya da uygulamaya dönünce devam edilecek",
+        completed:state?.completed??0,total:state?.total??1});
+      // When a pending fetch times out during background suspension, schedule a bounded
+      // retry on foreground. Never loop endlessly if browser storage is unavailable.
+      if(auto && resumeAttemptRef.current<3 && document.visibilityState==="visible" && navigator.onLine){
+        window.setTimeout(()=>window.dispatchEvent(new Event("belgeler-resume-preparation")),
+          2000*resumeAttemptRef.current);
+      }
+    }finally{
+      runningRef.current=false;
     }
   }
   return (
@@ -66,17 +131,19 @@ export function BelgelerOfflinePrepare() {
       <button
         type="button"
         disabled={busy}
-        onClick={() => void prepare()}
+        onClick={() => void prepare(false)}
         className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-background/75 px-3 text-xs font-semibold text-foreground shadow-sm transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:cursor-wait disabled:opacity-60"
       >
         {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> :
           ready ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> :
           <DownloadCloud className="h-4 w-4" />}
-        {busy ? "Çevrimdışı hazırlanıyor" : ready ? "Çevrimdışı hazır" : "Çevrimdışı kullanıma hazırla"}
+        {busy ? "Çevrimdışı hazırlanıyor" : ready ? "Çevrimdışı hazır" :
+          progress?.state==="paused" ? "Eksik indirmeye devam et" : "Çevrimdışı kullanıma hazırla"}
       </button>
       <p role="status" aria-live="polite" className="max-w-[300px] text-[11px] leading-4 text-muted-foreground">
         {busy && progress ? progress.detail + " (" + progress.completed + "/" + progress.total + ")" :
-          error ? <span className="text-red-600 dark:text-red-400">{error}</span> :
+          error ? <span className="text-amber-700 dark:text-amber-300">{error} — İndirilen dosyalar korunuyor.</span> :
+          progress?.state==="paused" ? "Duraklatıldı. Geri dönünce eksik dosyalardan devam edilir." :
           ready ? "5 belge bu cihazda internet olmadan açılıp PDF olarak indirilebilir." :
           <><WifiOff className="mr-1 inline h-3 w-3" />İlk hazırlık için internet gerekir.</>}
       </p>
