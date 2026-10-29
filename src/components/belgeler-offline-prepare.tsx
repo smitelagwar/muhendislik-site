@@ -23,6 +23,8 @@ function getServerSupport() { return false; }
 export function BelgelerOfflinePrepare() {
   const available = useSyncExternalStore(subscribeSupport, getSupport, getServerSupport);
   const [ready, setReady] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [starting, setStarting] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null);
   const isIos = useSyncExternalStore(subscribeSupport,
     () => /iPhone|iPad|iPod/.test(navigator.userAgent), getServerSupport);
@@ -58,37 +60,64 @@ export function BelgelerOfflinePrepare() {
     };
   }, [detailsOpen]);
   useEffect(() => {
-    if (available){
-      void readOfflineReady().then(setReady);
-      // Resumption is invoked asynchronously after hydration, never during render.
-      const journal=readPreparationJournal();
-      if(journal) {
-        queueMicrotask(()=>setProgress({state:"paused",detail:"Kesilen hazırlık bulundu — devam ediliyor",
-          completed:journal.completed,total:journal.total}));
-        queueMicrotask(()=>void window.dispatchEvent(new Event("belgeler-resume-preparation")));
+    let alive = true;
+    let checkSerial = 0;
+    const refreshState = async () => {
+      if (!available || runningRef.current) return;
+      const serial = ++checkSerial;
+      try {
+        const valid = await readOfflineReady();
+        if (!alive || serial !== checkSerial || runningRef.current) return;
+        setReady(valid);
+        if (valid) {
+          setProgress(null);
+          setError("");
+        } else {
+          const journal = readPreparationJournal();
+          if (journal && journal.completed > 0) {
+            setProgress({ state:"paused", detail:"Eksik kaynaklar korunuyor", completed:journal.completed, total:journal.total });
+            window.dispatchEvent(new Event("belgeler-resume-preparation"));
+          } else {
+            setProgress(null);
+          }
+        }
+      } finally {
+        if (alive && serial === checkSerial) setChecking(false);
       }
-    }
-    const recheck = () => { if (available) void readOfflineReady().then(setReady); };
+    };
+    if (available) void refreshState();
+    else setChecking(false);
+    const recheck = () => { if (!runningRef.current) void refreshState(); };
     window.addEventListener("pageshow", recheck);
     const handler = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPrompt); };
     window.addEventListener("beforeinstallprompt", handler);
-    let alive=true;
-    if (!("serviceWorker" in navigator)) return () => { window.removeEventListener("pageshow",recheck); window.removeEventListener("beforeinstallprompt",handler); };
-    void navigator.serviceWorker.getRegistration("/belgeler").then(reg=>{
-      if(!reg||!alive)return;
-      setUpdateWaiting(Boolean(reg.waiting));
-      reg.addEventListener("updatefound",()=>{const incoming=reg.installing;
-        incoming?.addEventListener("statechange",()=>{if(incoming.state==="installed" && navigator.serviceWorker.controller && alive)setUpdateWaiting(true)})});
-    }).catch(()=>{});
-    return () => {alive=false;window.removeEventListener("pageshow", recheck);
-      window.removeEventListener("beforeinstallprompt",handler);};
+    if ("serviceWorker" in navigator) {
+      void navigator.serviceWorker.getRegistration("/belgeler").then(reg => {
+        if (!reg || !alive) return;
+        setUpdateWaiting(Boolean(reg.waiting));
+        reg.addEventListener("updatefound", () => {
+          const incoming = reg.installing;
+          incoming?.addEventListener("statechange", () => {
+            if (incoming.state === "installed" && navigator.serviceWorker.controller && alive)
+              setUpdateWaiting(true);
+          });
+        });
+      }).catch(() => {});
+    }
+    return () => {
+      alive = false;
+      ++checkSerial;
+      window.removeEventListener("pageshow", recheck);
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
   }, [available]);
   useEffect(()=>{
     if(!available)return;
     let scheduled:number | undefined;
     const resume=()=>{
-      if(document.visibilityState!=="visible"||!navigator.onLine||runningRef.current)return;
-      if(!readPreparationJournal())return;
+      if(checking||ready||document.visibilityState!=="visible"||!navigator.onLine||runningRef.current)return;
+      const stored=readPreparationJournal();
+      if(!stored || stored.completed < 1)return;
       if(scheduled)window.clearTimeout(scheduled);
       scheduled=window.setTimeout(()=>{
         if(runningRef.current||document.visibilityState!=="visible"||!navigator.onLine)return;
@@ -115,9 +144,9 @@ export function BelgelerOfflinePrepare() {
       window.removeEventListener("online",resume);
       window.removeEventListener("belgeler-resume-preparation",resume);
     };
-  },[available]);
+  },[available,checking,ready]);
   if (!available) return null;
-  const busy = progress?.state === "loading" || progress?.state === "verifying";
+  const busy = starting || progress?.state === "loading" || progress?.state === "verifying";
   async function prepare(auto=false) {
     if(runningRef.current)return;
     if(auto && resumeAttemptRef.current>=3)return;
