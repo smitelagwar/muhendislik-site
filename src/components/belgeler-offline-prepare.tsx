@@ -32,6 +32,7 @@ export function BelgelerOfflinePrepare() {
   const [updateWaiting, setUpdateWaiting] = useState(false);
   const [progress, setProgress] = useState<PreparationProgress | null>(null);
   const runningRef = useRef(false);
+  const pendingResumeRef = useRef(false);
   const resumeAttemptRef=useRef(0);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -74,6 +75,7 @@ export function BelgelerOfflinePrepare() {
     };
     const visibility=()=>{
       if(document.visibilityState==="hidden"){
+        if(runningRef.current)pendingResumeRef.current=true;
         pausePreparationJournal(); // Does NOT abort an in-flight network request.
       }else{resume()}
     };
@@ -124,6 +126,12 @@ export function BelgelerOfflinePrepare() {
       }
     }finally{
       runningRef.current=false;
+      // If the browser suspended an active request, focus may already have fired
+      // while it was in flight. Retry once it settles, using cached completed assets.
+      if(pendingResumeRef.current && document.visibilityState==="visible"){
+        pendingResumeRef.current=false;
+        window.setTimeout(()=>window.dispatchEvent(new Event("belgeler-resume-preparation")),900);
+      }
     }
   }
   return (
