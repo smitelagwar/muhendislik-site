@@ -229,9 +229,13 @@ async function fetchCore(url:string):Promise<void> {
 function renderStarted(frame: HTMLIFrameElement): boolean {
   try {
     const doc = frame.contentDocument;
-    const canvas = doc?.querySelector<HTMLCanvasElement>("[data-testid='belge-studio-preview-canvas'] canvas");
+    const preview = doc?.querySelector<HTMLElement>("[data-testid='belge-studio-preview-canvas']");
+    const canvas = preview?.querySelector<HTMLCanvasElement>("canvas");
+    // Form validation/toasts elsewhere in the studio must not invalidate a
+    // successfully painted PDF. The canvas becomes visible only after commit.
     return !!canvas && canvas.width > 200 && canvas.height > 200 &&
-      !doc?.querySelector("[role='alert']"); // no silent success on a PDF render error
+      canvas.style.opacity === "1" && preview?.getAttribute("aria-busy") !== "true" &&
+      !preview?.querySelector("[role='alert']");
   } catch { return false; }
 }
 async function openAndInspect(path: string, cacheOnly: boolean): Promise<void> {
