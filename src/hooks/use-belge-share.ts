@@ -96,7 +96,7 @@ export interface UseBelgeShareReturn {
   revokeLink: (viewToken?: string, manageToken?: string) => Promise<boolean>;
   resetShareState: () => void;
   refreshDeviceLinks: () => void;
-  refreshQuota: () => Promise<void>;
+  refreshQuota: () => Promise<boolean>;
 }
 
 interface PendingShareRequest {
@@ -566,7 +566,7 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
   const shareAttemptKindRef = useRef<"pending" | "retryable" | "blocked">("retryable");
   const outboxFlightRef = useRef(false);
   const nextOutboxProbeRef = useRef(0);
-  const quotaFlightRef = useRef<Promise<void> | null>(null);
+  const quotaFlightRef = useRef<Promise<boolean> | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -611,7 +611,7 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
     setDeviceLinks(getStoredShareLinks());
   }, []);
 
-  const refreshQuota = useCallback((): Promise<void> => {
+  const refreshQuota = useCallback((): Promise<boolean> => {
     if (quotaFlightRef.current) return quotaFlightRef.current;
     const controller = createController();
     const quotaFetcher: typeof fetch = (input, init) =>
@@ -630,20 +630,23 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
       }),
     ])
       .then((nextQuota) => {
-        if (!mountedRef.current) return;
-        setQuota(nextQuota);
-        setQuotaError(null);
+        if (mountedRef.current) {
+          setQuota(nextQuota);
+          setQuotaError(null);
+        }
+        return true;
       })
       .catch((cause: unknown) => {
-        if (!mountedRef.current) return;
-        if (cause instanceof BrowserBootstrapError && cause.code === "COOKIE_UNAVAILABLE") {
-          setQuotaError("Tarayıcı çerezi kabul etmedi. Paylaşım için çerezleri etkinleştirin.");
-        } else if (cause instanceof DOMException && cause.name === "TimeoutError") {
-          setQuotaError("Kota bilgisi zamanında alınamadı. Bağlantı oluşturulurken sunucu sonucu esas alınır.");
-        } else {
-          // Bootstrap error responses are deliberately not treated as daily quota failures.
-          setQuotaError("Kota bilgisi şu anda alınamıyor. Biraz sonra yeniden kontrol edin.");
+        if (mountedRef.current) {
+          if (cause instanceof BrowserBootstrapError && cause.code === "COOKIE_UNAVAILABLE") {
+            setQuotaError("Tarayıcı çerezi kabul etmedi. Paylaşım için çerezleri etkinleştirin.");
+          } else if (cause instanceof DOMException && cause.name === "TimeoutError") {
+            setQuotaError("Paylaşım sunucusunun kimlik kontrolü zaman aşımına uğradı. Tekrar deneyin.");
+          } else {
+            setQuotaError("Paylaşım sunucusuna erişilemiyor. İnterneti kontrol edip tekrar deneyin.");
+          }
         }
+        return false;
       })
       .finally(() => {
         clearTimeout(quotaTimeout);
@@ -691,6 +694,9 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
     const generation = generationRef.current;
     const controller = createController();
     try {
+      if (!(await refreshQuota())) {
+        throw new Error("Paylaşım kimliği doğrulanamadı. Önceki bağlantı isteğiniz korunuyor; interneti kontrol edip tekrar deneyin.");
+      }
       const result = await pollOperationStatus(stored, controller.signal);
       if (result.kind === "ready") {
         acceptReadyResult(result.data, stored, generation);
@@ -715,7 +721,7 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
       recoveryInFlightRef.current = false;
       if (mountedRef.current) setIsRecovering(false);
     }
-  }, [acceptReadyResult, createController, documentId, releaseController]);
+  }, [acceptReadyResult, createController, documentId, refreshQuota, releaseController]);
 
   const openShareDialog = useCallback(() => {
     if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
@@ -828,6 +834,12 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
     const controller = createController();
 
     try {
+      // Always finish the browser-identity cookie roundtrip before the create
+      // POST or a proof-authenticated recovery GET. A fast first click may race
+      // the quota request started by opening the dialog.
+      if (!(await refreshQuota())) {
+        throw new Error("Paylaşım kimliği henüz doğrulanamadı. İnterneti veya çerez ayarlarını kontrol edip tekrar deneyin; yeni bağlantı isteği gönderilmedi.");
+      }
       // Freeze the exact allowlisted values once, at the user's click.
       const values = { ...currentSnapshotValues };
       const revision = normalizedRevision;
@@ -1042,8 +1054,9 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
     setQueuedShare(leased);
     let worked=false;
     try {
-      await refreshQuota(); // Existing cookie/browser identity bootstrap — do not bypass it.
-      worked=await createShareLink(); // Existing status-first + replay-proof + idempotency workflow.
+      // createShareLink first verifies the browser identity. Failure is
+      // retryable; the durable outbox remains intact and no POST is sent.
+      worked=await createShareLink();
       if(worked) {
         await cancelShareIntent(documentId,leased.clientRequestId);
       } else {
@@ -1059,7 +1072,7 @@ export function useBelgeShare(options: UseBelgeShareOptions): UseBelgeShareRetur
       outboxFlightRef.current=false;
       nextOutboxProbeRef.current=Date.now()+12000;
     }
-  },[backendReady,createShareLink,documentId,getSnapshotValues,isReady,normalizedRevision,refreshQuota]);
+  },[backendReady,createShareLink,documentId,getSnapshotValues,isReady,normalizedRevision]);
   const retryQueuedShare = useCallback(async () => {
     try {
       await resetShareIntentRetry(documentId);

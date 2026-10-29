@@ -64,7 +64,13 @@ export async function createShareReservation(
     throw new BelgeShareServiceError("REPLAY_PROOF_REQUIRED", "İstek güvenli tekrar kanıtı taşımıyor.", 400);
   }
   const proofHash = computeReplayProofHash(ownerHash, requestIdHash, replayProof);
-  const existing = await repo.findByRequestIdHash(requestIdHash);
+  let existing: BelgePaylasimRecord | null;
+  try {
+    existing = await repo.findByRequestIdHash(requestIdHash);
+  } catch (error) {
+    if (error instanceof BelgeShareRuntimeError) throw error;
+    throw new BelgeShareRuntimeError("DATABASE_UNAVAILABLE");
+  }
   if (existing) {
     const reused = await resumeExistingReservation({
       record: existing,
@@ -246,7 +252,15 @@ export async function getShareOperationStatus(params: {
   const clientRequestId = params.clientRequestId.trim();
   if (!isValidClientRequestId(clientRequestId)) return { status: "not_found" };
   const requestIdHash = sha256Hex(clientRequestId);
-  const record = await getBelgePaylasimRepository().findByRequestIdHash(requestIdHash);
+  // Operational status is used during recovery after lost HTTP replies.
+  // A database outage is retryable, never proof that an operation is missing.
+  let record: BelgePaylasimRecord | null;
+  try {
+    record = await getBelgePaylasimRepository().findByRequestIdHash(requestIdHash);
+  } catch (error) {
+    if (error instanceof BelgeShareRuntimeError) throw error;
+    throw new BelgeShareRuntimeError("DATABASE_UNAVAILABLE");
+  }
   if (!record || !record.ownerHash || !record.proofHash || record.ownerVersion !== 1 || record.proofVersion !== 1) {
     return { status: "not_found" };
   }
