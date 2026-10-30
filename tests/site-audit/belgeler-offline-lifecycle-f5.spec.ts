@@ -15,7 +15,7 @@ test("root-worker registration, completed cache and 15 F5 reloads stay consisten
   await expect(primary).toHaveText(/Çevrimdışı kullanıma hazırla|Çevrimdışı hazır/, {timeout:25000});
   if (!/hazır$/.test((await primary.innerText()).trim())) await primary.click();
   await page.waitForFunction(() => {
-    const label = document.querySelector("[data-testid='belgeler-offline-prepare'] button")?.textContent || "";
+    const label = document.querySelector("[data-testid='belgeler-offline-desktop-primary']")?.textContent || "";
     return label.trim() === "Çevrimdışı hazır" || label.includes("Eksik indirmeye devam et");
   }, null, {timeout:300000});
   if ((await primary.innerText()).includes("Eksik indirmeye")) {
