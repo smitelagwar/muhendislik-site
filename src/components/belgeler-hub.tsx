@@ -280,13 +280,13 @@ export function BelgelerHub() {
       <AmbientOceanCanvas enabled={isOceanEnabled} />
 
       <div className="relative z-20 mx-auto max-w-[1440px] px-5 pt-5 sm:px-8 sm:pt-7 lg:px-12 xl:px-16">
-        <div data-whale-protect className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">Belgeler ve Şablonlar</h1>
+        <div data-whale-protect className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-2 sm:gap-x-4 lg:flex lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-black leading-snug tracking-tight text-foreground sm:text-3xl">Belgeler ve Şablonlar</h1>
             <p className="mt-1 text-sm text-muted-foreground">Doldurulabilir PDF belgelerini arayın ve önizleyin.</p>
           </div>
 
-          <div className="flex max-w-full flex-wrap items-center gap-2.5 self-start lg:self-center">
+          <div className="flex max-w-full items-center gap-2.5 self-start lg:self-center">
             <BelgelerOfflinePrepare />
             <div className="hidden [@media(min-width:768px)_and_(hover:hover)_and_(pointer:fine)]:block">
               <button
