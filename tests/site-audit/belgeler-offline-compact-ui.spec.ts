@@ -7,11 +7,24 @@ test("compact offline control: mobile, tablet, desktop and popover keyboard inte
   const control = page.getByTestId("belgeler-offline-prepare");
   await expect(control).toBeVisible({ timeout: 20_000 });
   const details = page.getByTestId("belgeler-offline-details");
-  const toggle = control.getByRole("button", { name: "Çevrimdışı ayrıntılarını göster" });
+  const desktopToggle = control.getByRole("button", { name: "Çevrimdışı ayrıntılarını göster" });
+  const mobileToggle = control.getByTestId("belgeler-offline-mobile-trigger");
 
-  for (const width of [320, 390, 768, 1024, 1440]) {
+  for (const width of [320, 360, 390, 430, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 860 });
+    const toggle = width < 640 ? mobileToggle : desktopToggle;
     await expect(toggle).toBeVisible();
+    if (width < 640) {
+      await expect(mobileToggle).toHaveAttribute("title", "Çevrimdışı belgeler");
+      await expect(desktopToggle).toBeHidden();
+      const rect = await mobileToggle.boundingBox();
+      const heading = await page.getByRole("heading", { name: "Belgeler ve Şablonlar" }).boundingBox();
+      expect(rect).not.toBeNull();
+      expect(heading).not.toBeNull();
+      expect(rect!.y).toBeLessThan(heading!.y + heading!.height + 3);
+    } else {
+      await expect(mobileToggle).toBeHidden();
+    }
     await expect(details).toHaveCount(0);
     const metrics = await page.evaluate(() => ({
       viewport: document.documentElement.clientWidth,
@@ -29,7 +42,7 @@ test("compact offline control: mobile, tablet, desktop and popover keyboard inte
     await expect(details).toHaveCount(0);
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
   }
-  await toggle.click();
+  await desktopToggle.click();
   await page.getByRole("heading", { name: "Belgeler ve Şablonlar" }).click();
   await expect(details).toHaveCount(0);
   await expect(page.getByPlaceholder(/Belge adı/)).toBeVisible();
@@ -51,4 +64,28 @@ test("catalog offline details does not consume layout height", async ({ page }) 
   expect(before).not.toBeNull();
   expect(after).not.toBeNull();
   expect(Math.abs(after!.y - before!.y)).toBeLessThanOrEqual(6); // Fonts/ambient animation may shift by a few device pixels
+});
+
+
+test("mobile offline icon explains unavailable browser instead of disappearing", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "caches", { configurable: true, value: undefined });
+  });
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto("/belgeler", { waitUntil: "domcontentloaded" });
+  const control = page.getByTestId("belgeler-offline-prepare");
+  const button = control.getByTestId("belgeler-offline-mobile-trigger");
+  await expect(button).toBeVisible({ timeout: 20_000 });
+  await expect(button).toHaveAttribute("aria-label", /desteklenmiyor/);
+  await button.click();
+  const details = page.getByTestId("belgeler-offline-details");
+  await expect(details).toBeVisible();
+  await expect(details).toContainText("Bu tarayıcıda çevrimdışı kaydetme desteklenmiyor");
+  await expect(details.getByRole("button", { name: "Şimdi indir" })).toHaveCount(0);
+  const rect = await details.boundingBox();
+  expect(rect).not.toBeNull();
+  expect(rect!.x).toBeGreaterThanOrEqual(-1);
+  expect(rect!.x + rect!.width).toBeLessThanOrEqual(321);
+  await details.getByRole("button", { name: "Ayrıntıları kapat" }).click();
+  await expect(details).toHaveCount(0);
 });
