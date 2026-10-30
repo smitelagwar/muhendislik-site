@@ -13,9 +13,15 @@ import {
 interface InstallPrompt extends Event { prompt: () => Promise<void>; userChoice: Promise<{outcome:string}> }
 function subscribeSupport() { return () => {}; }
 function getSupport() {
-  return typeof window !== "undefined" && "serviceWorker" in navigator && "caches" in window &&
-    window.isSecureContext && process.env.NODE_ENV === "production" &&
-    process.env.NEXT_PUBLIC_BELGELER_OFFLINE_PWA !== "0";
+  if (typeof window === "undefined" || !window.isSecureContext ||
+    process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_BELGELER_OFFLINE_PWA === "0")
+    return false;
+  try {
+    return typeof navigator.serviceWorker?.register === "function" &&
+      typeof window.caches?.open === "function";
+  } catch {
+    return false;
+  }
 }
 function getServerSupport() { return false; }
 
@@ -41,6 +47,7 @@ export function BelgelerOfflinePrepare() {
   const detailsId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const statusButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!detailsOpen) return;
     const handleOutside = (event: PointerEvent) => {
@@ -49,7 +56,7 @@ export function BelgelerOfflinePrepare() {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setDetailsOpen(false);
-        statusButtonRef.current?.focus();
+        (window.matchMedia("(max-width: 639px)").matches ? mobileButtonRef.current : statusButtonRef.current)?.focus();
       }
     };
     document.addEventListener("pointerdown", handleOutside);
@@ -154,7 +161,6 @@ export function BelgelerOfflinePrepare() {
       window.removeEventListener("belgeler-resume-preparation",resume);
     };
   },[available,checking,ready]);
-  if (!available) return null;
   const busy = starting || progress?.state === "loading" || progress?.state === "verifying";
   async function prepare(auto=false) {
     if(runningRef.current)return;
@@ -201,16 +207,53 @@ export function BelgelerOfflinePrepare() {
   }
   return (
     <div ref={rootRef} data-testid="belgeler-offline-prepare" className="relative inline-flex max-w-full items-center">
-      <div className="inline-flex max-w-full items-center overflow-hidden rounded-xl border border-black/10 bg-white/75 shadow-sm backdrop-blur-xl dark:border-white/15 dark:bg-white/[0.07]">
-        <button ref={statusButtonRef} type="button" disabled={busy || checking}
-          onClick={() => ready ? setDetailsOpen(open => !open) : void prepare(false)}
+      {/* A persistent mobile entry point, even when the in-app browser does not support PWA.
+          Tap opens details; it never silently starts a large download. */}
+      <button
+        type="button"
+        ref={mobileButtonRef}
+        data-testid="belgeler-offline-mobile-trigger"
+        aria-label={ready ? "Çevrimdışı belgeler hazır. Ayrıntıları aç" :
+          !available ? "Çevrimdışı kullanım desteklenmiyor. Ayrıntıları aç" :
+          busy ? "Çevrimdışı belgeler hazırlanıyor. Ayrıntıları aç" :
+          "Çevrimdışı belgeler. Ayrıntıları aç"}
+        title="Çevrimdışı belgeler"
+        aria-controls={detailsId}
+        aria-expanded={detailsOpen}
+        onClick={() => setDetailsOpen(open => !open)}
+        className={`relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-sm backdrop-blur-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 sm:hidden ${
+          ready
+            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+            : !available
+              ? "border-black/10 bg-white/70 text-muted-foreground dark:border-white/15 dark:bg-white/10"
+              : error || progress?.state === "paused"
+                ? "border-amber-500/35 bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+        }`}
+      >
+        {(checking && available) || busy
+          ? <RefreshCw className="h-5 w-5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          : ready
+            ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+            : !available || progress?.state === "paused"
+              ? <WifiOff className="h-5 w-5" aria-hidden="true" />
+              : <DownloadCloud className="h-5 w-5" aria-hidden="true" />}
+        <span aria-hidden="true" className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-background ${
+          ready ? "bg-emerald-500" : error || !available ? "bg-zinc-400" : "bg-amber-500"
+        }`} />
+        {updateWaiting && <span aria-hidden="true" className="absolute -bottom-0.5 -left-0.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-background" />}
+      </button>
+      <div className="hidden max-w-full items-center overflow-hidden rounded-xl border border-black/10 bg-white/75 shadow-sm backdrop-blur-xl dark:border-white/15 dark:bg-white/[0.07] sm:inline-flex">
+        <button ref={statusButtonRef} data-testid="belgeler-offline-desktop-primary" type="button" disabled={busy || checking}
+          onClick={() => !available || ready ? setDetailsOpen(open => !open) : void prepare(false)}
           className="inline-flex min-h-11 min-w-0 items-center gap-2 px-3 text-xs font-semibold text-foreground transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-500 disabled:cursor-progress dark:hover:bg-white/10">
-          {busy || checking ? <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-amber-600" /> :
+          {busy || (checking && available) ? <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-amber-600" /> :
             ready ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" /> :
+            !available ? <WifiOff className="h-4 w-4 shrink-0 text-muted-foreground" /> :
             progress?.state === "paused" ? <WifiOff className="h-4 w-4 shrink-0 text-amber-600" /> :
             <DownloadCloud className="h-4 w-4 shrink-0" />}
           <span className="truncate">
-            {checking ? "Çevrimdışı kontrol ediliyor" : busy ? "Çevrimdışı hazırlanıyor" : ready ? "Çevrimdışı hazır" :
+            {!available ? "Çevrimdışı desteklenmiyor" : checking ? "Çevrimdışı kontrol ediliyor" : busy ? "Çevrimdışı hazırlanıyor" : ready ? "Çevrimdışı hazır" :
               progress?.state === "paused" ? "Eksik indirmeye devam et" : error ? "Yeniden dene" : "Çevrimdışı kullanıma hazırla"}
           </span>
           {busy && progress && <span aria-hidden="true" className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 tabular-nums text-[10px] text-amber-700 dark:text-amber-300">{progress.completed}/{progress.total}</span>}
@@ -224,7 +267,7 @@ export function BelgelerOfflinePrepare() {
         </button>
       </div>
       <span role="status" aria-live="polite" className="sr-only">
-        {checking ? "Çevrimdışı dosyalar kontrol ediliyor." : busy && progress ? progress.detail + " (" + progress.completed + "/" + progress.total + ")" :
+        {!available ? "Bu tarayıcı çevrimdışı kaydetmeyi desteklemiyor veya özellik kapalı." : checking ? "Çevrimdışı dosyalar kontrol ediliyor." : busy && progress ? progress.detail + " (" + progress.completed + "/" + progress.total + ")" :
           error ? error :
           progress?.state === "paused" ? "İndirme duraklatıldı; yeniden devam edilebilir." :
           ready ? "5 belge çevrimdışı kullanılabilir." : "Çevrimdışı hazırlama için internet gerekir."}
@@ -232,18 +275,19 @@ export function BelgelerOfflinePrepare() {
       {detailsOpen && (
         <div id={detailsId} role="region" aria-label="Çevrimdışı belgeler seçenekleri"
           data-testid="belgeler-offline-details"
-          className="absolute left-0 top-[calc(100%+10px)] z-[120] w-[min(320px,calc(100vw-2.5rem))] max-h-[min(70vh,420px)] overflow-y-auto rounded-2xl border border-black/10 bg-white/95 p-4 text-foreground shadow-[0_18px_60px_rgba(0,0,0,0.16)] backdrop-blur-2xl dark:border-white/15 dark:bg-zinc-900/95 lg:left-auto lg:right-0">
+          className="absolute right-0 top-[calc(100%+10px)] z-[120] w-[min(320px,calc(100vw-2.5rem))] max-h-[min(70vh,420px)] overflow-y-auto rounded-2xl border border-black/10 bg-white/95 p-4 text-foreground shadow-[0_18px_60px_rgba(0,0,0,0.16)] backdrop-blur-2xl dark:border-white/15 dark:bg-zinc-900/95 ">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-sm font-bold">Çevrimdışı belgeler</h2>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                {ready ? "5 belge bu cihazda internet olmadan açılabilir ve PDF olarak indirilebilir." :
+                {!available ? "Bu tarayıcıda çevrimdışı kaydetme desteklenmiyor veya bu özellik kapalı. Sayfayı güncel Chrome ya da Safari tarayıcısında normal sekmede açmayı deneyin." :
+                  ready ? "5 belge bu cihazda internet olmadan açılabilir ve PDF olarak indirilebilir." :
                   busy ? "Belgeler cihazınıza kaydediliyor." :
                   "Belgeleri internet yokken kullanmak için bir kez hazırlayın."}
               </p>
             </div>
             <button type="button" aria-label="Ayrıntıları kapat"
-              onClick={() => { setDetailsOpen(false); statusButtonRef.current?.focus(); }}
+              onClick={() => { setDetailsOpen(false); (window.matchMedia("(max-width: 639px)").matches ? mobileButtonRef.current : statusButtonRef.current)?.focus(); }}
               className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:hover:bg-white/10">
               <X className="h-4 w-4" />
             </button>
@@ -263,7 +307,7 @@ export function BelgelerOfflinePrepare() {
           {error && <p role="alert" className="mt-3 rounded-lg bg-amber-500/10 p-2.5 text-xs leading-5 text-amber-800 dark:text-amber-300">{error} — İndirilen dosyalar korunuyor.</p>}
           {progress?.state === "paused" && !error && <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">İndirme duraklatıldı. Eksik dosyalardan devam edilebilir.</p>}
           <div className="mt-3 flex flex-col gap-2 border-t border-black/10 pt-3 dark:border-white/10">
-            {!ready && !busy && !checking && (
+            {available && !ready && !busy && !checking && (
               <button type="button" onClick={() => void prepare(false)}
                 className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
                 <DownloadCloud className="h-4 w-4" />{progress?.state === "paused" ? "Eksik indirmeye devam et" : "Şimdi indir"}
