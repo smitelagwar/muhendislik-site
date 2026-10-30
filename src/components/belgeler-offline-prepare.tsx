@@ -47,6 +47,7 @@ export function BelgelerOfflinePrepare() {
   const detailsId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const statusButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!detailsOpen) return;
     const handleOutside = (event: PointerEvent) => {
@@ -55,7 +56,7 @@ export function BelgelerOfflinePrepare() {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setDetailsOpen(false);
-        statusButtonRef.current?.focus();
+        (window.matchMedia("(max-width: 639px)").matches ? mobileButtonRef.current : statusButtonRef.current)?.focus();
       }
     };
     document.addEventListener("pointerdown", handleOutside);
@@ -210,6 +211,7 @@ export function BelgelerOfflinePrepare() {
           Tap opens details; it never silently starts a large download. */}
       <button
         type="button"
+        ref={mobileButtonRef}
         data-testid="belgeler-offline-mobile-trigger"
         aria-label={ready ? "Çevrimdışı belgeler hazır. Ayrıntıları aç" :
           !available ? "Çevrimdışı kullanım desteklenmiyor. Ayrıntıları aç" :
@@ -229,7 +231,7 @@ export function BelgelerOfflinePrepare() {
                 : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
         }`}
       >
-        {checking && available || busy
+        {(checking && available) || busy
           ? <RefreshCw className="h-5 w-5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
           : ready
             ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
@@ -267,7 +269,6 @@ export function BelgelerOfflinePrepare() {
       <span role="status" aria-live="polite" className="sr-only">
         {!available ? "Bu tarayıcı çevrimdışı kaydetmeyi desteklemiyor veya özellik kapalı." : checking ? "Çevrimdışı dosyalar kontrol ediliyor." : busy && progress ? progress.detail + " (" + progress.completed + "/" + progress.total + ")" :
           error ? error :
-          !available ? "Bu tarayıcıda çevrimdışı kullanım desteklenmiyor veya geçici olarak kapalı." :
           progress?.state === "paused" ? "İndirme duraklatıldı; yeniden devam edilebilir." :
           ready ? "5 belge çevrimdışı kullanılabilir." : "Çevrimdışı hazırlama için internet gerekir."}
       </span>
@@ -286,7 +287,7 @@ export function BelgelerOfflinePrepare() {
               </p>
             </div>
             <button type="button" aria-label="Ayrıntıları kapat"
-              onClick={() => { setDetailsOpen(false); statusButtonRef.current?.focus(); }}
+              onClick={() => { setDetailsOpen(false); (window.matchMedia("(max-width: 639px)").matches ? mobileButtonRef.current : statusButtonRef.current)?.focus(); }}
               className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:hover:bg-white/10">
               <X className="h-4 w-4" />
             </button>
