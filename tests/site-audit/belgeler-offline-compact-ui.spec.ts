@@ -57,7 +57,9 @@ test("catalog offline details does not consume layout height", async ({ page }) 
   await expect(search).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   const before = await search.boundingBox();
-  await control.getByRole("button", { name: "Çevrimdışı ayrıntılarını göster" }).click();
+  const mobileTrigger = control.getByTestId("belgeler-offline-mobile-trigger");
+  if (await mobileTrigger.isVisible()) await mobileTrigger.click();
+  else await control.getByRole("button", { name: "Çevrimdışı ayrıntılarını göster" }).click();
   await expect(page.getByTestId("belgeler-offline-details")).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   const after = await search.boundingBox();
