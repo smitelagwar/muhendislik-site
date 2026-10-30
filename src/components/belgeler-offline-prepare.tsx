@@ -244,7 +244,7 @@ export function BelgelerOfflinePrepare() {
         {updateWaiting && <span aria-hidden="true" className="absolute -bottom-0.5 -left-0.5 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-background" />}
       </button>
       <div className="hidden max-w-full items-center overflow-hidden rounded-xl border border-black/10 bg-white/75 shadow-sm backdrop-blur-xl dark:border-white/15 dark:bg-white/[0.07] sm:inline-flex">
-        <button ref={statusButtonRef} type="button" disabled={busy || checking}
+        <button ref={statusButtonRef} data-testid="belgeler-offline-desktop-primary" type="button" disabled={busy || checking}
           onClick={() => !available || ready ? setDetailsOpen(open => !open) : void prepare(false)}
           className="inline-flex min-h-11 min-w-0 items-center gap-2 px-3 text-xs font-semibold text-foreground transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-500 disabled:cursor-progress dark:hover:bg-white/10">
           {busy || (checking && available) ? <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-amber-600" /> :
