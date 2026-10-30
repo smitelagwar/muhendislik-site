@@ -243,14 +243,15 @@ export function BelgelerOfflinePrepare() {
       </button>
       <div className="hidden max-w-full items-center overflow-hidden rounded-xl border border-black/10 bg-white/75 shadow-sm backdrop-blur-xl dark:border-white/15 dark:bg-white/[0.07] sm:inline-flex">
         <button ref={statusButtonRef} type="button" disabled={busy || checking}
-          onClick={() => ready ? setDetailsOpen(open => !open) : void prepare(false)}
+          onClick={() => !available || ready ? setDetailsOpen(open => !open) : void prepare(false)}
           className="inline-flex min-h-11 min-w-0 items-center gap-2 px-3 text-xs font-semibold text-foreground transition-colors hover:bg-black/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-500 disabled:cursor-progress dark:hover:bg-white/10">
-          {busy || checking ? <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-amber-600" /> :
+          {busy || (checking && available) ? <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-amber-600" /> :
             ready ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" /> :
+            !available ? <WifiOff className="h-4 w-4 shrink-0 text-muted-foreground" /> :
             progress?.state === "paused" ? <WifiOff className="h-4 w-4 shrink-0 text-amber-600" /> :
             <DownloadCloud className="h-4 w-4 shrink-0" />}
           <span className="truncate">
-            {checking ? "Çevrimdışı kontrol ediliyor" : busy ? "Çevrimdışı hazırlanıyor" : ready ? "Çevrimdışı hazır" :
+            {!available ? "Çevrimdışı desteklenmiyor" : checking ? "Çevrimdışı kontrol ediliyor" : busy ? "Çevrimdışı hazırlanıyor" : ready ? "Çevrimdışı hazır" :
               progress?.state === "paused" ? "Eksik indirmeye devam et" : error ? "Yeniden dene" : "Çevrimdışı kullanıma hazırla"}
           </span>
           {busy && progress && <span aria-hidden="true" className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 tabular-nums text-[10px] text-amber-700 dark:text-amber-300">{progress.completed}/{progress.total}</span>}
@@ -264,7 +265,7 @@ export function BelgelerOfflinePrepare() {
         </button>
       </div>
       <span role="status" aria-live="polite" className="sr-only">
-        {checking ? "Çevrimdışı dosyalar kontrol ediliyor." : busy && progress ? progress.detail + " (" + progress.completed + "/" + progress.total + ")" :
+        {!available ? "Bu tarayıcı çevrimdışı kaydetmeyi desteklemiyor veya özellik kapalı." : checking ? "Çevrimdışı dosyalar kontrol ediliyor." : busy && progress ? progress.detail + " (" + progress.completed + "/" + progress.total + ")" :
           error ? error :
           !available ? "Bu tarayıcıda çevrimdışı kullanım desteklenmiyor veya geçici olarak kapalı." :
           progress?.state === "paused" ? "İndirme duraklatıldı; yeniden devam edilebilir." :
