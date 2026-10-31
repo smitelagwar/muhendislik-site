@@ -102,17 +102,23 @@ export function isUserCancelled(): boolean {
 export function cancelBelgelerOfflinePreparation(): void {
   const current = readPreparationJournal();
   // Persist the user's decision *before* aborting pending network/CacheStorage operations.
-  writeJournal({
-    version: 4, runId: activeRunId || current?.runId || "cancelled-" + Date.now(),
-    status: "cancelled_by_user", completed: current?.completed || 0,
-    total: current?.total || CORE.length + ROUTES.length + 1,
-    updatedAt: Date.now(), attempt: current?.attempt || 0,
-  });
-  activeController?.abort();
+  try {
+    writeJournal({
+      version: 4, runId: activeRunId || current?.runId || "cancelled-" + Date.now(),
+      status: "cancelled_by_user", completed: current?.completed || 0,
+      total: current?.total || CORE.length + ROUTES.length + 1,
+      updatedAt: Date.now(), attempt: current?.attempt || 0,
+    });
+  } finally {
+    activeController?.abort();
+  }
 }
 export function pausePreparationJournal(reason: "background" | "network" = "background"): void {
   const current = readPreparationJournal();
-  if (!current || current.status === "cancelled_by_user") return;
+  if (!current || current.status === "cancelled_by_user") {
+    activeController?.abort();
+    return;
+  }
   const status = reason === "network" ? "paused_network" : "paused_background";
   if (activeController && !activeController.signal.aborted) {
     saveJournal(status, current.completed, current.total);
@@ -542,15 +548,17 @@ export async function prepareBelgelerOffline(
   if (activePreparation) return activePreparation;
   const automatic = options.automatic === true;
   if (automatic && isUserCancelled()) throw new DOMException("Kullanıcı iptal etti", "AbortError");
+  const pendingController = new AbortController();
+  activeController = pendingController; // Also handles cancellation before acquiring the Web Lock.
   const perform = async () => {
     const runLocked = async () => {
+      if (pendingController.signal.aborted) throw new DOMException("Hazırlık durduruldu", "AbortError");
       const previous = readPreparationJournal();
       if (automatic && (!previous || previous.status === "cancelled_by_user"))
         throw new DOMException("Otomatik devam engellendi", "AbortError");
       const runId = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
-      const controller = new AbortController();
+      const controller = pendingController;
       activeRunId = runId;
-      activeController = controller;
       writeJournal({
         version: 4, runId, status: "loading",
         completed: Math.min(previous?.completed || 0, CORE.length + ROUTES.length + 1),
@@ -626,7 +634,10 @@ export async function prepareBelgelerOffline(
       } catch { /* best effort */ }
     }
   };
-  activePreparation = perform().finally(() => { activePreparation = null; });
+  activePreparation = perform().finally(() => {
+    activePreparation = null;
+    if (activeController === pendingController) activeController = null;
+  });
   return activePreparation;
 }
 
