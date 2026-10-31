@@ -100,7 +100,7 @@ export function BelgelerOfflinePrepare() {
     const recheck = () => { if (!runningRef.current) void refreshState(); };
     window.addEventListener("pageshow", recheck);
     const onStorage = (event: StorageEvent) => {
-      if (event.key === "belgeler:pwa:ready:v1" || event.key === "belgeler:pwa:preparation:v3")
+      if (event.key === "belgeler:pwa:ready:v1" || event.key === "belgeler:pwa:ready:v2" || event.key === "belgeler:pwa:preparation:v3")
         recheck();
     };
     window.addEventListener("storage", onStorage);
