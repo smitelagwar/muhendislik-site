@@ -1,5 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {
+  cancelBelgelerOfflinePreparation,
+  isUserCancelled,
+  readPreparationJournal,
+  pausePreparationJournal,
+} from "../../src/lib/belgeler-offline-client";
 
 const store = new Map<string, string>();
 Object.defineProperty(globalThis, "localStorage", {
@@ -20,13 +26,6 @@ Object.defineProperty(globalThis, "document", {
     querySelectorAll: () => [{ src: "https://example.test/_next/static/chunks/main-app-abc.js" }],
   },
 });
-
-const {
-  cancelBelgelerOfflinePreparation,
-  isUserCancelled,
-  readPreparationJournal,
-  pausePreparationJournal,
-} = await import("../../src/lib/belgeler-offline-client");
 
 test("user cancellation stays durable and is not converted into a background pause", () => {
   store.clear();
