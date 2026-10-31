@@ -133,7 +133,10 @@ export function BelgeAccountProvider({ children }: { children: ReactNode }) {
     } catch { /* Cross-tab notification is best-effort. */ }
   }, [fetchProfile, setIdentity]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void refresh(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [refresh]);
   useEffect(() => {
     if (typeof BroadcastChannel === "undefined") return;
     const channel = new BroadcastChannel(CHANNEL);

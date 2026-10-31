@@ -12,6 +12,9 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(prehashPassword(password), 11);
 }
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  // One-time admin seed reuses the existing authenticated documentation bcrypt
+  // hash without copying or exposing the plaintext admin password.
+  if (hash.startsWith("raw:")) return bcrypt.compare(password, hash.slice(4));
   return bcrypt.compare(prehashPassword(password), hash);
 }
 export function newSessionToken(): string {

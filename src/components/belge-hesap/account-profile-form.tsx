@@ -86,8 +86,9 @@ export function BelgeAccountProfileForm({
     }
   }, []);
   useEffect(() => {
-    void load();
-    return () => { ++sequence.current; };
+    // Network loading begins asynchronously; avoid cascading synchronous effect state.
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => { window.clearTimeout(timer); ++sequence.current; };
   }, [load, userId]);
 
   const update = (key: Key, value: string) => {

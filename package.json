@@ -10,7 +10,7 @@
     "predev": "node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs",
     "dev": "next dev --webpack",
     "sync:pdfjs": "node scripts/sync-pdfjs-vendor.mjs",
-    "prebuild": "node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs && node scripts/sync-pdfjs-vendor.mjs --check",
+    "prebuild": "node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs && node scripts/sync-pdfjs-vendor.mjs --check && node scripts/prepare-belge-account.mjs",
     "build": "next build --webpack",
     "prestart": "node scripts/build-dwg-dxf-worker.mjs && node scripts/sync-cad-upstream-assets.mjs",
     "start": "next start",
