@@ -12,10 +12,19 @@ test.use({ serviceWorkers: "allow" });
 test("belge catalog and all five PDF previews survive a cold offline reload", async ({ page, context }) => {
   test.setTimeout(300_000);
   await page.goto("/belgeler", { waitUntil: "domcontentloaded" });
-  const prepare = page.getByTestId("belgeler-offline-prepare").getByRole("button", {name: /Çevrimdışı (kullanıma hazırla|hazır|hazırlanıyor)/}).first();
-  await expect(prepare).toBeVisible();
-  await prepare.click();
-  await expect(prepare).toHaveText(/^Çevrimdışı hazır$/, { timeout: 250_000 });
+  const offline = page.getByTestId("belgeler-offline-prepare");
+  const desktopPrimary = offline.getByTestId("belgeler-offline-desktop-primary");
+  if (await desktopPrimary.isVisible()) {
+    await desktopPrimary.click();
+    await expect(desktopPrimary).toHaveText(/^Çevrimdışı hazır$/,{timeout:250_000});
+  } else {
+    const mobileTrigger = offline.getByTestId("belgeler-offline-mobile-trigger");
+    await expect(mobileTrigger).toBeVisible();
+    await mobileTrigger.click();
+    await page.getByTestId("belgeler-offline-details")
+      .getByRole("button",{name:/^(Şimdi indir|Eksik indirmeye devam et|Kalanları indir)$/}).click();
+    await expect(mobileTrigger).toHaveAttribute("aria-label",/^Çevrimdışı belgeler hazır\\. Ayrıntıları aç$/,{timeout:250_000});
+  }
 
   const scope = await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.getRegistration("/belgeler");

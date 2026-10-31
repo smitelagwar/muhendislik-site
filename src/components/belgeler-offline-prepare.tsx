@@ -1,15 +1,35 @@
 "use client";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
-import { CheckCircle2, DownloadCloud, RefreshCw, WifiOff, Smartphone, Trash2, ChevronDown, X } from "lucide-react";
+import { CheckCircle2, DownloadCloud, RefreshCw, WifiOff, Smartphone, Trash2, ChevronDown, Square, X } from "lucide-react";
 import {
   prepareBelgelerOffline,
   readOfflineReady,
   clearBelgelerOfflineFiles,
   readPreparationJournal,
   pausePreparationJournal,
+  cancelBelgelerOfflinePreparation,
+  isPreparationStopped,
+  isUserCancelled,
   type PreparationProgress,
+  type PreparationJournal,
 } from "@/lib/belgeler-offline-client";
 
+const pausedState = (state?: string) =>
+  state === "paused" || state === "paused_background" ||
+  state === "paused_network" || state === "retry_wait";
+const progressForJournal = (journal: PreparationJournal): PreparationProgress => ({
+  // An old loading stamp does not mean this new tab has a running task.
+  state: journal.status === "loading" || journal.status === "verifying"
+    ? "paused_background" : journal.status,
+  detail: journal.status === "cancelled_by_user" ? "İndirme iptal edildi" :
+    journal.status === "paused_network" ? "Bağlantı bekleniyor" :
+    journal.status === "paused_background" ? "Uygulama arka plana alındı" :
+    journal.status === "retry_wait" ? "Bağlantı tekrar denenecek" :
+    journal.status === "paused" ? "Eksik kaynaklardan devam edilebilir" :
+    journal.status === "verifying" ? "Kaynaklar doğrulanıyor" :
+    "Önceki kaynaklar kontrol ediliyor",
+  completed: journal.completed, total: journal.total,
+});
 interface InstallPrompt extends Event { prompt: () => Promise<void>; userChoice: Promise<{outcome:string}> }
 function subscribeSupport() { return () => {}; }
 function getSupport() {
@@ -40,8 +60,8 @@ export function BelgelerOfflinePrepare() {
   const [updateWaiting, setUpdateWaiting] = useState(false);
   const [progress, setProgress] = useState<PreparationProgress | null>(null);
   const runningRef = useRef(false);
-  const pendingResumeRef = useRef(false);
-  const resumeAttemptRef=useRef(0);
+  const prepareRef = useRef<(auto?: boolean) => Promise<void>>(async () => {});
+  const retryGateRef = useRef(0);
   const [error, setError] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsId = useId();
@@ -83,12 +103,10 @@ export function BelgelerOfflinePrepare() {
           setError("");
         } else {
           const journal = readPreparationJournal();
-          if (journal && journal.completed > 0) {
-            setProgress({ state:"paused", detail:"Eksik kaynaklar korunuyor", completed:journal.completed, total:journal.total });
+          // 0 completed steps can still represent a genuine interrupted job.
+          setProgress(journal ? progressForJournal(journal) : null);
+          if (journal && journal.status !== "cancelled_by_user")
             window.dispatchEvent(new Event("belgeler-resume-preparation"));
-          } else {
-            setProgress(null);
-          }
         }
       } finally {
         pending = false;
@@ -100,10 +118,11 @@ export function BelgelerOfflinePrepare() {
     const recheck = () => { if (!runningRef.current) void refreshState(); };
     window.addEventListener("pageshow", recheck);
     const onStorage = (event: StorageEvent) => {
-      if (event.key === "belgeler:pwa:ready:v1" || event.key === "belgeler:pwa:preparation:v3")
+      if (event.key === "belgeler:pwa:ready:v1" || event.key === "belgeler:pwa:ready:v2" || event.key === "belgeler:pwa:preparation:v3" || event.key === "belgeler:pwa:preparation:v4")
         recheck();
     };
     window.addEventListener("storage", onStorage);
+    window.addEventListener("belgeler-preparation-state", recheck);
     const handler = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPrompt); };
     window.addEventListener("beforeinstallprompt", handler);
     if ("serviceWorker" in navigator) {
@@ -124,87 +143,121 @@ export function BelgelerOfflinePrepare() {
       ++checkSerial;
       window.removeEventListener("pageshow", recheck);
       window.removeEventListener("storage", onStorage);
+      window.removeEventListener("belgeler-preparation-state", recheck);
       window.removeEventListener("beforeinstallprompt", handler);
     };
   }, [available]);
-  useEffect(()=>{
-    if(!available)return;
-    let scheduled:number | undefined;
-    const resume=()=>{
-      if(checking||ready||document.visibilityState!=="visible"||!navigator.onLine||runningRef.current)return;
-      const stored=readPreparationJournal();
-      if(!stored || stored.completed < 1)return;
-      if(scheduled)window.clearTimeout(scheduled);
-      scheduled=window.setTimeout(()=>{
-        if(runningRef.current||document.visibilityState!=="visible"||!navigator.onLine)return;
-        void prepare(true);
-      },450);
+  useEffect(() => {
+    if (!available || checking || ready) return;
+    let scheduled: number | undefined;
+    const scheduleResume = () => {
+      if (scheduled) window.clearTimeout(scheduled);
+      if (document.visibilityState !== "visible" || runningRef.current) return;
+      const journal = readPreparationJournal();
+      if (!journal || journal.status === "cancelled_by_user" || journal.status === "paused" || isUserCancelled()) return;
+      if (!navigator.onLine) return; // No hot retry while disconnected.
+      const connection = (navigator as Navigator & {
+        connection?: { saveData?: boolean; effectiveType?: string };
+      }).connection;
+      if (connection?.saveData || connection?.effectiveType === "2g") return;
+      // Exponential cooldown for retryable network failures, capped at 60 seconds.
+      const retryDelay = Math.min(60000, 2000 * 2 ** Math.min(5, Math.max(0, journal.attempt - 1)));
+      const remaining = Math.max(retryGateRef.current - Date.now(),
+        journal.status === "retry_wait"
+          ? Math.max(0, journal.updatedAt + retryDelay - Date.now())
+          : (journal.status === "loading" || journal.status === "verifying")
+            ? Math.max(0, journal.updatedAt + 8000 - Date.now()) : 0);
+      scheduled = window.setTimeout(() => {
+        scheduled = undefined;
+        if (runningRef.current || document.visibilityState !== "visible" ||
+            !navigator.onLine || isUserCancelled()) return;
+        void prepareRef.current(true);
+      }, Math.max(450, remaining));
     };
-    const visibility=()=>{
-      if(document.visibilityState==="hidden"){
-        if(runningRef.current)pendingResumeRef.current=true;
-        pausePreparationJournal(); // Does NOT abort an in-flight network request.
-      }else{resume()}
+    const visibility = () => {
+      if (document.visibilityState === "hidden") {
+        if (scheduled) window.clearTimeout(scheduled);
+        pausePreparationJournal("background");
+      } else scheduleResume();
     };
-    document.addEventListener("visibilitychange",visibility);
-    window.addEventListener("focus",resume);
-    window.addEventListener("pageshow",resume);
-    window.addEventListener("online",resume);
-    window.addEventListener("belgeler-resume-preparation",resume);
-    const early=window.setTimeout(resume,650);
-    return()=>{
-      window.clearTimeout(early);if(scheduled)window.clearTimeout(scheduled);
-      document.removeEventListener("visibilitychange",visibility);
-      window.removeEventListener("focus",resume);
-      window.removeEventListener("pageshow",resume);
-      window.removeEventListener("online",resume);
-      window.removeEventListener("belgeler-resume-preparation",resume);
+    const offline = () => {
+      if (scheduled) window.clearTimeout(scheduled);
+      pausePreparationJournal("network");
     };
-  },[available,checking,ready]);
-  const busy = starting || progress?.state === "loading" || progress?.state === "verifying";
-  async function prepare(auto=false) {
-    if(runningRef.current)return;
-    if(auto && resumeAttemptRef.current>=3)return;
-    runningRef.current=true;
+    document.addEventListener("visibilitychange", visibility);
+    window.addEventListener("focus", scheduleResume);
+    window.addEventListener("pageshow", scheduleResume);
+    window.addEventListener("online", scheduleResume);
+    window.addEventListener("offline", offline);
+    window.addEventListener("belgeler-resume-preparation", scheduleResume);
+    window.addEventListener("belgeler-preparation-state", scheduleResume);
+    const initial = window.setTimeout(scheduleResume, 650);
+    return () => {
+      window.clearTimeout(initial);
+      if (scheduled) window.clearTimeout(scheduled);
+      document.removeEventListener("visibilitychange", visibility);
+      window.removeEventListener("focus", scheduleResume);
+      window.removeEventListener("pageshow", scheduleResume);
+      window.removeEventListener("online", scheduleResume);
+      window.removeEventListener("offline", offline);
+      window.removeEventListener("belgeler-resume-preparation", scheduleResume);
+      window.removeEventListener("belgeler-preparation-state", scheduleResume);
+    };
+  }, [available, checking, ready]);
+
+  const busy = starting ||
+    progress?.state === "loading" || progress?.state === "verifying";
+  async function prepare(auto = false) {
+    if (runningRef.current || (auto && isUserCancelled())) return;
+    runningRef.current = true;
     setStarting(true);
-    if(auto)resumeAttemptRef.current++;
-    else resumeAttemptRef.current=0;
     setError("");
     setReady(false);
-    const journal=readPreparationJournal();
-    // Worker activation is not a downloaded resource. Do not show a fictitious 0/1.
-    setProgress(journal && journal.completed > 0
-      ? {state:"paused", detail:"Önceki dosyalar doğrulanıyor", completed:journal.completed,total:journal.total}
-      : null);
+    const before = readPreparationJournal();
+    setProgress(before ? progressForJournal(before) : null);
     try {
-      await prepareBelgelerOffline(setProgress);
-      setReady(true);
-      resumeAttemptRef.current=0;
-      try { await navigator.storage?.persist?.(); } catch { /* Browser may deny persistent storage. */ }
+      await prepareBelgelerOffline(next => {
+        if (!isUserCancelled()) setProgress(next);
+      }, { automatic: auto });
+      if (!isUserCancelled()) {
+        setReady(true);
+        setProgress(null);
+        try { await navigator.storage?.persist?.(); } catch { /* optional browser permission */ }
+      }
     } catch (cause) {
-      const message=cause instanceof Error?cause.message:"Hazırlama duraklatıldı.";
-      setError(message);
-      const state=readPreparationJournal();
-      setProgress(state && state.completed > 0
-        ? {state:"paused",detail:"İndirilen kaynaklar korundu",completed:state.completed,total:state.total}
-        : null);
-      // When a pending fetch times out during background suspension, schedule a bounded
-      // retry on foreground. Never loop endlessly if browser storage is unavailable.
-      if(auto && resumeAttemptRef.current<3 && document.visibilityState==="visible" && navigator.onLine){
-        window.setTimeout(()=>window.dispatchEvent(new Event("belgeler-resume-preparation")),
-          2000*resumeAttemptRef.current);
+      const journal = readPreparationJournal();
+      if (journal?.status === "cancelled_by_user") {
+        setProgress(progressForJournal(journal));
+        setError("");
+      } else if (isPreparationStopped(cause)) {
+        if (journal) setProgress(progressForJournal(journal));
+        setError("");
+      } else {
+        const message = cause instanceof Error ? cause.message : "İndirme duraklatıldı.";
+        if (auto && message.includes("Başka sekmede")) retryGateRef.current = Date.now() + 15000;
+        setError(message);
+        setProgress(journal ? progressForJournal(journal) : null);
       }
-    }finally{
-      runningRef.current=false;
+    } finally {
+      runningRef.current = false;
       setStarting(false);
-      // If the browser suspended an active request, focus may already have fired
-      // while it was in flight. Retry once it settles, using cached completed assets.
-      if(pendingResumeRef.current && document.visibilityState==="visible"){
-        pendingResumeRef.current=false;
-        window.setTimeout(()=>window.dispatchEvent(new Event("belgeler-resume-preparation")),900);
-      }
+      // The focus event may have arrived while an old fetch was still aborting.
+      window.dispatchEvent(new Event("belgeler-resume-preparation"));
     }
   }
+  useEffect(() => { prepareRef.current = prepare; });
+  function cancelDownload() {
+    try {
+      cancelBelgelerOfflinePreparation();
+    } catch {
+      setError("Tarayıcı iptal durumunu saklayamadı. İndirme durduruldu; site depolama iznini kontrol edin.");
+    }
+    const journal = readPreparationJournal();
+    setProgress(journal ? progressForJournal(journal) :
+      { state: "cancelled_by_user", detail: "İndirme iptal edildi", completed: 0, total: 1 });
+    setStarting(false);
+  }
+
   return (
     <div ref={rootRef} data-testid="belgeler-offline-prepare" className="relative inline-flex max-w-full items-center">
       {/* A persistent mobile entry point, even when the in-app browser does not support PWA.
@@ -226,7 +279,7 @@ export function BelgelerOfflinePrepare() {
             ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
             : !available
               ? "border-black/10 bg-white/70 text-muted-foreground dark:border-white/15 dark:bg-white/10"
-              : error || progress?.state === "paused"
+              : error || pausedState(progress?.state)
                 ? "border-amber-500/35 bg-amber-500/15 text-amber-700 dark:text-amber-300"
                 : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
         }`}
@@ -235,7 +288,7 @@ export function BelgelerOfflinePrepare() {
           ? <RefreshCw className="h-5 w-5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
           : ready
             ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-            : !available || progress?.state === "paused"
+            : !available || pausedState(progress?.state)
               ? <WifiOff className="h-5 w-5" aria-hidden="true" />
               : <DownloadCloud className="h-5 w-5" aria-hidden="true" />}
         <span aria-hidden="true" className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-background ${
@@ -250,13 +303,13 @@ export function BelgelerOfflinePrepare() {
           {busy || (checking && available) ? <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-amber-600" /> :
             ready ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" /> :
             !available ? <WifiOff className="h-4 w-4 shrink-0 text-muted-foreground" /> :
-            progress?.state === "paused" ? <WifiOff className="h-4 w-4 shrink-0 text-amber-600" /> :
+            pausedState(progress?.state) ? <WifiOff className="h-4 w-4 shrink-0 text-amber-600" /> :
             <DownloadCloud className="h-4 w-4 shrink-0" />}
           <span className="truncate">
             {!available ? "Çevrimdışı desteklenmiyor" : checking ? "Çevrimdışı kontrol ediliyor" : busy ? "Çevrimdışı hazırlanıyor" : ready ? "Çevrimdışı hazır" :
-              progress?.state === "paused" ? "Eksik indirmeye devam et" : error ? "Yeniden dene" : "Çevrimdışı kullanıma hazırla"}
+              progress?.state === "cancelled_by_user" ? "Kalanları indir" : pausedState(progress?.state) ? "Eksik indirmeye devam et" : error ? "Yeniden dene" : "Çevrimdışı kullanıma hazırla"}
           </span>
-          {busy && progress && <span aria-hidden="true" className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 tabular-nums text-[10px] text-amber-700 dark:text-amber-300">{progress.completed}/{progress.total}</span>}
+          {busy && progress && <span aria-hidden="true" className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 tabular-nums text-[10px] text-amber-700 dark:text-amber-300">{progress.completed}/{progress.total} adım</span>}
         </button>
         <span aria-hidden="true" className="h-5 w-px shrink-0 bg-black/10 dark:bg-white/15" />
         <button type="button" aria-label="Çevrimdışı ayrıntılarını göster" aria-expanded={detailsOpen}
@@ -269,7 +322,8 @@ export function BelgelerOfflinePrepare() {
       <span role="status" aria-live="polite" className="sr-only">
         {!available ? "Bu tarayıcı çevrimdışı kaydetmeyi desteklemiyor veya özellik kapalı." : checking ? "Çevrimdışı dosyalar kontrol ediliyor." : busy && progress ? progress.detail + " (" + progress.completed + "/" + progress.total + ")" :
           error ? error :
-          progress?.state === "paused" ? "İndirme duraklatıldı; yeniden devam edilebilir." :
+          progress?.state === "cancelled_by_user" ? "İndirme iptal edildi. İndirilen dosyalar korundu." :
+          pausedState(progress?.state) ? "İndirme duraklatıldı; yeniden devam edilebilir." :
           ready ? "5 belge çevrimdışı kullanılabilir." : "Çevrimdışı hazırlama için internet gerekir."}
       </span>
       {detailsOpen && (
@@ -282,7 +336,8 @@ export function BelgelerOfflinePrepare() {
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
                 {!available ? "Bu tarayıcıda çevrimdışı kaydetme desteklenmiyor veya bu özellik kapalı. Sayfayı güncel Chrome ya da Safari tarayıcısında normal sekmede açmayı deneyin." :
                   ready ? "5 belge bu cihazda internet olmadan açılabilir ve PDF olarak indirilebilir." :
-                  busy ? "Belgeler cihazınıza kaydediliyor." :
+                  busy ? "Belgeler cihazınıza kaydediliyor. Arka plana geçildiğinde durabilir; geri döndüğünüzde eksik kaynaklardan devam edilir." :
+                  progress?.state === "cancelled_by_user" ? "İndirme iptal edildi. İndirilen dosyalar korundu." :
                   "Belgeleri internet yokken kullanmak için bir kez hazırlayın."}
               </p>
             </div>
@@ -292,11 +347,11 @@ export function BelgelerOfflinePrepare() {
               <X className="h-4 w-4" />
             </button>
           </div>
-          {busy && progress && (
+          {progress && (busy || pausedState(progress.state) || progress.state === "cancelled_by_user") && (
             <div className="mt-3 space-y-2" aria-label="İndirme ilerlemesi">
               <div className="flex justify-between gap-2 text-xs text-muted-foreground">
                 <span>{progress.detail}</span>
-                <span className="shrink-0 tabular-nums">{progress.completed}/{progress.total}</span>
+                <span className="shrink-0 tabular-nums">{progress.completed}/{progress.total} adım</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-black/10 dark:bg-white/15">
                 <div className="h-full rounded-full bg-amber-500 transition-[width] motion-reduce:transition-none"
@@ -305,12 +360,29 @@ export function BelgelerOfflinePrepare() {
             </div>
           )}
           {error && <p role="alert" className="mt-3 rounded-lg bg-amber-500/10 p-2.5 text-xs leading-5 text-amber-800 dark:text-amber-300">{error} — İndirilen dosyalar korunuyor.</p>}
-          {progress?.state === "paused" && !error && <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">İndirme duraklatıldı. Eksik dosyalardan devam edilebilir.</p>}
+          {pausedState(progress?.state) && !error && <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
+            {progress?.state === "paused_network"
+              ? "Bağlantı gelince kaldığı kaynaklardan devam edilebilir."
+              : progress?.state === "retry_wait"
+                ? "Ağ sorunu nedeniyle bekleniyor; yeniden denenecek."
+                : "İndirme duraklatıldı. Eksik dosyalar korunuyor."}
+          </p>}
+          {progress?.state === "cancelled_by_user" && (
+            <p role="status" className="mt-3 text-xs text-muted-foreground">İndirme iptal edildi. İndirilen dosyalar korundu.</p>
+          )}
           <div className="mt-3 flex flex-col gap-2 border-t border-black/10 pt-3 dark:border-white/10">
+            {available && !ready && (busy || progress?.state === "retry_wait") && (
+              <button type="button" data-testid="belgeler-offline-cancel-download"
+                aria-label="Çevrimdışı indirmeyi iptal et"
+                onClick={cancelDownload}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-400/40 px-3 text-xs font-semibold text-red-700 transition-colors hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:text-red-300">
+                <Square className="h-4 w-4" aria-hidden="true" /> İptal et
+              </button>
+            )}
             {available && !ready && !busy && !checking && (
               <button type="button" onClick={() => void prepare(false)}
                 className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
-                <DownloadCloud className="h-4 w-4" />{progress?.state === "paused" ? "Eksik indirmeye devam et" : "Şimdi indir"}
+                <DownloadCloud className="h-4 w-4" />{progress?.state === "cancelled_by_user" ? "Kalanları indir" : pausedState(progress?.state) ? "Eksik indirmeye devam et" : error ? "Tekrar dene" : "Şimdi indir"}
               </button>
             )}
             {!standalone && installPrompt && (
