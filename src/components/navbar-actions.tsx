@@ -24,6 +24,10 @@ const ModeToggle = dynamic(
     loading: () => <div className="h-10 w-[84px] rounded-full border border-border bg-card" aria-hidden />,
   },
 );
+const BelgeAccountTrigger = dynamic(
+  () => import("@/components/belge-hesap/account-trigger").then((module) => module.BelgeAccountTrigger),
+  { ssr: false },
+);
 const SharePopup = dynamic(
   () => import("@/components/share-popup").then((module) => module.SharePopup),
   { ssr: false },
@@ -63,6 +67,7 @@ export function NavbarActions() {
 
       <div className="flex items-center gap-2.5">
         <ModeToggle />
+        {pathname === "/belgeler" ? <BelgeAccountTrigger variant="navbar" /> : null}
         <div className="xl:hidden">
           <MobileMenu key={pathname} />
         </div>

@@ -90,12 +90,30 @@ export const BELGE_UX_LIMITS = {
 /**
  * Mod ve belge kimliğine göre taslak depolama anahtarını üretir.
  */
-export function getKeyForMode(mode: "device" | "session", documentId: BelgeDocumentId): string {
-  const prefix =
-    mode === "device"
-      ? BELGE_STORAGE_KEYS.DRAFT_DEVICE_PREFIX
-      : BELGE_STORAGE_KEYS.DRAFT_SESSION_PREFIX;
-  return `${prefix}${documentId}`;
+export type BelgeDraftScope = { kind: "guest" } | { kind: "account"; accountId: string };
+function checkedScopeSuffix(scope: BelgeDraftScope): string {
+  if (scope.kind === "guest") return "";
+  if (!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(scope.accountId)) {
+    throw new Error("Geçersiz hesap kimliği.");
+  }
+  return "acct:" + scope.accountId.toLowerCase() + ":";
+}
+/** Two-argument guest calls preserve their historical storage keys. */
+export function getKeyForMode(
+  mode: "device" | "session",
+  documentId: BelgeDocumentId,
+  scope: BelgeDraftScope = { kind: "guest" },
+): string {
+  const prefix = mode === "device"
+    ? BELGE_STORAGE_KEYS.DRAFT_DEVICE_PREFIX
+    : BELGE_STORAGE_KEYS.DRAFT_SESSION_PREFIX;
+  return prefix + checkedScopeSuffix(scope) + documentId;
+}
+export function getScopedRecoveryKey(
+  documentId: BelgeDocumentId,
+  scope: BelgeDraftScope = { kind: "guest" },
+): string {
+  return BELGE_STORAGE_KEYS.DRAFT_RECOVERY_PREFIX + checkedScopeSuffix(scope) + documentId;
 }
 
 /**

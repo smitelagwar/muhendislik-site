@@ -7,6 +7,7 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-context";
 import { useBelgeStudioTheme } from "@/hooks/use-belge-studio-theme";
 import { BelgeStudioReadabilityMenu } from "@/components/belge-studio-readability-menu";
+import { BelgeAccountTrigger } from "@/components/belge-hesap/account-trigger";
 import type { BelgeReadabilityControls } from "@/hooks/use-belge-studio-readability";
 import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
 import {
@@ -297,6 +298,8 @@ export function BelgeStudioMobileActionsSheet({
                 <BelgeBackIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span>Belgelere dön</span>
               </Link>
+
+              <BelgeAccountTrigger variant="menu" onBeforeOpen={closeDrawer} />
 
               {/* PDF'yi Yeni Sekmede Aç */}
               {preview.pdfUrl ? (

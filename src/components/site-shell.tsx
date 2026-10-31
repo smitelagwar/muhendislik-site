@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import type { ReactNode } from "react";
 import { GlobalOverlays } from "@/components/global-overlays";
 import { Navbar } from "@/components/navbar";
+import { BelgeAccountProvider } from "@/components/belge-hesap/account-provider";
 import styles from "@/components/hsyncad/immersive-shell.module.css";
 
 /** Layouts persist across navigation; the chrome decision must follow the current route. */
@@ -40,7 +41,7 @@ export function SiteShell({ children, footer }: { children: ReactNode; footer: R
     );
   }
 
-  return (
+  const shell = (
     <>
       <div className="flex min-h-screen flex-col">
         <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-amber-500 focus:px-4 focus:py-2 focus:font-bold focus:text-black focus:shadow-lg">
@@ -54,4 +55,5 @@ export function SiteShell({ children, footer }: { children: ReactNode; footer: R
       <Toaster position="top-center" richColors />
     </>
   );
+  return pathname.startsWith("/belgeler") ? <BelgeAccountProvider>{shell}</BelgeAccountProvider> : shell;
 }

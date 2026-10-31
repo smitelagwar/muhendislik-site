@@ -6,6 +6,7 @@ import { AlertCircle, MoreVertical, X } from "lucide-react";
 import { BelgeBackIcon } from "@/components/belge-studio-icons";
 import { BelgeStudioDraftStatusBadge } from "@/components/belge-studio-draft-controls";
 import { BelgeStudioThemeToggle } from "@/components/belge-studio-theme-toggle";
+import { BelgeAccountTrigger } from "@/components/belge-hesap/account-trigger";
 import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-context";
 import type { UseBelgeAutoDraftReturn } from "@/hooks/use-belge-auto-draft";
 
@@ -141,6 +142,7 @@ export function BelgeStudioUnifiedHeader({
         )}
 
         {/* TEMA SWITCH — Masaüstünde üst barın görsel ve DOM olarak en sağında */}
+        <BelgeAccountTrigger variant="studio" />
         <BelgeStudioThemeToggle className="hidden lg:inline-flex" />
 
         {/* MOBİL ÇEKMECE BUTONU (⋮) — < 1024px ekranlarda üst barın en sağında */}

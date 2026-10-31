@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
+import { BelgeAccountTrigger } from "@/components/belge-hesap/account-trigger";
 import { PortalOverlay } from "@/components/portal-overlay";
 import { SiteLogo } from "@/components/site-logo";
 import { Button } from "@/components/ui/button";
@@ -109,6 +110,11 @@ export function MobileMenu() {
                 );
               })}
             </nav>
+            {pathname === "/belgeler" ? (
+              <div className="mt-4 border-t border-border pt-3 min-[390px]:hidden">
+                <BelgeAccountTrigger variant="menu" onBeforeOpen={() => setIsOpen(false)} />
+              </div>
+            ) : null}
           </div>
 
           <div className="flex items-center justify-between border-t border-border bg-background p-6">
