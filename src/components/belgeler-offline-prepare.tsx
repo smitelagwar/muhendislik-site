@@ -61,6 +61,7 @@ export function BelgelerOfflinePrepare() {
   const [progress, setProgress] = useState<PreparationProgress | null>(null);
   const runningRef = useRef(false);
   const prepareRef = useRef<(auto?: boolean) => Promise<void>>(async () => {});
+  const retryGateRef = useRef(0);
   const [error, setError] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsId = useId();
@@ -161,10 +162,11 @@ export function BelgelerOfflinePrepare() {
       if (connection?.saveData || connection?.effectiveType === "2g") return;
       // Exponential cooldown for retryable network failures, capped at 60 seconds.
       const retryDelay = Math.min(60000, 2000 * 2 ** Math.min(5, Math.max(0, journal.attempt - 1)));
-      const remaining = journal.status === "retry_wait"
-        ? Math.max(0, journal.updatedAt + retryDelay - Date.now())
-        : (journal.status === "loading" || journal.status === "verifying")
-          ? Math.max(0, journal.updatedAt + 8000 - Date.now()) : 0;
+      const remaining = Math.max(retryGateRef.current - Date.now(),
+        journal.status === "retry_wait"
+          ? Math.max(0, journal.updatedAt + retryDelay - Date.now())
+          : (journal.status === "loading" || journal.status === "verifying")
+            ? Math.max(0, journal.updatedAt + 8000 - Date.now()) : 0);
       scheduled = window.setTimeout(() => {
         scheduled = undefined;
         if (runningRef.current || document.visibilityState !== "visible" ||
@@ -232,6 +234,7 @@ export function BelgelerOfflinePrepare() {
         setError("");
       } else {
         const message = cause instanceof Error ? cause.message : "İndirme duraklatıldı.";
+        if (auto && message.includes("Başka sekmede")) retryGateRef.current = Date.now() + 15000;
         setError(message);
         setProgress(journal ? progressForJournal(journal) : null);
       }
@@ -242,7 +245,7 @@ export function BelgelerOfflinePrepare() {
       window.dispatchEvent(new Event("belgeler-resume-preparation"));
     }
   }
-  prepareRef.current = prepare;
+  useEffect(() => { prepareRef.current = prepare; });
   function cancelDownload() {
     try {
       cancelBelgelerOfflinePreparation();
