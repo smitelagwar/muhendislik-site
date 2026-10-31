@@ -19,7 +19,7 @@ test("touch viewport: offline preparation and five PDF previews still render", a
   const details = page.getByTestId("belgeler-offline-details");
   await expect(details).toBeVisible();
   await details.getByRole("button",{name:/^(Şimdi indir|Eksik indirmeye devam et|Kalanları indir)$/}).click();
-  await expect(mobileTrigger).toHaveAttribute("aria-label",/^Çevrimdışı belgeler hazır\\. Ayrıntıları aç$/,{timeout:260000});
+  await expect(mobileTrigger).toHaveAttribute("aria-label",/^Çevrimdışı belgeler hazır\. Ayrıntıları aç$/,{timeout:260000});
   // Linux Playwright WebKit aborts document navigations when its CDP-style
   // context.setOffline emulation is enabled, before the Service Worker can answer.
   // For WebKit, the SW's cache-only gate refuses *every* uncached network request.

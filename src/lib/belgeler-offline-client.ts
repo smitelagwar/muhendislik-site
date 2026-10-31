@@ -180,20 +180,19 @@ export async function registerBelgelerOffline(): Promise<ServiceWorkerRegistrati
   if (!validEnvironment()) return null;
   return navigator.serviceWorker.register("/belgeler-sw.js", { scope: "/belgeler", updateViaCache: "none" });
 }
-/** Match the *specific* Belgeler registration, not navigator.serviceWorker.ready:
- * ready can resolve to the separate root homepage registration.
- * Listeners are installed before the first check to avoid lost activation events.
+/** Site içi geçişte sekme eski kapsamın kontrolünde kalabilir. Hazırlık Cache
+ * Storage'a doğrudan yazdığı için doğru kapsamın etkin çalışanı yeterlidir;
+ * çevrimdışı belge gezinmeleri yeni bir belge isteğiyle bu kapsamı kullanır.
  */
-async function waitForControl(registration: ServiceWorkerRegistration, signal: AbortSignal): Promise<ServiceWorker> {
+async function waitForWorker(registration: ServiceWorkerRegistration, signal: AbortSignal): Promise<ServiceWorker> {
   ensureActive(signal);
   const expectedScope = new URL("/belgeler", location.origin).href;
   if (registration.scope !== expectedScope && registration.scope !== expectedScope + "/")
     throw new Error("Belgeler hizmetinin kapsamı beklenenden farklı.");
   const current = () => {
     const active = registration.active;
-    const controller = navigator.serviceWorker.controller;
-    return active?.state === "activated" && controller?.scriptURL === active.scriptURL &&
-      controller.scriptURL.endsWith("/belgeler-sw.js") ? controller : null;
+    return active?.state === "activated" &&
+      new URL(active.scriptURL).pathname === "/belgeler-sw.js" ? active : null;
   };
   const immediate = current();
   if (immediate) return immediate;
@@ -202,7 +201,7 @@ async function waitForControl(registration: ServiceWorkerRegistration, signal: A
     const installed = new Set<ServiceWorker>();
     const timeout = window.setTimeout(() => finish(new Error(
       registration.waiting ? "Yeni çevrimdışı sürüm hazır. Önce 'Yeni sürüme geç' seçeneğini kullanın." :
-      "Belgeler hizmeti henüz sayfanın kontrolünü alamadı. İndirme başlamadı; yeniden deneyebilirsiniz."
+      "Belgeler hizmeti henüz başlatılamadı. İndirme başlamadı; yeniden deneyebilirsiniz."
     )), 18000);
     const onState = () => { const found = current(); if (found) finish(undefined, found); };
     const onUpdate = () => { bind(registration.installing); onState(); };
@@ -479,8 +478,22 @@ async function runPreparation(onProgress: (p: PreparationProgress) => void, sign
   // A partial journal can be lost during a mobile F5; its valid v5 bytes survive.
   const registration = await registerBelgelerOffline();
   if (!registration) throw new Error("Çevrimdışı hizmet kaydedilemedi.");
-  const worker = await waitForControl(registration, signal);
-  const version = await readControllerVersion(worker, signal);
+  const worker = await waitForWorker(registration, signal);
+  let version: string;
+  const reloadKey = "belgeler:pwa:scope-reload";
+  try {
+    version = await readControllerVersion(worker, signal);
+    sessionStorage.removeItem(reloadKey);
+  } catch (error) {
+    // Eski worker, SPA ile gelen kök sayfadan sürüm sorgusunu reddedebilir.
+    // Katalogda bir kez tam gezinme, indirme günlüğünü koruyarak doğru kapsamı seçer.
+    if (!signal.aborted && location.pathname === "/belgeler" &&
+        navigator.serviceWorker.controller !== worker && !sessionStorage.getItem(reloadKey)) {
+      sessionStorage.setItem(reloadKey, "1");
+      location.reload();
+    }
+    throw error;
+  }
   if (version !== OFFLINE_VERSION) {
     throw new Error(registration.waiting ?
       "Yeni çevrimdışı sürüm hazır. Önce 'Yeni sürüme geç' seçeneğini kullanın." :
