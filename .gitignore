@@ -93,3 +93,7 @@ docs/pdf-zoom-v2-screenshots/
 
 .vercel
 .env*
+
+.env*
+
+.agents/teamwork/

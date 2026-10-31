@@ -3,6 +3,8 @@
 > Bu dosya projenin tek gerçek kaynağıdır. CLAUDE.md, AGENTS.md ve GEMINI.md bu dosyayı referans alır.
 > Herhangi bir tool (Claude Code, Codex, Gemini CLI) bu dosyayı session başında otomatik yükler.
 
+**Sohbet kimliğiyle devam:** Kullanıcı Codex/Antigravity konuşma kimliği veya `codex://threads/...` bağlantısı verirse, aramadan önce [AGENTS.md → Sohbet kimliği verilirse zorunlu kısa yol](AGENTS.md#sohbet-kimliği-verilirse-zorunlu-kısa-yol) bölümünü oku. Yerel transcript ve indeks konumları orada doğrulanmıştır; tüm diski tarama.
+
 ---
 
 ## Proje Kimliği

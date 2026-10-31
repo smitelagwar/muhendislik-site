@@ -10,7 +10,7 @@ import {
 } from "./pafta-engine";
 import { exportPaftaToDxf } from "./pafta-dxf";
 import { createSevenStoreyCommercialBuilding } from "./seven-storey-demo";
-import { createDemoModel } from "./model";
+
 
 describe("hsynCAD ideCAD-Style Professional Pafta Engine", () => {
   it("defines standard Turkish civil engineering sheet sizes correctly", () => {
@@ -65,7 +65,7 @@ describe("hsynCAD ideCAD-Style Professional Pafta Engine", () => {
     const diameters = new Set(takeoff.map(t => t.diameterMm));
     assert.ok(diameters.has(8), "Expected Φ8 for stirrups");
     assert.ok(diameters.has(16) || diameters.has(18), "Expected Φ16 or Φ18 for columns/beams");
-    assert.ok(diameters.has(18), "Expected Φ18 for raft foundation");
+    assert.ok(takeoff.every(row => row.element.startsWith("Taslak ")), "Generated reinforcement must be identified as preliminary");
   });
 
   it("generates complete multi-sheet pafta suite matching Süheyla Kara standards", () => {

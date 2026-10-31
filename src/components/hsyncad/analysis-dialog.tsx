@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { AnalysisResult, AnalysisSettings } from "@/lib/hsyncad/analysis";
 import { DEFAULT_ANALYSIS_SETTINGS } from "@/lib/hsyncad/analysis";
 import type { CadModel } from "@/lib/hsyncad/model";
 import { downloadDxfFile } from "@/lib/hsyncad/dxf-export";
+import { downloadStaticReportPdf } from "@/lib/hsyncad/reports";
 
 interface Props {
   model: CadModel;
@@ -12,20 +13,39 @@ interface Props {
   onRun: (settings: AnalysisSettings) => void;
   onClose: () => void;
   onSetViewMode?: (mode: "none" | "displacement" | "moment" | "shear" | "capacity") => void;
+  initialTab?: "summary" | "storeys" | "columns" | "beams" | "joints" | "irregularities" | "settings";
 }
 
-export default function AnalysisDialog({ model, result, onRun, onClose, onSetViewMode }: Props) {
-  const [activeTab, setActiveTab] = useState<"summary" | "storeys" | "columns" | "beams" | "joints" | "irregularities" | "settings">("summary");
+export default function AnalysisDialog({ model, result, onRun, onClose, onSetViewMode, initialTab }: Props) {
+  const [activeTab, setActiveTab] = useState<"summary" | "storeys" | "columns" | "beams" | "joints" | "irregularities" | "settings">(initialTab ?? "summary");
   const [settings, setSettings] = useState<AnalysisSettings>(result?.settings ?? DEFAULT_ANALYSIS_SETTINGS);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   return (
     <div className="hcad-analysis-container" data-testid="hsyncad-analysis-dialog">
-      <div className="hcad-analysis-header">
+      <p role="note">Yaklaşık ön hesap ve taslak donatı. Tam 3B sonlu eleman çözümü veya yönetmelik uygunluk/onay raporu değildir.</p>
+      <div className="hcad-analysis-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <span className={`hcad-badge ${result?.overallPass ? "hcad-badge-success" : "hcad-badge-warning"}`}>
-            {result ? (result.overallPass ? "Tüm Kontroller Sağlandı (PASS)" : "Kapasite Aşımı Var") : "Analiz Bekleniyor"}
+            {result ? (result.overallPass ? "Ön hesap sınırları sağlandı" : "Kapasite Aşımı Var") : "Analiz Bekleniyor"}
           </span>
         </div>
+        {result && (
+          <button
+            type="button"
+            className="hcad-btn-secondary"
+            data-testid="download-static-pdf-btn"
+            onClick={() => downloadStaticReportPdf(model, result, result.designResult)}
+            style={{ fontSize: "12px", padding: "4px 10px" }}
+          >
+            📄 Statik Rapor İndir (PDF)
+          </button>
+        )}
       </div>
 
       <div className="hcad-analysis-nav">
@@ -239,9 +259,25 @@ export default function AnalysisDialog({ model, result, onRun, onClose, onSetVie
                       <td>{joint.isConfined ? "Kuşatılmış" : "Kuşatılmamış"}</td>
                       <td>{joint.shearDemandKn.toFixed(1)} kN</td>
                       <td>{joint.shearCapacityKn.toFixed(1)} kN</td>
-                      <td>%{(joint.shearRatio * 100).toFixed(1)}</td>
-                      <td>{moment ? moment.ratio.toFixed(2) : "-"}</td>
-                      <td>{punch ? `%${(punch.punchingRatio * 100).toFixed(1)}` : "-"}</td>
+                      <td data-testid="joint-shear-check">
+                        <span className={joint.shearRatio <= 1.0 ? "text-success" : "text-danger"}>
+                          %{(joint.shearRatio * 100).toFixed(1)}
+                        </span>
+                      </td>
+                      <td>
+                        {moment ? (
+                          <span className={moment.ratio >= 1.2 ? "text-success" : "text-danger"}>
+                            {moment.ratio.toFixed(2)} {moment.ratio >= 1.2 ? "(≥1.20)" : "(<1.20)"}
+                          </span>
+                        ) : "-"}
+                      </td>
+                      <td>
+                        {punch ? (
+                          <span className={punch.punchingRatio <= 1.0 ? "text-success" : "text-danger"}>
+                            %{(punch.punchingRatio * 100).toFixed(1)}
+                          </span>
+                        ) : "-"}
+                      </td>
                       <td>
                         <span className={`hcad-status-tag ${joint.pass && (moment?.pass ?? true) && (punch?.pass ?? true) ? "pass" : "fail"}`}>
                           {joint.pass && (moment?.pass ?? true) && (punch?.pass ?? true) ? "UYGUN" : "KONTROL ET"}
@@ -368,9 +404,21 @@ export default function AnalysisDialog({ model, result, onRun, onClose, onSetVie
       </div>
 
       <div className="hcad-analysis-footer">
-        <button type="button" className="hcad-btn-secondary" data-testid="analysis-dxf-export" onClick={() => downloadDxfFile(model)}>
-          DXF Çizimini İndir (.dxf)
-        </button>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button type="button" className="hcad-btn-secondary" data-testid="analysis-dxf-export" onClick={() => downloadDxfFile(model)}>
+            DXF Çizimini İndir (.dxf)
+          </button>
+          {result && (
+            <button
+              type="button"
+              className="hcad-btn-primary"
+              data-testid="download-static-pdf-btn"
+              onClick={() => downloadStaticReportPdf(model, result, result.designResult)}
+            >
+              Statik Rapor İndir (PDF)
+            </button>
+          )}
+        </div>
         <div className="hcad-footer-right">
           <button type="button" className="hcad-btn-primary" data-testid="run-analysis-btn" onClick={() => onRun(settings)}>
             Analizi Başlat / Yenile

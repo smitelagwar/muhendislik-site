@@ -16,6 +16,23 @@ import { axisSegments } from "@/lib/hsyncad/axes";
 const THREE = ThreeRuntime as unknown as typeof ThreeTypes;
 
 import type { AnalysisResult } from "@/lib/hsyncad/analysis";
+import {
+  cadToThreeCoord,
+  cadToThreeDisplacement,
+  build3DRibbonData,
+  calculateAutoDiagramScale,
+  calculateAutoDeformationScale,
+  interpolateStationForces,
+  getDcrColorHex,
+  getDcrColor,
+  getVertexDisplacement,
+  getDisplacementHeatmapColor,
+  getMaxDisplacementMagnitude,
+  projectRaycastHitToStation,
+  type ForceDiagramType,
+} from "@/lib/hsyncad/diagram-geometry";
+
+export { getVertexDisplacement };
 
 interface Scene3DProps {
   model: CadModel;
@@ -28,6 +45,9 @@ interface Scene3DProps {
   viewRequest?: { mode: string; revision: number };
   analysisResult?: AnalysisResult | null;
   analysisViewMode?: string;
+  diagramScale?: number;
+  deformationScale?: number;
+  activeCombination?: string;
 }
 
 // Restore only the official inherited lifecycle/event types hidden by that shim.
@@ -62,12 +82,57 @@ function disposeObjects(root: ThreeTypes.Object3D) {
   root.clear();
 }
 
+function computeBuildingDimension(model: CadModel): number {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, maxZ = 10;
+  for (const floor of model.floors) {
+    if (floor.elevation + floor.height > maxZ) maxZ = floor.elevation + floor.height;
+  }
+  for (const el of model.elements) {
+    if (el.type === "column") {
+      minX = Math.min(minX, el.position.x); maxX = Math.max(maxX, el.position.x);
+      minY = Math.min(minY, el.position.y); maxY = Math.max(maxY, el.position.y);
+    } else if (el.type === "beam" || el.type === "wall") {
+      minX = Math.min(minX, el.start.x, el.end.x); maxX = Math.max(maxX, el.start.x, el.end.x);
+      minY = Math.min(minY, el.start.y, el.end.y); maxY = Math.max(maxY, el.start.y, el.end.y);
+    }
+  }
+  const spanX = Number.isFinite(minX) ? maxX - minX : 20;
+  const spanY = Number.isFinite(minY) ? maxY - minY : 20;
+  return Math.max(spanX, spanY, maxZ, 15);
+}
+
+
 /** One model unit is one metre. Plan +Y maps to world -Z; world +Y is elevation. */
-export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, junctions, fitKey = 0, light = true, viewRequest, analysisResult, analysisViewMode }: Scene3DProps) {
+export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, junctions, fitKey = 0, light = true, viewRequest, analysisResult, analysisViewMode = "none", diagramScale = 1.0, deformationScale = 100, activeCombination = "Zarf" }: Scene3DProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<SceneRuntime | null>(null);
   const selectRef = useRef(onSelect);
   const [renderError, setRenderError] = useState<string | null>(null);
+
+  const [hoverInfo, setHoverInfo] = useState<{
+    elementName: string;
+    elementType: string;
+    x: number;
+    L: number;
+    M3: number;
+    V2: number;
+    N: number;
+    dcr: number;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
+
+  const analysisResultRef = useRef(analysisResult);
+  const analysisViewModeRef = useRef(analysisViewMode);
+  const modelRef = useRef(model);
+  const hoverRef = useRef(hoverInfo);
+
+  useEffect(() => {
+    analysisResultRef.current = analysisResult;
+    analysisViewModeRef.current = analysisViewMode;
+    modelRef.current = model;
+    hoverRef.current = hoverInfo;
+  }, [analysisResult, analysisViewMode, model, hoverInfo]);
 
   useEffect(() => {
     selectRef.current = onSelect;
@@ -190,7 +255,50 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
       pressed = { x: event.clientX, y: event.clientY, pointerId: event.pointerId, dragged: false };
     };
     const pointerMove = (event: PointerEvent) => {
-      if (pressed && Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > 5) pressed.dragged = true;
+      if (pressed) {
+        if (Math.hypot(event.clientX - pressed.x, event.clientY - pressed.y) > 5) pressed.dragged = true;
+        return;
+      }
+      const aRes = analysisResultRef.current;
+      const vMode = analysisViewModeRef.current;
+      if (!aRes || !vMode || vMode === "none") {
+        if (hoverRef.current) setHoverInfo(null);
+        return;
+      }
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(elements.children, true);
+      const hit = hits.find((item) => item.object instanceof THREE.Mesh && item.object.userData.elementId);
+      if (hit && typeof hit.object.userData.elementId === "string") {
+        const id = hit.object.userData.elementId;
+        const el = modelRef.current.elements.find((e) => e.id === id);
+        if (el) {
+          const stations = (aRes.memberStations?.[id] || aRes.memberForces?.[id] || []) as any[];
+          const floor = modelRef.current.floors.find((f) => f.id === el.floorId);
+          const { t, x, L } = projectRaycastHitToStation(hit.point, el, floor);
+          const forces = interpolateStationForces(stations, t);
+          const memberResult = aRes.members?.[id];
+          const dcr = memberResult?.capacityRatio ?? 0;
+          setHoverInfo({
+            elementName: el.name,
+            elementType: el.type,
+            x,
+            L,
+            M3: forces.M3,
+            V2: forces.V2,
+            N: forces.N,
+            dcr,
+            clientX: event.clientX - rect.left,
+            clientY: event.clientY - rect.top,
+          });
+          return;
+        }
+      }
+      if (hoverRef.current) setHoverInfo(null);
+    };
+    const pointerLeave = () => {
+      if (hoverRef.current) setHoverInfo(null);
     };
     const pointerUp = (event: PointerEvent) => {
       const start = pressed;
@@ -203,7 +311,7 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
       const id: unknown = hit?.object.userData.elementId;
       if (typeof id === "string") selectRef.current(id);
     };
-    const pointerCancel = () => { pressed = null; };
+    const pointerCancel = () => { pressed = null; if (hoverRef.current) setHoverInfo(null); };
     const contextLost = (event: Event) => {
       event.preventDefault();
       setRenderError("3B görüntü bağlantısı kesildi. Görünümü yeniden başlatmak için sayfayı yenileyin.");
@@ -212,6 +320,7 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
     renderer.domElement.addEventListener("pointermove", pointerMove);
     renderer.domElement.addEventListener("pointerup", pointerUp);
     renderer.domElement.addEventListener("pointercancel", pointerCancel);
+    renderer.domElement.addEventListener("pointerleave", pointerLeave);
     renderer.domElement.addEventListener("webglcontextlost", contextLost);
 
     return () => {
@@ -224,6 +333,7 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
       renderer.domElement.removeEventListener("pointermove", pointerMove);
       renderer.domElement.removeEventListener("pointerup", pointerUp);
       renderer.domElement.removeEventListener("pointercancel", pointerCancel);
+      renderer.domElement.removeEventListener("pointerleave", pointerLeave);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
       disposeObjects(scene);
       renderer.dispose();
@@ -265,6 +375,11 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
       }
     }
 
+    const buildingDim = computeBuildingDimension(model);
+    const baseDispScale = analysisResult?.displacements ? calculateAutoDeformationScale(analysisResult.displacements, buildingDim) : 100;
+    const activeDispScale = baseDispScale * ((deformationScale || 100) / 100);
+    const maxDispMag = getMaxDisplacementMagnitude(analysisResult);
+
     if (resolvedJunctions.status === "resolved" && resolvedJunctions.parts.length > 0) {
       for (const part of resolvedJunctions.parts) {
         const element = elementsById.get(part.elementId);
@@ -284,20 +399,158 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
           geometry.rotateX(-Math.PI / 2);
           geometry.translate(0, part.bottom, 0);
         }
-        const analysisMember = analysisResult?.members[part.elementId];
-        const capacityColor = analysisMember ? (analysisMember.capacityRatio > 1.0 ? 0xef4444 : analysisMember.capacityRatio > 0.70 ? 0xf59e0b : 0x22c55e) : undefined;
-        const layerColor = element?.layer === "Temeller" ? 0x8b5cf6 : element?.layer === "Merdivenler" ? 0xec4899 : (element?.color ?? model.layers?.find(l => l.name === element?.layer)?.color ?? COLORS[part.type]);
-        const baseColor = (analysisViewMode === "capacity" && capacityColor !== undefined) ? capacityColor : layerColor;
         geometry.computeVertexNormals();
-        const material = new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.78, metalness: 0.04 });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.name = element?.name ?? part.type;
-        mesh.userData.elementId = part.elementId;
-        mesh.userData.baseColor = new THREE.Color(baseColor).getHex();
-        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 25), new THREE.LineBasicMaterial({ color: 0x263849, transparent: true, opacity: 0.65 }));
-        mesh.add(edges);
-        runtime.elements.add(mesh);
-        solidCount += 1;
+
+        const analysisMember = analysisResult?.members[part.elementId];
+        const capacityColor = analysisMember ? getDcrColorHex(analysisMember.capacityRatio) : undefined;
+        const layerColor = element?.layer === "Temeller" ? 0x8b5cf6 : element?.layer === "Merdivenler" ? 0xec4899 : (element?.color ?? model.layers?.find(l => l.name === element?.layer)?.color ?? COLORS[part.type]);
+
+        if (analysisViewMode === "displacement") {
+          // 1. Ghost structure (undeformed reference)
+          const ghostMat = new THREE.MeshStandardMaterial({
+            color: 0x94a3b8,
+            roughness: 0.8,
+            transparent: true,
+            opacity: 0.18,
+            depthWrite: false,
+          });
+          const ghostMesh = new THREE.Mesh(geometry, ghostMat);
+          const ghostEdges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 25), new THREE.LineBasicMaterial({ color: 0x475569, transparent: true, opacity: 0.25 }));
+          ghostMesh.add(ghostEdges);
+          runtime.elements.add(ghostMesh);
+
+          // 2. Deformed structure with vertex displacement and smooth contour coloration
+          const posAttr = geometry.getAttribute("position");
+          const defPositions = new Float32Array(posAttr.count * 3);
+          const defColors = new Float32Array(posAttr.count * 3);
+          for (let i = 0; i < posAttr.count; i++) {
+            const vx = posAttr.getX(i);
+            const vy = posAttr.getY(i);
+            const vz = posAttr.getZ(i);
+            const cadX = vx, cadY = -vz, cadZ = vy;
+            const [ux, uy, uz] = getVertexDisplacement(cadX, cadY, cadZ, analysisResult);
+            const [uThreeX, uThreeY, uThreeZ] = cadToThreeDisplacement(ux, uy, uz);
+            defPositions[i * 3 + 0] = vx + activeDispScale * uThreeX;
+            defPositions[i * 3 + 1] = vy + activeDispScale * uThreeY;
+            defPositions[i * 3 + 2] = vz + activeDispScale * uThreeZ;
+
+            const uMag = Math.hypot(ux, uy, uz);
+            const rho = Math.min(1.0, uMag / maxDispMag);
+            const [r, g, b] = getDisplacementHeatmapColor(rho);
+            defColors[i * 3 + 0] = r;
+            defColors[i * 3 + 1] = g;
+            defColors[i * 3 + 2] = b;
+          }
+          const defGeometry = new THREE.BufferGeometry();
+          defGeometry.setAttribute("position", new THREE.Float32BufferAttribute(defPositions, 3));
+          defGeometry.setAttribute("color", new THREE.Float32BufferAttribute(defColors, 3));
+          defGeometry.computeVertexNormals();
+          const defMat = new THREE.MeshStandardMaterial({
+            vertexColors: true,
+            roughness: 0.65,
+            metalness: 0.1,
+          });
+          const defMesh = new THREE.Mesh(defGeometry, defMat);
+          defMesh.name = (element?.name ?? part.type) + " (Deforme)";
+          defMesh.userData.elementId = part.elementId;
+          defMesh.userData.baseColor = 0x38bdf8;
+          const defEdges = new THREE.LineSegments(new THREE.EdgesGeometry(defGeometry, 25), new THREE.LineBasicMaterial({ color: 0x0284c7, transparent: true, opacity: 0.85 }));
+          defMesh.add(defEdges);
+          runtime.elements.add(defMesh);
+          solidCount += 1;
+        } else {
+          const isDiagramMode = analysisViewMode === "moment" || analysisViewMode === "shear" || analysisViewMode === "axial";
+          const isCapacityMode = analysisViewMode === "capacity";
+          const baseColor = (isCapacityMode && capacityColor !== undefined) ? capacityColor : layerColor;
+          const opacity = isDiagramMode ? 0.45 : 1.0;
+          const material = new THREE.MeshStandardMaterial({
+            color: baseColor,
+            roughness: 0.78,
+            metalness: 0.04,
+            transparent: opacity < 1.0,
+            opacity,
+          });
+          const mesh = new THREE.Mesh(geometry, material);
+          mesh.name = element?.name ?? part.type;
+          mesh.userData.elementId = part.elementId;
+          mesh.userData.baseColor = new THREE.Color(baseColor).getHex();
+          const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 25), new THREE.LineBasicMaterial({ color: 0x263849, transparent: true, opacity: isDiagramMode ? 0.30 : 0.65 }));
+          mesh.add(edges);
+          runtime.elements.add(mesh);
+          solidCount += 1;
+        }
+      }
+    }
+
+    // 3D Extruded Ribbon Force Diagrams
+    if (analysisResult && (analysisViewMode === "moment" || analysisViewMode === "shear" || analysisViewMode === "axial")) {
+      const fType: ForceDiagramType = analysisViewMode === "moment" ? "M3" : analysisViewMode === "shear" ? "V2" : "N";
+      const strokeColor = fType === "M3" ? 0x2563eb : fType === "V2" ? 0x0891b2 : 0xea580c;
+      const ribbonColor = fType === "M3" ? 0x3b82f6 : fType === "V2" ? 0x06b6d4 : 0xf97316;
+      const map = analysisResult.memberStations || analysisResult.memberForces || {};
+      const baseScale = calculateAutoDiagramScale(map, fType, 0.60);
+      const scale = baseScale * (diagramScale ?? 1.0);
+
+      for (const element of model.elements) {
+        if (element.type !== "beam" && element.type !== "column" && element.type !== "wall") continue;
+        if (!layerState(model, element.layer, element.floorId).visible || hiddenLayers.includes(element.layer)) continue;
+        const floor = floors.get(element.floorId);
+        if (!floor) continue;
+
+        const stations = (analysisResult.memberStations?.[element.id] || analysisResult.memberForces?.[element.id] || []) as any[];
+        if (stations.length < 2) continue;
+
+        let startCad = { x: 0, y: 0, z: 0 };
+        let endCad = { x: 0, y: 0, z: 0 };
+
+        if (element.type === "beam") {
+          startCad = { x: element.start.x, y: element.start.y, z: floor.elevation + floor.height };
+          endCad = { x: element.end.x, y: element.end.y, z: floor.elevation + floor.height };
+        } else if (element.type === "column") {
+          startCad = { x: element.position.x, y: element.position.y, z: floor.elevation };
+          endCad = { x: element.position.x, y: element.position.y, z: floor.elevation + (element.height || floor.height) };
+        } else {
+          startCad = { x: (element.start.x + element.end.x) / 2, y: (element.start.y + element.end.y) / 2, z: floor.elevation };
+          endCad = { x: (element.start.x + element.end.x) / 2, y: (element.start.y + element.end.y) / 2, z: floor.elevation + (element.height || floor.height) };
+        }
+
+        const rotDeg = "rotation" in element ? ((element as any).rotation ?? 0) : 0;
+        const ribbon = build3DRibbonData(startCad, endCad, element.type, stations, fType, scale, rotDeg);
+        if (ribbon.meshPositions.length > 0) {
+          const ribbonGeo = new THREE.BufferGeometry();
+          ribbonGeo.setAttribute("position", new THREE.Float32BufferAttribute(ribbon.meshPositions, 3));
+          ribbonGeo.computeVertexNormals();
+          const ribbonMat = new THREE.MeshBasicMaterial({
+            color: ribbonColor,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.75,
+            depthWrite: false,
+          });
+          const ribbonMesh = new THREE.Mesh(ribbonGeo, ribbonMat);
+          ribbonMesh.userData.elementId = element.id;
+          ribbonMesh.renderOrder = 2;
+          runtime.elements.add(ribbonMesh);
+
+          const crestGeo = new THREE.BufferGeometry();
+          crestGeo.setAttribute("position", new THREE.Float32BufferAttribute(ribbon.crestPositions, 3));
+          const crestLine = new THREE.Line(crestGeo, new THREE.LineBasicMaterial({ color: strokeColor }));
+          crestLine.renderOrder = 3;
+          runtime.elements.add(crestLine);
+
+          const baseGeo = new THREE.BufferGeometry();
+          baseGeo.setAttribute("position", new THREE.Float32BufferAttribute(ribbon.baselinePositions, 3));
+          const baseLine = new THREE.Line(baseGeo, new THREE.LineDashedMaterial({ color: 0x94a3b8, dashSize: 0.2, gapSize: 0.1 }));
+          baseLine.computeLineDistances();
+          baseLine.renderOrder = 2;
+          runtime.elements.add(baseLine);
+
+          const capGeo = new THREE.BufferGeometry();
+          capGeo.setAttribute("position", new THREE.Float32BufferAttribute(ribbon.endCapPositions, 3));
+          const capLines = new THREE.LineSegments(capGeo, new THREE.LineBasicMaterial({ color: strokeColor }));
+          capLines.renderOrder = 3;
+          runtime.elements.add(capLines);
+        }
       }
     }
     const bounds = new THREE.Box3().setFromObject(runtime.elements);
@@ -311,7 +564,7 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
       runtime.fit();
     }
     runtime.render();
-  }, [model, hiddenLayers, junctions, analysisResult, analysisViewMode]);
+  }, [model, hiddenLayers, junctions, analysisResult, analysisViewMode, diagramScale, deformationScale]);
 
   useEffect(() => {
     if (!fitKey) return;
@@ -370,6 +623,32 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
           <span style={{ color: "#efa58d" }}>X</span><span style={{ color: "#8bd4bf" }}>Y</span><span style={{ color: "#8db6eb" }}>Z ↑</span><span>1 birim = 1 m</span>
         </div>
         <span style={{ pointerEvents: "none", position: "absolute", zIndex: 1, right: 12, bottom: 12, color: "#b8c9d8", fontSize: 10 }}>{solidCount} katı eleman</span>
+        {hoverInfo && (
+          <div
+            style={{
+              position: "absolute",
+              left: Math.min(hoverInfo.clientX + 14, (viewportRef.current?.clientWidth ?? 400) - 200),
+              top: Math.max(12, hoverInfo.clientY - 60),
+              pointerEvents: "none",
+              zIndex: 30,
+              background: "rgba(15, 23, 42, 0.94)",
+              border: "1px solid #38bdf8",
+              borderRadius: 6,
+              padding: "8px 12px",
+              color: "#f8fafc",
+              fontSize: 11,
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
+            }}
+          >
+            <div style={{ fontWeight: "bold", marginBottom: 2 }}>{hoverInfo.elementName} ({hoverInfo.elementType})</div>
+            <div style={{ color: "#60a5fa", fontFamily: "var(--font-mono, monospace)" }}>
+              M₃: {hoverInfo.M3.toFixed(1)} kNm · V₂: {hoverInfo.V2.toFixed(1)} kN
+            </div>
+            <div style={{ color: "#fb923c", fontFamily: "var(--font-mono, monospace)" }}>
+              N: {hoverInfo.N.toFixed(1)} kN · <span style={{ color: getDcrColor(hoverInfo.dcr), fontWeight: "bold" }}>DCR: %{(hoverInfo.dcr * 100).toFixed(0)}</span>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

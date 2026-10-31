@@ -13,6 +13,16 @@ import { DEFAULT_SNAP, type SnapSettings, type LineStyle } from "@/lib/hsyncad/d
 import { constrainPoint } from "@/lib/hsyncad/drawing";
 import type { PointAction } from "./use-drawing-session";
 import type { AnalysisResult } from "@/lib/hsyncad/analysis";
+import {
+  computeTensionFaceNormal,
+  get2DBeamDiagram,
+  calculateAutoDiagramScale,
+  calculateAutoDeformationScale,
+  interpolateStationForces,
+  projectPointToSegment,
+  getDcrColor,
+  type ForceDiagramType,
+} from "@/lib/hsyncad/diagram-geometry";
 
 type Props = {
   elements: CadElement[]; tool: Tool; selectedId: string | null; pending: Point[];
@@ -23,13 +33,18 @@ type Props = {
   draftingItems?: DraftingItem[]; referenceFrame?: ReferenceFrame; showGrid?: boolean;
   coordinateConstraint?: (point: Point) => Point;
   preview?: CadElement; unit?: "m" | "cm"; lengthLock?: number | null; angleLock?: number | null; fallbackAngle?: number; regionPicking?: boolean;
-  analysisResult?: AnalysisResult | null; analysisViewMode?: "none" | "displacement" | "moment" | "shear" | "capacity"; paftaMode?: boolean;
+  analysisResult?: AnalysisResult | null;
+  analysisViewMode?: "none" | "displacement" | "moment" | "shear" | "axial" | "capacity";
+  diagramScale?: number;
+  deformationScale?: number;
+  activeCombination?: string;
+  paftaMode?: boolean;
 };
 const MIN_SCALE = 1e-6;
 const SNAP_LABELS: Record<string, string> = { intersection: "Aks kesişimi", endpoint: "Uç nokta", midpoint: "Orta nokta", grid: "Izgara", none: "Serbest", reference: "Referans doğrusu" };
 
 const dash = (style: LineStyle | undefined, fallback: LineStyle = "solid") => (style ?? fallback) === "dashdot" ? "9 5 2 5" : style === "dashed" ? "6 4" : undefined;
-export default function Plan2D({ elements, tool, selectedId, pending, snapping, ortho, gridStep, fitKey, onPoint, onSelect, onCursor, onZoom, snapSettings = DEFAULT_SNAP, lockedLayers = [], layerColors = {}, preview, unit = "m", lengthLock = null, angleLock = null, fallbackAngle = 0, regionPicking = false, draftingItems = [], referenceFrame, showGrid = true, coordinateConstraint, analysisResult, analysisViewMode = "none", paftaMode = false }: Props) {
+export default function Plan2D({ elements, tool, selectedId, pending, snapping, ortho, gridStep, fitKey, onPoint, onSelect, onCursor, onZoom, snapSettings = DEFAULT_SNAP, lockedLayers = [], layerColors = {}, preview, unit = "m", lengthLock = null, angleLock = null, fallbackAngle = 0, regionPicking = false, draftingItems = [], referenceFrame, showGrid = true, coordinateConstraint, analysisResult, analysisViewMode = "none", diagramScale = 1.0, deformationScale = 100, activeCombination = "Zarf", paftaMode = false }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 490 });
   const [camera, setCamera] = useState({ x: 2, y: 2, scale: 48 });
@@ -38,6 +53,55 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
   const pointers = useRef(new Map<number, Point>());
   const gesture = useRef({ start: { x: 0, y: 0 }, last: { x: 0, y: 0 }, moved: false, pinch: false, pan: false });
   const candidates = useMemo(() => referenceSnapCandidates(elements, draftingItems), [elements, draftingItems]);
+
+  const [hoverProbe, setHoverProbe] = useState<{
+    elementName: string;
+    x: number;
+    L: number;
+    t: number;
+    screenProj: Point;
+    N: number;
+    V2: number;
+    M3: number;
+    dcr: number;
+  } | null>(null);
+
+  const autoDiagScale = useMemo(() => {
+    if (!analysisResult) return 1.0;
+    const fType: ForceDiagramType = analysisViewMode === "moment" ? "M3" : analysisViewMode === "shear" ? "V2" : "N";
+    const map = analysisResult.memberStations || analysisResult.memberForces;
+    return calculateAutoDiagramScale(map, fType, 0.60) * (diagramScale || 1.0);
+  }, [analysisResult, analysisViewMode, diagramScale]);
+
+  const autoDispScale = useMemo(() => {
+    if (!analysisResult?.displacements) return 100;
+    const xs = elements.map(e => e.type === "column" ? e.position.x : e.type === "beam" ? e.start.x : 0);
+    const ys = elements.map(e => e.type === "column" ? e.position.y : e.type === "beam" ? e.start.y : 0);
+    const spanX = xs.length ? Math.max(...xs) - Math.min(...xs) : 20;
+    const spanY = ys.length ? Math.max(...ys) - Math.min(...ys) : 20;
+    const dim = Math.max(spanX, spanY, 15);
+    const base = calculateAutoDeformationScale(analysisResult.displacements, dim);
+    return base * ((deformationScale || 100) / 100);
+  }, [analysisResult, elements, deformationScale]);
+
+  const getDisplacementAt = useCallback((p: Point): Point => {
+    if (!analysisResult?.displacements) return { x: 0, y: 0 };
+    if (analysisResult.floorDiaphragms && analysisResult.floorDiaphragms.length > 0) {
+      const dia = analysisResult.floorDiaphragms[0];
+      const dx = dia.displacementX - dia.rotationZ * (p.y - dia.centerY);
+      const dy = dia.displacementY + dia.rotationZ * (p.x - dia.centerX);
+      return { x: dx, y: dy };
+    }
+    let sumX = 0, sumY = 0, count = 0;
+    for (const disp of Object.values(analysisResult.displacements)) {
+      if (disp) {
+        sumX += disp[0];
+        sumY += disp[1];
+        count++;
+      }
+    }
+    return count > 0 ? { x: sumX / count, y: sumY / count } : { x: 0, y: 0 };
+  }, [analysisResult]);
   const screen = (p: Point) => ({ x: size.width / 2 + (p.x - camera.x) * camera.scale, y: size.height / 2 - (p.y - camera.y) * camera.scale });
   const world = (p: Point) => ({ x: camera.x + (p.x - size.width / 2) / camera.scale, y: camera.y - (p.y - size.height / 2) / camera.scale });
   const fit = useCallback(() => {
@@ -106,6 +170,38 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
     if (distance(constrained, snapped.point) > 1e-6) snapped.kind = "none";
     const point = roundPoint(constrained);
     setCursor(point); setSnapKind(snapped.kind); onCursor(point, SNAP_LABELS[snapped.kind]);
+
+    if (analysisResult && analysisViewMode !== "none") {
+      let nearest: typeof hoverProbe = null;
+      let minD = Math.max(0.40, 24 / camera.scale);
+      for (const e of elements) {
+        if (e.type !== "beam") continue;
+        const projInfo = projectPointToSegment(point, e.start, e.end);
+        if (projInfo.distance < minD) {
+          minD = projInfo.distance;
+          const stations = (analysisResult.memberStations?.[e.id] || analysisResult.memberForces?.[e.id] || []) as any[];
+          const forces = interpolateStationForces(stations, projInfo.t);
+          const L = Math.hypot(e.end.x - e.start.x, e.end.y - e.start.y);
+          const memberResult = analysisResult.members?.[e.id];
+          const dcr = memberResult?.capacityRatio ?? 0;
+          nearest = {
+            elementName: e.name,
+            x: projInfo.t * L,
+            L,
+            t: projInfo.t,
+            screenProj: screen(projInfo.proj),
+            N: forces.N,
+            V2: forces.V2,
+            M3: forces.M3,
+            dcr,
+          };
+        }
+      }
+      setHoverProbe(nearest);
+    } else if (hoverProbe) {
+      setHoverProbe(null);
+    }
+
     return point;
   }
   function select(p: Point) {
@@ -182,14 +278,21 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
         {gridXs.filter((_, i) => i % 2 === 0).map((x, i) => <text className="hcad-ruler" key={i} x={screen({ x, y: 0 }).x + 4} y={size.height - 8}>{+x.toFixed(2)}</text>)}
         {rendered.map((e, index) => {
           const analysisMember = analysisResult?.members[e.id];
-          const capacityColor = analysisMember ? (analysisMember.capacityRatio > 1.0 ? "#ef4444" : analysisMember.capacityRatio > 0.70 ? "#f59e0b" : "#22c55e") : undefined;
+          const capacityColor = analysisMember ? getDcrColor(analysisMember.capacityRatio) : undefined;
           const baseColor = e.layer === "Temeller" ? "#8b5cf6" : e.layer === "Merdivenler" ? "#ec4899" : (e.color ?? layerColors[e.layer] ?? TYPE_COLORS[e.type]);
           const color = (analysisViewMode === "capacity" && capacityColor) ? capacityColor : baseColor;
           const selected = e.id === selectedId;
           const points = e.type === "axis" ? [e.start, e.end] : elementFootprint(e);
           const center = e.type === "slab" ? e.labelPosition ?? regionLabelPoint(e.points) : e.type === "column" ? e.position : { x: points.reduce((s, p) => s + p.x, 0) / points.length, y: points.reduce((s, p) => s + p.y, 0) / points.length };
           const label = screen(center);
-          if (e.type === "slabEdge") return <g key={e.id} data-element-id={e.id} data-element-type="slabEdge"><polyline points={path(points)} stroke={selected ? "#fbbf24" : color} strokeDasharray="7 4" strokeWidth={selected ? 3 : 1.5} fill="none" /><text x={label.x} y={label.y - 6} fill={color} fontSize={9}>{e.name}</text></g>;
+          const isDeformed = analysisViewMode === "displacement";
+          const strokeColor = (analysisViewMode === "capacity" && analysisMember && analysisMember.capacityRatio > 1.0)
+            ? "#ef4444"
+            : selected ? "#fbbf24" : color;
+          const strokeWidth = (analysisViewMode === "capacity" && analysisMember && analysisMember.capacityRatio > 1.0)
+            ? 3 : selected ? 3 : 1.5;
+
+          if (e.type === "slabEdge") return <g key={e.id} data-element-id={e.id} data-element-type="slabEdge"><polyline points={path(points)} stroke={strokeColor} strokeDasharray="7 4" strokeWidth={strokeWidth} fill="none" /><text x={label.x} y={label.y - 6} fill={color} fontSize={9}>{e.name}</text></g>;
           if (e.type === "axis") {
             const extended = extendedAxisEndpoints(e);
             const showStart = e.labelSide === "start" || e.labelSide === "both" || !e.labelSide;
@@ -213,24 +316,106 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
               </g>
             );
           }
-          return <g key={e.id} data-element-id={e.id} data-element-type={e.type}>
+          return <g key={e.id} data-element-id={e.id} data-element-type={e.type} opacity={isDeformed ? 0.40 : 1}>
             {e.hatch && <defs><pattern id={`hcad-pattern-${index}`} width={8} height={8} patternUnits="userSpaceOnUse" patternTransform={`rotate(${e.type === "slab" ? e.hatchAngle ?? 0 : 45})`}><line x1={0} y1={0} x2={8} y2={0} stroke={color} strokeWidth={1} /></pattern></defs>}
-            <polygon points={path(points)} fill={e.hatch ? `url(#hcad-pattern-${index})` : color} fillOpacity={e.filled === false && !e.hatch ? 0 : e.type === "slab" ? 0.2 : 0.45} stroke={selected ? "#fbbf24" : color} strokeDasharray={dash(e.lineStyle)} strokeWidth={selected ? 3 : 1.5} />
+            <polygon points={path(points)} fill={e.hatch ? `url(#hcad-pattern-${index})` : color} fillOpacity={e.filled === false && !e.hatch ? 0 : e.type === "slab" ? 0.2 : 0.45} stroke={strokeColor} strokeDasharray={dash(e.lineStyle)} strokeWidth={strokeWidth} />
             {e.type === "column" && ((e.leanX ?? 0) !== 0 || (e.leanY ?? 0) !== 0) && <polygon points={path(points.map(p => ({ x: p.x + (e.leanX ?? 0), y: p.y + (e.leanY ?? 0) })))} fill="none" stroke={color} strokeDasharray="4 3" />}
             {e.type === "slab" && e.referenceVisible && <g><polyline points={path([e.points[0], { x: e.points[0].x + 1, y: e.points[0].y }])} stroke={color} strokeWidth={3} /><text x={screen(e.points[0]).x + 8} y={screen(e.points[0]).y + 14} fill={color} fontSize={10}>X %{e.slopeX ?? 0} · Y %{e.slopeY ?? 0}</text></g>}
             <text x={label.x + 8} y={label.y - 8} fill={color} fontSize={10} fontFamily="var(--font-mono)" paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={3}>{e.name}</text>
-            {analysisViewMode === "moment" && analysisMember && (
-              <text x={label.x + 8} y={label.y + 8} fill="#3b82f6" fontSize={9} fontFamily="var(--font-mono)" fontWeight="bold" paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={2}>M:{analysisMember.momentKnm.toFixed(1)}kNm</text>
-            )}
-            {analysisViewMode === "shear" && analysisMember && (
-              <text x={label.x + 8} y={label.y + 8} fill="#06b6d4" fontSize={9} fontFamily="var(--font-mono)" fontWeight="bold" paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={2}>V:{analysisMember.shearKn.toFixed(1)}kN</text>
-            )}
+
+            {/* 2D Continuous Force Diagrams for Beams */}
+            {(analysisViewMode === "moment" || analysisViewMode === "shear" || analysisViewMode === "axial") && e.type === "beam" && (() => {
+              const stations = (analysisResult?.memberStations?.[e.id] || analysisResult?.memberForces?.[e.id] || []) as any[];
+              if (!stations.length) return null;
+              const fType: ForceDiagramType = analysisViewMode === "moment" ? "M3" : analysisViewMode === "shear" ? "V2" : "N";
+              const diag = get2DBeamDiagram(e.start, e.end, stations, fType, autoDiagScale, screen);
+              const strokeCol = fType === "M3" ? "#2563eb" : fType === "V2" ? "#0891b2" : "#ea580c";
+              const fillCol = fType === "M3" ? "#3b82f6" : fType === "V2" ? "#06b6d4" : "#f97316";
+              return (
+                <g className="hcad-beam-diagram-2d" pointerEvents="none" data-element-id={e.id}>
+                  <polygon points={diag.polygonPoints} fill={fillCol} fillOpacity={0.25} stroke={strokeCol} strokeWidth={1.5} />
+                  {diag.tieLines.map((t, idx) => (
+                    <line key={idx} x1={t.from.x} y1={t.from.y} x2={t.to.x} y2={t.to.y} stroke={strokeCol} strokeWidth={0.8} strokeDasharray="2 2" />
+                  ))}
+                  {Math.abs(diag.peakSpan.val) > 0.05 && (
+                    <text x={diag.peakSpan.screen.x} y={diag.peakSpan.screen.y - 4} fill={strokeCol} fontSize={9} fontWeight="bold" textAnchor="middle" paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={3}>
+                      {diag.peakSpan.val.toFixed(1)} {fType === "M3" ? "kNm" : "kN"}
+                    </text>
+                  )}
+                  {Math.abs(diag.support1.val) > 0.05 && (
+                    <text x={diag.support1.screen.x} y={diag.support1.screen.y - 4} fill={strokeCol} fontSize={8} paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={2}>
+                      {diag.support1.val.toFixed(1)}
+                    </text>
+                  )}
+                  {Math.abs(diag.support2.val) > 0.05 && (
+                    <text x={diag.support2.screen.x} y={diag.support2.screen.y - 4} fill={strokeCol} fontSize={8} paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={2}>
+                      {diag.support2.val.toFixed(1)}
+                    </text>
+                  )}
+                </g>
+              );
+            })()}
+
+            {/* Deformed Wireframe Overlay */}
+            {isDeformed && e.type === "beam" && (() => {
+              const dispS = getDisplacementAt(e.start);
+              const dispE = getDisplacementAt(e.end);
+              const defS = screen({ x: e.start.x + dispS.x * autoDispScale, y: e.start.y + dispS.y * autoDispScale });
+              const defE = screen({ x: e.end.x + dispE.x * autoDispScale, y: e.end.y + dispE.y * autoDispScale });
+              const dispMid = getDisplacementAt(center);
+              const driftMm = Math.hypot(dispMid.x, dispMid.y) * 1000;
+              return (
+                <g className="hcad-deformed-beam" pointerEvents="none">
+                  <line x1={defS.x} y1={defS.y} x2={defE.x} y2={defE.y} stroke="#38bdf8" strokeDasharray="4 3" strokeWidth={2} />
+                  <circle cx={defS.x} cy={defS.y} r={3} fill="#38bdf8" />
+                  <circle cx={defE.x} cy={defE.y} r={3} fill="#38bdf8" />
+                  <text x={label.x + 8} y={label.y + 8} fill="#38bdf8" fontSize={9} fontFamily="var(--font-mono)" fontWeight="bold" paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={2}>Δ: {driftMm.toFixed(1)}mm</text>
+                </g>
+              );
+            })()}
+
+            {isDeformed && e.type === "column" && (() => {
+              const dispC = getDisplacementAt(e.position);
+              const defFootprint = points.map(p => screen({ x: p.x + dispC.x * autoDispScale, y: p.y + dispC.y * autoDispScale }));
+              const driftMm = Math.hypot(dispC.x, dispC.y) * 1000;
+              return (
+                <g className="hcad-deformed-col" pointerEvents="none">
+                  <polygon points={defFootprint.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")} fill="none" stroke="#38bdf8" strokeDasharray="4 3" strokeWidth={2} />
+                  <text x={label.x + 8} y={label.y + 8} fill="#38bdf8" fontSize={9} fontFamily="var(--font-mono)" fontWeight="bold" paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={2}>Δ: {driftMm.toFixed(1)}mm</text>
+                </g>
+              );
+            })()}
+
+            {/* DCR Central Capacity Badge */}
             {analysisViewMode === "capacity" && analysisMember && (
-              <text x={label.x + 8} y={label.y + 8} fill={color} fontSize={9} fontFamily="var(--font-mono)" fontWeight="bold" paintOrder="stroke" stroke="var(--hc-bg)" strokeWidth={2}>%{(analysisMember.capacityRatio * 100).toFixed(0)}</text>
+              <g transform={`translate(${label.x}, ${label.y})`} pointerEvents="none">
+                <rect x={-18} y={-8} width={36} height={16} rx={3} fill="#0f172a" stroke={strokeColor} strokeWidth={1} />
+                <text x={0} y={4} textAnchor="middle" fill={strokeColor} fontSize={10} fontWeight="bold">
+                  %{(analysisMember.capacityRatio * 100).toFixed(0)}
+                </text>
+              </g>
             )}
+
             {selected && points.map((p, i) => { const s = screen(p); return <rect key={i} x={s.x - 3} y={s.y - 3} width={6} height={6} fill="#fbbf24" />; })}
           </g>;
         })}
+
+        {/* Interactive Force Station Probe Tooltip */}
+        {hoverProbe && (
+          <g transform={`translate(${hoverProbe.screenProj.x} ${hoverProbe.screenProj.y})`} pointerEvents="none">
+            <circle cx={0} cy={0} r={5} fill="#38bdf8" stroke="#ffffff" strokeWidth={1.5} />
+            <circle cx={0} cy={0} r={9} fill="none" stroke="#38bdf8" strokeWidth={1} opacity={0.6} />
+            <g transform="translate(14, -50)">
+              <rect x={0} y={0} width={180} height={70} rx={6} fill="#0f172a" fillOpacity={0.95} stroke="#38bdf8" strokeWidth={1} />
+              <text x={8} y={16} fill="#f8fafc" fontSize={10} fontWeight="bold">{hoverProbe.elementName} (x: {hoverProbe.x.toFixed(2)}m / {hoverProbe.L.toFixed(2)}m)</text>
+              <text x={8} y={32} fill="#60a5fa" fontSize={9} fontFamily="var(--font-mono)">M₃: {hoverProbe.M3.toFixed(1)} kNm</text>
+              <text x={95} y={32} fill="#22d3ee" fontSize={9} fontFamily="var(--font-mono)">V₂: {hoverProbe.V2.toFixed(1)} kN</text>
+              <text x={8} y={48} fill="#fb923c" fontSize={9} fontFamily="var(--font-mono)">N: {hoverProbe.N.toFixed(1)} kN</text>
+              <text x={95} y={48} fill={getDcrColor(hoverProbe.dcr)} fontSize={9} fontFamily="var(--font-mono)" fontWeight="bold">DCR: %{(hoverProbe.dcr * 100).toFixed(0)}</text>
+              <text x={8} y={62} fill="#94a3b8" fontSize={8}>Konum: %{(hoverProbe.t * 100).toFixed(0)} · TS 500 / TBDY 2018</text>
+            </g>
+          </g>
+        )}
         {paftaMode && (
           <g className="hcad-pafta-frame" pointerEvents="none">
             <rect x={12} y={12} width={size.width - 24} height={size.height - 24} fill="none" stroke="#3b82f6" strokeWidth={2} />

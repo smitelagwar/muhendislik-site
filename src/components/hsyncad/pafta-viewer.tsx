@@ -30,7 +30,7 @@ interface PaftaViewerProps {
 
 export default function PaftaViewer({ model, onClose }: PaftaViewerProps) {
   const [selectedFormat, setSelectedFormat] = useState<SheetFormat>("Roll-90x210");
-  const [metadata, setMetadata] = useState<ProjectMetadata>(DEFAULT_PROJECT_METADATA);
+  const [metadata, setMetadata] = useState<ProjectMetadata>(() => ({ ...DEFAULT_PROJECT_METADATA, projectName: model.name }));
   const [activeSheetIndex, setActiveSheetIndex] = useState(0);
   const [editMetaOpen, setEditMetaOpen] = useState(false);
 

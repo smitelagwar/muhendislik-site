@@ -383,6 +383,7 @@
 .root :global(.hcad-bottom-help) { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex: 0 0 auto; padding-right: 9px; }
 .root :global(.hcad-bottom-help > span) { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--hc-muted); }
 .root :global(.hcad-bottom-help button) { min-height: 24px; border: 0; background: transparent; padding: 2px 5px; font-size: 10px; color: var(--hc-accent); }
+.root :global(.hcad-bottom-help .hcad-ide-shortcut) { border: 1px solid var(--hc-accent); background: var(--hc-highlight); padding-inline: 8px; font-weight: 600; }
 
 @media (max-width: 1200px) {
   .root :global(.hcad-topbar) { gap: 7px; padding-inline: 8px; }
@@ -436,6 +437,7 @@
 }
 
 @media (max-width: 700px) {
+  .root :global(.hcad-bottom-help > button:first-of-type) { display: none; }
   .root :global(.hcad-menu-row) { flex-wrap: wrap; }
   .root :global(.hcad-tabs) { flex: 1 0 100%; }
   .root :global(.hcad-tabs button) { flex: 1 1 0; }

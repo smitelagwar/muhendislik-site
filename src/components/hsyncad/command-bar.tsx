@@ -118,7 +118,7 @@ export default function CommandBar(p: Props) {
     <div className={styles.titlebar}>
       <Link href="/kategori/araclar" aria-label="Araçlara dön" title="Araçlara dön"><ArrowLeft size={12} /></Link><h1>hsynCAD</h1>
       <div className={styles.quick} aria-label="Hızlı erişim">
-        <button type="button" title="JSON modeli aç" aria-label="Model aç" onClick={p.onImport}><CadIcon name="open" size={15} /></button>
+        <button type="button" title="IDE veya JSON modeli aç · Ctrl+O" aria-label="Model aç" onClick={p.onImport}><CadIcon name="open" size={15} /></button>
         <button type="button" title="JSON kaydet" aria-label="JSON kaydet" onClick={p.onExport}><CadIcon name="save" size={15} /></button>
         <button type="button" aria-label="Geri al" title="Geri al · Ctrl+Z" disabled={!p.canUndo} onClick={p.onUndo}><CadIcon name="undo" size={15} /></button>
         <button type="button" aria-label="Yinele" title="Yinele · Ctrl+Shift+Z" disabled={!p.canRedo} onClick={p.onRedo}><CadIcon name="redo" size={15} /></button>

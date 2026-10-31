@@ -28,18 +28,28 @@ import QuantityReport from "./quantity-report";
 import EditDialog from "./edit-dialog";
 import { editElement, type EditOperation } from "@/lib/hsyncad/edit-commands";
 import AnalysisDialog from "./analysis-dialog";
+import { downloadStaticReportPdf } from "@/lib/hsyncad/reports";
 import { runStructuralAnalysis, type AnalysisResult, type AnalysisSettings } from "@/lib/hsyncad/analysis";
 import { downloadDxfFile, downloadDetailDxf } from "@/lib/hsyncad/dxf-export";
 import { addPadFootingToColumn, addStripFootingToBeam, addRaftFoundation } from "@/lib/hsyncad/foundations";
 import { addStairToModel } from "@/lib/hsyncad/stairs";
 import { generateBeamDetail, generateColumnDetail } from "@/lib/hsyncad/detailing";
-import type { ColumnElement, BeamElement } from "@/lib/hsyncad/model";
+import type { ColumnElement, BeamElement, WallElement } from "@/lib/hsyncad/model";
 import DrawingToolbar from "./drawing-toolbar";
 import NativeCoordinateBox from "./coordinate-box";
 import { useDrawingSession, type DrawingType, type Dimensions } from "./use-drawing-session";
 import PaftaViewer from "./pafta-viewer";
+import IdeViewerBoundary from "./ide-viewer-boundary";
+import {
+  AnalysisControlsBar,
+  AnalysisHud,
+  AnalysisLegend,
+  type AnalysisViewMode,
+  type DiagramForceType,
+} from "./analysis-controls";
 
 const Scene3D = dynamic(() => import("./scene3d"), { ssr: false, loading: () => <div className="hcad-loading">3B görünüm hazırlanıyor…</div> });
+const IdeProjectPanel = dynamic(() => import("./ide-project-panel"), { ssr: false });
 const STORAGE_KEY = "hsyncad.model.v1";
 
 // Formatting should not round 0.6314999999999999 downward because of
@@ -68,10 +78,43 @@ export default function HsynCadWorkbench() {
   const [showGrid, setShowGrid] = useState(true), [dockOpen, setDockOpen] = useState(false), [referenceId, setReferenceId] = useState("");
   const [tool, setTool] = useState<Tool>("select");
   const [editOperation, setEditOperation] = useState<EditOperation | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [analysisSnapshot, setAnalysisSnapshot] = useState<{ model: CadModel; result: AnalysisResult } | null>(null);
+  const analysisResult = analysisSnapshot?.model === model ? analysisSnapshot.result : null;
   const [analysisOpen, setAnalysisOpen] = useState(false);
-  const [analysisViewMode, setAnalysisViewMode] = useState<"none" | "displacement" | "moment" | "shear" | "capacity">("none");
+  const [analysisTab, setAnalysisTab] = useState<"summary" | "storeys" | "columns" | "beams" | "joints" | "irregularities" | "settings">("summary");
   const [paftaMode, setPaftaMode] = useState(false);
+  const [activeViewMode, setActiveViewMode] = useState<AnalysisViewMode>("model");
+  const [activeDiagramType, setActiveDiagramType] = useState<DiagramForceType>("M3");
+  const [activeCombination, setActiveCombination] = useState("Zarf");
+  const [deformationScale, setDeformationScale] = useState(100);
+  const [diagramScale, setDiagramScale] = useState(1.0);
+
+  const analysisViewMode = activeViewMode === "model"
+    ? "none"
+    : activeViewMode === "deformed"
+    ? "displacement"
+    : activeViewMode === "dcr_heatmap"
+    ? "capacity"
+    : activeDiagramType === "M3"
+    ? "moment"
+    : activeDiagramType === "V2"
+    ? "shear"
+    : "axial";
+
+  const setAnalysisViewMode = useCallback((modeOrFn: string | ((prev: string) => string)) => {
+    setActiveViewMode(prevActive => {
+      const current = prevActive === "model" ? "none" : prevActive === "deformed" ? "displacement" : prevActive === "dcr_heatmap" ? "capacity" : activeDiagramType === "M3" ? "moment" : "shear";
+      const next = typeof modeOrFn === "function" ? modeOrFn(current) : modeOrFn;
+      if (next === "none") return "model";
+      if (next === "displacement") return "deformed";
+      if (next === "capacity") return "dcr_heatmap";
+      if (next === "moment") { setActiveDiagramType("M3"); return "diagrams"; }
+      if (next === "shear") { setActiveDiagramType("V2"); return "diagrams"; }
+      if (next === "axial") { setActiveDiagramType("N"); return "diagrams"; }
+      return "model";
+    });
+  }, [activeDiagramType]);
+  const [ideViewer, setIdeViewer] = useState<{ file?: File } | null>(null);
   const [tab, setTab] = useState("Giriş");
   const [ribbonTab, setRibbonTab] = useState("Betonarme");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -331,6 +374,11 @@ export default function HsynCadWorkbench() {
   }
   async function importFile(file: File | undefined) {
     if (!file) return;
+    if (/\.(ide10|ide11|ide11trial|hsyncad)$/i.test(file.name)) {
+      setIdeViewer({ file });
+      if (fileInput.current) fileInput.current.value = "";
+      return;
+    }
     try {
       if (file.size > 5_000_000) throw new Error("JSON dosyası en fazla 5 MB olabilir.");
       const next = validateModel(JSON.parse(await file.text()));
@@ -390,14 +438,16 @@ export default function HsynCadWorkbench() {
     setRibbonTab(name);
     setTab(name === "Görüntü" ? "Görünüm" : name === "Ayarlar" ? "Proje" : name === "Araçlar" || name === "Çizimler" ? name : "Giriş");
   }
-  function runAnalysis(customSettings?: AnalysisSettings) {
+  function runAnalysis(customSettings?: AnalysisSettings): AnalysisResult | null {
     try {
       const res = runStructuralAnalysis(model, customSettings);
-      setAnalysisResult(res);
+      setAnalysisSnapshot({ model, result: res });
       setAnalysisOpen(true);
-      setMessage(`TBDY 2018 Analizi tamamlandı: W = ${res.totalWeightKn.toFixed(1)} kN, Vt = ${res.baseShearKn.toFixed(1)} kN. ${res.overallPass ? "Tüm tahkikler UYGUN." : "Bazı elemanlarda kapasite aşımı var."}`);
+      setMessage(`Yaklaşık ön hesap: W = ${res.totalWeightKn.toFixed(1)} kN, Vt = ${res.baseShearKn.toFixed(1)} kN. ${res.overallPass ? "Ön hesap sınırları sağlandı; tam yönetmelik doğrulaması değildir." : "Bazı elemanlarda kapasite aşımı var."}`);
+      return res;
     } catch (err) {
       setMessage(`Analiz hatası: ${err instanceof Error ? err.message : "Hesap yapılamadı"}`);
+      return null;
     }
   }
   function addFooting() {
@@ -408,15 +458,7 @@ export default function HsynCadWorkbench() {
       const next = addStripFootingToBeam(model, selected as BeamElement);
       commit(next, `${selected.name} boyunca sürekli temel eklendi.`);
     } else {
-      const lowestFloor = [...model.floors].sort((a, b) => a.elevation - b.elevation)[0];
-      const columns = model.elements.filter(e => e.type === "column" && e.floorId === lowestFloor.id) as ColumnElement[];
-      if (!columns.length) {
-        setMessage("Temel eklenecek kolon veya kiriş bulunamadı.");
-        return;
-      }
-      let cur = model;
-      for (const col of columns) cur = addPadFootingToColumn(cur, col);
-      commit(cur, `${columns.length} adet tekil temel oluşturuldu.`);
+      drawing.startFooting();
     }
   }
   function addStripFooting() {
@@ -447,8 +489,7 @@ export default function HsynCadWorkbench() {
     commit(next, "Yapı altına 50 cm radye temel plağı eklendi.");
   }
   function addStair() {
-    const next = addStairToModel(model, floor.id, { x: 0, y: 0 }, { x: 4.8, y: 0 });
-    commit(next, "16 rıhtlı betonarme merdiven oluşturuldu.");
+    drawing.startStair();
   }
   function exportDxf() {
     downloadDxfFile(model, floor.id);
@@ -499,26 +540,51 @@ export default function HsynCadWorkbench() {
     11760: { run: () => runAnalysis() },
     11710: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
     11800: { run: () => runAnalysis() },
-    12030: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
-    12033: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
-    12034: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
-    11820: { run: () => setAnalysisViewMode(m => m === "displacement" ? "none" : "displacement"), active: analysisViewMode === "displacement" },
-    11840: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisViewMode(m => m === "moment" ? "none" : "moment"); }, active: analysisViewMode === "moment" },
-    11839: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisViewMode(m => m === "shear" ? "none" : "shear"); }, active: analysisViewMode === "shear" },
-    12109: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisViewMode(m => m === "capacity" ? "none" : "capacity"); }, active: analysisViewMode === "capacity" },
-    12079: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisViewMode(m => m === "shear" ? "none" : "shear"); }, active: analysisViewMode === "shear" },
-    15736: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisViewMode(m => m === "capacity" ? "none" : "capacity"); }, active: analysisViewMode === "capacity" },
-    12710: { run: addFooting },
+    12030: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("summary"); setAnalysisOpen(true); setMessage("Dinamik Analiz Raporu açıldı."); } },
+    12032: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("summary"); setAnalysisOpen(true); setMessage("Yapı Özet Raporu açıldı."); } },
+    12033: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("settings"); setAnalysisOpen(true); setMessage("Analiz Ayarları Raporu açıldı."); } },
+    12034: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("summary"); setAnalysisOpen(true); setMessage("Betonarme Tasarım Raporu açıldı."); } },
+    12194: { run: () => setActiveViewMode("model"), active: activeViewMode === "model" },
+    11820: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode(m => m === "deformed" ? "model" : "deformed"); }, active: activeViewMode === "deformed" },
+    11836: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode("deformed"); setActiveCombination("Modal 1"); }, active: activeViewMode === "deformed" && activeCombination === "Modal 1" },
+    11837: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode("deformed"); setActiveCombination("1.4G+1.6Q"); }, active: activeViewMode === "deformed" && activeCombination === "1.4G+1.6Q" },
+    11838: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode(m => m === "diagrams" && activeDiagramType === "N" ? "model" : "diagrams"); setActiveDiagramType("N"); }, active: activeViewMode === "diagrams" && activeDiagramType === "N" },
+    11839: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode(m => m === "diagrams" && activeDiagramType === "V2" ? "model" : "diagrams"); setActiveDiagramType("V2"); }, active: activeViewMode === "diagrams" && activeDiagramType === "V2" },
+    11840: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode(m => m === "diagrams" && activeDiagramType === "M3" ? "model" : "diagrams"); setActiveDiagramType("M3"); }, active: activeViewMode === "diagrams" && activeDiagramType === "M3" },
+    11841: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode("diagrams"); setActiveDiagramType("N"); }, active: activeViewMode === "diagrams" && activeDiagramType === "N" },
+    11842: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode("diagrams"); setActiveDiagramType("V2"); }, active: activeViewMode === "diagrams" && activeDiagramType === "V2" },
+    11845: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode("diagrams"); setActiveDiagramType("M3"); }, active: activeViewMode === "diagrams" && activeDiagramType === "M3" },
+    12109: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode(m => m === "dcr_heatmap" ? "model" : "dcr_heatmap"); }, active: activeViewMode === "dcr_heatmap" },
+    12078: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode(m => m === "dcr_heatmap" ? "model" : "dcr_heatmap"); }, active: activeViewMode === "dcr_heatmap" },
+    12079: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode(m => m === "diagrams" && activeDiagramType === "V2" ? "model" : "diagrams"); setActiveDiagramType("V2"); }, active: activeViewMode === "diagrams" && activeDiagramType === "V2" },
+    15736: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode(m => m === "dcr_heatmap" ? "model" : "dcr_heatmap"); }, active: activeViewMode === "dcr_heatmap" },
+    12710: { run: addFooting, active: drawing.interactiveMode === "footing" },
     12750: { run: addFooting, hint: "Tekil temel parametreleri" },
     12690: { run: addStripFooting },
     12700: { run: addStripFooting, hint: "Sürekli temel parametreleri" },
-    12430: { run: addRaft },
+    12576: { run: addRaft, active: tool === "slab" },
+    12430: { run: addRaft, active: tool === "slab" },
+    14351: { run: () => { startElement("slab"); drawing.changeSlabMode("edge"); setMessage("Radye plağı kenar çizgisi çizim modu etkin."); }, active: tool === "slab" && drawing.slabMode === "edge" },
+    14611: { run: () => { startElement("slab", undefined, true); drawing.changeSlabMode("edge"); }, hint: "Radye temel kenarı ayarları" },
+    13135: { run: () => { startElement("slab"); drawing.changeSlabMode("edge"); setMessage("Radye temel boşluğu çizimi: Kenar çizgileriyle boşluğu çevreleyin."); }, active: tool === "slab" && drawing.slabMode === "edge" },
+    13110: { run: () => { startElement("slab"); drawing.changeSlabMode("edge"); setMessage("Döşeme boşluğu çizimi: Kenar çizgileriyle boşluğu çevreleyin."); }, active: tool === "slab" && drawing.slabMode === "edge" },
+    1823: { run: () => { startElement("beam", { curveSagitta: 0.5, curveSegments: 16 }); setMessage("Eğrisel kiriş aracı etkin (Ok: 0.50 m)."); }, active: tool === "beam" && (creationDraft as BeamElement)?.curveSagitta !== undefined },
+    1824: { run: () => { startElement("beam", { curveSagitta: 0.8, curveSegments: 24 }); setMessage("Yay kiriş aracı etkin (Ok: 0.80 m)."); }, active: tool === "beam" && (creationDraft as BeamElement)?.curveSagitta !== undefined },
+    1825: { run: () => { startElement("beam", { curveSagitta: 1.2, curveSegments: 32 }); setMessage("Dairesel kiriş aracı etkin (Ok: 1.20 m)."); }, active: tool === "beam" && (creationDraft as BeamElement)?.curveSagitta !== undefined },
+    1829: { run: () => { startElement("beam", { curveSagitta: 0.5, curveSegments: 20 }); setMessage("Sürekli yay kiriş aracı etkin."); }, active: tool === "beam" && (creationDraft as BeamElement)?.curveSagitta !== undefined },
+    13812: { run: () => { startElement("wall", { height: 1.2, heightMode: "fixed", baseOffset: 0 }); setMessage("Subasman perdesi aracı etkin (Sabit yükseklik: 1.20 m)."); }, active: tool === "wall" && (creationDraft as WallElement)?.heightMode === "fixed" },
+    40074: { run: () => { startElement("wall", { curveSagitta: 0.5, curveSegments: 16 }); setMessage("Eğrisel perde aracı etkin (Ok: 0.50 m)."); }, active: tool === "wall" && (creationDraft as WallElement)?.curveSagitta !== undefined },
+    40071: { run: () => { selectTool("axis"); setAxisOptions(old => ({ ...old, direction: "free" })); setMessage("Yay aks çizim modu: İki nokta belirleyin."); }, active: tool === "axis" && axisOptions.direction === "free" },
+    40072: { run: () => { selectTool("axis"); setAxisOptions(old => ({ ...old, direction: "free" })); setMessage("3 Noktadan yay aks modu: Başlangıç ve eğrilik noktalarını belirleyin."); }, active: tool === "axis" && axisOptions.direction === "free" },
+    40350: { run: () => setMessage("TBDY 2018 §4.5.6 Yarı Rijit Diyafram (kabuk sonlu eleman) modeli etkin."), active: true, hint: "TBDY 2018 döşeme yarı rijit diyafram kabulü" },
+    12760: { run: () => selectTool("measureDistance"), hint: "Kot referansı" },
+    12980: { run: () => { selectTool("slab"); drawing.changeSlabMode("region"); }, hint: "Döşeme / eleman etiketi" },
     14170: { run: () => startElement("beam", { width: 0.3, height: 0.5 }) },
     14180: { run: () => startElement("beam", { width: 0.3, height: 0.5 }, true) },
-    13830: { run: addStair },
+    13830: { run: addStair, active: drawing.interactiveMode === "stair" },
     13840: { run: addStair, hint: "Merdiven rıht/basamak parametreleri" },
     13880: { run: () => setAnalysisViewMode("displacement") },
-    62790: { run: addStair },
+    62790: { run: addStair, active: drawing.interactiveMode === "stair" },
     11330: { run: exportDxf },
     13290: { run: () => selectTool("measureDistance") },
     13270: { run: () => selectTool("measureDistance") },
@@ -556,17 +622,28 @@ export default function HsynCadWorkbench() {
     11980: { run: () => { setFloorId(model.floors[0].id); setPaftaMode(true); setMessage("Sürekli Temel Çizim Planı açıldı."); } },
     11940: { run: () => { addFooting(); setMessage("Tekil Temel oluşturuldu ve aplikasyon planına eklendi."); } },
     11930: { run: () => { startElement("beam", { width: 0.3, height: 0.5 }); setMessage("Temel Bağ Kirişi çizim aracı etkin."); } },
-    11910: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); setMessage("Kolon-Kiriş Birleşim Kesiti ve Güvenliği açıldı."); } },
-    62791: { run: addStair },
-    12260: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
-    12220: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
-    12035: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
-    12050: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
-    12411: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
-    12037: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
-    14440: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
-    14500: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
-    12150: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisOpen(true); } },
+    11910: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("joints"); setAnalysisOpen(true); setMessage("TBDY 2018 §7.5 Kolon-Kiriş Birleşim Bölgesi Kesiti ve Güvenliği açıldı."); } },
+    62791: { run: addStair, active: drawing.interactiveMode === "stair" },
+    12260: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("joints"); setAnalysisOpen(true); setMessage("TBDY 2018 §7.5 Kolon-Kiriş Birleşim Güvenliği Raporu açıldı."); } },
+    12270: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("summary"); setAnalysisOpen(true); setMessage("Seçmeli Statik Raporlar açıldı."); } },
+    11336: { run: () => {
+      const res = analysisResult ?? runAnalysis();
+      if (res) {
+        downloadStaticReportPdf(model, res, res.designResult);
+        setMessage("TBDY 2018 Statik Rapor PDF olarak indirildi.");
+      }
+    } },
+    12220: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("irregularities"); setAnalysisOpen(true); setMessage("Düzensizlikler Raporu (A1/B1/B2) açıldı."); } },
+    12035: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("settings"); setAnalysisOpen(true); setMessage("TBDY 2018 Deprem Parametreleri Raporu açıldı."); } },
+    12050: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("storeys"); setAnalysisOpen(true); setMessage("Kat Kuvvetleri ve Göreli Öteleme Raporu açıldı."); } },
+    12411: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("summary"); setAnalysisOpen(true); } },
+    12037: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("settings"); setAnalysisOpen(true); } },
+    14440: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("beams"); setAnalysisOpen(true); setMessage("Kiriş Donatıları ve Kesme Güvenliği Raporu açıldı."); } },
+    14500: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("columns"); setAnalysisOpen(true); setMessage("Kolon Tahkikleri ve Donatı Raporu açıldı."); } },
+    12150: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("columns"); setAnalysisOpen(true); setMessage("Perde Duvar ve Kolon Raporu açıldı."); } },
+    40162: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("summary"); setAnalysisOpen(true); setMessage("Döşeme Raporu açıldı."); } },
+    40163: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("joints"); setAnalysisOpen(true); setMessage("Radye Temel ve Birleşim Güvenliği Raporu açıldı."); } },
+    40164: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("summary"); setAnalysisOpen(true); setMessage("Merdiven Genel Raporu açıldı."); } },
     2725: { run: () => setMessage("TBDY 2018 Yük Kombinasyonları: 1.4G+1.6Q, G+Q±Ex, G+Q±Ey, 0.9G±Ex, 0.9G±Ey analizde etkin.") },
     11309: { run: () => setTab("Proje") },
     2618: { run: () => {
@@ -583,19 +660,18 @@ export default function HsynCadWorkbench() {
     } },
     12190: { run: () => setSettings("report") },
     12186: { run: () => setSettings("report") },
-    40163: { run: () => setSettings("report") },
-    40164: { run: () => setSettings("report") },
     40585: { run: () => { startElement("slab"); drawing.changeSlabMode("region"); } },
     14360: { run: () => { startElement("slab"); drawing.changeSlabMode("region"); }, hint: "Döşeme boşluğu" },
   };
   for (const [id, mode] of [[12098, "perspective"], [12092, "top"], [12093, "bottom"], [12096, "left"], [12097, "right"], [12094, "front"], [12095, "back"], [12195, "iso"]] as const) {
     ribbonActions[id] = { run: () => setViewRequest(old => ({ mode, revision: old.revision + 1 })), active: viewRequest.mode === mode };
   }
-  const instruction = draftingTool ? references.instruction : tool === "select" ? "Eleman seçin" : tool === "pan" ? "Görünümü kaydırın" : tool === "move" ? (pending.length ? "Hedef noktası" : "Taşıma başlangıcı") : tool === "column" ? (pending.length ? "Döndürün ve onaylayın · Space: simetri" : "Kolon tutma noktasını sabitleyin") : tool === "slab" ? (drawing.labelDraft ? "Döşeme yazı konumunu belirleyin" : drawing.slabMode === "region" ? "Kapalı alana tıklayın · Ctrl: yazı yerini seç" : drawing.slabMode === "edge" ? (pending.length ? "Kenarın bitiş noktası" : "Kenarın başlangıç noktası") : pending.length + " köşe · Kapalı alan çizin") : tool === "axis" ? (axisOptions.direction === "free" ? (pending.length ? "Aks bitiş noktası" : "Aks başlangıç noktası") : "Aks noktası veya mesafe + Enter") : pending.length ? "Bitiş düğümü · Space: kaçıklık · Shift: dik" : "Başlangıç düğümü";
+  const instruction = draftingTool ? references.instruction : drawing.interactiveMode === "stair" ? (pending.length ? "Merdiven bitiş noktası bekleniyor" : "Merdiven başlangıç noktası bekleniyor") : drawing.interactiveMode === "footing" ? "Tekil temel için kolona tıklayın · Enter: tüm kolonlar" : tool === "select" ? "Eleman seçin" : tool === "pan" ? "Görünümü kaydırın" : tool === "move" ? (pending.length ? "Hedef noktası" : "Taşıma başlangıcı") : tool === "column" ? (pending.length ? "Döndürün ve onaylayın · Space: simetri" : "Kolon tutma noktasını sabitleyin") : tool === "slab" ? (drawing.labelDraft ? "Döşeme yazı konumunu belirleyin" : drawing.slabMode === "region" ? "Kapalı alana tıklayın · Ctrl: yazı yerini seç" : drawing.slabMode === "edge" ? (pending.length ? "Kenarın bitiş noktası" : "Kenarın başlangıç noktası") : pending.length + " köşe · Kapalı alan çizin") : tool === "axis" ? (axisOptions.direction === "free" ? (pending.length ? "Aks bitiş noktası" : "Aks başlangıç noktası") : "Aks noktası veya mesafe + Enter") : pending.length ? "Bitiş düğümü · Space: kaçıklık · Shift: dik" : "Başlangıç düğümü";
 
   return <div ref={rootRef} className={styles.root} data-testid="hsyncad-workbench" data-ready={hydrated} data-cad-theme={cadTheme} tabIndex={-1}
     onPointerDown={(event) => { if ((event.target as HTMLElement).closest("svg[role='img']")) event.currentTarget.focus({ preventScroll: true }); }}
     onKeyDown={(event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "o") { event.preventDefault(); fileInput.current?.click(); return; }
       if (event.key === "Escape" && isCompact && inspectorOpen) {
         event.preventDefault();
         closeCompactInspector();
@@ -623,7 +699,7 @@ export default function HsynCadWorkbench() {
       canUndo={!!history.past.length} canRedo={!!history.future.length} hasSelection={!!selected}
       tab={ribbonTab} onTab={chooseRibbon} actions={ribbonActions} onUndo={undo} onRedo={redo}
       onExport={exportFile} onImport={() => fileInput.current?.click()} />
-    <input ref={fileInput} type="file" accept=".json,application/json" hidden aria-label="JSON model dosyası" data-testid="hsyncad-import" onChange={(e) => void importFile(e.target.files?.[0])} />
+    <input ref={fileInput} type="file" accept=".ide10,.ide11,.ide11trial,.hsyncad,.json,application/json" hidden aria-label="IDE veya JSON model dosyası" data-testid="hsyncad-import" onChange={(e) => void importFile(e.target.files?.[0])} />
     <div className={`hcad-ribbon ${tab === "Giriş" && tool === "axis" ? "hcad-ribbon-axis" : tab === "Giriş" && !activeType ? "hcad-ribbon-passive" : ""}`} data-testid="hsyncad-context-bar" aria-label="Etkin araç seçenekleri">
       {tab === "Giriş" && tool !== "axis" && <>
         <div className="hcad-context-title"><span>{activeType ? "Yeni " + TYPE_NAMES[activeType] : tool === "move" ? "Taşı" : tool === "pan" ? "Görünümü kaydır" : "Seçim"}</span><small>{instruction}</small></div>
@@ -662,15 +738,15 @@ export default function HsynCadWorkbench() {
       {tab === "Proje" && <button type="button" data-testid="load-seven-storey-demo" onClick={() => replaceModel(createSevenStoreyCommercialBuilding(), "7 Katlı Plaza (1536 m² / Kat) perdeli ve radye temelli model açıldı.")}><Box size={18} />7 Katlı Plaza (1536 m²)</button>}
     </div>
     {editOperation && <SettingsDialog title="Seçili elemanı düzenle" onClose={() => setEditOperation(null)}><EditDialog operation={editOperation} onApply={(dx, dy, angle, count) => { if (!selected) return; try { if (layerState(model, selected.layer, selected.floorId).locked) throw new Error("Katman kilitli."); const changed = editElement(selected, editOperation, dx, dy, angle, count); const replace = editOperation === "rotate" || editOperation === "mirror"; if (commit({ ...model, elements: replace ? model.elements.map(e => e.id === selected.id ? changed[0] : e) : [...model.elements, ...changed] }, "Düzenleme uygulandı; geri alınabilir.")) setEditOperation(null); } catch (error) { setMessage(error instanceof Error ? error.message : "Düzenleme uygulanamadı."); } }} /></SettingsDialog>}
-    {analysisOpen && <SettingsDialog title="TBDY 2018 Yapı Analizi ve Betonarme Tasarım" onClose={() => setAnalysisOpen(false)}>
-      <AnalysisDialog model={model} result={analysisResult} onRun={runAnalysis} onClose={() => setAnalysisOpen(false)} onSetViewMode={setAnalysisViewMode} />
+    {analysisOpen && <SettingsDialog title="Yapı ön hesabı ve taslak donatı" onClose={() => setAnalysisOpen(false)}>
+      <AnalysisDialog model={model} result={analysisResult} onRun={runAnalysis} onClose={() => setAnalysisOpen(false)} onSetViewMode={setAnalysisViewMode} initialTab={analysisTab} />
     </SettingsDialog>}
     {settings && <SettingsDialog title={{ element: `${creationDraft ? TYPE_NAMES[creationDraft.type] : "Eleman"} oluşturma ayarları`, snap: "Yakalama ve düğüm ayarları", layers: "Katman ayarları", materials: "Malzeme tanımları", report: "Metraj raporu" }[settings]} onClose={() => setSettings(null)}>
       {settings === "element" && creationDraft && <ElementProperties creation element={creationDraft} model={model} onDelete={() => {}} onApply={next => { if (!isSolidElement(next)) return; if (commit({ ...model, toolDefaults: { ...model.toolDefaults, [next.type]: next } }, "Eleman varsayılanları kaydedildi. Sonraki yerleştirmelerde uygulanır.")) { drawing.clearOverrides(next.type); setSettings(null); } }} />}
       {settings === "snap" && <SnapOptions model={model} onApply={commit} />}
       {settings === "layers" && <LayerOptions model={model} floor={floor} onApply={commit} />}
       {settings === "materials" && <MaterialOptions model={model} onApply={commit} />}
-      {settings === "report" && <QuantityReport model={model} junctions={junctions} />}
+      {settings === "report" && <QuantityReport model={model} junctions={junctions} analysisResult={analysisResult} onRunAnalysis={runAnalysis} />}
       <p role="status" className="hcad-fine">{message}</p>
     </SettingsDialog>}
     <div className="hcad-icon-strip" aria-label="Hızlı çizim araçları"><button type="button" title="Seç" aria-label="Hızlı seç" onClick={() => selectTool("select")}><MousePointer2 size={15} /></button><button type="button" title="Kaydır" aria-label="Hızlı kaydır" onClick={() => selectTool("pan")}><Hand size={15} /></button><button type="button" title="Çizimi sığdır" aria-label="Hızlı sığdır" onClick={() => setFitKey(n => n + 1)}><Maximize2 size={15} /></button><i /><ReferenceButtons compact tool={tool} onTool={selectTool} /><i /><button type="button" title="Yakalama ayarları" aria-label="Hızlı yakalama ayarları" onClick={() => setSettings("snap")}><Move size={15} /></button><button type="button" title="Katman ayarları" aria-label="Hızlı katman ayarları" onClick={() => setSettings("layers")}><Layers size={15} /></button><button type="button" aria-label="Koordinat kutusu" title="Koordinat kutusunu aç / kapat" aria-pressed={coordinatesOpen} onClick={() => setCoordinatesOpen(v => !v)}><Move size={15} /></button>    <div className="hcad-menu-row">
@@ -686,12 +762,41 @@ export default function HsynCadWorkbench() {
 </div>
     <div className="hcad-body" data-inspector-open={dockOpen}>
       <nav className="hcad-side-tools" aria-label="Dikey çizim araçları">{[{ id: "select", name: "Seç", Icon: MousePointer2 }, { id: "move", name: "Taşı", Icon: Move }, { id: "pan", name: "Kaydır", Icon: Hand }].map(({ id, name, Icon }) => <button type="button" key={id} data-testid={`tool-${id}`} title={name} aria-label={name} className={tool === id ? "active" : ""} onClick={() => selectTool(id as Tool)}><Icon size={19} /><small>{name}</small></button>)}<button type="button" className="hcad-mobile-history" aria-label="Geri al" title="Geri al" disabled={!history.past.length} onClick={undo}><Undo2 size={17} /></button><button type="button" className="hcad-mobile-history" aria-label="Yinele" title="Yinele" disabled={!history.future.length} onClick={redo}><Redo2 size={17} /></button><span className="hcad-toolbar-rule" /><button type="button" aria-label="Seçili elemanı sil" title="Sil (Delete)" onClick={deleteSelected} disabled={!selected}><Trash2 size={18} /><small>Sil</small></button><button type="button" aria-label="Çizimi iptal et" title="İptal (Esc)" onClick={cancel} disabled={!pending.length}><X size={18} /><small>İptal</small></button><button type="button" aria-label="Çizimi sığdır" title="Çizimi sığdır" onClick={() => setFitKey((n) => n + 1)}><Maximize2 size={18} /><small>Sığdır</small></button></nav>
-      <div className="hcad-views" data-active-view={paftaMode ? "pafta" : compactView}>
+      <div className="hcad-views" data-active-view={paftaMode ? "pafta" : compactView} style={{ position: "relative" }}>
+        {analysisResult && (
+          <>
+            <AnalysisControlsBar
+              viewMode={activeViewMode}
+              onViewModeChange={setActiveViewMode}
+              diagramType={activeDiagramType}
+              onDiagramTypeChange={setActiveDiagramType}
+              activeCombination={activeCombination}
+              onCombinationChange={setActiveCombination}
+              combinations={analysisResult.combinations ?? []}
+              deformationScale={deformationScale}
+              onDeformationScaleChange={setDeformationScale}
+              diagramScale={diagramScale}
+              onDiagramScaleChange={setDiagramScale}
+              onClose={() => setActiveViewMode("model")}
+            />
+            <AnalysisHud
+              result={analysisResult}
+              activeCombination={activeCombination}
+              viewMode={activeViewMode}
+            />
+            <AnalysisLegend
+              viewMode={activeViewMode}
+              diagramType={activeDiagramType}
+              deformationScale={deformationScale}
+              result={analysisResult}
+            />
+          </>
+        )}
         {paftaMode ? (
           <PaftaViewer model={model} onClose={() => setPaftaMode(false)} />
         ) : (
           <div className="hcad-plan-wrap">
-            <button type="button" className="hcad-coordinate-toggle" data-testid="hsyncad-coordinate-toggle" aria-controls="hsyncad-coordinate-form" aria-expanded={coordinatesOpen} onClick={() => setCoordinatesOpen((open) => !open)}><Move size={13} />X/Y</button><Plan2D coordinateConstraint={coordinateConstraint} elements={visibleElements} tool={tool} selectedId={selectedId} pending={pending} snapping={snapping} snapSettings={model.snap ?? DEFAULT_SNAP} lockedLayers={layerOptions.filter(l => layerState(model, l, floor.id).locked)} layerColors={Object.fromEntries((model.layers ?? []).map(l => [l.name, l.color]))} ortho={ortho} gridStep={gridStep} fitKey={fitKey} preview={drawing.preview} unit={drawing.unit} lengthLock={drawing.lengthLock} angleLock={drawing.directionLock} fallbackAngle={drawing.fallbackAngle} regionPicking={tool === "slab" && drawing.slabMode === "region"} draftingItems={references.items} referenceFrame={references.frame} showGrid={showGrid} onPoint={placePoint} onSelect={selectElement} onCursor={(p, label) => { setCursor(p); setSnapLabel(label); }} onZoom={setZoom} analysisResult={analysisResult} analysisViewMode={analysisViewMode} paftaMode={paftaMode} />
+            <button type="button" className="hcad-coordinate-toggle" data-testid="hsyncad-coordinate-toggle" aria-controls="hsyncad-coordinate-form" aria-expanded={coordinatesOpen} onClick={() => setCoordinatesOpen((open) => !open)}><Move size={13} />X/Y</button><Plan2D coordinateConstraint={coordinateConstraint} elements={visibleElements} tool={tool} selectedId={selectedId} pending={pending} snapping={snapping} snapSettings={model.snap ?? DEFAULT_SNAP} lockedLayers={layerOptions.filter(l => layerState(model, l, floor.id).locked)} layerColors={Object.fromEntries((model.layers ?? []).map(l => [l.name, l.color]))} ortho={ortho} gridStep={gridStep} fitKey={fitKey} preview={drawing.preview} unit={drawing.unit} lengthLock={drawing.lengthLock} angleLock={drawing.directionLock} fallbackAngle={drawing.fallbackAngle} regionPicking={tool === "slab" && drawing.slabMode === "region"} draftingItems={references.items} referenceFrame={references.frame} showGrid={showGrid} onPoint={placePoint} onSelect={selectElement} onCursor={(p, label) => { setCursor(p); setSnapLabel(label); }} onZoom={setZoom} analysisResult={analysisResult} analysisViewMode={analysisViewMode} diagramScale={diagramScale} deformationScale={deformationScale} activeCombination={activeCombination} paftaMode={paftaMode} />
             {coordinatesOpen && <NativeCoordinateBox coords={coords} onCoords={setCoords} mode={coordinateMode} onMode={changeCoordinateMode} unit={drawing.unit}
               cursor={cursor} anchor={coordinateAnchor} elevation={floor.elevation + floor.height} compactOpen={coordinatesOpen} hasLocalFrame={!!references.frame?.enabled}
               xLocked={coordinateLocks.x} yLocked={coordinateLocks.y} onToggleX={() => toggleCoordinateLock("x")} onToggleY={() => toggleCoordinateLock("y")}
@@ -708,7 +813,7 @@ export default function HsynCadWorkbench() {
             {tool === "column" && pending.length > 0 && <button type="button" className="hcad-finish-slab" data-testid="confirm-column-floating" onClick={() => drawing.confirmColumn()}><Check size={16} />Kolonu onayla</button>}
           </div>
         )}
-        <Scene3D viewRequest={viewRequest} light={cadTheme === "light"} model={model} fitKey={fitKey} selectedId={selectedId} onSelect={selectElement} hiddenLayers={hiddenLayers} junctions={junctions} analysisResult={analysisResult} analysisViewMode={analysisViewMode} />
+        <Scene3D viewRequest={viewRequest} light={cadTheme === "light"} model={model} fitKey={fitKey} selectedId={selectedId} onSelect={selectElement} hiddenLayers={hiddenLayers} junctions={junctions} analysisResult={analysisResult} analysisViewMode={analysisViewMode} diagramScale={diagramScale} deformationScale={deformationScale} activeCombination={activeCombination} />
       </div>
       {isCompact && inspectorOpen && <div className="hcad-inspector-backdrop" data-testid="hsyncad-inspector-backdrop" aria-hidden="true" onClick={closeCompactInspector} />}
       <aside ref={inspectorRef} id="hsyncad-compact-inspector" className="hcad-inspector" data-open={inspectorOpen} inert={isCompact && !inspectorOpen} role={isCompact && inspectorOpen ? "dialog" : undefined} aria-modal={isCompact && inspectorOpen ? true : undefined} aria-label={isCompact && inspectorOpen ? "Metraj ve özellikler" : undefined} onKeyDown={handleInspectorKeyDown}>
@@ -722,8 +827,9 @@ export default function HsynCadWorkbench() {
     <div className="hcad-command"><ChevronRight size={16} /><label htmlFor="hcad-command">Komut</label><form onSubmit={(e) => { e.preventDefault(); runCommand(); }}><input id="hcad-command" data-testid="hsyncad-command" autoComplete="off" value={command} onChange={(e) => setCommand(e.target.value)} placeholder={`${instruction} · Koordinat: 4 0 · sil / geri / iptal / bitir`} /><button type="submit" aria-label="Komutu çalıştır">↵</button></form></div>
     <div className="hcad-feedback-row">
     <div className="hcad-message" role="status" data-testid="hsyncad-message"><span className="hcad-live"><i /></span>{message}</div>
-    <div className="hcad-bottom-help"><span><RotateCcw size={13} />Ctrl+Z: geri al · Delete: sil · Esc: iptal</span><button type="button" onClick={() => replaceModel(createDemoModel(), "4 × 4 m örnek açıldı. Önceki model Geri al ile geri getirilebilir.")}>Ölçülü örnekle başla <ChevronRight size={14} /></button><button type="button" data-testid="bottom-load-seven-storey" onClick={() => replaceModel(createSevenStoreyCommercialBuilding(), "7 Katlı Plaza (1536 m² / Kat) perdeli ve radye temelli model açıldı.")} style={{ marginLeft: 8, background: "var(--hc-accent-subtle, #3b82f620)", borderColor: "var(--hc-accent, #3b82f6)", color: "var(--hc-accent, #3b82f6)" }}>🏢 7 Katlı Plaza (1536 m²) <ChevronRight size={14} /></button></div>
+    <div className="hcad-bottom-help"><span><RotateCcw size={13} />Ctrl+Z: geri al · Delete: sil · Esc: iptal</span><button type="button" onClick={() => replaceModel(createDemoModel(), "4 × 4 m örnek açıldı. Önceki model Geri al ile geri getirilebilir.")}>Ölçülü örnekle başla <ChevronRight size={14} /></button><button type="button" data-testid="bottom-load-seven-storey" onClick={() => replaceModel(createSevenStoreyCommercialBuilding(), "7 Katlı Plaza (1536 m² / Kat) perdeli ve radye temelli model açıldı.")} style={{ marginLeft: 8, background: "var(--hc-accent-subtle, #3b82f620)", borderColor: "var(--hc-accent, #3b82f6)", color: "var(--hc-accent, #3b82f6)" }}>🏢 7 Katlı Plaza (1536 m²) <ChevronRight size={14} /></button><button type="button" className="hcad-ide-shortcut" data-testid="open-ide-projects" title="IDE dosyası aç ve örnek projeleri incele · Ctrl+O" onClick={() => setIdeViewer({})}><Box size={14} />IDE projeleri <ChevronRight size={14} /></button></div>
     </div>
     <footer className="hcad-statusbar"><span><Eye size={12} />{snapLabel}</span><span>{floor.name} · {visibleElements.length} eleman</span><span>X {number(cursor.x, 2)} <b>Y {number(cursor.y, 2)}</b></span><span className="hcad-unit">Birim: <b>m · Giriş: {drawing.unit}</b></span><span data-testid="hsyncad-zoom">Yakınlaştırma: %{zoom}</span></footer>
+    {ideViewer && <IdeViewerBoundary onClose={() => setIdeViewer(null)}><IdeProjectPanel initialFile={ideViewer.file} onClose={() => setIdeViewer(null)} /></IdeViewerBoundary>}
   </div>;
 }

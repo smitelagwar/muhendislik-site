@@ -1,5 +1,7 @@
 # hsynCAD — kullanım ve doğrulama
 
+**IDE10 görüntüleyici (28 Ekim):** [Kullanım, desteklenen geometri, kişisel örnek bağlantısı ve kesin sınırlar](hsyncad-ide10.md). Sağ alttaki **IDE projeleri**, **Model aç** ve Ctrl+O `.ide10` kabul eder. Bu, salt okunur ve halen kısmi native biçim desteğidir; tam ideCAD eşdeğerliği iddiası değildir.
+
 **28 Ekim devamı:** [Gerçek Ribbon ve güncel kullanım](hsyncad-arayuz.md), [taze REA/Help kanıtı](hsyncad-rea-devam-2026-10-28.md), [bağlantı ve metraj düzeltmeleri](hsyncad-model-devam-2026-10-28.md). Eski Giriş/Görünüm/Proje/Katlar sekme tarifleri tarihsel kalmıştır: yapı elemanları Betonarme, görünüm Görüntü, kat ayarları Kat listesi/Kat Genel Ayarları, örnekler Dosya menüsündedir. Koordinat kutusunda Enter kilitler; ↵ noktayı ekler.
 
 Rota: `/kategori/araclar/hsyncad`. Kaynak: `src/components/hsyncad`, `src/lib/hsyncad`.

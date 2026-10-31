@@ -1,7 +1,7 @@
-import type { CadModel, ColumnElement, WallElement, BeamElement } from "./model";
-import { distance } from "./geometry";
+import type { CadModel, ColumnElement, WallElement } from "./model";
+import { distance, elementVerticalRange, polygonArea } from "./geometry";
 import { runStructuralAnalysis } from "./analysis";
-import { REBAR_WEIGHTS } from "./detailing";
+import { generateBeamDetail, generateColumnDetail } from "./detailing";
 
 export type SheetFormat = "A0" | "A1" | "A2" | "Roll-90x150" | "Roll-90x210" | "Custom";
 
@@ -102,32 +102,32 @@ export interface ProjectMetadata {
 }
 
 export const DEFAULT_PROJECT_METADATA: ProjectMetadata = {
-  projectName: "7 KATLI TİCARET VE OFİS PLAZASI",
-  projectNo: "2026/ST-048",
-  sheetNo: "S-100",
-  sheetTitle: "KOLON VE PERDE APLİKASYON PLANI",
-  buildingType: "Betonarme Karkas (Perdeli-Çerçeveli)",
-  totalFloors: 7,
-  totalAreaM2: 10752,
-  city: "İSTANBUL",
-  district: "KADIKÖY",
-  neighborhood: "FENERBAHÇE",
-  parcel: "14",
-  block: "2084",
-  owner: "SÜHEYLA KARA VE HİSSEDARLARI",
-  engineerName: "HÜSEYİN AVNİ ÖZER (İnş. Müh.)",
-  engineerChamberNo: "İMO: 84219",
-  engineerLicence: "BTB: 34-9214",
-  inspectorCompany: "BATI MARMARA YAPI DENETİM LTD. ŞTİ.",
-  inspectorNo: "YD-2481",
-  drawer: "NİZAMETTİN SAMED ÖZER",
-  checker: "HÜSEYİN AVNİ ÖZER",
-  consultant: "PROF. DR. İ. METİN",
-  date: "28.10.2026",
-  revision: "0",
-  concreteGrade: "C35/45",
-  steelGrade: "B420C",
-  scales: "1/50 - 1/25 - 1/20",
+  projectName: "",
+  projectNo: "",
+  sheetNo: "",
+  sheetTitle: "",
+  buildingType: "",
+  totalFloors: 0,
+  totalAreaM2: 0,
+  city: "",
+  district: "",
+  neighborhood: "",
+  parcel: "",
+  block: "",
+  owner: "",
+  engineerName: "",
+  engineerChamberNo: "",
+  engineerLicence: "",
+  inspectorCompany: "",
+  inspectorNo: "",
+  drawer: "",
+  checker: "",
+  consultant: "",
+  date: "",
+  revision: "",
+  concreteGrade: "",
+  steelGrade: "",
+  scales: "",
 };
 
 export interface ColumnScheduleRow {
@@ -210,6 +210,7 @@ export const STANDARD_CONCRETE_COVERS = [
  * Standard Structural General Notes (TS 500 / TBDY 2018 Engineering Submission Standard)
  */
 export const STANDARD_ENGINEERING_NOTES = [
+  "TASLAK: Yaklaşık ön hesap ve örnek donatı yerleşimi; onay/imalat projesi değildir. Zemin/deprem parametreleri ayrıca doğrulanmalıdır.",
   "1. Betonarme projeleri TBDY 2018 (Türkiye Bina Deprem Yönetmeliği) ve TS 500 (Betonarme Yapıların Tasarım ve Yapım Kuralları) şartlarına uygun olarak hazırlanmıştır.",
   "2. Taşıyıcı elemanlarda C35/45 hazır beton ve B420C nervürlü donatı çeliği kullanılacaktır. Şantiyede beton numuneleri 7 ve 28 günlük periyotlarla kırılacaktır.",
   "3. Donatı bindirme boyu en az 1.5 * lb (kenetlenme boyu) olacak, kolon boyuna donatı bindirmeleri tercihen kat orta bölgesinde yapılacaktır.",
@@ -314,172 +315,15 @@ export function buildColumnSchedule(model: CadModel): ColumnScheduleRow[] {
  */
 export function buildRebarSchedule(model: CadModel): RebarScheduleItem[] {
   const items: RebarScheduleItem[] = [];
-  let pos = 1;
-
-  const floorCount = Math.max(1, model.floors.length);
-
-  // 1. Column Longitudinal Bars
-  const columns = model.elements.filter(e => e.type === "column") as ColumnElement[];
-  const colCount = Math.max(1, columns.length);
-  const avgColH = 3.6; // story height + lap length
-
-  items.push({
-    pos: pos++,
-    element: "Kolon Boyuna Donatısı",
-    diameterMm: 16,
-    count: colCount * 8 * floorCount,
-    lengthCm: Math.round(avgColH * 100),
-    shapeText: "Düz + 90° Gönye (L-kıvrım)",
-    totalLengthM: Math.round(colCount * 8 * floorCount * avgColH),
-    unitWeightKgM: REBAR_WEIGHTS[16] || 1.578,
-    totalWeightKg: Math.round(colCount * 8 * floorCount * avgColH * 1.578),
-  });
-
-  // 2. Column Stirrups
-  items.push({
-    pos: pos++,
-    element: "Kolon Etriyesi (Sarılma + Orta)",
-    diameterMm: 8,
-    count: colCount * 28 * floorCount,
-    lengthCm: 160,
-    shapeText: "135° Kancalı Kapalı Etriye",
-    totalLengthM: Math.round(colCount * 28 * floorCount * 1.6),
-    unitWeightKgM: REBAR_WEIGHTS[8] || 0.395,
-    totalWeightKg: Math.round(colCount * 28 * floorCount * 1.6 * 0.395),
-  });
-
-  // 3. Column Ties (Çirozlar)
-  items.push({
-    pos: pos++,
-    element: "Kolon / Perde Çirozu",
-    diameterMm: 8,
-    count: colCount * 18 * floorCount,
-    lengthCm: 55,
-    shapeText: "Çift Kancalı Çiroz (135° / 90°)",
-    totalLengthM: Math.round(colCount * 18 * floorCount * 0.55),
-    unitWeightKgM: REBAR_WEIGHTS[8] || 0.395,
-    totalWeightKg: Math.round(colCount * 18 * floorCount * 0.55 * 0.395),
-  });
-
-  // 4. Shear Wall End & Web Bars
-  const walls = model.elements.filter(e => e.type === "wall") as WallElement[];
-  const wallCount = Math.max(1, walls.length);
-  items.push({
-    pos: pos++,
-    element: "Perde Uç Bölgesi Boyuna Donatısı",
-    diameterMm: 18,
-    count: wallCount * 16 * floorCount,
-    lengthCm: 420,
-    shapeText: "Düz Boyuna Çubuk",
-    totalLengthM: Math.round(wallCount * 16 * floorCount * 4.2),
-    unitWeightKgM: REBAR_WEIGHTS[18] || 1.998,
-    totalWeightKg: Math.round(wallCount * 16 * floorCount * 4.2 * 1.998),
-  });
-
-  items.push({
-    pos: pos++,
-    element: "Perde Gövde Donatısı (Yatay & Düşey Çift Sıra)",
-    diameterMm: 12,
-    count: wallCount * 36 * floorCount,
-    lengthCm: 600,
-    shapeText: "Gövde Hasır Donatısı / Düz",
-    totalLengthM: Math.round(wallCount * 36 * floorCount * 6.0),
-    unitWeightKgM: REBAR_WEIGHTS[12] || 0.888,
-    totalWeightKg: Math.round(wallCount * 36 * floorCount * 6.0 * 0.888),
-  });
-
-  // 5. Beams (Kiriş Montaj, Düz ve Mesnet İlaveleri)
-  const beams = model.elements.filter(e => e.type === "beam") as BeamElement[];
-  const beamCount = Math.max(1, beams.length);
-  let totalBeamSpanM = 0;
-  for (const b of beams) totalBeamSpanM += distance(b.start, b.end);
-  if (totalBeamSpanM === 0) totalBeamSpanM = beamCount * 7.0;
-
-  items.push({
-    pos: pos++,
-    element: "Kiriş Montaj Donatısı (Üst)",
-    diameterMm: 14,
-    count: beamCount * 3 * floorCount,
-    lengthCm: 850,
-    shapeText: "Düz + Uç Kancaları",
-    totalLengthM: Math.round(beamCount * 3 * floorCount * 8.5),
-    unitWeightKgM: REBAR_WEIGHTS[14] || 1.208,
-    totalWeightKg: Math.round(beamCount * 3 * floorCount * 8.5 * 1.208),
-  });
-
-  items.push({
-    pos: pos++,
-    element: "Kiriş Düz Donatısı (Alt)",
-    diameterMm: 16,
-    count: beamCount * 4 * floorCount,
-    lengthCm: 850,
-    shapeText: "Düz + Uç Kancaları",
-    totalLengthM: Math.round(beamCount * 4 * floorCount * 8.5),
-    unitWeightKgM: REBAR_WEIGHTS[16] || 1.578,
-    totalWeightKg: Math.round(beamCount * 4 * floorCount * 8.5 * 1.578),
-  });
-
-  items.push({
-    pos: pos++,
-    element: "Kiriş Mesnet İlave Donatısı",
-    diameterMm: 16,
-    count: beamCount * 4 * floorCount,
-    lengthCm: 280,
-    shapeText: "Mesnet L/4 İlave Çubuğu",
-    totalLengthM: Math.round(beamCount * 4 * floorCount * 2.8),
-    unitWeightKgM: REBAR_WEIGHTS[16] || 1.578,
-    totalWeightKg: Math.round(beamCount * 4 * floorCount * 2.8 * 1.578),
-  });
-
-  items.push({
-    pos: pos++,
-    element: "Kiriş Sarılma ve Gövde Etriyesi",
-    diameterMm: 8,
-    count: beamCount * 42 * floorCount,
-    lengthCm: 145,
-    shapeText: "135° Kancalı Kiriş Etriyesi",
-    totalLengthM: Math.round(beamCount * 42 * floorCount * 1.45),
-    unitWeightKgM: REBAR_WEIGHTS[8] || 0.395,
-    totalWeightKg: Math.round(beamCount * 42 * floorCount * 1.45 * 0.395),
-  });
-
-  // 6. Raft Foundation Rebar Mesh (Radye Temel Alt ve Üst Hasırları)
-  items.push({
-    pos: pos++,
-    element: "Radye Temel Alt Donatısı (X & Y)",
-    diameterMm: 18,
-    count: 380,
-    lengthCm: 1200,
-    shapeText: "Φ18/15 Çift Yönlü Düz Ağ",
-    totalLengthM: 380 * 12,
-    unitWeightKgM: REBAR_WEIGHTS[18] || 1.998,
-    totalWeightKg: Math.round(380 * 12 * 1.998),
-  });
-
-  items.push({
-    pos: pos++,
-    element: "Radye Temel Üst Donatısı (X & Y)",
-    diameterMm: 18,
-    count: 380,
-    lengthCm: 1200,
-    shapeText: "Φ18/15 Çift Yönlü Düz Ağ",
-    totalLengthM: 380 * 12,
-    unitWeightKgM: REBAR_WEIGHTS[18] || 1.998,
-    totalWeightKg: Math.round(380 * 12 * 1.998),
-  });
-
-  items.push({
-    pos: pos++,
-    element: "Radye Sehpa ve İlave Donatısı",
-    diameterMm: 14,
-    count: 450,
-    lengthCm: 220,
-    shapeText: "Z-Sehpa (1 Adet/m²)",
-    totalLengthM: 450 * 2.2,
-    unitWeightKgM: REBAR_WEIGHTS[14] || 1.208,
-    totalWeightKg: Math.round(450 * 2.2 * 1.208),
-  });
-
+  for (const element of model.elements) {
+    if (element.type !== "column" && element.type !== "beam") continue;
+    const floor = model.floors.find(f => f.id === element.floorId);
+    const detail = element.type === "beam" ? generateBeamDetail(element) : generateColumnDetail({ ...element, height: floor ? elementVerticalRange(element, floor)[1] - elementVerticalRange(element, floor)[0] : element.height });
+    for (const row of detail.rebarSchedule) {
+      const totalLengthM = row.count * row.lengthCm / 100;
+      items.push({ pos: items.length + 1, element: "Taslak " + element.name + " / " + (floor?.name ?? element.floorId) + " / " + row.mark, diameterMm: row.diameterMm, count: row.count, lengthCm: row.lengthCm, shapeText: row.shape, totalLengthM, unitWeightKgM: totalLengthM > 0 ? row.totalWeightKg / totalLengthM : 0, totalWeightKg: row.totalWeightKg });
+    }
+  }
   return items;
 }
 
@@ -496,8 +340,9 @@ export function generateProjectPaftas(
   const meta: ProjectMetadata = {
     ...DEFAULT_PROJECT_METADATA,
     projectName: model.name || DEFAULT_PROJECT_METADATA.projectName,
-    totalFloors: model.floors.length || 7,
     ...customMetadata,
+    totalFloors: model.floors.length,
+    totalAreaM2: model.elements.reduce((area, e) => area + (e.type === "slab" ? polygonArea(e.points) : 0), 0),
   };
 
   const analysisRes = runStructuralAnalysis(model);

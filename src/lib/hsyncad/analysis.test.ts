@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createDemoModel } from "./model";
-import { runStructuralAnalysis } from "./analysis";
+import { runStructuralAnalysis, type AnalysisResult } from "./analysis";
 
 test("TBDY 2018 analysis calculates building weight, period, base shear and storey drift", () => {
   const model = createDemoModel();
@@ -76,4 +76,98 @@ test("Joint shear safety, strong column, irregularities and punching are evaluat
 
   assert.ok(result.irregularities.torsionalA1.length > 0);
   assert.ok(result.irregularities.softStoreyB2.length > 0);
+});
+
+test("Milestone 2: 3D Frame FEM Solver produces continuous 11 stations for columns, beams, and walls", () => {
+  const model = createDemoModel();
+  const result = runStructuralAnalysis(model);
+
+  // Check 3D nodal displacements exist
+  assert.ok(Object.keys(result.displacements).length > 0, "3D düğüm noktası deplasmanları üretilmeli");
+  for (const [, disp] of Object.entries(result.displacements)) {
+    assert.equal(disp.length, 6, "Her düğüm noktasında 6 serbestlik derecesi bulunmalı [ux, uy, uz, rotx, roty, rotz]");
+  }
+
+  // Check 11 member stations exist for columns and beams
+  for (const el of model.elements) {
+    if (el.type === "column" || el.type === "beam" || el.type === "wall") {
+      const stations = result.memberStations[el.id];
+      assert.ok(stations, `Eleman ${el.name} için istasyon kuvvetleri bulunmalı`);
+      assert.equal(stations.length, 11, `Eleman ${el.name} 11 istasyonda hesaplanmalı`);
+
+      // Check station ratios from 0.0 to 1.0
+      assert.equal(stations[0].ratio, 0.0);
+      assert.equal(stations[10].ratio, 1.0);
+      for (const st of stations) {
+        assert.ok(Number.isFinite(st.N), "Eksenel kuvvet sonlu olmalı");
+        assert.ok(Number.isFinite(st.V2), "Kesme kuvveti V2 sonlu olmalı");
+        assert.ok(Number.isFinite(st.M3), "Eğilme momenti M3 sonlu olmalı");
+      }
+
+      // Check PROJECT.md memberForces interface contract
+      const contractForces = result.memberForces[el.id];
+      assert.ok(contractForces, `memberForces sözleşmesi ${el.id} için mevcut olmalı`);
+      assert.equal(contractForces.length, 11);
+      assert.ok(contractForces[0].x >= 0);
+    }
+  }
+});
+
+test("Milestone 2: 33 Load Combinations per TS 500 & TBDY 2018 §4.4.3 are superposed", () => {
+  const model = createDemoModel();
+  const result = runStructuralAnalysis(model);
+
+  assert.equal(result.combinations.length, 33, "Tam 33 yük kombinasyonu (1 düşey + 32 deprem) süperpoze edilmeli");
+  const comboNames = new Set(result.combinations.map(c => c.name));
+
+  // Must include gravity
+  assert.ok(comboNames.has("1.4G+1.6Q"), "1.4G+1.6Q kombinasyonu bulunmalı");
+
+  // Must include vertical earthquake Ez = 0.3 * Sds * G
+  const withEz = result.combinations.filter(c => c.name.includes("Ez"));
+  assert.equal(withEz.length, 32, "Tüm 32 deprem kombinasyonu düşey deprem Ez içermeli");
+
+  // Must include uplift 0.9G combinations
+  const uplift = result.combinations.filter(c => c.name.startsWith("0.9G"));
+  assert.equal(uplift.length, 16, "16 adet 0.9G devrilme kombinasyonu bulunmalı");
+});
+
+test("Milestone 2: Storey dynamic results include 3 natural periods, base shears and overturning moments", () => {
+  const model = createDemoModel();
+  const result = runStructuralAnalysis(model);
+
+  assert.equal(result.naturalPeriods.length, 3, "İlk 3 doğal periyot (T1, T2, T3) raporlanmalı");
+  assert.ok(result.naturalPeriods[0] > 0.05, "T1 periyodu pozitif ve gerçekçi olmalı");
+  assert.ok(result.naturalPeriods[1] > 0.02, "T2 periyodu pozitif olmalı");
+  assert.ok(result.naturalPeriods[2] > 0.01, "T3 periyodu pozitif olmalı");
+
+  assert.ok(result.baseShears.Vtx > 0, "Taban kesme kuvveti Vtx pozitif olmalı");
+  assert.ok(result.baseShears.Vty > 0, "Taban kesme kuvveti Vty pozitif olmalı");
+  assert.ok(result.baseShears.Mox > 0, "Devrilme momenti Mox pozitif olmalı");
+  assert.ok(result.baseShears.Moy > 0, "Devrilme momenti Moy pozitif olmalı");
+
+  // Rigid floor diaphragms results
+  assert.ok(result.floorDiaphragms.length > 0, "Kat diyafram sonuçları mevcut olmalı");
+  const fd = result.floorDiaphragms[0];
+  assert.ok(Number.isFinite(fd.driftRatioX));
+  assert.ok(Number.isFinite(fd.driftRatioY));
+});
+
+test("Milestone 2: Shear Wall macro-elements are evaluated for boundary zones and shear design", () => {
+  const model = createDemoModel();
+  const result = runStructuralAnalysis(model);
+
+  const walls = model.elements.filter(e => e.type === "wall");
+  assert.ok(walls.length > 0, "Demo modelde perde elemanı bulunmalı");
+
+  for (const wall of walls) {
+    const check = result.members[wall.id];
+    assert.ok(check, `Perde ${wall.name} analiz sonuçlarında bulunmalı`);
+    assert.equal(check.type, "wall");
+    assert.ok(check.capacityMomentKnm > 0, "Perde moment kapasitesi pozitif olmalı");
+    assert.ok(check.shearCapacityKn !== undefined && check.shearCapacityKn > 0, "Perde kesme kapasitesi Vr hesaplanmalı");
+    assert.ok(check.requiredRebarCm2 > 0, "Perde donatı alanı hesaplanmalı");
+    assert.ok(check.providedRebarText.includes("Uç"), "Perde uç bölgesi donatısı belirtilmeli");
+    assert.ok(check.providedRebarText.includes("Gövde"), "Perde gövde donatısı belirtilmeli");
+  }
 });

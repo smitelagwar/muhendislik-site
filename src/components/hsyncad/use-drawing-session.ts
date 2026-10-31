@@ -7,7 +7,9 @@ import { elementFootprint, elementVerticalRange, distance } from "@/lib/hsyncad/
 import { layerState, setLayerState } from "@/lib/hsyncad/definitions";
 import { bindNewElement } from "@/lib/hsyncad/relationships";
 import { pointInRegion, regionAt, regionLabelPoint, slabRegionsAtLevel } from "@/lib/hsyncad/regions";
-import { translateElement, type CadElement, type CadModel, type Floor, type Point, type SlabElement, type SolidElement } from "@/lib/hsyncad/model";
+import { translateElement, type CadElement, type CadModel, type ColumnElement, type Floor, type Point, type SlabElement, type SolidElement } from "@/lib/hsyncad/model";
+import { addStairToModel } from "@/lib/hsyncad/stairs";
+import { addPadFootingToColumn } from "@/lib/hsyncad/foundations";
 import type { Tool } from "./editor-state";
 import type { DrawingUnit, SlabMode } from "./drawing-toolbar";
 
@@ -29,6 +31,7 @@ function useSlabRegions(model: CadModel, tool: Tool, mode: SlabMode, levelKey: s
 }
 export function useDrawingSession(p: Props) {
   const [pending, setPending] = useState<Point[]>([]), [cursor, setCursor] = useState<Point>({ x: 0, y: 0 });
+  const [interactiveMode, setInteractiveMode] = useState<"default" | "stair" | "footing">("default");
   const [overrides, setOverrides] = useState<Partial<Record<SolidElement["type"], Partial<SolidElement>>>>({});
   const [unit, setUnitValue] = useState<DrawingUnit>("m"), [continuous, setContinuous] = useState(true), [slabMode, setSlabModeValue] = useState<SlabMode>("region");
   const [lengthText, setLengthText] = useState(""), [directionText, setDirectionText] = useState("");
@@ -53,7 +56,48 @@ export function useDrawingSession(p: Props) {
   const target = pending.length && p.tool !== "column" ? constrainPoint(pending[pending.length - 1], cursor, lengthLock, directionLock, lastAngle) : cursor;
   const columnAngle = angleLock ?? (p.tool === "column" && pending.length && distance(pending[0], cursor) > 1e-6 ? Math.atan2(cursor.y - pending[0].y, cursor.x - pending[0].x) * 180 / Math.PI : definition?.type === "column" ? definition.rotation ?? 0 : 0);
   let preview: CadElement | undefined;
-  if (p.tool === "axis") preview = axisGuide(p.model, p.floor.id, p.axisOptions, cursor, pending[0]);
+  if (interactiveMode === "stair" && pending.length) {
+    const dx = cursor.x - pending[0].x, dy = cursor.y - pending[0].y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = (-dy / len) * (1.20 / 2), ny = (dx / len) * (1.20 / 2);
+    preview = {
+      id: "__stair_preview__",
+      name: "M?",
+      type: "slab",
+      floorId: p.floor.id,
+      materialId: p.model.materials[0]?.id ?? "concrete",
+      layer: "Merdivenler",
+      points: [
+        { x: pending[0].x - nx, y: pending[0].y - ny },
+        { x: cursor.x - nx, y: cursor.y - ny },
+        { x: cursor.x + nx, y: cursor.y + ny },
+        { x: pending[0].x + nx, y: pending[0].y + ny },
+      ],
+      thickness: 0.15,
+    };
+  } else if (interactiveMode === "footing") {
+    const lowestFloor = [...p.model.floors].sort((a, b) => a.elevation - b.elevation)[0];
+    const targetCol = p.model.elements.find(e =>
+      e.type === "column" &&
+      (e.floorId === p.floor.id || e.floorId === lowestFloor.id) &&
+      distance(e.position, cursor) <= Math.max(e.width, e.depth, 1.5)
+    ) as ColumnElement | undefined;
+    const pos = targetCol ? targetCol.position : cursor;
+    preview = {
+      id: "__footing_preview__",
+      name: targetCol ? `TK-${targetCol.name}` : "TK?",
+      type: "column",
+      floorId: targetCol?.floorId ?? p.floor.id,
+      materialId: p.model.materials[0]?.id ?? "concrete",
+      layer: "Temeller",
+      position: pos,
+      width: 1.5,
+      depth: 1.5,
+      height: 0.5,
+      baseOffset: -0.5,
+      topOffset: 0,
+    };
+  } else if (p.tool === "axis") preview = axisGuide(p.model, p.floor.id, p.axisOptions, cursor, pending[0]);
   else if (definition && p.tool === "column" && definition.type === "column") preview = { ...definition, position: pending[0] ?? cursor, rotation: columnAngle };
   else if (definition?.type === "slab" && p.tool === "slab") {
     if (labelDraft) preview = { ...labelDraft, labelPosition: cursor };
@@ -71,7 +115,7 @@ export function useDrawingSession(p: Props) {
   function patchDefinition(patch: Partial<SolidElement>) { if (definition) setOverrides(old => ({ ...old, [definition.type]: { ...old[definition.type], ...patch } })); }
   function patchToolDefinition(type: SolidElement["type"], patch: Partial<SolidElement>) { setOverrides(old => ({ ...old, [type]: { ...old[type], ...patch } })); }
   function clearOverrides(type: SolidElement["type"]) { setOverrides(old => { const next = { ...old }; delete next[type]; return next; }); }
-  function clearDraft() { setPending([]); setLabelDraft(null); setLengthText(""); setDirectionText(""); setAngleLock(null); numericArmed.current = false; axisNumber.current = ""; }
+  function clearDraft() { setPending([]); setLabelDraft(null); setLengthText(""); setDirectionText(""); setAngleLock(null); numericArmed.current = false; axisNumber.current = ""; setInteractiveMode("default"); }
   function recordPoint(point: Point) { lastPoint.current = point; setLastPosition(point); }
   function resetModel() { clearDraft(); setOverrides({}); recordPoint({ x: 0, y: 0 }); }
   function changeUnit(value: DrawingUnit) { if (Number.isFinite(numeric(lengthText))) setLengthText(String(numeric(lengthText) * factor / (value === "cm" ? 0.01 : 1))); setUnitValue(value); numericArmed.current = false; }
@@ -110,6 +154,42 @@ export function useDrawingSession(p: Props) {
     if (pending.length && (p.tool === "beam" || p.tool === "wall" || p.tool === "slab" && slabMode === "edge")) point = constrainPoint(pending.at(-1)!, point, lengthLock, directionLock, lastAngle);
     setCursor(point);
     recordPoint(point);
+    if (interactiveMode === "stair") {
+      if (!pending.length) {
+        setPending([point]);
+        p.onMessage("Merdiven bitiş noktasını tıklayın (veya Shift ile dik açı).");
+      } else {
+        if (distance(pending[0], point) < 0.1) {
+          p.onMessage("Merdiven uzunluğu en az 0.10 m olmalıdır.");
+          return;
+        }
+        const next = addStairToModel(p.model, p.floor.id, pending[0], point);
+        if (p.commit(next, "16 rıhtlı betonarme merdiven oluşturuldu.")) {
+          setPending([]);
+          setInteractiveMode("default");
+          p.onReveal("Merdivenler");
+        }
+      }
+      return;
+    }
+    if (interactiveMode === "footing") {
+      const lowestFloor = [...p.model.floors].sort((a, b) => a.elevation - b.elevation)[0];
+      const targetCol = p.model.elements.find(e =>
+        e.type === "column" &&
+        (e.floorId === p.floor.id || e.floorId === lowestFloor.id) &&
+        distance(e.position, point) <= Math.max(e.width, e.depth, 1.5)
+      ) as ColumnElement | undefined;
+      if (targetCol) {
+        const next = addPadFootingToColumn(p.model, targetCol);
+        if (p.commit(next, `${targetCol.name} kolonu altına 1.50×1.50 m tekil temel eklendi.`)) {
+          setInteractiveMode("default");
+          p.onReveal("Temeller");
+        }
+      } else {
+        p.onMessage("Tekil temel için geçerli bir kolon düğüm noktasına tıklayın (Tüm kolonlar için Enter).");
+      }
+      return;
+    }
     if (p.tool === "select" || p.tool === "pan") { p.onMessage("Önce bir çizim aracı seçin."); return; }
     if (p.tool === "move") {
       if (!p.selected) { p.onMessage("Önce taşıyacağınız elemanı seçin."); return; }
@@ -177,6 +257,19 @@ export function useDrawingSession(p: Props) {
       return true;
     }
     if (event.key === "Enter") {
+      if (interactiveMode === "footing") {
+        event.preventDefault();
+        const lowestFloor = [...p.model.floors].sort((a, b) => a.elevation - b.elevation)[0];
+        const columns = p.model.elements.filter(e => e.type === "column" && e.floorId === lowestFloor.id) as ColumnElement[];
+        if (!columns.length) { p.onMessage("Temel eklenecek kolon bulunamadı."); return true; }
+        let cur = p.model;
+        for (const col of columns) cur = addPadFootingToColumn(cur, col);
+        if (p.commit(cur, `${columns.length} adet tekil temel oluşturuldu.`)) {
+          setInteractiveMode("default");
+          p.onReveal("Temeller");
+        }
+        return true;
+      }
       if (p.tool === "axis") { event.preventDefault(); offsetAxis(); return true; }
       if (p.tool === "column" && pending.length) { event.preventDefault(); confirmColumn(); return true; }
       if (linear && pending.length && lengthLock !== null) { event.preventDefault(); placePoint(constrainPoint(pending[0], cursor, lengthLock, directionLock, lastAngle), { source: "canvas" }); return true; }
@@ -184,7 +277,22 @@ export function useDrawingSession(p: Props) {
     }
     return false;
   }
+  function startStair() {
+    clearDraft();
+    setInteractiveMode("stair");
+    p.onMessage("Merdiven başlangıç noktasını tıklayın.");
+  }
+  function startFooting() {
+    clearDraft();
+    setInteractiveMode("footing");
+    p.onMessage("Tekil temel için kolona veya düğüm noktasına tıklayın (Tüm kolonlar için Enter).");
+  }
+  function addStair(start: Point = { x: 0, y: 0 }, end: Point = { x: 4.8, y: 0 }) {
+    const next = addStairToModel(p.model, p.floor.id, start, end);
+    p.commit(next, "16 rıhtlı betonarme merdiven oluşturuldu.");
+  }
   return { pending, setPending, cursor, setCursor, lastPoint, lastPosition, recordPoint, unit, changeUnit, continuous, setContinuous, slabMode, changeSlabMode, definition, preview, levels, hoverRegion, labelDraft,
     columnAngle, angleLocked: angleLock !== null, setAngleLock, patchDefinition, patchToolDefinition, clearOverrides, clearDraft, resetModel, confirmColumn, finishSlab, placePoint, offsetAxis, axisDistance, setAxisDistance,
-    lengthText, setLengthText, directionText, setDirectionText, lengthLock, directionLock, fallbackAngle: lastAngle, handleKey };
+    lengthText, setLengthText, directionText, setDirectionText, lengthLock, directionLock, fallbackAngle: lastAngle, handleKey,
+    interactiveMode, setInteractiveMode, startStair, startFooting, addStair };
 }
