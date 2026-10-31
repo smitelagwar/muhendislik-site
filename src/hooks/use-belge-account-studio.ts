@@ -22,7 +22,7 @@ export function useBelgeStudioAccount(): DocumentAccount {
   const usableProfile = account?.status === "authenticated" && account.profileStatus === "ready"
     ? account.profile
     : null;
-  const accountId = usableProfile ? account?.user?.id : null;
+  const accountId = account?.status === "authenticated" ? account.user?.id : null;
   const warning = Boolean(account && (
     account.status === "unavailable" ||
     (account.status === "authenticated" && account.profileStatus === "unavailable")

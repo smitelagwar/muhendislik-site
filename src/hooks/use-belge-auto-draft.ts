@@ -178,7 +178,7 @@ export function useBelgeAutoDraft<T extends object>({
     if (JSON.stringify(oldBase) === JSON.stringify(nextBase)) return;
     baselineRef.current = initialData;
     const current = getEditableSnapshot(latestValuesRef.current);
-    const next = { ...latestValuesRef.current } as T & Record<string, unknown>;
+    const next: Record<string, unknown> = { ...(latestValuesRef.current as Record<string, unknown>) };
     let changed = false;
     for (const field of DOCUMENT_EDITABLE_FIELDS[documentId]) {
       if (manualFieldsRef.current.has(field) || current[field] !== oldBase[field]) continue;
@@ -187,8 +187,8 @@ export function useBelgeAutoDraft<T extends object>({
       changed = true;
     }
     if (changed) {
-      latestValuesRef.current = next;
-      setFormData(next);
+      latestValuesRef.current = next as T;
+      setFormData(next as T);
     }
   }, [documentId, initialData, getEditableSnapshot, setFormData]);
 
@@ -412,7 +412,7 @@ export function useBelgeAutoDraft<T extends object>({
             if (
               loadedSession.ok &&
               loadedSession.draft &&
-              JSON.stringify(loadedSession.draft.values) !== JSON.stringify(restored)
+              JSON.stringify(loadedSession.draft.values) !== JSON.stringify(draft.values)
             ) {
               try {
                 sessionStorage.setItem(
