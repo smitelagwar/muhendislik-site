@@ -1,12 +1,13 @@
 "use client";
 import { PDFJS_BASE, PDFJS_MAIN, PDFJS_POLYFILLS, PDFJS_WORKER } from "@/lib/pdfjs-paths";
 
-const READY_KEY = "belgeler:pwa:ready:v1"; // only anonymous installation metadata
+const READY_KEY = "belgeler:pwa:ready:v2"; // anonymous verified package metadata
 const JOURNAL_KEY = "belgeler:pwa:preparation:v3";
-const OFFLINE_VERSION = "belgeler-offline-v4";
+const OFFLINE_VERSION = "belgeler-offline-v5";
 const PAGE_CACHE = OFFLINE_VERSION + "-pages";
 const ASSET_CACHE = OFFLINE_VERSION + "-assets";
-const PREPARATION_STEPS = 5; // five raster checks, not the number of documents
+const META_CACHE = OFFLINE_VERSION + "-meta";
+const READY_MARKER = "/belgeler-offline-v5-ready";
 let activePreparation: Promise<void> | null = null;
 export type PreparationJournal = {
   version: 3; status: "loading"|"verifying"|"paused";
@@ -53,7 +54,7 @@ const CORE = [
 ] as const;
 
 export type PreparationProgress = { state: "loading" | "verifying" | "paused" | "ready" | "failed"; detail: string; completed: number; total: number };
-type ReadyStamp = { version: 1; scripts: string; routes: number; checkedAt: number };
+type ReadyStamp = { version: 2; offlineVersion: string; manifestKey: string; buildAnchor: string; assets: string[]; routes: number; checkedAt: number };
 function buildScriptSignature(): string {
   // Hash-addressed Next chunks change across deployments. A stale stamp can never claim new HTML is ready.
   if (typeof document === "undefined") return "";
@@ -151,42 +152,62 @@ async function readControllerVersion(worker: ServiceWorker): Promise<string> {
     }
   });
 }
-async function cachedResource(path:string,kind:"pdf"|"page"|"asset"):Promise<boolean> {
-  if(!("caches" in window))return false;
-  const cache=await caches.open(kind==="page"?PAGE_CACHE:ASSET_CACHE);
-  const response=await cache.match(new URL(path,location.origin).pathname);
-  if(!response || response.status!==200 || response.redirected)return false;
-  const contentType=(response.headers.get("content-type")||"").toLowerCase();
-  if(kind==="page"&&!contentType.includes("text/html"))return false;
-  if(kind==="pdf"&&!(/pdf|octet-stream/.test(contentType)))return false;
-  if(kind==="asset"&&contentType.includes("text/html"))return false;
-  try{
-    const body=await response.clone().arrayBuffer();
-    if(body.byteLength<8)return false;
-    if(kind==="pdf"&&new TextDecoder().decode(body.slice(0,5))!=="%PDF-")return false;
+type ResourceKind = "pdf" | "page" | "asset";
+async function cachedResource(path: string, kind: ResourceKind, deep = false): Promise<boolean> {
+  if (!("caches" in window)) return false;
+  const cache = await caches.open(kind === "page" ? PAGE_CACHE : ASSET_CACHE);
+  const response = await cache.match(new URL(path, location.origin).pathname);
+  if (!response || response.status !== 200 || response.redirected) return false;
+  const ct = (response.headers.get("content-type") || "").toLowerCase();
+  if (kind === "page" && !ct.includes("text/html")) return false;
+  if (kind === "pdf" && !/pdf|octet-stream/.test(ct)) return false;
+  if (kind === "asset" && ct.includes("text/html")) return false;
+  if (!deep) return true; // Never load every PDF/Next chunk into RAM on F5.
+  try {
+    const bytes = await response.arrayBuffer();
+    if (bytes.byteLength < 8) return false;
+    if (kind === "pdf" && new TextDecoder().decode(bytes.slice(0, 5)) !== "%PDF-") return false;
+    if (kind === "page" && !new TextDecoder().decode(bytes.slice(0, 1024)).includes("<html")) return false;
     return true;
-  }catch{return false}
+  } catch { return false; }
 }
-export async function readOfflineReady():Promise<boolean> {
-  if(!validEnvironment()||!("caches" in window))return false;
-  try{
-    const raw=localStorage.getItem(READY_KEY);
-    if(!raw)return false;
-    const stamp=JSON.parse(raw) as ReadyStamp & {offlineVersion?:string};
-    if(stamp.offlineVersion!==OFFLINE_VERSION || stamp.version!==1 ||
-       stamp.routes!==ROUTES.length || !stamp.scripts ||
-       !compatibleScriptSignatures(stamp.scripts,buildScriptSignature()))return false;
-    // Every currently loaded Next chunk must be in the offline asset cache,
-    // including those injected only after hydration or a normal F5.
-    // Verify deterministic public HTML dependencies instead of the changing
-    // script-tag list appended during hydration, F5, or Next prefetch.
-    for (const url of await requiredNextAssets(false))
-      if (!(await cachedResource(url, "asset"))) return false;
-    for(const url of ROUTES)if(!(await cachedResource(url,"page")))return false;
-    for(const url of CORE)if(!(await cachedResource(url,url.endsWith(".pdf")?"pdf":"asset")))return false;
+
+/** Only stable webpack/app-shell chunks identify the live build. No mutable DOM subset test. */
+function buildAnchor(): string {
+  const scripts = buildScriptSignature().split("|").filter(Boolean);
+  const stable = scripts.filter(path =>
+    /\/_next\/static\/chunks\/(?:main-app|webpack|app\/layout-|app\/belgeler\/page-)/.test(path));
+  return stable.join("|") || scripts.find(path => /\/_next\/static\/chunks\//.test(path)) || "";
+}
+function manifestHash(value: string): string {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+export async function readOfflineReady(): Promise<boolean> {
+  if (!validEnvironment() || !("caches" in window)) return false;
+  try {
+    const raw = localStorage.getItem(READY_KEY);
+    if (!raw) return false;
+    const stamp = JSON.parse(raw) as ReadyStamp;
+    const anchor = buildAnchor();
+    if (stamp.version !== 2 || stamp.offlineVersion !== OFFLINE_VERSION ||
+        stamp.routes !== ROUTES.length || !stamp.manifestKey ||
+        !stamp.buildAnchor || !anchor || stamp.buildAnchor !== anchor ||
+        !Array.isArray(stamp.assets) || !stamp.assets.length) return false;
+    const marker = await (await caches.open(META_CACHE)).match(READY_MARKER);
+    if (!marker || !marker.ok || (await marker.text()) !== stamp.manifestKey) return false;
+    const expectedKey = manifestHash([OFFLINE_VERSION, stamp.buildAnchor,
+      ...ROUTES, ...stamp.assets].join("|"));
+    if (expectedKey !== stamp.manifestKey) return false;
+    // Lightweight existence/type checks. Every entry was deeply verified on insertion.
+    for (const url of ROUTES) if (!(await cachedResource(url, "page"))) return false;
+    for (const url of stamp.assets)
+      if (!(await cachedResource(url, url.endsWith(".pdf") ? "pdf" : "asset"))) return false;
     return true;
-  }catch{return false}
+  } catch { return false; }
 }
+
 /** Gather public build assets required by the six cached HTML documents.
  * Modern Next.js may inject or preload chunks asynchronously, so the initial
  * catalog's script tags alone cannot represent the full offline build.
@@ -222,104 +243,103 @@ async function ensureNextAssets(onProgress:(detail:string)=>void): Promise<void>
   }
 }
 
-async function fetchCore(url:string):Promise<void> {
-  const kind=url.endsWith(".pdf")?"pdf":"asset";
-  if(await cachedResource(url,kind))return; // a fully verified previous chunk survives background termination
-  const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),25000);
-  try{
-    const response=await fetch(url,{signal:controller.signal,cache:"reload"});
-    if(!response.ok||response.redirected)throw new Error("Kaynak indirilemedi: "+url);
-    const buffer=await response.arrayBuffer();
-    const bytes=new Uint8Array(buffer);
-    if(bytes.byteLength<8)throw new Error("Boş kaynak: "+url);
-    if(kind==="pdf"&&new TextDecoder().decode(bytes.slice(0,5))!=="%PDF-")
-      throw new Error("PDF imzası doğrulanamadı: "+url);
-    const contentType=(response.headers.get("content-type")||"").toLowerCase();
-    if(kind==="asset"&&contentType.includes("text/html"))
-      throw new Error("Kaynak yerine HTML döndü: "+url);
-
-    // Service Worker may return a valid response without successfully writing it
-    // (e.g. on mobile after a background/foreground transition). Do not rely on
-    // that implicit write: persist each verified, public, same-origin CORE file
-    // explicitly before marking the step complete. Only this allowlisted CORE
-    // loop calls fetchCore; no drafts or user-generated PDFs are stored here.
-    const cache=await caches.open(ASSET_CACHE);
-    const key=new URL(url,location.origin).pathname;
-    if(!(await cachedResource(url,kind))){
-      const headers=new Headers({
-        "Content-Type":kind==="pdf"?"application/pdf":contentType||"application/octet-stream",
-      });
-      try{
-        await cache.put(key,new Response(buffer,{status:200,headers}));
-      }catch(cause){
-        const quota=cause instanceof Error&&cause.name==="QuotaExceededError";
-        throw new Error((quota
-          ?"Cihazın çevrimdışı depolama alanı dolu: "
-          :"Tarayıcı dosyayı çevrimdışı depolamaya yazamadı: ")+url);
-      }
-    }
-    if(!(await cachedResource(url,kind)))
-      throw new Error("Önbellek doğrulaması başarısız: "+url);
-  }finally{clearTimeout(timeout)}
-}
-function renderStarted(frame: HTMLIFrameElement): boolean {
-  try {
-    const doc = frame.contentDocument;
-    const preview = doc?.querySelector<HTMLElement>("[data-testid='belge-studio-preview-canvas']");
-    const canvas = preview?.querySelector<HTMLCanvasElement>("canvas");
-    // Form validation/toasts elsewhere in the studio must not invalidate a
-    // successfully painted PDF. The canvas becomes visible only after commit.
-    return !!canvas && canvas.width > 200 && canvas.height > 200 &&
-      canvas.style.opacity === "1" && preview?.getAttribute("aria-busy") !== "true" &&
-      !preview?.querySelector("[role='alert']");
-  } catch { return false; }
-}
-async function openAndInspect(path: string, cacheOnly: boolean): Promise<void> {
-  const frame = document.createElement("iframe");
-  frame.title = cacheOnly ? "Çevrimdışı PDF doğrulaması" : "Belge kaynaklarını hazırlama";
-  frame.setAttribute("aria-hidden", "true");
-  frame.tabIndex = -1;
-  // Non-zero viewport is essential: PDF.js does not render in display:none frames.
-  frame.style.cssText = "position:fixed;top:0;left:-200vw;width:1024px;height:768px;opacity:0;pointer-events:none;border:0";
-  frame.src = path + (cacheOnly ? "?__belgeler_cache_test=1" : "?__belgeler_prepare=1");
-  document.body.appendChild(frame);
-  try {
-    // Complex two-page forms can need extra time after a cold start. This is a
-    // bounded validation timeout, not a false success on an unpainted canvas.
-    const deadline = Date.now() + (cacheOnly ? 45000 : 35000);
-    while (Date.now() < deadline) {
-      if (renderStarted(frame)) return;
-      await new Promise(resolve => setTimeout(resolve, 250));
-    }
-    throw new Error("PDF önizleme doğrulanamadı: " + path + (cacheOnly ? " (önbellek testi)" : ""));
-  } finally {
-    frame.remove();
+class PreparationError extends Error {
+  constructor(readonly code: string, readonly url: string, message: string) {
+    super(message + ": " + url);
+    this.name = "PreparationError";
   }
 }
-async function loadCatalog():Promise<void> {
-  const frame=document.createElement("iframe");
-  frame.title="Çevrimdışı katalog hazırlığı";
-  frame.setAttribute("aria-hidden","true");
-  frame.style.cssText="position:fixed;left:-200vw;top:0;width:800px;height:700px;opacity:0;pointer-events:none";
-  try{
-    await new Promise<void>((resolve,reject)=>{
-      const timer=setTimeout(()=>reject(new Error("Katalog yükleme zaman aşımı")),25000);
-      frame.onload=()=>{clearTimeout(timer);resolve()};
-      frame.onerror=()=>{clearTimeout(timer);reject(new Error("Katalog yüklenemedi"))};
-      frame.src="/belgeler?__belgeler_prepare=1";
-      document.body.appendChild(frame);
-    });
-  }finally{frame.remove()}
+async function downloadResource(url: string, kind: ResourceKind): Promise<void> {
+  const cacheName = kind === "page" ? PAGE_CACHE : ASSET_CACHE;
+  const key = new URL(url, location.origin).pathname;
+  // A preparation-only query bypasses the SW's legacy cache and never stores RSC.
+  const target = new URL(url, location.origin);
+  target.searchParams.set("__belgeler_prepare", "1");
+  let last: Error = new Error("Kaynak indirilemedi: " + key);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (!navigator.onLine) throw new PreparationError("OFFLINE", key, "İnternet bağlantısı bekleniyor");
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 35000);
+    try {
+      const response = await fetch(target.href, {
+        signal: controller.signal, cache: "reload", credentials: "omit",
+        headers: kind === "page" ? { Accept: "text/html" } : undefined,
+      });
+      if (response.redirected || response.status !== 200) {
+        const code = response.redirected ? "REDIRECT" : "HTTP_" + response.status;
+        throw new PreparationError(code, key, "Sunucu geçerli kaynak döndürmedi");
+      }
+      const cc = response.headers.get("cache-control") || "";
+      if (/\b(?:private|no-store)\b/i.test(cc) || response.headers.has("set-cookie"))
+        throw new PreparationError("PRIVATE", key, "Özel içerik çevrimdışı kaydedilemez");
+      const ct = (response.headers.get("content-type") || "").toLowerCase();
+      if ((kind === "page" && !ct.includes("text/html")) ||
+          (kind === "pdf" && !/pdf|octet-stream/.test(ct)) ||
+          (kind === "asset" && ct.includes("text/html")))
+        throw new PreparationError("MIME", key, "Yanlış dosya türü");
+      const buffer = await response.arrayBuffer();
+      if (buffer.byteLength < 8) throw new PreparationError("EMPTY", key, "Boş kaynak");
+      if (kind === "pdf" && new TextDecoder().decode(buffer.slice(0, 5)) !== "%PDF-")
+        throw new PreparationError("PDF", key, "PDF imzası geçersiz");
+      if (kind === "page") {
+        const html = new TextDecoder().decode(buffer);
+        if (!/<html\b/i.test(html) || !html.includes("/_next/static/"))
+          throw new PreparationError("HTML", key, "Belge HTML içeriği eksik");
+      }
+      const cache = await caches.open(cacheName);
+      try {
+        await cache.put(key, new Response(buffer, {
+          status: 200,
+          headers: { "Content-Type": kind === "pdf" ? "application/pdf" :
+            kind === "page" ? "text/html; charset=utf-8" : ct || "application/octet-stream" },
+        }));
+      } catch (cause) {
+        const quota = cause instanceof Error && cause.name === "QuotaExceededError";
+        throw new PreparationError(quota ? "QUOTA" : "STORAGE", key,
+          quota ? "Cihazda çevrimdışı depolama alanı dolu" : "Tarayıcı kaydı tamamlayamadı");
+      }
+      if (!(await cachedResource(url, kind, true)))
+        throw new PreparationError("CORRUPT", key, "Kaydedilen kaynak doğrulanamadı");
+      return;
+    } catch (cause) {
+      const error = cause instanceof Error ? cause : new Error(String(cause));
+      last = error.name === "AbortError" ?
+        new PreparationError("TIMEOUT", key, "Bağlantı zaman aşımına uğradı") : error;
+      const code = last instanceof PreparationError ? last.code : "NETWORK";
+      if (["QUOTA", "STORAGE", "PRIVATE", "REDIRECT", "MIME", "PDF", "HTML", "EMPTY", "CORRUPT"].includes(code) ||
+          /^HTTP_4(?!08|29)/.test(code) || attempt === 2) break;
+      await new Promise(resolve => window.setTimeout(resolve, 700 * (attempt + 1)));
+    } finally { window.clearTimeout(timer); }
+  }
+  throw last;
 }
-async function runPreparation(onProgress:(p:PreparationProgress)=>void):Promise<void> {
-  if(!validEnvironment())throw new Error("HTTPS veya Service Worker desteği yok.");
-  if(!navigator.onLine)throw new Error("Bağlantı bekleniyor; gelince eksik dosyalardan devam edilecek.");
-  const network=(navigator as Navigator & {connection?:{saveData?:boolean;effectiveType?:string}}).connection;
-  if(network?.saveData||network?.effectiveType==="2g")
+async function fetchCore(url: string, reuseCached = true): Promise<void> {
+  const kind: ResourceKind = url.endsWith(".pdf") ? "pdf" : "asset";
+  if (reuseCached && await cachedResource(url, kind, true)) return;
+  await downloadResource(url, kind);
+}
+async function fetchPage(path: string, reuseCached: boolean): Promise<void> {
+  if (reuseCached && await cachedResource(path, "page", true)) return;
+  await downloadResource(path, "page");
+}
+
+
+async function runPreparation(onProgress: (p: PreparationProgress) => void): Promise<void> {
+  if (!validEnvironment()) throw new Error("HTTPS veya Service Worker desteği yok.");
+  if (!navigator.onLine) throw new Error("Bağlantı bekleniyor; gelince eksik dosyalardan devam edilecek.");
+  const network = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+  if (network?.saveData || network?.effectiveType === "2g")
     throw new Error("Veri tasarrufu veya çok yavaş ağ etkin. Wi-Fi ile devam edin.");
-  const registration=await registerBelgelerOffline();
-  if(!registration)throw new Error("Çevrimdışı hizmet kaydedilemedi.");
+  const previousJournal = readPreparationJournal();
+  const previousStamp = (() => {
+    try { return JSON.parse(localStorage.getItem(READY_KEY) || "null") as ReadyStamp | null; }
+    catch { return null; }
+  })();
+  const anchor = buildAnchor();
+  if (!anchor) throw new Error("Next.js uygulama sürümü henüz belirlenemedi. Sayfayı yenileyip tekrar deneyin.");
+  const reuseCached = !!previousJournal || previousStamp?.buildAnchor === anchor;
+  const registration = await registerBelgelerOffline();
+  if (!registration) throw new Error("Çevrimdışı hizmet kaydedilemedi.");
   const worker = await waitForControl(registration);
   const version = await readControllerVersion(worker);
   if (version !== OFFLINE_VERSION) {
@@ -327,53 +347,55 @@ async function runPreparation(onProgress:(p:PreparationProgress)=>void):Promise<
       "Yeni çevrimdışı sürüm hazır. Önce 'Yeni sürüme geç' seçeneğini kullanın." :
       "Eski çevrimdışı hizmet çalışıyor. Yeni sürüm tamamlanınca tekrar deneyin.");
   }
-  const total=CORE.length+ROUTES.length+PREPARATION_STEPS+1;
-  let completed=0;
-  const update=(state:PreparationProgress["state"],detail:string)=>{
-    saveJournal(state,completed,total);onProgress({state,detail,completed,total})
+  const total = CORE.length + ROUTES.length + 1;
+  let completed = 0;
+  const update = (state: PreparationProgress["state"], detail: string) => {
+    saveJournal(state, completed, total);
+    onProgress({ state, detail, completed, total });
   };
-  update("loading","İndirilen dosyalar kontrol ediliyor");
-  for(let i=0;i<CORE.length;i++){
-    const url=CORE[i];
-    await fetchCore(url);
+  update("loading", "PDF kaynakları hazırlanıyor");
+  for (const url of CORE) {
+    await fetchCore(url, reuseCached);
     completed++;
-    update("loading","Şablonlar ve PDF kaynakları hazırlanıyor");
+    update("loading", "Şablonlar ve PDF kaynakları hazırlanıyor");
   }
-  for(const path of ROUTES) {
-    if(!await cachedResource(path,"page")){
-      if(path==="/belgeler")await loadCatalog();
-      else await openAndInspect(path,false);
-    }
-    if(!await cachedResource(path,"page"))throw new Error("Belge sayfası önbelleğe alınamadı: "+path);
+  // First page after 13/20: explicit public HTML fetch, no hidden 1024x768 iframe.
+  for (const path of ROUTES) {
+    update("loading", "Belge HTML sayfaları hazırlanıyor");
+    await fetchPage(path, reuseCached);
     completed++;
-    update("loading","Belgeler hazırlanıyor");
+    update("loading", "Belge sayfaları kaydedildi");
   }
-  for(const path of ROUTES.slice(1)){
-    update("verifying","PDF önizlemeleri ağ kullanmadan sınanıyor");
-    try {await openAndInspect(path,true)}
-    catch(err){
-      if(!navigator.onLine)throw err;
-      // Cached page may have been interrupted while its JS was loading. Refresh just this page.
-      await (await caches.open(PAGE_CACHE)).delete(new URL(path,location.origin).pathname);
-      await openAndInspect(path,false);
-      await openAndInspect(path,true);
-    }
-    completed++;
-    update("verifying","PDF çizimi doğrulandı");
-  }
+  update("verifying", "Uygulama dosyaları tamamlanıyor");
   await ensureNextAssets(detail => update("verifying", detail));
   completed++;
-  for(const path of ROUTES)if(!await cachedResource(path,"page"))throw new Error("Eksik belge HTML: "+path);
-  for(const url of CORE)if(!await cachedResource(url,url.endsWith(".pdf")?"pdf":"asset"))
-    throw new Error("Eksik PDF kaynağı: "+url);
-  const scripts=buildScriptSignature();
-  if(!scripts)throw new Error("Next.js kaynak sürümü doğrulanamadı.");
-  localStorage.setItem(READY_KEY,JSON.stringify({
-    version:1,offlineVersion:OFFLINE_VERSION,scripts,routes:ROUTES.length,checkedAt:Date.now()
-  }));
-  if(!await readOfflineReady())throw new Error("Önbellek bütünlük kontrolü başarısız.");
-  update("ready","5 belgenin çevrimdışı PDF testi başarılı. Bu cihaz hazır.");
+  const assets = [...new Set([...CORE, ...await requiredNextAssets()])].sort();
+  for (const path of ROUTES)
+    if (!(await cachedResource(path, "page", true)))
+      throw new Error("Kaydedilen belge HTML eksik: " + path);
+  for (const url of assets)
+    if (!(await cachedResource(url, url.endsWith(".pdf") ? "pdf" : "asset")))
+      throw new Error("Kaydedilen kaynak eksik: " + url);
+  const manifestKey = manifestHash([OFFLINE_VERSION, anchor, ...ROUTES, ...assets].join("|"));
+  const stamp: ReadyStamp = {
+    version: 2, offlineVersion: OFFLINE_VERSION, manifestKey, buildAnchor: anchor,
+    assets, routes: ROUTES.length, checkedAt: Date.now(),
+  };
+  try {
+    // The marker is the last durable write: the SW ignores partial v5 resources.
+    localStorage.setItem(READY_KEY, JSON.stringify(stamp));
+    await (await caches.open(META_CACHE)).put(READY_MARKER, new Response(manifestKey, {
+      headers: { "Content-Type": "text/plain" },
+    }));
+    if (!await readOfflineReady()) throw new Error("Önbellek bütünlük kontrolü başarısız.");
+  } catch (cause) {
+    localStorage.removeItem(READY_KEY);
+    await (await caches.open(META_CACHE)).delete(READY_MARKER);
+    throw cause;
+  }
+  update("ready", "5 belge kaydedildi. Tam çevrimdışı PDF testi yayın öncesi E2E'de yapılacaktır.");
 }
+
 export async function prepareBelgelerOffline(onProgress:(p:PreparationProgress)=>void):Promise<void> {
   if(activePreparation)return activePreparation;
   const perform=async()=>{
