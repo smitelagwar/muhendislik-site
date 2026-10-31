@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { belgeProfileSchema } from "@/lib/belge-hesap/profile-schema";
+import { readOwnProfile, saveOwnProfile } from "@/lib/belge-hesap/server/profile";
 import {
   AccountFailure, accountAvailable, adminDeleteUser, adminResetPassword,
   adminTargetSchema, changePassword, credentialsSchema, deletionSchema, getSessionUser,
@@ -45,6 +47,10 @@ export async function GET(request: NextRequest, context: Context) {
       const user = await getSessionUser(request);
       return response({ available: true, authenticated: !!user, user });
     }
+    if (action === "profil") {
+      const user = await requireSession(request);
+      return response(await readOwnProfile(user));
+    }
     if (action === "kullanicilar") {
       await requireAdmin(request);
       return response({ users: await listUsers() });
@@ -52,6 +58,22 @@ export async function GET(request: NextRequest, context: Context) {
     return response({ error: "Bulunamadı." }, 404);
   } catch (error) { return failure(error); }
 }
+export async function PUT(request: NextRequest, context: Context) {
+  try {
+    const { action } = await context.params;
+    if (action !== "profil") return response({ error: "Bulunamadı." }, 404);
+    const user = await requireSession(request);
+    const revisionHeader = request.headers.get("if-match");
+    if (revisionHeader === null) return response({ error: "Profil sürümü gerekli." }, 428);
+    const matched = /^"([0-9]{1,10})"$/.exec(revisionHeader);
+    if (!matched) return response({ error: "Profil sürümü geçersiz." }, 400);
+    const version = Number(matched[1]);
+    const payload = await readJson(request);
+    const profile = validated(belgeProfileSchema, payload);
+    return response(await saveOwnProfile(user, profile, version));
+  } catch (error) { return failure(error); }
+}
+
 export async function POST(request: NextRequest, context: Context) {
   try {
     const { action } = await context.params;

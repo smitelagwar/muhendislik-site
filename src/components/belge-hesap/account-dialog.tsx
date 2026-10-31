@@ -4,9 +4,10 @@ import { useCallback, useState, type FormEvent } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { Eye, EyeOff, X } from "lucide-react";
 import { useBelgeAccountOptional, type BelgeIdentity } from "./account-provider";
+import { BelgeAccountProfileForm } from "./account-profile-form";
 
 type Props = { open: boolean; onOpenChange: (open: boolean) => void };
-type Page = "overview" | "password" | "delete" | "users";
+type Page = "overview" | "profile" | "password" | "delete" | "users";
 type ListedUser = { id: string; username: string; role: string; createdAt: string };
 
 async function accountApi(action: string, method: "GET" | "POST" | "DELETE", body?: object) {
@@ -28,6 +29,7 @@ export function BelgeAccountDialog({ open, onOpenChange }: Props) {
   const account = useBelgeAccountOptional();
   const [tab, setTab] = useState<"login" | "register">("login");
   const [page, setPage] = useState<Page>("overview");
+  const [profileDirty, setProfileDirty] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -113,10 +115,16 @@ export function BelgeAccountDialog({ open, onOpenChange }: Props) {
       setSuccess("Kullanıcı silindi.");
     });
   };
-  const back = () => { setPage("overview"); setError(""); setSuccess(""); setTemporaryPassword(""); };
+  const back = () => { setProfileDirty(false); setPage("overview"); setError(""); setSuccess(""); setTemporaryPassword(""); };
+  const closeDialog = (nextOpen: boolean) => {
+    if (!nextOpen && page === "profile" && profileDirty &&
+        !window.confirm("Kaydedilmemiş bilgiler silinsin mi?")) return;
+    if (!nextOpen) setProfileDirty(false);
+    onOpenChange(nextOpen);
+  };
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+    <DialogPrimitive.Root open={open} onOpenChange={closeDialog}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-[1200] bg-black/60" />
         <DialogPrimitive.Content data-testid="belge-hesap-dialog"
@@ -174,6 +182,7 @@ export function BelgeAccountDialog({ open, onOpenChange }: Props) {
             </>
           ) : page === "overview" ? (
             <div className="mt-5 space-y-2">
+              <button type="button" data-testid="belge-hesap-open-profile" className={actionClass} onClick={() => setPage("profile")}>Bilgilerim</button>
               <button type="button" className={actionClass} onClick={() => setPage("password")}>Şifre değiştir</button>
               {account?.user?.role === "admin" ? (
                 <button type="button" className={actionClass} disabled={busy} onClick={() => void openUsers()}>
@@ -185,10 +194,14 @@ export function BelgeAccountDialog({ open, onOpenChange }: Props) {
               </button>
               <button type="button" className={actionClass + " text-rose-600 dark:text-rose-400"}
                 onClick={() => setPage("delete")}>Hesabımı sil</button>
-              <p className="pt-1 text-xs text-muted-foreground">
-                Kişisel profil alanları 3. aşamada açılacak.
-              </p>
             </div>
+          ) : page === "profile" ? (
+            <BelgeAccountProfileForm
+              key={account?.user?.id ?? "guest"}
+              userId={account?.user?.id ?? ""}
+              onBack={back}
+              onDirtyChange={setProfileDirty}
+            />
           ) : page === "password" ? (
             <form className="mt-5 space-y-3" onSubmit={(event) => void changePassword(event)}>
               <label className="block space-y-1 text-sm">Mevcut şifre
