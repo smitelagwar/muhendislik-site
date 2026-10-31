@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { belgeProfileSchema, type BelgeProfile } from "@/lib/belge-hesap/profile-schema";
 import { formattedPhone } from "@/lib/belge-hesap/formatters";
+import { useBelgeAccountOptional } from "@/components/belge-hesap/account-provider";
 
 type Key = keyof BelgeProfile;
 type Draft = Record<Key, string>;
@@ -55,6 +56,7 @@ export function BelgeAccountProfileForm({
   const [showTc, setShowTc] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const account = useBelgeAccountOptional();
   const sequence = useRef(0);
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
 
@@ -119,6 +121,7 @@ export function BelgeAccountProfileForm({
       const updated = asDraft(body.profile);
       setDraft(updated); setSaved({ ...updated }); setVersion(body.version as number);
       setSuccess("Bilgileriniz kaydedildi."); onDirtyChange(false);
+      void account?.reloadProfile();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Profil kaydedilemedi.");
     } finally { setBusy(false); }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FilePenLine } from "lucide-react";
 import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
 import {
@@ -24,6 +24,9 @@ import {
   BelgeResetIcon,
 } from "@/components/belge-studio-icons";
 import { useBelgeAutoDraft } from "@/hooks/use-belge-auto-draft";
+import { useBelgeStudioAccount, type BelgeStudioIdentity } from "@/hooks/use-belge-account-studio";
+import { resolveBelgeBaseData } from "@/lib/belge-hesap/resolve-base-data";
+import { BelgeProfileSampleNotice } from "@/components/belge-hesap/sample-notice";
 import {
   BelgeStudioDraftControls,
 } from "@/components/belge-studio-draft-controls";
@@ -51,15 +54,29 @@ interface IstifaStudioProps {
   isModal?: boolean;
 }
 
-export function IstifaStudio({
+export function IstifaStudio(props: IstifaStudioProps) {
+  const account = useBelgeStudioAccount();
+  if (!account.ready) {
+    return <div role="status" className="flex h-full w-full items-center justify-center bg-background text-sm text-muted-foreground">Belge bilgileri yükleniyor...</div>;
+  }
+  const identityKey = account.scope.kind === "account" ? account.scope.accountId : "guest";
+  return <IstifaStudioInner key={identityKey} {...props} {...account} />;
+}
+
+function IstifaStudioInner({
   initialData,
   onClose,
   isModal = false,
-}: IstifaStudioProps) {
-  const [formData, setFormData] = useState<IstifaDilekcesiData>(() => ({
-    ...ISTIFA_DILEKCESI_DEFAULT_DATA,
-    ...initialData,
-  }));
+  profile,
+  scope,
+  warning,
+  skipGuestRestore,
+}: IstifaStudioProps & BelgeStudioIdentity) {
+  const baseData = useMemo<IstifaDilekcesiData>(
+    () => ({ ...ISTIFA_DILEKCESI_DEFAULT_DATA, ...resolveBelgeBaseData("santiye-sefi-istifa-dilekcesi", profile).data, ...initialData }),
+    [profile, initialData],
+  );
+  const [formData, setFormData] = useState<IstifaDilekcesiData>(() => ({ ...baseData }));
 
   const [undoData, setUndoData] = useState<IstifaDilekcesiData | null>(null);
 
@@ -139,7 +156,9 @@ export function IstifaStudio({
     documentId: "santiye-sefi-istifa-dilekcesi",
     formData,
     setFormData,
-    initialData: initialData ?? ISTIFA_DILEKCESI_DEFAULT_DATA,
+    initialData: baseData,
+    scope,
+    skipRestore: skipGuestRestore,
     setUndoData,
   });
 
@@ -154,21 +173,22 @@ export function IstifaStudio({
   };
 
   const handleFieldChange = (key: keyof IstifaDilekcesiData, value: string) => {
-    draft.markFormMutated();
+    draft.markFieldEdited(key);
     setUndoData(null);
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
   // Local per-field reset handler: restores ONLY this specific field to original default
   const handleLocalFieldReset = (key: keyof IstifaDilekcesiData) => {
-    handleFieldChange(key, ISTIFA_DILEKCESI_DEFAULT_DATA[key] ?? "");
+    handleFieldChange(key, baseData[key] ?? "");
+    draft.clearManualField(key);
   };
 
   // Global reset to original PDF default values (Sıfırla - V3 onaysız ve anında kalıcı)
   const handleResetToPdfDefaults = () => {
     clearFieldFocusSelection();
     setUndoData({ ...formData });
-    draft.replaceAndPersist({ ...ISTIFA_DILEKCESI_DEFAULT_DATA }, "reset");
+    draft.replaceAndPersist({ ...baseData }, "reset");
   };
 
   // Clear all fields (Temizle - V3 onaysız ve anında kalıcı)
@@ -239,7 +259,7 @@ export function IstifaStudio({
     label: string,
     tag?: string
   ) => {
-    const isModified = formData[fieldKey] !== ISTIFA_DILEKCESI_DEFAULT_DATA[fieldKey];
+    const isModified = formData[fieldKey] !== baseData[fieldKey];
 
     return (
       <div className="flex items-center justify-between gap-1 mb-1">
@@ -307,6 +327,7 @@ export function IstifaStudio({
       />
       {/* Draft Notification Banner (Consent / Recovery / Conflict / Error) */}
       <BelgeStudioDraftControls draftApi={draft} />
+      <BelgeProfileSampleNotice documentId="santiye-sefi-istifa-dilekcesi" profile={profile} warning={warning} values={formData} />
 
       {/* Main Split Layout: Left Form & Right Live PDF (Maximized height, zero outer scroll) */}
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>

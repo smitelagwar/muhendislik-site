@@ -16,6 +16,7 @@ import {
   BELGE_UX_LIMITS,
   getKeyForMode,
   getConsentKeyForMode,
+  type BelgeDraftScope,
   type BelgeDocumentId,
   type DraftConsentDecision,
 } from "./belge-ux-config";
@@ -64,6 +65,8 @@ export interface BelgeDraftEnvelope<D extends BelgeDocumentId = BelgeDocumentId>
   writerId: string; // Sekmeye özel UUID/kimlik
   revision: number; // Monotonik pozitif tam sayı >= 1
   values: Record<string, string>; // DOCUMENT_EDITABLE_FIELDS tam eşlemesi
+  /** Optional for new signed-in drafts; absent for legacy guest drafts. */
+  manualFields?: string[];
 }
 
 /**
@@ -252,10 +255,11 @@ export function createDraftEnvelope<D extends BelgeDocumentId>(options: {
   writerId: string;
   revision: number;
   savedAt?: number;
+  manualFields?: readonly string[];
 }):
   | { ok: true; envelope: BelgeDraftEnvelope<D> }
   | { ok: false; error: DraftStorageErrorCode; details: string } {
-  const { documentId, values, writerId, revision, savedAt = Date.now() } = options;
+  const { documentId, values, writerId, revision, savedAt = Date.now(), manualFields } = options;
 
   if (!ALL_BELGE_DOCUMENT_IDS.includes(documentId)) {
     return {
@@ -294,6 +298,11 @@ export function createDraftEnvelope<D extends BelgeDocumentId>(options: {
     return validatedSnapshot;
   }
 
+  const validatedManual = validateDraftManualFields(documentId, manualFields);
+  if (validatedManual === null) {
+    return { ok: false, error: "UNKNOWN_FIELD", details: "Taslak alan kökenleri geçersiz." };
+  }
+
   const envelope: BelgeDraftEnvelope<D> = {
     schemaVersion: 1,
     documentId,
@@ -302,9 +311,23 @@ export function createDraftEnvelope<D extends BelgeDocumentId>(options: {
     writerId: writerId.trim(),
     revision,
     values: validatedSnapshot.values,
+    ...(validatedManual === undefined ? {} : { manualFields: validatedManual }),
   };
 
   return { ok: true, envelope };
+}
+
+/** Account drafts carry only known edited field names; guest draft envelopes stay unchanged. */
+function validateDraftManualFields(documentId: BelgeDocumentId, values: unknown): string[] | undefined | null {
+  if (values === undefined) return undefined;
+  if (!Array.isArray(values) || values.length > DOCUMENT_EDITABLE_FIELDS[documentId].length) return null;
+  const allow = new Set<string>(DOCUMENT_EDITABLE_FIELDS[documentId]);
+  const unique = new Set<string>();
+  for (const field of values) {
+    if (typeof field !== "string" || !allow.has(field) || unique.has(field)) return null;
+    unique.add(field);
+  }
+  return [...unique];
 }
 
 /**
@@ -371,6 +394,7 @@ export function parseDraft(
     "writerId",
     "revision",
     "values",
+    "manualFields",
   ]);
   for (const key of Object.keys(record)) {
     if (!allowedEnvelopeKeys.has(key)) {
@@ -461,6 +485,10 @@ export function parseDraft(
     return snapshotValidation;
   }
 
+  const manualFields = validateDraftManualFields(docId, record.manualFields);
+  if (manualFields === null) {
+    return { ok: false, error: "UNKNOWN_FIELD", details: "Taslağın düzenlenmiş alan bilgisi geçersiz." };
+  }
   const envelope: BelgeDraftEnvelope = {
     schemaVersion: 1,
     documentId: docId,
@@ -469,6 +497,7 @@ export function parseDraft(
     writerId: record.writerId.trim(),
     revision: record.revision,
     values: snapshotValidation.values,
+    ...(manualFields === undefined ? {} : { manualFields }),
   };
 
   return { ok: true, draft: envelope };
@@ -485,12 +514,12 @@ export function saveDraft(
   storage: StorageLike,
   mode: "device" | "session",
   envelope: BelgeDraftEnvelope,
-  options?: { maxBytes?: number }
+  options?: { maxBytes?: number; scope?: BelgeDraftScope }
 ):
   | { ok: true; byteLength: number; revision: number; key: string }
   | { ok: false; error: DraftStorageErrorCode; details: string; byteLength?: number } {
   const maxBytes = options?.maxBytes ?? BELGE_UX_LIMITS.DRAFT_MAX_BYTES;
-  const key = getKeyForMode(mode, envelope.documentId);
+  const key = getKeyForMode(mode, envelope.documentId, options?.scope);
 
   let serialized: string;
   try {
@@ -566,12 +595,12 @@ export function loadDraft(
   mode: "device" | "session",
   documentId: BelgeDocumentId,
   now: number = Date.now(),
-  options?: { maxBytes?: number }
+  options?: { maxBytes?: number; scope?: BelgeDraftScope }
 ):
   | { ok: true; draft: BelgeDraftEnvelope | null; ageStatus: DraftAgeStatus | null }
   | { ok: false; error: DraftStorageErrorCode; details: string } {
   const maxBytes = options?.maxBytes ?? BELGE_UX_LIMITS.DRAFT_MAX_BYTES;
-  const key = getKeyForMode(mode, documentId);
+  const key = getKeyForMode(mode, documentId, options?.scope);
 
   let rawValue: string | null = null;
   try {
@@ -618,9 +647,10 @@ export function loadDraft(
 export function deleteDraft(
   storage: StorageLike,
   mode: "device" | "session",
-  documentId: BelgeDocumentId
+  documentId: BelgeDocumentId,
+  options?: { scope?: BelgeDraftScope },
 ): { ok: true; key: string } | { ok: false; error: DraftStorageErrorCode; details: string } {
-  const key = getKeyForMode(mode, documentId);
+  const key = getKeyForMode(mode, documentId, options?.scope);
 
   try {
     storage.removeItem(key);

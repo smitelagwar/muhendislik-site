@@ -8,6 +8,7 @@ import { useBelgeStudioMobileContext } from "@/components/belge-studio-mobile-co
 import { useBelgeStudioTheme } from "@/hooks/use-belge-studio-theme";
 import { BelgeStudioReadabilityMenu } from "@/components/belge-studio-readability-menu";
 import { BelgeAccountTrigger } from "@/components/belge-hesap/account-trigger";
+import { useBelgeAccountOptional } from "@/components/belge-hesap/account-provider";
 import type { BelgeReadabilityControls } from "@/hooks/use-belge-studio-readability";
 import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
 import {
@@ -68,6 +69,10 @@ export function BelgeStudioMobileActionsSheet({
 }: BelgeStudioMobileActionsSheetProps) {
   const { drawerOpen, closeDrawer, triggerElement, preview, extraActions } = useBelgeStudioMobileContext();
   const { isDark, toggle: toggleTheme } = useBelgeStudioTheme();
+  const account = useBelgeAccountOptional();
+  const resetLabel = account?.status === "authenticated" && account.profileStatus === "ready"
+    ? "Profil + örnek"
+    : "Örnek Veri";
   const desktopReadability = readability?.isDesktopViewport ? readability : undefined;
   const closeReasonRef = useRef<"share" | "print" | "default">("default");
   const timerRef = useRef<number | null>(null);
@@ -244,13 +249,13 @@ export function BelgeStudioMobileActionsSheet({
                   closeDrawer();
                   onReset();
                 }}
-                aria-label="Örnek verilere sıfırla"
-                title="Örnek verilere sıfırla"
+                aria-label={resetLabel + " değerlerine sıfırla"}
+                title={resetLabel + " değerlerine sıfırla"}
                 data-testid="belge-mobile-reset-btn"
                 className="flex flex-col items-center justify-center p-2 rounded-xl border border-border/70 bg-card hover:bg-secondary/50 text-center transition cursor-pointer min-h-[58px] gap-1"
               >
                 <BelgeResetIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-[11px] font-semibold text-foreground leading-tight">Örnek Veri</span>
+                <span className="text-[11px] font-semibold text-foreground leading-tight">{resetLabel}</span>
               </button>
 
               {/* Temizle */}

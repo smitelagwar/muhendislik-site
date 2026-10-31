@@ -171,7 +171,7 @@ export function BelgeStudioActions(props: BelgeStudioActionsProps) {
             variant="outline"
             onClick={props.onReset}
             className="min-h-11 gap-2 text-xs"
-            title="Tüm alanları örnek verilere sıfırla"
+            title="Tüm alanları başlangıç bilgilerine sıfırla"
           >
             <BelgeResetIcon className="size-4" />
             Sıfırla

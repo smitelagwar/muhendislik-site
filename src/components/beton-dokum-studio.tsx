@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
 import {
   BELGE_STUDIO_FORM_SCROLL_CLASS,
@@ -24,6 +24,9 @@ import {
   BelgeResetIcon,
 } from "@/components/belge-studio-icons";
 import { useBelgeAutoDraft } from "@/hooks/use-belge-auto-draft";
+import { useBelgeStudioAccount, type BelgeStudioIdentity } from "@/hooks/use-belge-account-studio";
+import { resolveBelgeBaseData } from "@/lib/belge-hesap/resolve-base-data";
+import { BelgeProfileSampleNotice } from "@/components/belge-hesap/sample-notice";
 import {
   BelgeStudioDraftControls,
 } from "@/components/belge-studio-draft-controls";
@@ -51,15 +54,29 @@ interface BetonDokumStudioProps {
   isModal?: boolean;
 }
 
-export function BetonDokumStudio({
+export function BetonDokumStudio(props: BetonDokumStudioProps) {
+  const account = useBelgeStudioAccount();
+  if (!account.ready) {
+    return <div role="status" className="flex h-full w-full items-center justify-center bg-background text-sm text-muted-foreground">Belge bilgileri yükleniyor...</div>;
+  }
+  const identityKey = account.scope.kind === "account" ? account.scope.accountId : "guest";
+  return <BetonDokumStudioInner key={identityKey} {...props} {...account} />;
+}
+
+function BetonDokumStudioInner({
   initialData,
   onClose,
   isModal = false,
-}: BetonDokumStudioProps) {
-  const [formData, setFormData] = useState<BetonDokumData>(() => ({
-    ...BETON_DOKUM_DEFAULT_DATA,
-    ...initialData,
-  }));
+  profile,
+  scope,
+  warning,
+  skipGuestRestore,
+}: BetonDokumStudioProps & BelgeStudioIdentity) {
+  const baseData = useMemo<BetonDokumData>(
+    () => ({ ...BETON_DOKUM_DEFAULT_DATA, ...resolveBelgeBaseData("beton-dokum-tutanagi", profile).data, ...initialData }),
+    [profile, initialData],
+  );
+  const [formData, setFormData] = useState<BetonDokumData>(() => ({ ...baseData }));
 
   const [undoData, setUndoData] = useState<BetonDokumData | null>(null);
 
@@ -143,7 +160,9 @@ export function BetonDokumStudio({
     documentId: "beton-dokum-tutanagi",
     formData,
     setFormData,
-    initialData: BETON_DOKUM_DEFAULT_DATA,
+    initialData: baseData,
+    scope,
+    skipRestore: skipGuestRestore,
     setUndoData,
   });
 
@@ -154,21 +173,22 @@ export function BetonDokumStudio({
   };
 
   const handleFieldChange = (key: keyof BetonDokumData, value: string) => {
-    draft.markFormMutated();
+    draft.markFieldEdited(key);
     setUndoData(null);
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
   // Local per-field reset handler: restores ONLY this specific field to original default
   const handleLocalFieldReset = (key: keyof BetonDokumData) => {
-    handleFieldChange(key, BETON_DOKUM_DEFAULT_DATA[key] ?? "");
+    handleFieldChange(key, baseData[key] ?? "");
+    draft.clearManualField(key);
   };
 
   // Global reset to original PDF default values (Sıfırla - V3 onaysız ve anında kalıcı)
   const handleResetToPdfDefaults = () => {
     clearFieldFocusSelection();
     setUndoData({ ...formData });
-    draft.replaceAndPersist({ ...BETON_DOKUM_DEFAULT_DATA }, "reset");
+    draft.replaceAndPersist({ ...baseData }, "reset");
   };
 
   // Clear all fields (Temizle - V3 onaysız ve anında kalıcı)
@@ -236,7 +256,7 @@ export function BetonDokumStudio({
     fieldKey: keyof BetonDokumData,
     badge?: string
   ) => {
-    const isModified = formData[fieldKey] !== BETON_DOKUM_DEFAULT_DATA[fieldKey];
+    const isModified = formData[fieldKey] !== baseData[fieldKey];
 
     return (
       <div className="flex items-center justify-between gap-1 mb-1">
@@ -304,6 +324,7 @@ export function BetonDokumStudio({
       />
       {/* Draft Notification Banner (Consent / Recovery / Conflict / Error) */}
       <BelgeStudioDraftControls draftApi={draft} />
+      <BelgeProfileSampleNotice documentId="beton-dokum-tutanagi" profile={profile} warning={warning} values={formData} />
 
       {/* Main Split Layout: Left Form & Right Live PDF (Maximized height, zero outer scroll) */}
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
@@ -430,7 +451,7 @@ export function BetonDokumStudio({
                     )}
                   </div>
 
-                  {formData.yibf !== BETON_DOKUM_DEFAULT_DATA.yibf && (
+                  {formData.yibf !== baseData.yibf && (
                     <button
                       type="button"
                       onClick={() => handleLocalFieldReset("yibf")}

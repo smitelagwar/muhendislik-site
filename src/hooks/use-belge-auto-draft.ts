@@ -2,16 +2,18 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
-  BELGE_STORAGE_KEYS,
   BELGE_UX_FLAGS,
   BELGE_UX_LIMITS,
   DOCUMENT_EDITABLE_FIELDS,
   getKeyForMode,
+  getScopedRecoveryKey,
+  type BelgeDraftScope,
   type AutoDraftLifecycleState,
   type BelgeDocumentId,
   type DraftConsentDecision,
   type DraftStorageMode,
 } from "@/lib/belge-ux-config";
+import { mergeStoredDraftWithBase } from "@/lib/belge-hesap/document-draft";
 import {
   createDraftEnvelope,
   deleteDraft,
@@ -30,6 +32,8 @@ export interface UseBelgeAutoDraftOptions<T extends object> {
   formData: T;
   setFormData: React.Dispatch<React.SetStateAction<T>>;
   initialData: T;
+  scope?: BelgeDraftScope;
+  skipRestore?: boolean;
   setUndoData?: React.Dispatch<React.SetStateAction<T | null>>;
   enabled?: boolean;
   storageOverride?: StorageLike;
@@ -52,10 +56,15 @@ export interface UseBelgeAutoDraftReturn {
   retrySave: () => void;
   togglePause: () => void;
   markFormMutated: () => void;
+  markFieldEdited: (key: string) => void;
+  clearManualField: (key: string) => void;
+  markAllFieldsEdited: () => void;
   resolveConflictWithRemote: () => void;
   resolveConflictWithLocal: () => void;
   replaceAndPersist: <V extends object = Record<string, unknown>>(nextValues: V, reason?: string) => void;
 }
+
+const GUEST_SCOPE: BelgeDraftScope = { kind: "guest" };
 
 interface DraftView {
   lifecycleState: AutoDraftLifecycleState;
@@ -82,6 +91,9 @@ export function useBelgeAutoDraft<T extends object>({
   formData,
   setFormData,
   setUndoData,
+  initialData,
+  scope = GUEST_SCOPE,
+  skipRestore = false,
   enabled = BELGE_UX_FLAGS.DRAFT,
   storageOverride,
 }: UseBelgeAutoDraftOptions<T>): UseBelgeAutoDraftReturn {
@@ -95,6 +107,9 @@ export function useBelgeAutoDraft<T extends object>({
     pendingDraft: null,
   });
 
+  const baselineRef = useRef<T>(initialData);
+  const manualFieldsRef = useRef<Set<string>>(new Set());
+  const undoManualFieldsRef = useRef<Set<string> | null>(null);
   const stateRef = useRef(view);
   const latestValuesRef = useRef<T>(formData);
   useLayoutEffect(() => {
@@ -143,6 +158,40 @@ export function useBelgeAutoDraft<T extends object>({
     [documentId]
   );
 
+  /** Preserve manual (including emptied) account fields across profile changes. */
+  const materializeDraft = useCallback(
+    (draft: BelgeDraftEnvelope): Record<string, string> => {
+      if (scope.kind === "account") {
+        const manual = draft.manualFields ?? [...DOCUMENT_EDITABLE_FIELDS[documentId]];
+        manualFieldsRef.current = new Set(manual);
+      }
+      return mergeStoredDraftWithBase(
+        documentId, getEditableSnapshot(baselineRef.current), draft, scope,
+      );
+    },
+    [documentId, getEditableSnapshot, scope],
+  );
+
+  useEffect(() => {
+    const oldBase = getEditableSnapshot(baselineRef.current);
+    const nextBase = getEditableSnapshot(initialData);
+    if (JSON.stringify(oldBase) === JSON.stringify(nextBase)) return;
+    baselineRef.current = initialData;
+    const current = getEditableSnapshot(latestValuesRef.current);
+    const next = { ...latestValuesRef.current } as T & Record<string, unknown>;
+    let changed = false;
+    for (const field of DOCUMENT_EDITABLE_FIELDS[documentId]) {
+      if (manualFieldsRef.current.has(field) || current[field] !== oldBase[field]) continue;
+      if (current[field] === nextBase[field]) continue;
+      next[field] = nextBase[field];
+      changed = true;
+    }
+    if (changed) {
+      latestValuesRef.current = next;
+      setFormData(next);
+    }
+  }, [documentId, initialData, getEditableSnapshot, setFormData]);
+
   // Senkron, doğrulanmış depolama yazımı (hem debounce save hem replaceAndPersist hem unmount flush kullanır)
   const persistSnapshotSync = useCallback(
     (snapshot: Record<string, string>, overrideWriterId?: string): boolean => {
@@ -164,6 +213,7 @@ export function useBelgeAutoDraft<T extends object>({
         writerId: writer,
         revision: nextRev,
         savedAt: Date.now(),
+        ...(scope.kind === "account" ? { manualFields: [...manualFieldsRef.current] } : {}),
       });
 
       if (!envelopeResult.ok) {
@@ -175,7 +225,7 @@ export function useBelgeAutoDraft<T extends object>({
       }
 
       const envelope = envelopeResult.envelope;
-      const saveResult = saveDraft(storage, "device", envelope);
+      const saveResult = saveDraft(storage, "device", envelope, { scope });
       if (!saveResult.ok) {
         update({
           lifecycleState: "save-error",
@@ -185,7 +235,7 @@ export function useBelgeAutoDraft<T extends object>({
       }
 
       // Read-back kontrolü ile gerçek yazım garantisi
-      const rawInStore = storage.getItem(getKeyForMode("device", documentId));
+      const rawInStore = storage.getItem(getKeyForMode("device", documentId, scope));
       const serialized = JSON.stringify(envelope);
       if (rawInStore !== serialized) {
         update({
@@ -219,7 +269,7 @@ export function useBelgeAutoDraft<T extends object>({
 
       return true;
     },
-    [documentId, getStorage, update]
+    [documentId, getStorage, scope, update]
   );
 
   // Asenkron debounce kayıt tetikleyicisi
@@ -238,7 +288,7 @@ export function useBelgeAutoDraft<T extends object>({
     }
 
     // Yazmadan önce depodaki mevcut durumu kontrol et (başka sekme araya girdiyse)
-    const currentRaw = storage.getItem(getKeyForMode("device", documentId));
+    const currentRaw = storage.getItem(getKeyForMode("device", documentId, scope));
     if (
       currentRaw !== null &&
       currentRaw !== runtimeRef.current.lastObservedRaw
@@ -268,11 +318,22 @@ export function useBelgeAutoDraft<T extends object>({
     }
 
     persistSnapshotSync(snapshot);
-  }, [documentId, enabled, getEditableSnapshot, getStorage, persistSnapshotSync, update]);
+  }, [documentId, enabled, getEditableSnapshot, getStorage, persistSnapshotSync, scope, update]);
 
   // Sıfırla / Temizle / Geri al için anında gecikmesiz persist API'si
   const replaceAndPersist = useCallback(
-    <V extends object = Record<string, unknown>>(nextValues: V, _reason?: string) => {
+    <V extends object = Record<string, unknown>>(nextValues: V, reason?: string) => {
+      if (scope.kind === "account") {
+        if (reason === "reset" || reason === "clear" || reason === "sample") {
+          undoManualFieldsRef.current = new Set(manualFieldsRef.current);
+          manualFieldsRef.current = reason === "reset"
+            ? new Set()
+            : new Set(DOCUMENT_EDITABLE_FIELDS[documentId]);
+        } else if (reason === "undo" && undoManualFieldsRef.current) {
+          manualFieldsRef.current = new Set(undoManualFieldsRef.current);
+          undoManualFieldsRef.current = null;
+        }
+      }
       // 1. Bekleyen gecikmeli debounce timer'ı iptal et
       runtimeRef.current.generation++;
       if (timerRef.current) {
@@ -288,7 +349,7 @@ export function useBelgeAutoDraft<T extends object>({
       const snapshot = getEditableSnapshot(nextValues);
       persistSnapshotSync(snapshot);
     },
-    [getEditableSnapshot, persistSnapshotSync, setFormData]
+    [documentId, getEditableSnapshot, persistSnapshotSync, scope.kind, setFormData]
   );
 
   // 1. Boot / Hydration Effect
@@ -316,19 +377,20 @@ export function useBelgeAutoDraft<T extends object>({
 
       let hydrated = false;
 
-      if (deviceStorage) {
-        const rawDevice = deviceStorage.getItem(getKeyForMode("device", documentId));
-        const loadedDevice = loadDraft(deviceStorage, "device", documentId);
+      if (!skipRestore && deviceStorage) {
+        const rawDevice = deviceStorage.getItem(getKeyForMode("device", documentId, scope));
+        const loadedDevice = loadDraft(deviceStorage, "device", documentId, Date.now(), { scope });
         if (loadedDevice.ok && loadedDevice.draft) {
           const draft = loadedDevice.draft;
           // Kullanıcı boot tamamlanmadan henüz yazmadıysa geri yükle
           if (!runtime.dirty) {
-            setFormData((prev) => ({ ...prev, ...draft.values }));
+            const restored = materializeDraft(draft);
+            setFormData((prev) => ({ ...prev, ...restored }));
             latestValuesRef.current = {
               ...latestValuesRef.current,
-              ...draft.values,
+              ...restored,
             };
-            runtime.lastSavedSnapshot = JSON.stringify(draft.values);
+            runtime.lastSavedSnapshot = JSON.stringify(restored);
             runtime.lastObservedRaw = rawDevice;
             runtime.lastRevision = draft.revision;
 
@@ -345,16 +407,16 @@ export function useBelgeAutoDraft<T extends object>({
 
           // Eğer session storage'da farklı bir taslak varsa kurtarma anahtarına taşı
           if (sessionStorage) {
-            const rawSession = sessionStorage.getItem(getKeyForMode("session", documentId));
-            const loadedSession = loadDraft(sessionStorage, "session", documentId);
+            const rawSession = sessionStorage.getItem(getKeyForMode("session", documentId, scope));
+            const loadedSession = loadDraft(sessionStorage, "session", documentId, Date.now(), { scope });
             if (
               loadedSession.ok &&
               loadedSession.draft &&
-              JSON.stringify(loadedSession.draft.values) !== JSON.stringify(draft.values)
+              JSON.stringify(loadedSession.draft.values) !== JSON.stringify(restored)
             ) {
               try {
                 sessionStorage.setItem(
-                  `${BELGE_STORAGE_KEYS.DRAFT_RECOVERY_PREFIX}${documentId}`,
+                  getScopedRecoveryKey(documentId, scope),
                   rawSession || JSON.stringify(loadedSession.draft)
                 );
               } catch {
@@ -366,18 +428,19 @@ export function useBelgeAutoDraft<T extends object>({
       }
 
       // Cihaz taslağı yoksa legacy session taslağını güvenle device'a taşı
-      if (!hydrated && sessionStorage && deviceStorage) {
-        const loadedSession = loadDraft(sessionStorage, "session", documentId);
+      if (!skipRestore && !hydrated && sessionStorage && deviceStorage) {
+        const loadedSession = loadDraft(sessionStorage, "session", documentId, Date.now(), { scope });
         if (loadedSession.ok && loadedSession.draft) {
           const draft = loadedSession.draft;
-          saveDraft(deviceStorage, "device", draft);
           if (!runtime.dirty) {
-            setFormData((prev) => ({ ...prev, ...draft.values }));
+            const restored = materializeDraft(draft);
+            saveDraft(deviceStorage, "device", draft, { scope });
+            setFormData((prev) => ({ ...prev, ...restored }));
             latestValuesRef.current = {
               ...latestValuesRef.current,
-              ...draft.values,
+              ...restored,
             };
-            runtime.lastSavedSnapshot = JSON.stringify(draft.values);
+            runtime.lastSavedSnapshot = JSON.stringify(restored);
             runtime.lastObservedRaw = JSON.stringify(draft);
             runtime.lastRevision = draft.revision;
 
@@ -428,7 +491,10 @@ export function useBelgeAutoDraft<T extends object>({
     enabled,
     getEditableSnapshot,
     getStorage,
+    materializeDraft,
     persistSnapshotSync,
+    scope,
+    skipRestore,
     setFormData,
     update,
   ]);
@@ -441,7 +507,7 @@ export function useBelgeAutoDraft<T extends object>({
       const storage = getStorage("device");
       if (!storage) return;
 
-      const raw = storage.getItem(getKeyForMode("device", documentId));
+      const raw = storage.getItem(getKeyForMode("device", documentId, scope));
       if (raw === runtimeRef.current.lastObservedRaw) return;
 
       if (raw === null) {
@@ -462,14 +528,15 @@ export function useBelgeAutoDraft<T extends object>({
       if (!parsed.ok || !parsed.draft) return;
 
       if (!runtimeRef.current.dirty) {
+        const restored = materializeDraft(parsed.draft);
         // Bu sekmede kaydedilmemiş yerel düzenleme yok; yeni taslağı sessizce yükle
-        setFormData((prev) => ({ ...prev, ...parsed.draft.values }));
+        setFormData((prev) => ({ ...prev, ...restored }));
         latestValuesRef.current = {
           ...latestValuesRef.current,
-          ...parsed.draft.values,
+          ...restored,
         };
         runtimeRef.current.lastObservedRaw = raw;
-        runtimeRef.current.lastSavedSnapshot = JSON.stringify(parsed.draft.values);
+        runtimeRef.current.lastSavedSnapshot = JSON.stringify(restored);
         runtimeRef.current.lastRevision = parsed.draft.revision;
 
         update({
@@ -491,13 +558,13 @@ export function useBelgeAutoDraft<T extends object>({
 
     const onStorage = (e: StorageEvent) => {
       if (e.storageArea !== window.localStorage) return;
-      if (e.key === null || e.key === getKeyForMode("device", documentId)) {
+      if (e.key === null || e.key === getKeyForMode("device", documentId, scope)) {
         handleExternalChange();
       }
     };
 
     if (typeof BroadcastChannel !== "undefined") {
-      const bc = new BroadcastChannel(`belgeler:ux:draft:${documentId}`);
+      const bc = new BroadcastChannel(`belgeler:ux:draft:${scope.kind === "account" ? `${scope.accountId}:` : ""}${documentId}`);
       channelRef.current = bc;
       bc.onmessage = (msg) => {
         if (msg.data?.documentId === documentId) {
@@ -535,7 +602,9 @@ export function useBelgeAutoDraft<T extends object>({
     enabled,
     getEditableSnapshot,
     getStorage,
+    materializeDraft,
     persistSnapshotSync,
+    scope,
     setFormData,
     update,
   ]);
@@ -583,6 +652,31 @@ export function useBelgeAutoDraft<T extends object>({
     }
   }, [update]);
 
+  const markFieldEdited = useCallback((field: string) => {
+    if (DOCUMENT_EDITABLE_FIELDS[documentId].some((key) => key === field)) {
+      manualFieldsRef.current.add(field);
+      if (documentId === "santiye-sefi-sozlesmesi" && field === "santiye_sefi_ad") {
+        manualFieldsRef.current.add("santiye_sefi_imza_adi");
+      }
+      if (documentId === "santiye-sefi-sozlesmesi" && field === "muteahhit_unvan") {
+        manualFieldsRef.current.add("muteahhit_imza_unvan");
+      }
+      if (documentId === "santiye-sefi-taahhutnamesi" && field === "unvan") {
+        manualFieldsRef.current.add("unvan_imza");
+      }
+    }
+    markFormMutated();
+  }, [documentId, markFormMutated]);
+
+  const clearManualField = useCallback((field: string) => {
+    manualFieldsRef.current.delete(field);
+  }, []);
+
+  const markAllFieldsEdited = useCallback(() => {
+    manualFieldsRef.current = new Set(DOCUMENT_EDITABLE_FIELDS[documentId]);
+    markFormMutated();
+  }, [documentId, markFormMutated]);
+
   const deleteDraftAction = useCallback(() => {
     const storage = getStorage("device");
     if (!storage) return;
@@ -593,7 +687,7 @@ export function useBelgeAutoDraft<T extends object>({
       timerRef.current = null;
     }
 
-    deleteDraft(storage, "device", documentId);
+    deleteDraft(storage, "device", documentId, { scope });
     runtimeRef.current.lastObservedRaw = null;
     runtimeRef.current.lastSavedSnapshot = "";
     runtimeRef.current.dirty = false;
@@ -610,19 +704,20 @@ export function useBelgeAutoDraft<T extends object>({
       type: "DRAFT_DELETED",
       documentId,
     });
-  }, [documentId, getStorage, update]);
+  }, [documentId, getStorage, scope, update]);
 
   const resolveConflictWithRemote = useCallback(() => {
     const pending = stateRef.current.pendingDraft;
     if (!pending) return;
 
     setUndoData?.({ ...latestValuesRef.current });
-    setFormData((prev) => ({ ...prev, ...pending.values }));
+    const restored = materializeDraft(pending);
+    setFormData((prev) => ({ ...prev, ...restored }));
     latestValuesRef.current = {
       ...latestValuesRef.current,
-      ...pending.values,
+      ...restored,
     };
-    runtimeRef.current.lastSavedSnapshot = JSON.stringify(pending.values);
+    runtimeRef.current.lastSavedSnapshot = JSON.stringify(restored);
     runtimeRef.current.lastObservedRaw = JSON.stringify(pending);
     runtimeRef.current.lastRevision = pending.revision;
     runtimeRef.current.dirty = false;
@@ -634,7 +729,7 @@ export function useBelgeAutoDraft<T extends object>({
       ageStatus: draftAgeStatus(pending.savedAt),
       errorMessage: null,
     });
-  }, [setFormData, setUndoData, update]);
+  }, [materializeDraft, setFormData, setUndoData, update]);
 
   const resolveConflictWithLocal = useCallback(() => {
     // Yerel veriyi güncel revizyonla depoya zorla yaz
@@ -678,6 +773,9 @@ export function useBelgeAutoDraft<T extends object>({
     retrySave,
     togglePause,
     markFormMutated,
+    markFieldEdited,
+    clearManualField,
+    markAllFieldsEdited,
     resolveConflictWithRemote,
     resolveConflictWithLocal,
     replaceAndPersist,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FileCheck2 } from "lucide-react";
 import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
 import {
@@ -24,6 +24,9 @@ import {
   BelgeResetIcon,
 } from "@/components/belge-studio-icons";
 import { useBelgeAutoDraft } from "@/hooks/use-belge-auto-draft";
+import { useBelgeStudioAccount, type BelgeStudioIdentity } from "@/hooks/use-belge-account-studio";
+import { resolveBelgeBaseData } from "@/lib/belge-hesap/resolve-base-data";
+import { BelgeProfileSampleNotice } from "@/components/belge-hesap/sample-notice";
 import {
   BelgeStudioDraftControls,
 } from "@/components/belge-studio-draft-controls";
@@ -51,15 +54,29 @@ interface SozlesmeStudioProps {
   isModal?: boolean;
 }
 
-export function SozlesmeStudio({
+export function SozlesmeStudio(props: SozlesmeStudioProps) {
+  const account = useBelgeStudioAccount();
+  if (!account.ready) {
+    return <div role="status" className="flex h-full w-full items-center justify-center bg-background text-sm text-muted-foreground">Belge bilgileri yükleniyor...</div>;
+  }
+  const identityKey = account.scope.kind === "account" ? account.scope.accountId : "guest";
+  return <SozlesmeStudioInner key={identityKey} {...props} {...account} />;
+}
+
+function SozlesmeStudioInner({
   initialData,
   onClose,
   isModal = false,
-}: SozlesmeStudioProps) {
-  const [formData, setFormData] = useState<SozlesmeData>(() => ({
-    ...SOZLESME_DEFAULT_DATA,
-    ...initialData,
-  }));
+  profile,
+  scope,
+  warning,
+  skipGuestRestore,
+}: SozlesmeStudioProps & BelgeStudioIdentity) {
+  const baseData = useMemo<SozlesmeData>(
+    () => ({ ...SOZLESME_DEFAULT_DATA, ...resolveBelgeBaseData("santiye-sefi-sozlesmesi", profile).data, ...initialData }),
+    [profile, initialData],
+  );
+  const [formData, setFormData] = useState<SozlesmeData>(() => ({ ...baseData }));
 
   const [undoData, setUndoData] = useState<SozlesmeData | null>(null);
 
@@ -139,7 +156,9 @@ export function SozlesmeStudio({
     documentId: "santiye-sefi-sozlesmesi",
     formData,
     setFormData,
-    initialData: initialData ?? SOZLESME_DEFAULT_DATA,
+    initialData: baseData,
+    scope,
+    skipRestore: skipGuestRestore,
     setUndoData,
   });
 
@@ -155,7 +174,7 @@ export function SozlesmeStudio({
 
   const handleFieldChange = useCallback(
     (field: keyof SozlesmeData, value: string) => {
-      draft.markFormMutated();
+      draft.markFieldEdited(field);
       setUndoData(null);
       setFormData((prev) => {
         const next = { ...prev, [field]: value };
@@ -180,14 +199,15 @@ export function SozlesmeStudio({
 
   // Local per-field reset handler
   const handleLocalFieldReset = useCallback((field: keyof SozlesmeData) => {
-    handleFieldChange(field, SOZLESME_DEFAULT_DATA[field] ?? "");
+    handleFieldChange(field, baseData[field] ?? "");
+    draft.clearManualField(field);
   }, [handleFieldChange]);
 
   // Global reset to original PDF default values (Sıfırla - V3 onaysız ve anında kalıcı)
   const handleResetToPdfDefaults = useCallback(() => {
     clearFieldFocusSelection();
     setUndoData({ ...formData });
-    draft.replaceAndPersist({ ...SOZLESME_DEFAULT_DATA }, "reset");
+    draft.replaceAndPersist({ ...baseData }, "reset");
   }, [clearFieldFocusSelection, draft, formData]);
 
   // Clear all fields (Temizle - V3 onaysız ve anında kalıcı)
@@ -244,7 +264,7 @@ export function SozlesmeStudio({
     fieldKey: keyof SozlesmeData,
     badge?: string
   ) => {
-    const isModified = formData[fieldKey] !== SOZLESME_DEFAULT_DATA[fieldKey];
+    const isModified = formData[fieldKey] !== baseData[fieldKey];
 
     return (
       <div className="flex items-center justify-between gap-1 mb-1">
@@ -319,6 +339,7 @@ export function SozlesmeStudio({
 
       {/* Draft Notification Banner (Consent / Recovery / Conflict / Error) */}
       <BelgeStudioDraftControls draftApi={draft} />
+      <BelgeProfileSampleNotice documentId="santiye-sefi-sozlesmesi" profile={profile} warning={warning} values={formData} />
 
       {/* Main Split Layout: Left Form & Right Live PDF */}
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
@@ -530,7 +551,7 @@ export function SozlesmeStudio({
                       </span>
                     )}
                   </div>
-                  {formData.yibf !== SOZLESME_DEFAULT_DATA.yibf && (
+                  {formData.yibf !== baseData.yibf && (
                     <button
                       type="button"
                       onClick={() => handleLocalFieldReset("yibf")}

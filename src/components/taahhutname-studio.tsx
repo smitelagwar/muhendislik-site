@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FileSignature } from "lucide-react";
 import { printPdfFromBlobUrl } from "@/lib/belge-studio-pdf-actions";
 import {
@@ -24,6 +24,9 @@ import {
   BelgeResetIcon,
 } from "@/components/belge-studio-icons";
 import { useBelgeAutoDraft } from "@/hooks/use-belge-auto-draft";
+import { useBelgeStudioAccount, type BelgeStudioIdentity } from "@/hooks/use-belge-account-studio";
+import { resolveBelgeBaseData } from "@/lib/belge-hesap/resolve-base-data";
+import { BelgeProfileSampleNotice } from "@/components/belge-hesap/sample-notice";
 import {
   BelgeStudioDraftControls,
 } from "@/components/belge-studio-draft-controls";
@@ -51,15 +54,29 @@ interface TaahhutnameStudioProps {
   isModal?: boolean;
 }
 
-export function TaahhutnameStudio({
+export function TaahhutnameStudio(props: TaahhutnameStudioProps) {
+  const account = useBelgeStudioAccount();
+  if (!account.ready) {
+    return <div role="status" className="flex h-full w-full items-center justify-center bg-background text-sm text-muted-foreground">Belge bilgileri yükleniyor...</div>;
+  }
+  const identityKey = account.scope.kind === "account" ? account.scope.accountId : "guest";
+  return <TaahhutnameStudioInner key={identityKey} {...props} {...account} />;
+}
+
+function TaahhutnameStudioInner({
   initialData,
   onClose,
   isModal = false,
-}: TaahhutnameStudioProps) {
-  const [formData, setFormData] = useState<TaahhutnameData>(() => ({
-    ...TAAHHUTNAME_DEFAULT_DATA,
-    ...initialData,
-  }));
+  profile,
+  scope,
+  warning,
+  skipGuestRestore,
+}: TaahhutnameStudioProps & BelgeStudioIdentity) {
+  const baseData = useMemo<TaahhutnameData>(
+    () => ({ ...TAAHHUTNAME_DEFAULT_DATA, ...resolveBelgeBaseData("santiye-sefi-taahhutnamesi", profile).data, ...initialData }),
+    [profile, initialData],
+  );
+  const [formData, setFormData] = useState<TaahhutnameData>(() => ({ ...baseData }));
 
   const [undoData, setUndoData] = useState<TaahhutnameData | null>(null);
 
@@ -139,7 +156,9 @@ export function TaahhutnameStudio({
     documentId: "santiye-sefi-taahhutnamesi",
     formData,
     setFormData,
-    initialData: initialData ?? TAAHHUTNAME_DEFAULT_DATA,
+    initialData: baseData,
+    scope,
+    skipRestore: skipGuestRestore,
     setUndoData,
   });
 
@@ -154,7 +173,7 @@ export function TaahhutnameStudio({
   };
 
   const handleFieldChange = (key: keyof TaahhutnameData, value: string) => {
-    draft.markFormMutated();
+    draft.markFieldEdited(key);
     setUndoData(null);
     setFormData((prev) => {
       const updated = { ...prev, [key]: value };
@@ -168,14 +187,15 @@ export function TaahhutnameStudio({
 
   // Local per-field reset handler: restores ONLY this specific field to original default
   const handleLocalFieldReset = (key: keyof TaahhutnameData) => {
-    handleFieldChange(key, TAAHHUTNAME_DEFAULT_DATA[key] ?? "");
+    handleFieldChange(key, baseData[key] ?? "");
+    draft.clearManualField(key);
   };
 
   // Global reset to original PDF default values (Sıfırla - V3 onaysız ve anında kalıcı)
   const handleResetToPdfDefaults = () => {
     clearFieldFocusSelection();
     setUndoData({ ...formData });
-    draft.replaceAndPersist({ ...TAAHHUTNAME_DEFAULT_DATA }, "reset");
+    draft.replaceAndPersist({ ...baseData }, "reset");
   };
 
   // Clear all fields (Temizle - V3 onaysız ve anında kalıcı)
@@ -247,7 +267,7 @@ export function TaahhutnameStudio({
     label: string,
     tag?: string
   ) => {
-    const isModified = formData[fieldKey] !== TAAHHUTNAME_DEFAULT_DATA[fieldKey];
+    const isModified = formData[fieldKey] !== baseData[fieldKey];
 
     return (
       <div className="flex items-center justify-between gap-1 mb-1">
@@ -315,6 +335,7 @@ export function TaahhutnameStudio({
       />
       {/* Draft Notification Banner (Consent / Recovery / Conflict / Error) */}
       <BelgeStudioDraftControls draftApi={draft} />
+      <BelgeProfileSampleNotice documentId="santiye-sefi-taahhutnamesi" profile={profile} warning={warning} values={formData} />
 
       {/* Main Split Layout: Left Form & Right Live PDF (Maximized height, zero outer scroll) */}
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>

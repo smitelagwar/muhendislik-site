@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   Dice5,
@@ -27,6 +27,9 @@ import {
   BelgeResetIcon,
 } from "@/components/belge-studio-icons";
 import { useBelgeAutoDraft } from "@/hooks/use-belge-auto-draft";
+import { useBelgeStudioAccount, type BelgeStudioIdentity } from "@/hooks/use-belge-account-studio";
+import { resolveBelgeBaseData } from "@/lib/belge-hesap/resolve-base-data";
+import { BelgeProfileSampleNotice } from "@/components/belge-hesap/sample-notice";
 import {
   BelgeStudioDraftControls,
 } from "@/components/belge-studio-draft-controls";
@@ -102,15 +105,29 @@ const RANDOM_SAMPLES: Array<InsaatRuhsatiData> = [
   },
 ];
 
-export function InsaatRuhsatiStudio({
+export function InsaatRuhsatiStudio(props: InsaatRuhsatiStudioProps) {
+  const account = useBelgeStudioAccount();
+  if (!account.ready) {
+    return <div role="status" className="flex h-full w-full items-center justify-center bg-background text-sm text-muted-foreground">Belge bilgileri yükleniyor...</div>;
+  }
+  const identityKey = account.scope.kind === "account" ? account.scope.accountId : "guest";
+  return <InsaatRuhsatiStudioInner key={identityKey} {...props} {...account} />;
+}
+
+function InsaatRuhsatiStudioInner({
   initialData,
   onClose,
   isModal = false,
-}: InsaatRuhsatiStudioProps) {
-  const [formData, setFormData] = useState<InsaatRuhsatiData>(() => ({
-    ...INSAAT_RUHSATI_DEFAULT_DATA,
-    ...initialData,
-  }));
+  profile,
+  scope,
+  warning,
+  skipGuestRestore,
+}: InsaatRuhsatiStudioProps & BelgeStudioIdentity) {
+  const baseData = useMemo<InsaatRuhsatiData>(
+    () => ({ ...INSAAT_RUHSATI_DEFAULT_DATA, ...resolveBelgeBaseData("insaat-ruhsati-dilekcesi", profile).data, ...initialData }),
+    [profile, initialData],
+  );
+  const [formData, setFormData] = useState<InsaatRuhsatiData>(() => ({ ...baseData }));
 
   const [undoData, setUndoData] = useState<InsaatRuhsatiData | null>(null);
 
@@ -190,7 +207,9 @@ export function InsaatRuhsatiStudio({
     documentId: "insaat-ruhsati-dilekcesi",
     formData,
     setFormData,
-    initialData: initialData ?? INSAAT_RUHSATI_DEFAULT_DATA,
+    initialData: baseData,
+    scope,
+    skipRestore: skipGuestRestore,
     setUndoData,
   });
 
@@ -205,21 +224,22 @@ export function InsaatRuhsatiStudio({
   };
 
   const handleFieldChange = (key: keyof InsaatRuhsatiData, value: string) => {
-    draft.markFormMutated();
+    draft.markFieldEdited(key);
     setUndoData(null);
     setFormData((prev) => ({ ...prev, [key]: value }));
   };
 
   // Local per-field reset handler
   const handleLocalFieldReset = (key: keyof InsaatRuhsatiData) => {
-    handleFieldChange(key, INSAAT_RUHSATI_DEFAULT_DATA[key] ?? "");
+    handleFieldChange(key, baseData[key] ?? "");
+    draft.clearManualField(key);
   };
 
   // Global reset to original PDF default values (Sıfırla - V3 onaysız ve anında kalıcı)
   const handleResetToPdfDefaults = () => {
     clearFieldFocusSelection();
     setUndoData({ ...formData });
-    draft.replaceAndPersist({ ...INSAAT_RUHSATI_DEFAULT_DATA }, "reset");
+    draft.replaceAndPersist({ ...baseData }, "reset");
   };
 
   // Randomize button handler (F06 onay korumalı)
@@ -233,7 +253,7 @@ export function InsaatRuhsatiStudio({
       return;
     }
     clearFieldFocusSelection();
-    draft.markFormMutated();
+    draft.markAllFieldsEdited();
     setUndoData(null);
     const randomIndex = Math.floor(Math.random() * RANDOM_SAMPLES.length);
     const sample = RANDOM_SAMPLES[randomIndex];
@@ -303,7 +323,7 @@ export function InsaatRuhsatiStudio({
     fieldKey: keyof InsaatRuhsatiData,
     badge?: string
   ) => {
-    const isModified = formData[fieldKey] !== INSAAT_RUHSATI_DEFAULT_DATA[fieldKey];
+    const isModified = formData[fieldKey] !== baseData[fieldKey];
 
     return (
       <div className="flex items-center justify-between gap-1 mb-1">
@@ -385,6 +405,7 @@ export function InsaatRuhsatiStudio({
 
       {/* Draft Notification Banner (Consent / Recovery / Conflict / Error) */}
       <BelgeStudioDraftControls draftApi={draft} />
+      <BelgeProfileSampleNotice documentId="insaat-ruhsati-dilekcesi" profile={profile} warning={warning} values={formData} />
 
       {/* Main Split Layout: Left Form & Right Live PDF */}
       <div className={BELGE_STUDIO_MAIN_SPLIT_CLASS}>
