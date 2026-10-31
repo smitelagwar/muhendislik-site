@@ -574,7 +574,11 @@ export async function prepareBelgelerOffline(
         const message = cause instanceof Error ? cause.message : "İndirme işlemi durakladı.";
         const state = readPreparationJournal();
         const temporaryNetwork = !navigator.onLine || message.includes("İnternet bağlantısı");
-        saveJournal(temporaryNetwork ? "paused_network" : "retry_wait",
+        const code = cause instanceof PreparationError ? cause.code : "";
+        const retryable = /^(?:NETWORK|TIMEOUT|HTTP_408|HTTP_429|HTTP_5\d\d)$/.test(code) ||
+          /zaman aşımı|yanıt vermedi|yüklenemedi/i.test(message);
+        saveJournal(temporaryNetwork ? "paused_network" :
+          retryable ? "retry_wait" : "paused",
           state?.completed || 0, state?.total || CORE.length + ROUTES.length + 1,
           message.slice(0, 240));
         throw cause;
