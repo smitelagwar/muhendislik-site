@@ -1,15 +1,33 @@
 "use client";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
-import { CheckCircle2, DownloadCloud, RefreshCw, WifiOff, Smartphone, Trash2, ChevronDown, X } from "lucide-react";
+import { CheckCircle2, DownloadCloud, RefreshCw, WifiOff, Smartphone, Trash2, ChevronDown, Square, X } from "lucide-react";
 import {
   prepareBelgelerOffline,
   readOfflineReady,
   clearBelgelerOfflineFiles,
   readPreparationJournal,
   pausePreparationJournal,
+  cancelBelgelerOfflinePreparation,
+  isPreparationStopped,
+  isUserCancelled,
   type PreparationProgress,
+  type PreparationJournal,
 } from "@/lib/belgeler-offline-client";
 
+const pausedState = (state?: string) =>
+  state === "paused" || state === "paused_background" ||
+  state === "paused_network" || state === "retry_wait";
+const progressForJournal = (journal: PreparationJournal): PreparationProgress => ({
+  state: journal.status,
+  detail: journal.status === "cancelled_by_user" ? "İndirme iptal edildi" :
+    journal.status === "paused_network" ? "Bağlantı bekleniyor" :
+    journal.status === "paused_background" ? "Uygulama arka plana alındı" :
+    journal.status === "retry_wait" ? "Bağlantı tekrar denenecek" :
+    journal.status === "paused" ? "Eksik kaynaklardan devam edilebilir" :
+    journal.status === "verifying" ? "Kaynaklar doğrulanıyor" :
+    "Önceki kaynaklar kontrol ediliyor",
+  completed: journal.completed, total: journal.total,
+});
 interface InstallPrompt extends Event { prompt: () => Promise<void>; userChoice: Promise<{outcome:string}> }
 function subscribeSupport() { return () => {}; }
 function getSupport() {
@@ -40,8 +58,7 @@ export function BelgelerOfflinePrepare() {
   const [updateWaiting, setUpdateWaiting] = useState(false);
   const [progress, setProgress] = useState<PreparationProgress | null>(null);
   const runningRef = useRef(false);
-  const pendingResumeRef = useRef(false);
-  const resumeAttemptRef=useRef(0);
+  const prepareRef = useRef<(auto?: boolean) => Promise<void>>(async () => {});
   const [error, setError] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsId = useId();
@@ -83,12 +100,10 @@ export function BelgelerOfflinePrepare() {
           setError("");
         } else {
           const journal = readPreparationJournal();
-          if (journal && journal.completed > 0) {
-            setProgress({ state:"paused", detail:"Eksik kaynaklar korunuyor", completed:journal.completed, total:journal.total });
+          // 0 completed steps can still represent a genuine interrupted job.
+          setProgress(journal ? progressForJournal(journal) : null);
+          if (journal && journal.status !== "cancelled_by_user")
             window.dispatchEvent(new Event("belgeler-resume-preparation"));
-          } else {
-            setProgress(null);
-          }
         }
       } finally {
         pending = false;
@@ -100,10 +115,11 @@ export function BelgelerOfflinePrepare() {
     const recheck = () => { if (!runningRef.current) void refreshState(); };
     window.addEventListener("pageshow", recheck);
     const onStorage = (event: StorageEvent) => {
-      if (event.key === "belgeler:pwa:ready:v1" || event.key === "belgeler:pwa:ready:v2" || event.key === "belgeler:pwa:preparation:v3")
+      if (event.key === "belgeler:pwa:ready:v1" || event.key === "belgeler:pwa:ready:v2" || event.key === "belgeler:pwa:preparation:v3" || event.key === "belgeler:pwa:preparation:v4")
         recheck();
     };
     window.addEventListener("storage", onStorage);
+    window.addEventListener("belgeler-preparation-state", recheck);
     const handler = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPrompt); };
     window.addEventListener("beforeinstallprompt", handler);
     if ("serviceWorker" in navigator) {
@@ -124,87 +140,112 @@ export function BelgelerOfflinePrepare() {
       ++checkSerial;
       window.removeEventListener("pageshow", recheck);
       window.removeEventListener("storage", onStorage);
+      window.removeEventListener("belgeler-preparation-state", recheck);
       window.removeEventListener("beforeinstallprompt", handler);
     };
   }, [available]);
-  useEffect(()=>{
-    if(!available)return;
-    let scheduled:number | undefined;
-    const resume=()=>{
-      if(checking||ready||document.visibilityState!=="visible"||!navigator.onLine||runningRef.current)return;
-      const stored=readPreparationJournal();
-      if(!stored || stored.completed < 1)return;
-      if(scheduled)window.clearTimeout(scheduled);
-      scheduled=window.setTimeout(()=>{
-        if(runningRef.current||document.visibilityState!=="visible"||!navigator.onLine)return;
-        void prepare(true);
-      },450);
+  useEffect(() => {
+    if (!available || checking || ready) return;
+    let scheduled: number | undefined;
+    const scheduleResume = () => {
+      if (scheduled) window.clearTimeout(scheduled);
+      if (document.visibilityState !== "visible" || runningRef.current) return;
+      const journal = readPreparationJournal();
+      if (!journal || journal.status === "cancelled_by_user" || isUserCancelled()) return;
+      if (!navigator.onLine) return; // No hot retry while disconnected.
+      const connection = (navigator as Navigator & {
+        connection?: { saveData?: boolean; effectiveType?: string };
+      }).connection;
+      if (connection?.saveData || connection?.effectiveType === "2g") return;
+      // Exponential cooldown for retryable network failures, capped at 60 seconds.
+      const retryDelay = Math.min(60000, 2000 * 2 ** Math.min(5, Math.max(0, journal.attempt - 1)));
+      const remaining = journal.status === "retry_wait"
+        ? Math.max(0, journal.updatedAt + retryDelay - Date.now()) : 0;
+      scheduled = window.setTimeout(() => {
+        scheduled = undefined;
+        if (runningRef.current || document.visibilityState !== "visible" ||
+            !navigator.onLine || isUserCancelled()) return;
+        void prepareRef.current(true);
+      }, Math.max(450, remaining));
     };
-    const visibility=()=>{
-      if(document.visibilityState==="hidden"){
-        if(runningRef.current)pendingResumeRef.current=true;
-        pausePreparationJournal(); // Does NOT abort an in-flight network request.
-      }else{resume()}
+    const visibility = () => {
+      if (document.visibilityState === "hidden") {
+        if (scheduled) window.clearTimeout(scheduled);
+        pausePreparationJournal("background");
+      } else scheduleResume();
     };
-    document.addEventListener("visibilitychange",visibility);
-    window.addEventListener("focus",resume);
-    window.addEventListener("pageshow",resume);
-    window.addEventListener("online",resume);
-    window.addEventListener("belgeler-resume-preparation",resume);
-    const early=window.setTimeout(resume,650);
-    return()=>{
-      window.clearTimeout(early);if(scheduled)window.clearTimeout(scheduled);
-      document.removeEventListener("visibilitychange",visibility);
-      window.removeEventListener("focus",resume);
-      window.removeEventListener("pageshow",resume);
-      window.removeEventListener("online",resume);
-      window.removeEventListener("belgeler-resume-preparation",resume);
+    const offline = () => {
+      if (scheduled) window.clearTimeout(scheduled);
+      pausePreparationJournal("network");
     };
-  },[available,checking,ready]);
-  const busy = starting || progress?.state === "loading" || progress?.state === "verifying";
-  async function prepare(auto=false) {
-    if(runningRef.current)return;
-    if(auto && resumeAttemptRef.current>=3)return;
-    runningRef.current=true;
+    document.addEventListener("visibilitychange", visibility);
+    window.addEventListener("focus", scheduleResume);
+    window.addEventListener("pageshow", scheduleResume);
+    window.addEventListener("online", scheduleResume);
+    window.addEventListener("offline", offline);
+    window.addEventListener("belgeler-resume-preparation", scheduleResume);
+    window.addEventListener("belgeler-preparation-state", scheduleResume);
+    const initial = window.setTimeout(scheduleResume, 650);
+    return () => {
+      window.clearTimeout(initial);
+      if (scheduled) window.clearTimeout(scheduled);
+      document.removeEventListener("visibilitychange", visibility);
+      window.removeEventListener("focus", scheduleResume);
+      window.removeEventListener("pageshow", scheduleResume);
+      window.removeEventListener("online", scheduleResume);
+      window.removeEventListener("offline", offline);
+      window.removeEventListener("belgeler-resume-preparation", scheduleResume);
+      window.removeEventListener("belgeler-preparation-state", scheduleResume);
+    };
+  }, [available, checking, ready]);
+
+  const busy = (starting && progress?.state !== "cancelled_by_user") ||
+    progress?.state === "loading" || progress?.state === "verifying";
+  async function prepare(auto = false) {
+    if (runningRef.current || (auto && isUserCancelled())) return;
+    runningRef.current = true;
     setStarting(true);
-    if(auto)resumeAttemptRef.current++;
-    else resumeAttemptRef.current=0;
     setError("");
     setReady(false);
-    const journal=readPreparationJournal();
-    // Worker activation is not a downloaded resource. Do not show a fictitious 0/1.
-    setProgress(journal && journal.completed > 0
-      ? {state:"paused", detail:"Önceki dosyalar doğrulanıyor", completed:journal.completed,total:journal.total}
-      : null);
+    const before = readPreparationJournal();
+    setProgress(before ? progressForJournal(before) : null);
     try {
-      await prepareBelgelerOffline(setProgress);
-      setReady(true);
-      resumeAttemptRef.current=0;
-      try { await navigator.storage?.persist?.(); } catch { /* Browser may deny persistent storage. */ }
+      await prepareBelgelerOffline(next => {
+        if (!isUserCancelled()) setProgress(next);
+      }, { automatic: auto });
+      if (!isUserCancelled()) {
+        setReady(true);
+        setProgress(null);
+        try { await navigator.storage?.persist?.(); } catch { /* optional browser permission */ }
+      }
     } catch (cause) {
-      const message=cause instanceof Error?cause.message:"Hazırlama duraklatıldı.";
-      setError(message);
-      const state=readPreparationJournal();
-      setProgress(state && state.completed > 0
-        ? {state:"paused",detail:"İndirilen kaynaklar korundu",completed:state.completed,total:state.total}
-        : null);
-      // When a pending fetch times out during background suspension, schedule a bounded
-      // retry on foreground. Never loop endlessly if browser storage is unavailable.
-      if(auto && resumeAttemptRef.current<3 && document.visibilityState==="visible" && navigator.onLine){
-        window.setTimeout(()=>window.dispatchEvent(new Event("belgeler-resume-preparation")),
-          2000*resumeAttemptRef.current);
+      const journal = readPreparationJournal();
+      if (journal?.status === "cancelled_by_user") {
+        setProgress(progressForJournal(journal));
+        setError("");
+      } else if (isPreparationStopped(cause)) {
+        if (journal) setProgress(progressForJournal(journal));
+        setError("");
+      } else {
+        const message = cause instanceof Error ? cause.message : "İndirme duraklatıldı.";
+        setError(message);
+        setProgress(journal ? progressForJournal(journal) : null);
       }
-    }finally{
-      runningRef.current=false;
+    } finally {
+      runningRef.current = false;
       setStarting(false);
-      // If the browser suspended an active request, focus may already have fired
-      // while it was in flight. Retry once it settles, using cached completed assets.
-      if(pendingResumeRef.current && document.visibilityState==="visible"){
-        pendingResumeRef.current=false;
-        window.setTimeout(()=>window.dispatchEvent(new Event("belgeler-resume-preparation")),900);
-      }
+      // The focus event may have arrived while an old fetch was still aborting.
+      window.dispatchEvent(new Event("belgeler-resume-preparation"));
     }
   }
+  prepareRef.current = prepare;
+  function cancelDownload() {
+    cancelBelgelerOfflinePreparation();
+    const journal = readPreparationJournal();
+    setProgress(journal ? progressForJournal(journal) : null);
+    setError("");
+  }
+
   return (
     <div ref={rootRef} data-testid="belgeler-offline-prepare" className="relative inline-flex max-w-full items-center">
       {/* A persistent mobile entry point, even when the in-app browser does not support PWA.
