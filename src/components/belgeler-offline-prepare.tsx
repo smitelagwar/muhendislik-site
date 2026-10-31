@@ -18,7 +18,9 @@ const pausedState = (state?: string) =>
   state === "paused" || state === "paused_background" ||
   state === "paused_network" || state === "retry_wait";
 const progressForJournal = (journal: PreparationJournal): PreparationProgress => ({
-  state: journal.status,
+  // An old loading stamp does not mean this new tab has a running task.
+  state: journal.status === "loading" || journal.status === "verifying"
+    ? "paused_background" : journal.status,
   detail: journal.status === "cancelled_by_user" ? "İndirme iptal edildi" :
     journal.status === "paused_network" ? "Bağlantı bekleniyor" :
     journal.status === "paused_background" ? "Uygulama arka plana alındı" :
@@ -151,7 +153,7 @@ export function BelgelerOfflinePrepare() {
       if (scheduled) window.clearTimeout(scheduled);
       if (document.visibilityState !== "visible" || runningRef.current) return;
       const journal = readPreparationJournal();
-      if (!journal || journal.status === "cancelled_by_user" || isUserCancelled()) return;
+      if (!journal || journal.status === "cancelled_by_user" || journal.status === "paused" || isUserCancelled()) return;
       if (!navigator.onLine) return; // No hot retry while disconnected.
       const connection = (navigator as Navigator & {
         connection?: { saveData?: boolean; effectiveType?: string };
@@ -160,7 +162,9 @@ export function BelgelerOfflinePrepare() {
       // Exponential cooldown for retryable network failures, capped at 60 seconds.
       const retryDelay = Math.min(60000, 2000 * 2 ** Math.min(5, Math.max(0, journal.attempt - 1)));
       const remaining = journal.status === "retry_wait"
-        ? Math.max(0, journal.updatedAt + retryDelay - Date.now()) : 0;
+        ? Math.max(0, journal.updatedAt + retryDelay - Date.now())
+        : (journal.status === "loading" || journal.status === "verifying")
+          ? Math.max(0, journal.updatedAt + 8000 - Date.now()) : 0;
       scheduled = window.setTimeout(() => {
         scheduled = undefined;
         if (runningRef.current || document.visibilityState !== "visible" ||
@@ -199,7 +203,7 @@ export function BelgelerOfflinePrepare() {
     };
   }, [available, checking, ready]);
 
-  const busy = (starting && progress?.state !== "cancelled_by_user") ||
+  const busy = starting ||
     progress?.state === "loading" || progress?.state === "verifying";
   async function prepare(auto = false) {
     if (runningRef.current || (auto && isUserCancelled())) return;
@@ -240,10 +244,15 @@ export function BelgelerOfflinePrepare() {
   }
   prepareRef.current = prepare;
   function cancelDownload() {
-    cancelBelgelerOfflinePreparation();
+    try {
+      cancelBelgelerOfflinePreparation();
+    } catch {
+      setError("Tarayıcı iptal durumunu saklayamadı. İndirme durduruldu; site depolama iznini kontrol edin.");
+    }
     const journal = readPreparationJournal();
-    setProgress(journal ? progressForJournal(journal) : null);
-    setError("");
+    setProgress(journal ? progressForJournal(journal) :
+      { state: "cancelled_by_user", detail: "İndirme iptal edildi", completed: 0, total: 1 });
+    setStarting(false);
   }
 
   return (
