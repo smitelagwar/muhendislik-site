@@ -26,7 +26,7 @@ export function readPreparationJournal(): PreparationJournal | null {
   }catch{return null}
 }
 function saveJournal(state: PreparationProgress["state"], completed:number,total:number) {
-  if(state==="ready"){localStorage.removeItem(JOURNAL_KEY);return}
+  if(state==="ready"){try{localStorage.removeItem(JOURNAL_KEY)}catch{}return}
   if(state==="failed")state="paused";
   try {localStorage.setItem(JOURNAL_KEY,JSON.stringify({
     version:3,status:state,completed,total,updatedAt:Date.now(),scripts:buildScriptSignature()
@@ -175,9 +175,19 @@ async function cachedResource(path: string, kind: ResourceKind, deep = false): P
 /** Only stable webpack/app-shell chunks identify the live build. No mutable DOM subset test. */
 function buildAnchor(): string {
   const scripts = buildScriptSignature().split("|").filter(Boolean);
-  const stable = scripts.filter(path =>
-    /\/_next\/static\/chunks\/(?:main-app|webpack|app\/layout-|app\/belgeler\/page-)/.test(path));
-  return stable.join("|") || scripts.find(path => /\/_next\/static\/chunks\//.test(path)) || "";
+  // A single stable shell chunk is unaffected by late dynamic imports or hydration.
+  const candidates = [
+    /\/_next\/static\/chunks\/main-app[-.]/,
+    /\/_next\/static\/chunks\/webpack[-.]/,
+    /\/_next\/static\/chunks\/app\/layout-/,
+    /\/_next\/static\/chunks\/app\/belgeler\/page-/,
+    /\/_next\/static\/chunks\//,
+  ];
+  for (const pattern of candidates) {
+    const item = scripts.find(path => pattern.test(path));
+    if (item) return item;
+  }
+  return "";
 }
 function manifestHash(value: string): string {
   let hash = 2166136261;
@@ -430,6 +440,35 @@ export async function prepareBelgelerOffline(onProgress:(p:PreparationProgress)=
   activePreparation=perform().finally(()=>{activePreparation=null});
   return activePreparation;
 }
+/** Safe, public-only technical snapshot for QA. No draft, PDF form, URL query or tokens. */
+export async function getBelgelerOfflineDiagnostics() {
+  const cacheNames = (await caches.keys()).filter(name => name.startsWith("belgeler-offline-"));
+  const cacheStatus = await Promise.all(cacheNames.map(async name => {
+    const cache = await caches.open(name);
+    const requests = await cache.keys();
+    const publicPaths = requests.map(item => new URL(item.url).pathname).filter(path =>
+      path === "/belgeler-offline.html" ||
+      path.startsWith("/belgeler") ||
+      path.startsWith("/fonts/") ||
+      path.startsWith("/vendor/pdfjs/") ||
+      path.startsWith("/_next/static/"));
+    return { name, count: requests.length, publicPaths };
+  }));
+  const estimate = await navigator.storage?.estimate?.().catch(() => null);
+  const registration = await navigator.serviceWorker?.getRegistration?.("/belgeler").catch(() => null);
+  const journal = readPreparationJournal();
+  return {
+    version: OFFLINE_VERSION,
+    controller: navigator.serviceWorker.controller ? new URL(navigator.serviceWorker.controller.scriptURL).pathname : null,
+    registration: registration?.scope ? new URL(registration.scope).pathname : null,
+    waiting: !!registration?.waiting,
+    usageBytes: estimate?.usage ?? null,
+    quotaBytes: estimate?.quota ?? null,
+    journal: journal ? { status: journal.status, completed: journal.completed, total: journal.total } : null,
+    cacheStatus,
+  };
+}
+
 /** Clear and preparation share the same Web Lock across tabs. No unrelated drafts,
  * queue or root-home cache is touched. The previous offline generation is also
  * explicitly removed only when the user requests deletion.
