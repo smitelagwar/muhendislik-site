@@ -267,7 +267,7 @@ export function BelgelerOfflinePrepare() {
             ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
             : !available
               ? "border-black/10 bg-white/70 text-muted-foreground dark:border-white/15 dark:bg-white/10"
-              : error || progress?.state === "paused"
+              : error || pausedState(progress?.state)
                 ? "border-amber-500/35 bg-amber-500/15 text-amber-700 dark:text-amber-300"
                 : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
         }`}
@@ -276,7 +276,7 @@ export function BelgelerOfflinePrepare() {
           ? <RefreshCw className="h-5 w-5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
           : ready
             ? <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-            : !available || progress?.state === "paused"
+            : !available || pausedState(progress?.state)
               ? <WifiOff className="h-5 w-5" aria-hidden="true" />
               : <DownloadCloud className="h-5 w-5" aria-hidden="true" />}
         <span aria-hidden="true" className={`absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-background ${
@@ -291,13 +291,13 @@ export function BelgelerOfflinePrepare() {
           {busy || (checking && available) ? <RefreshCw className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none text-amber-600" /> :
             ready ? <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" /> :
             !available ? <WifiOff className="h-4 w-4 shrink-0 text-muted-foreground" /> :
-            progress?.state === "paused" ? <WifiOff className="h-4 w-4 shrink-0 text-amber-600" /> :
+            pausedState(progress?.state) ? <WifiOff className="h-4 w-4 shrink-0 text-amber-600" /> :
             <DownloadCloud className="h-4 w-4 shrink-0" />}
           <span className="truncate">
             {!available ? "Çevrimdışı desteklenmiyor" : checking ? "Çevrimdışı kontrol ediliyor" : busy ? "Çevrimdışı hazırlanıyor" : ready ? "Çevrimdışı hazır" :
-              progress?.state === "paused" ? "Eksik indirmeye devam et" : error ? "Yeniden dene" : "Çevrimdışı kullanıma hazırla"}
+              progress?.state === "cancelled_by_user" ? "Kalanları indir" : pausedState(progress?.state) ? "Eksik indirmeye devam et" : error ? "Yeniden dene" : "Çevrimdışı kullanıma hazırla"}
           </span>
-          {busy && progress && <span aria-hidden="true" className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 tabular-nums text-[10px] text-amber-700 dark:text-amber-300">{progress.completed}/{progress.total}</span>}
+          {busy && progress && <span aria-hidden="true" className="shrink-0 rounded-md bg-amber-500/10 px-1.5 py-0.5 tabular-nums text-[10px] text-amber-700 dark:text-amber-300">{progress.completed}/{progress.total} adım</span>}
         </button>
         <span aria-hidden="true" className="h-5 w-px shrink-0 bg-black/10 dark:bg-white/15" />
         <button type="button" aria-label="Çevrimdışı ayrıntılarını göster" aria-expanded={detailsOpen}
@@ -310,7 +310,8 @@ export function BelgelerOfflinePrepare() {
       <span role="status" aria-live="polite" className="sr-only">
         {!available ? "Bu tarayıcı çevrimdışı kaydetmeyi desteklemiyor veya özellik kapalı." : checking ? "Çevrimdışı dosyalar kontrol ediliyor." : busy && progress ? progress.detail + " (" + progress.completed + "/" + progress.total + ")" :
           error ? error :
-          progress?.state === "paused" ? "İndirme duraklatıldı; yeniden devam edilebilir." :
+          progress?.state === "cancelled_by_user" ? "İndirme iptal edildi. İndirilen dosyalar korundu." :
+          pausedState(progress?.state) ? "İndirme duraklatıldı; yeniden devam edilebilir." :
           ready ? "5 belge çevrimdışı kullanılabilir." : "Çevrimdışı hazırlama için internet gerekir."}
       </span>
       {detailsOpen && (
@@ -323,7 +324,8 @@ export function BelgelerOfflinePrepare() {
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
                 {!available ? "Bu tarayıcıda çevrimdışı kaydetme desteklenmiyor veya bu özellik kapalı. Sayfayı güncel Chrome ya da Safari tarayıcısında normal sekmede açmayı deneyin." :
                   ready ? "5 belge bu cihazda internet olmadan açılabilir ve PDF olarak indirilebilir." :
-                  busy ? "Belgeler cihazınıza kaydediliyor." :
+                  busy ? "Belgeler cihazınıza kaydediliyor. Arka plana geçildiğinde durabilir; geri döndüğünüzde eksik kaynaklardan devam edilir." :
+                  progress?.state === "cancelled_by_user" ? "İndirme iptal edildi. İndirilen dosyalar korundu." :
                   "Belgeleri internet yokken kullanmak için bir kez hazırlayın."}
               </p>
             </div>
@@ -333,11 +335,11 @@ export function BelgelerOfflinePrepare() {
               <X className="h-4 w-4" />
             </button>
           </div>
-          {busy && progress && (
+          {progress && (busy || pausedState(progress.state) || progress.state === "cancelled_by_user") && (
             <div className="mt-3 space-y-2" aria-label="İndirme ilerlemesi">
               <div className="flex justify-between gap-2 text-xs text-muted-foreground">
                 <span>{progress.detail}</span>
-                <span className="shrink-0 tabular-nums">{progress.completed}/{progress.total}</span>
+                <span className="shrink-0 tabular-nums">{progress.completed}/{progress.total} adım</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-black/10 dark:bg-white/15">
                 <div className="h-full rounded-full bg-amber-500 transition-[width] motion-reduce:transition-none"
@@ -346,12 +348,29 @@ export function BelgelerOfflinePrepare() {
             </div>
           )}
           {error && <p role="alert" className="mt-3 rounded-lg bg-amber-500/10 p-2.5 text-xs leading-5 text-amber-800 dark:text-amber-300">{error} — İndirilen dosyalar korunuyor.</p>}
-          {progress?.state === "paused" && !error && <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">İndirme duraklatıldı. Eksik dosyalardan devam edilebilir.</p>}
+          {pausedState(progress?.state) && !error && <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
+            {progress?.state === "paused_network"
+              ? "Bağlantı gelince kaldığı kaynaklardan devam edilebilir."
+              : progress?.state === "retry_wait"
+                ? "Ağ sorunu nedeniyle bekleniyor; yeniden denenecek."
+                : "İndirme duraklatıldı. Eksik dosyalar korunuyor."}
+          </p>}
+          {progress?.state === "cancelled_by_user" && (
+            <p role="status" className="mt-3 text-xs text-muted-foreground">İndirme iptal edildi. İndirilen dosyalar korundu.</p>
+          )}
           <div className="mt-3 flex flex-col gap-2 border-t border-black/10 pt-3 dark:border-white/10">
+            {available && !ready && (busy || progress?.state === "retry_wait") && (
+              <button type="button" data-testid="belgeler-offline-cancel-download"
+                aria-label="Çevrimdışı indirmeyi iptal et"
+                onClick={cancelDownload}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-400/40 px-3 text-xs font-semibold text-red-700 transition-colors hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:text-red-300">
+                <Square className="h-4 w-4" aria-hidden="true" /> İptal et
+              </button>
+            )}
             {available && !ready && !busy && !checking && (
               <button type="button" onClick={() => void prepare(false)}
                 className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
-                <DownloadCloud className="h-4 w-4" />{progress?.state === "paused" ? "Eksik indirmeye devam et" : "Şimdi indir"}
+                <DownloadCloud className="h-4 w-4" />{progress?.state === "cancelled_by_user" ? "Kalanları indir" : pausedState(progress?.state) ? "Eksik indirmeye devam et" : error ? "Tekrar dene" : "Şimdi indir"}
               </button>
             )}
             {!standalone && installPrompt && (
