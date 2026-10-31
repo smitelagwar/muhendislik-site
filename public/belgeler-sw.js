@@ -1,9 +1,17 @@
 /* Belgeler PWA / stage 1. Scope is /belgeler, never the full portal. */
 "use strict";
-const VERSION = "belgeler-offline-v4";
+const VERSION = "belgeler-offline-v5";
 const PAGE_CACHE = VERSION + "-pages";
 const ASSET_CACHE = VERSION + "-assets";
 const OFFLINE_PAGE = "/belgeler-offline.html";
+const LEGACY_PAGE = "belgeler-offline-v4-pages";
+const LEGACY_ASSETS = "belgeler-offline-v4-assets";
+const META_CACHE = VERSION + "-meta";
+const READY_MARKER = "/belgeler-offline-v5-ready";
+async function generationReady() {
+  try { return !!(await (await caches.open(META_CACHE)).match(READY_MARKER)); }
+  catch { return false; }
+}
 const ROUTES = new Set([
   "/belgeler",
   "/belgeler/beton-dokum-tutanagi",
@@ -63,34 +71,42 @@ async function legacyMatch(name, key) {
 async function pageHandler(request, path) {
   const key = keyFor(path);
   const abort = new AbortController();
-  const timer = setTimeout(() => abort.abort(), 3500);
+  const timer = setTimeout(() => abort.abort(), 3500); // Keep existing navigation timeout.
   try {
     const response = await fetch(request, { signal: abort.signal });
     clearTimeout(timer);
-    if (cacheable(response, "page")) {
-      await put(PAGE_CACHE, key, response, "page").catch(() => {});
-      return response;
-    }
+    // Normal online browsing never overwrites an explicitly verified offline package.
     if (response.ok) return response;
   } catch (_) { clearTimeout(timer); }
-  // Prefer the newly verified generation. Keep v3 as an offline-only fallback
-  // during the upgrade; never let cache insertion order choose HTML versions.
-  const old = await (await caches.open(PAGE_CACHE)).match(key) ||
+  if (await generationReady()) {
+    const prepared = await (await caches.open(PAGE_CACHE)).match(key);
+    if (prepared) return prepared;
+  }
+  const legacy = await legacyMatch(LEGACY_PAGE, key) ||
     await legacyMatch("belgeler-offline-v3-pages", key);
-  if (old) return old;
+  if (legacy) return legacy;
   return await caches.match(OFFLINE_PAGE) ||
-    new Response("Çevrimdışı içerik henüz hazırlanmadı.", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+    new Response("Çevrimdışı içerik henüz hazırlanmadı.", {
+      status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" }
+    });
 }
 async function assetHandler(request, path) {
   const key = keyFor(path);
-  const old = await (await caches.open(ASSET_CACHE)).match(key) ||
-    await legacyMatch("belgeler-offline-v3-assets", key);
-  if (old) return old;
-  const result = await fetch(request);
-  const kind = PDF.test(path) ? "pdf" : /\.(?:js|mjs)$/.test(path) ? "script" : "asset";
-  await put(ASSET_CACHE, key, result, kind).catch(() => {});
-  return result;
+  const ready = await generationReady();
+  if (ready) {
+    const prepared = await (await caches.open(ASSET_CACHE)).match(key);
+    if (prepared) return prepared;
+  }
+  try {
+    // Online-first before preparation; no v4 static PDF accidentally copied as v5.
+    return await fetch(request);
+  } catch (_) {
+    return await legacyMatch(LEGACY_ASSETS, key) ||
+      await legacyMatch("belgeler-offline-v3-assets", key) ||
+      Response.error();
+  }
 }
+
 async function testClient(event) {
   const url = new URL(event.request.url);
   if (url.origin === self.location.origin && url.searchParams.has("__belgeler_cache_test")) return true;
@@ -132,6 +148,10 @@ self.addEventListener("fetch", (event) => {
       return Response.error();
     }
     if (!safeRequest(request)) return fetch(request);
+    // Preparation fetches bypass old v4 and incomplete v5 caches; the client validates
+    // and explicitly publishes each public response only after its bytes are complete.
+    if (url.searchParams.has("__belgeler_prepare") && (allowedPage(path) || allowedAsset(path)))
+      return fetch(request, { cache: "reload" });
     if (request.mode === "navigate" && allowedPage(path)) return pageHandler(request, path);
     if (allowedAsset(path)) return assetHandler(request, path);
     return fetch(request);
