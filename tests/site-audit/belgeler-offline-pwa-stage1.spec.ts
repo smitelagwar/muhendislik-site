@@ -23,7 +23,7 @@ test("belge catalog and all five PDF previews survive a cold offline reload", as
     await mobileTrigger.click();
     await page.getByTestId("belgeler-offline-details")
       .getByRole("button",{name:/^(Şimdi indir|Eksik indirmeye devam et|Kalanları indir)$/}).click();
-    await expect(mobileTrigger).toHaveAttribute("aria-label",/Çevrimdışı belgeler hazır/,{timeout:250_000});
+    await expect(mobileTrigger).toHaveAttribute("aria-label",/^Çevrimdışı belgeler hazır\\. Ayrıntıları aç$/,{timeout:250_000});
   }
 
   const scope = await page.evaluate(async () => {
