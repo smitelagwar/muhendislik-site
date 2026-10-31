@@ -36,6 +36,8 @@ test("Turkish characters and phone formatting survive profile mapping", () => {
   assert.equal(uppercaseName(profile), "İLHAN İŞÇİ");
   assert.equal(cityDistrict(profile), "İSTANBUL / IŞIK");
   assert.equal(formattedPhone("5551234567"), "0555 123 45 67");
+  assert.equal(formattedPhone("+90 555 123 45 67"), "0555 123 45 67");
+  assert.equal(formattedPhone("05551234567"), "0555 123 45 67");
 });
 
 test("server profile encryption stays isolated per user and environment", () => {

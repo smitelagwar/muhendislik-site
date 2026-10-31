@@ -8,7 +8,9 @@ export const uppercaseProfession = (p: BelgeProfile) => value(p.meslekUnvani)?.t
 export function formattedPhone(raw?: string): string | undefined {
   const input = value(raw); if (!input) return undefined;
   const digits = input.replace(/\D/g, "");
-  const num = digits.length === 10 ? "0" + digits : digits;
+  const num = digits.startsWith("90") && digits.length === 12
+    ? "0" + digits.slice(2)
+    : digits.length === 10 ? "0" + digits : digits;
   return num.length === 11 && num[0] === "0"
     ? num.slice(0, 4) + " " + num.slice(4, 7) + " " + num.slice(7, 9) + " " + num.slice(9)
     : input;

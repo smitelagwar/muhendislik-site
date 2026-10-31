@@ -131,7 +131,10 @@ export function BelgeAccountProfileForm({
       </p>
       {status === "loading" ? <p role="status" className="text-sm text-muted-foreground">Bilgiler yükleniyor...</p> : null}
       {status === "error" || status === "conflict" ? (
-        <button type="button" data-testid="belge-hesap-profile-reload" onClick={() => void load()}
+        <button type="button" data-testid="belge-hesap-profile-reload" onClick={() => {
+          if (dirty && !window.confirm("Kaydedilmemiş değişiklikler kaybolacak. Yeniden yüklensin mi?")) return;
+          void load();
+        }}
           className="flex min-h-11 items-center gap-2 rounded-xl border border-border px-3 text-sm font-semibold">
           <RefreshCw aria-hidden="true" className="h-4 w-4" /> Sunucudaki bilgileri yeniden yükle
         </button>
