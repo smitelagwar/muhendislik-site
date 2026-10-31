@@ -236,7 +236,7 @@ async function requiredNextAssets(includeCurrentScripts = true): Promise<string[
 async function ensureNextAssets(onProgress:(detail:string)=>void): Promise<void> {
   const paths = await requiredNextAssets();
   for (const path of paths) {
-    if (!await cachedResource(path, "asset")) {
+    if (!await cachedResource(path, "asset", true)) {
       onProgress("Uygulama kaynakları tamamlanıyor");
       await fetchCore(path);
     }
@@ -338,6 +338,8 @@ async function runPreparation(onProgress: (p: PreparationProgress) => void): Pro
   const anchor = buildAnchor();
   if (!anchor) throw new Error("Next.js uygulama sürümü henüz belirlenemedi. Sayfayı yenileyip tekrar deneyin.");
   const reuseCached = !!previousJournal || previousStamp?.buildAnchor === anchor;
+  // Core resources are individually verified by content before being skipped.
+  // A partial journal can be lost during a mobile F5; its valid v5 bytes survive.
   const registration = await registerBelgelerOffline();
   if (!registration) throw new Error("Çevrimdışı hizmet kaydedilemedi.");
   const worker = await waitForControl(registration);
@@ -355,7 +357,7 @@ async function runPreparation(onProgress: (p: PreparationProgress) => void): Pro
   };
   update("loading", "PDF kaynakları hazırlanıyor");
   for (const url of CORE) {
-    await fetchCore(url, reuseCached);
+    await fetchCore(url, true);
     completed++;
     update("loading", "Şablonlar ve PDF kaynakları hazırlanıyor");
   }
@@ -435,6 +437,7 @@ export async function prepareBelgelerOffline(onProgress:(p:PreparationProgress)=
 export async function clearBelgelerOfflineFiles(): Promise<void> {
   const clear = async () => {
     localStorage.removeItem(READY_KEY);
+    localStorage.removeItem("belgeler:pwa:ready:v1");
     localStorage.removeItem(JOURNAL_KEY);
     const names = await caches.keys();
     const targets = names.filter(name => name.startsWith("belgeler-offline-"));
