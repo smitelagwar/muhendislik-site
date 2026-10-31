@@ -26,18 +26,18 @@ test("root-worker registration, completed cache and 15 F5 reloads stay consisten
   await expect(primary).toHaveText(/^Çevrimdışı hazır$/, {timeout:20000});
   const before = await page.evaluate(async () => ({
     controller: navigator.serviceWorker.controller?.scriptURL,
-    cache: (await (await caches.open("belgeler-offline-v4-assets")).keys()).length,
+    cache: (await (await caches.open("belgeler-offline-v5-assets")).keys()).length,
   }));
   expect(before.controller).toMatch(/\/belgeler-sw\.js$/);
   expect(before.cache).toBeGreaterThan(5);
   const debug = async () => page.evaluate(async () => {
-    const raw = localStorage.getItem("belgeler:pwa:ready:v1");
+    const raw = localStorage.getItem("belgeler:pwa:ready:v2");
     const stamp = raw ? JSON.parse(raw) as { scripts:string; offlineVersion:string } : null;
     const current = [...document.querySelectorAll<HTMLScriptElement>("script[src*='/_next/static/']")]
       .map(x => new URL(x.src).pathname).sort();
     const saved = stamp?.scripts?.split("|") ?? [];
-    const pageCache = await caches.open("belgeler-offline-v4-pages");
-    const assetCache = await caches.open("belgeler-offline-v4-assets");
+    const pageCache = await caches.open("belgeler-offline-v5-pages");
+    const assetCache = await caches.open("belgeler-offline-v5-assets");
     return {
       version:stamp?.offlineVersion,
       savedScripts:saved.length, actualScripts:current.length,
