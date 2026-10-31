@@ -159,9 +159,11 @@ self.addEventListener("fetch", (event) => {
 });
 self.addEventListener("message", (event) => {
   if (!event.source || !event.source.url ||
-      new URL(event.source.url).origin !== self.location.origin ||
-      !allowedPage(pathOf(event.source.url))) return;
+      new URL(event.source.url).origin !== self.location.origin) return;
   const message = event.data || {};
+  // SPA geçişlerinde istemcinin başlangıç URL'si kök sayfa kalabilir.
+  // Sürüm sorgusu salt okunurdur; önbellek ve güncelleme komutları kapsamla sınırlıdır.
+  if (message.type !== "GET_VERSION" && !allowedPage(pathOf(event.source.url))) return;
   if (message.type === "GET_VERSION") {
     if (event.ports[0]) event.ports[0].postMessage({ version: VERSION });
   } else if (message.type === "CLEAR_OFFLINE_CACHES") {
