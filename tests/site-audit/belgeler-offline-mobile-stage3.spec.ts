@@ -30,8 +30,10 @@ test("touch viewport: offline preparation and five PDF previews still render", a
     if (webkitCacheOnly) {
       await page.goto(path+"?__belgeler_cache_test=1", {waitUntil:"domcontentloaded"});
     } else {
-      await page.evaluate(p => window.location.assign(p), path);
-      await page.waitForURL(url => url.pathname === path, {timeout:30000,waitUntil:"domcontentloaded"});
+      // page.goto waits for the document response from the Service Worker.
+      // window.location.assign followed by waitForURL can miss the initial
+      // navigation event in Chromium's offline mobile emulation.
+      await page.goto(path, {waitUntil:"domcontentloaded",timeout:30000});
     }
     const toggle=page.getByRole("button",{name:"Canlı PDF Önizle",exact:true});
     if(await toggle.isVisible())await toggle.click();
