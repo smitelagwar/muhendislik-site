@@ -2,39 +2,131 @@
 import { PDFJS_BASE, PDFJS_MAIN, PDFJS_POLYFILLS, PDFJS_WORKER } from "@/lib/pdfjs-paths";
 
 const READY_KEY = "belgeler:pwa:ready:v2"; // anonymous verified package metadata
-const JOURNAL_KEY = "belgeler:pwa:preparation:v3";
+const JOURNAL_KEY = "belgeler:pwa:preparation:v4";
+const LEGACY_JOURNAL_KEY = "belgeler:pwa:preparation:v3";
 const OFFLINE_VERSION = "belgeler-offline-v5";
 const PAGE_CACHE = OFFLINE_VERSION + "-pages";
 const ASSET_CACHE = OFFLINE_VERSION + "-assets";
 const META_CACHE = OFFLINE_VERSION + "-meta";
 const READY_MARKER = "/belgeler-offline-v5-ready";
 let activePreparation: Promise<void> | null = null;
+let activeController: AbortController | null = null;
+let activeRunId: string | null = null;
+export type PreparationState =
+  | "loading" | "verifying" | "paused" | "paused_background" | "paused_network"
+  | "retry_wait" | "cancelled_by_user" | "ready" | "failed";
 export type PreparationJournal = {
-  version: 3; status: "loading"|"verifying"|"paused";
-  completed: number; total: number; updatedAt: number; scripts: string;
+  version: 4;
+  status: Exclude<PreparationState, "ready" | "failed">;
+  completed: number;
+  total: number;
+  updatedAt: number;
+  runId: string;
+  attempt: number;
+  lastError?: string;
 };
+const journalStates = new Set<PreparationJournal["status"]>([
+  "loading", "verifying", "paused", "paused_background", "paused_network", "retry_wait", "cancelled_by_user",
+]);
+function validJournal(value: unknown): value is PreparationJournal {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Partial<PreparationJournal>;
+  return v.version === 4 && typeof v.runId === "string" && v.runId.length > 0 &&
+    journalStates.has(v.status as PreparationJournal["status"]) &&
+    Number.isFinite(v.completed) && Number.isFinite(v.total) && v.total! > 0 &&
+    v.completed! >= 0 && v.completed! <= v.total! &&
+    Number.isFinite(v.updatedAt) && Number.isFinite(v.attempt) &&
+    v.attempt! >= 0 && v.attempt! <= 100000;
+}
+function writeJournal(journal: PreparationJournal): void {
+  localStorage.setItem(JOURNAL_KEY, JSON.stringify(journal));
+  window.dispatchEvent(new Event("belgeler-preparation-state"));
+}
 export function readPreparationJournal(): PreparationJournal | null {
   try {
-    const raw=localStorage.getItem(JOURNAL_KEY);
-    if(!raw)return null;
-    const value=JSON.parse(raw) as PreparationJournal;
-    if(value.version!==3 || typeof value.scripts!=="string" ||
-       !Number.isFinite(value.updatedAt) || value.total<1 ||
-       value.completed < 0 || value.completed > value.total ||
-       !compatibleScriptSignatures(value.scripts,buildScriptSignature())) return null;
-    return value;
-  }catch{return null}
+    const raw = localStorage.getItem(JOURNAL_KEY);
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw);
+      if (validJournal(parsed)) return parsed;
+    }
+    // Existing installations keep their verified cache; migrate only control metadata.
+    const legacyRaw = localStorage.getItem(LEGACY_JOURNAL_KEY);
+    if (!legacyRaw) return null;
+    const previous = JSON.parse(legacyRaw) as {
+      version?: number; completed?: number; total?: number;
+      scripts?: string; updatedAt?: number;
+    };
+    if (previous.version !== 3 || typeof previous.scripts !== "string" ||
+        !compatibleScriptSignatures(previous.scripts, buildScriptSignature()) ||
+        !Number.isFinite(previous.completed) || !Number.isFinite(previous.total) ||
+        !previous.total || previous.total < 1 ||
+        previous.completed! < 0 || previous.completed! > previous.total!) return null;
+    const migrated: PreparationJournal = {
+      version: 4, status: "paused",
+      completed: previous.completed!, total: previous.total!,
+      updatedAt: Date.now(), runId: "migrated-" + Date.now(), attempt: 0,
+    };
+    writeJournal(migrated);
+    localStorage.removeItem(LEGACY_JOURNAL_KEY);
+    return migrated;
+  } catch { return null; }
 }
-function saveJournal(state: PreparationProgress["state"], completed:number,total:number) {
-  if(state==="ready"){try{localStorage.removeItem(JOURNAL_KEY)}catch{}return}
-  if(state==="failed")state="paused";
-  try {localStorage.setItem(JOURNAL_KEY,JSON.stringify({
-    version:3,status:state,completed,total,updatedAt:Date.now(),scripts:buildScriptSignature()
-  } satisfies PreparationJournal))}catch{/* storage denied: cache is still authoritative */}
+function saveJournal(
+  state: PreparationState, completed: number, total: number, lastError?: string,
+): void {
+  try {
+    const current = readPreparationJournal();
+    if (state === "ready") {
+      if (current?.status !== "cancelled_by_user" &&
+          (!activeRunId || current?.runId === activeRunId)) {
+        localStorage.removeItem(JOURNAL_KEY);
+        window.dispatchEvent(new Event("belgeler-preparation-state"));
+      }
+      return;
+    }
+    if (current?.status === "cancelled_by_user" && state !== "cancelled_by_user") return;
+    if (activeRunId && current?.runId !== activeRunId) return;
+    const normalized: PreparationJournal["status"] =
+      state === "failed" ? "retry_wait" : state;
+    writeJournal({
+      version: 4, runId: activeRunId || current?.runId || "recovery-" + Date.now(),
+      status: normalized, completed, total, updatedAt: Date.now(),
+      attempt: current?.attempt ?? 0,
+      ...(lastError ? { lastError } : {}),
+    });
+  } catch { /* Cache remains authoritative when browser blocks storage. */ }
 }
-export function pausePreparationJournal():void {
-  const item=readPreparationJournal();
-  if(item)saveJournal("paused",item.completed,item.total);
+export function isUserCancelled(): boolean {
+  return readPreparationJournal()?.status === "cancelled_by_user";
+}
+export function cancelBelgelerOfflinePreparation(): void {
+  const current = readPreparationJournal();
+  // Persist the user's decision *before* aborting pending network/CacheStorage operations.
+  writeJournal({
+    version: 4, runId: activeRunId || current?.runId || "cancelled-" + Date.now(),
+    status: "cancelled_by_user", completed: current?.completed || 0,
+    total: current?.total || CORE.length + ROUTES.length + 1,
+    updatedAt: Date.now(), attempt: current?.attempt || 0,
+  });
+  activeController?.abort();
+}
+export function pausePreparationJournal(reason: "background" | "network" = "background"): void {
+  const current = readPreparationJournal();
+  if (!current || current.status === "cancelled_by_user") return;
+  const status = reason === "network" ? "paused_network" : "paused_background";
+  if (activeController && !activeController.signal.aborted) {
+    saveJournal(status, current.completed, current.total);
+    activeController.abort();
+  } else if (current.status === "loading" || current.status === "verifying") {
+    // Process may already have been suspended/terminated; preserve a resumable checkpoint.
+    writeJournal({ ...current, status, updatedAt: Date.now() });
+  }
+}
+export function isPreparationStopped(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
+}
+function ensureActive(signal: AbortSignal): void {
+  if (signal.aborted || isUserCancelled()) throw new DOMException("Preparation stopped", "AbortError");
 }
 
 const ROUTES = [
@@ -53,7 +145,7 @@ const CORE = [
   PDFJS_MAIN, PDFJS_POLYFILLS, PDFJS_WORKER, PDFJS_BASE + "/pdf.worker.min.mjs",
 ] as const;
 
-export type PreparationProgress = { state: "loading" | "verifying" | "paused" | "ready" | "failed"; detail: string; completed: number; total: number };
+export type PreparationProgress = { state: PreparationState; detail: string; completed: number; total: number };
 type ReadyStamp = { version: 2; offlineVersion: string; manifestKey: string; buildAnchor: string; assets: string[]; routes: number; checkedAt: number };
 function buildScriptSignature(): string {
   // Hash-addressed Next chunks change across deployments. A stale stamp can never claim new HTML is ready.
