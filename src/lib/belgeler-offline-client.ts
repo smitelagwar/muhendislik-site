@@ -178,7 +178,8 @@ export async function registerBelgelerOffline(): Promise<ServiceWorkerRegistrati
  * ready can resolve to the separate root homepage registration.
  * Listeners are installed before the first check to avoid lost activation events.
  */
-async function waitForControl(registration: ServiceWorkerRegistration): Promise<ServiceWorker> {
+async function waitForControl(registration: ServiceWorkerRegistration, signal: AbortSignal): Promise<ServiceWorker> {
+  ensureActive(signal);
   const expectedScope = new URL("/belgeler", location.origin).href;
   if (registration.scope !== expectedScope && registration.scope !== expectedScope + "/")
     throw new Error("Belgeler hizmetinin kapsamı beklenenden farklı.");
@@ -209,38 +210,47 @@ async function waitForControl(registration: ServiceWorkerRegistration): Promise<
       completed = true;
       clearTimeout(timeout);
       navigator.serviceWorker.removeEventListener("controllerchange", onState);
+      signal.removeEventListener("abort", onAbort);
       registration.removeEventListener("updatefound", onUpdate);
       for (const item of installed) item.removeEventListener("statechange", onState);
       if (error) reject(error);
       else resolve(worker!);
     }
+    const onAbort = () => finish(new DOMException("Hazırlık durduruldu", "AbortError"));
+    signal.addEventListener("abort", onAbort, { once: true });
     navigator.serviceWorker.addEventListener("controllerchange", onState);
     registration.addEventListener("updatefound", onUpdate);
     bind(registration.installing);
     bind(registration.waiting);
     bind(registration.active);
-    onState();
+    if (signal.aborted) onAbort(); else onState();
   });
 }
-async function readControllerVersion(worker: ServiceWorker): Promise<string> {
-  return await new Promise<string>((resolve, reject) => {
+async function readControllerVersion(worker: ServiceWorker, signal: AbortSignal): Promise<string> {
+  ensureActive(signal);
+  return new Promise<string>((resolve, reject) => {
     const channel = new MessageChannel();
-    const timer = window.setTimeout(() => {
-      channel.port1.close();
-      channel.port2.close();
-      reject(new Error("Çevrimdışı hizmet sürümü yanıt vermedi."));
-    }, 6000);
-    channel.port1.onmessage = (event: MessageEvent<{version?: string}>) => {
+    let done = false;
+    const finish = (error?: Error, version = "") => {
+      if (done) return;
+      done = true;
       window.clearTimeout(timer);
+      signal.removeEventListener("abort", onAbort);
       channel.port1.close();
       channel.port2.close();
-      resolve(event.data?.version || "");
+      if (error) reject(error); else resolve(version);
     };
-    try { worker.postMessage({type:"GET_VERSION"}, [channel.port2]); }
-    catch (error) {
-      window.clearTimeout(timer);
-      channel.port1.close(); channel.port2.close();
-      reject(error);
+    const onAbort = () => finish(new DOMException("Hazırlık durduruldu", "AbortError"));
+    const timer = window.setTimeout(() =>
+      finish(new Error("Çevrimdışı hizmet sürümü yanıt vermedi.")), 6000);
+    signal.addEventListener("abort", onAbort, { once: true });
+    channel.port1.onmessage = (event: MessageEvent<{version?: string}>) =>
+      finish(undefined, event.data?.version || "");
+    try {
+      if (signal.aborted) onAbort();
+      else worker.postMessage({ type: "GET_VERSION" }, [channel.port2]);
+    } catch (error) {
+      finish(error instanceof Error ? error : new Error("Worker mesajı başarısız."));
     }
   });
 }
@@ -335,12 +345,14 @@ async function requiredNextAssets(includeCurrentScripts = true): Promise<string[
   }
   return [...paths].filter(path => path.startsWith("/_next/static/")).sort();
 }
-async function ensureNextAssets(onProgress:(detail:string)=>void): Promise<void> {
+async function ensureNextAssets(onProgress:(detail:string)=>void, signal: AbortSignal): Promise<void> {
+  ensureActive(signal);
   const paths = await requiredNextAssets();
   for (const path of paths) {
+    ensureActive(signal);
     if (!await cachedResource(path, "asset", true)) {
       onProgress("Uygulama kaynakları tamamlanıyor");
-      await fetchCore(path);
+      await fetchCore(path, true, signal);
     }
   }
 }
@@ -351,7 +363,8 @@ class PreparationError extends Error {
     this.name = "PreparationError";
   }
 }
-async function downloadResource(url: string, kind: ResourceKind): Promise<void> {
+async function downloadResource(url: string, kind: ResourceKind, signal: AbortSignal): Promise<void> {
+  ensureActive(signal);
   const cacheName = kind === "page" ? PAGE_CACHE : ASSET_CACHE;
   const key = new URL(url, location.origin).pathname;
   // A preparation-only query bypasses the SW's legacy cache and never stores RSC.
@@ -359,8 +372,11 @@ async function downloadResource(url: string, kind: ResourceKind): Promise<void> 
   target.searchParams.set("__belgeler_prepare", "1");
   let last: Error = new Error("Kaynak indirilemedi: " + key);
   for (let attempt = 0; attempt < 3; attempt++) {
+    ensureActive(signal);
     if (!navigator.onLine) throw new PreparationError("OFFLINE", key, "İnternet bağlantısı bekleniyor");
     const controller = new AbortController();
+    const onAbort = () => controller.abort();
+    signal.addEventListener("abort", onAbort, { once: true });
     const timer = window.setTimeout(() => controller.abort(), 35000);
     try {
       const response = await fetch(target.href, {
@@ -380,6 +396,7 @@ async function downloadResource(url: string, kind: ResourceKind): Promise<void> 
           (kind === "asset" && ct.includes("text/html")))
         throw new PreparationError("MIME", key, "Yanlış dosya türü");
       const buffer = await response.arrayBuffer();
+      ensureActive(signal);
       if (buffer.byteLength < 8) throw new PreparationError("EMPTY", key, "Boş kaynak");
       // A CDN/error fallback can incorrectly return HTML with a script MIME.
       if (kind === "asset" && /\.(?:js|mjs|css)$/.test(key) &&
@@ -392,6 +409,7 @@ async function downloadResource(url: string, kind: ResourceKind): Promise<void> 
         if (!/<html\b/i.test(html) || !html.includes("/_next/static/"))
           throw new PreparationError("HTML", key, "Belge HTML içeriği eksik");
       }
+      ensureActive(signal);
       const cache = await caches.open(cacheName);
       try {
         await cache.put(key, new Response(buffer, {
@@ -404,10 +422,13 @@ async function downloadResource(url: string, kind: ResourceKind): Promise<void> 
         throw new PreparationError(quota ? "QUOTA" : "STORAGE", key,
           quota ? "Cihazda çevrimdışı depolama alanı dolu" : "Tarayıcı kaydı tamamlayamadı");
       }
+      ensureActive(signal);
       if (!(await cachedResource(url, kind, true)))
         throw new PreparationError("CORRUPT", key, "Kaydedilen kaynak doğrulanamadı");
+      ensureActive(signal);
       return;
     } catch (cause) {
+      if (signal.aborted || isUserCancelled()) throw new DOMException("Hazırlık durduruldu", "AbortError");
       const error = cause instanceof Error ? cause : new Error(String(cause));
       last = error.name === "AbortError" ?
         new PreparationError("TIMEOUT", key, "Bağlantı zaman aşımına uğradı") : error;
@@ -415,26 +436,30 @@ async function downloadResource(url: string, kind: ResourceKind): Promise<void> 
       if (["QUOTA", "STORAGE", "PRIVATE", "REDIRECT", "MIME", "PDF", "HTML", "EMPTY", "CORRUPT"].includes(code) ||
           /^HTTP_4(?!08|29)/.test(code) || attempt === 2) break;
       await new Promise(resolve => window.setTimeout(resolve, 700 * (attempt + 1)));
-    } finally { window.clearTimeout(timer); }
+    } finally { window.clearTimeout(timer); signal.removeEventListener("abort", onAbort); }
   }
   throw last;
 }
-async function fetchCore(url: string, reuseCached = true): Promise<void> {
+async function fetchCore(url: string, reuseCached = true, signal?: AbortSignal): Promise<void> {
+  if (!signal) throw new Error("Hazırlık iptal sinyali gerekli.");
+  ensureActive(signal);
   const kind: ResourceKind = url.endsWith(".pdf") ? "pdf" : "asset";
   if (reuseCached && await cachedResource(url, kind, true)) return;
-  await downloadResource(url, kind);
+  await downloadResource(url, kind, signal);
 }
-async function fetchPage(path: string, reuseCached: boolean): Promise<void> {
+async function fetchPage(path: string, reuseCached: boolean, signal: AbortSignal): Promise<void> {
+  ensureActive(signal);
   if (reuseCached && await cachedResource(path, "page", true)) return;
-  await downloadResource(path, "page");
+  await downloadResource(path, "page", signal);
 }
 
 
-async function runPreparation(onProgress: (p: PreparationProgress) => void): Promise<void> {
+async function runPreparation(onProgress: (p: PreparationProgress) => void, signal: AbortSignal, automatic: boolean): Promise<void> {
+  ensureActive(signal);
   if (!validEnvironment()) throw new Error("HTTPS veya Service Worker desteği yok.");
   if (!navigator.onLine) throw new Error("Bağlantı bekleniyor; gelince eksik dosyalardan devam edilecek.");
   const network = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
-  if (network?.saveData || network?.effectiveType === "2g")
+  if (automatic && (network?.saveData || network?.effectiveType === "2g"))
     throw new Error("Veri tasarrufu veya çok yavaş ağ etkin. Wi-Fi ile devam edin.");
   const previousJournal = readPreparationJournal();
   const previousStamp = (() => {
@@ -448,8 +473,8 @@ async function runPreparation(onProgress: (p: PreparationProgress) => void): Pro
   // A partial journal can be lost during a mobile F5; its valid v5 bytes survive.
   const registration = await registerBelgelerOffline();
   if (!registration) throw new Error("Çevrimdışı hizmet kaydedilemedi.");
-  const worker = await waitForControl(registration);
-  const version = await readControllerVersion(worker);
+  const worker = await waitForControl(registration, signal);
+  const version = await readControllerVersion(worker, signal);
   if (version !== OFFLINE_VERSION) {
     throw new Error(registration.waiting ?
       "Yeni çevrimdışı sürüm hazır. Önce 'Yeni sürüme geç' seçeneğini kullanın." :
@@ -458,24 +483,28 @@ async function runPreparation(onProgress: (p: PreparationProgress) => void): Pro
   const total = CORE.length + ROUTES.length + 1;
   let completed = 0;
   const update = (state: PreparationProgress["state"], detail: string) => {
+    ensureActive(signal);
     saveJournal(state, completed, total);
     onProgress({ state, detail, completed, total });
   };
   update("loading", "PDF kaynakları hazırlanıyor");
   for (const url of CORE) {
-    await fetchCore(url, true);
+    ensureActive(signal);
+    await fetchCore(url, true, signal);
     completed++;
     update("loading", "Şablonlar ve PDF kaynakları hazırlanıyor");
   }
   // First page after 13/20: explicit public HTML fetch, no hidden 1024x768 iframe.
   for (const path of ROUTES) {
     update("loading", "Belge HTML sayfaları hazırlanıyor");
-    await fetchPage(path, reuseCached);
+    ensureActive(signal);
+    await fetchPage(path, reuseCached, signal);
     completed++;
     update("loading", "Belge sayfaları kaydedildi");
   }
   update("verifying", "Uygulama dosyaları tamamlanıyor");
-  await ensureNextAssets(detail => update("verifying", detail));
+  await ensureNextAssets(detail => update("verifying", detail), signal);
+  ensureActive(signal);
   completed++;
   const assets = [...new Set([...CORE, ...await requiredNextAssets()])].sort();
   for (const path of ROUTES)
@@ -484,6 +513,7 @@ async function runPreparation(onProgress: (p: PreparationProgress) => void): Pro
   for (const url of assets)
     if (!(await cachedResource(url, url.endsWith(".pdf") ? "pdf" : "asset")))
       throw new Error("Kaydedilen kaynak eksik: " + url);
+  ensureActive(signal);
   const manifestKey = manifestHash([OFFLINE_VERSION, anchor, ...ROUTES, ...assets].join("|"));
   const stamp: ReadyStamp = {
     version: 2, offlineVersion: OFFLINE_VERSION, manifestKey, buildAnchor: anchor,
@@ -496,12 +526,13 @@ async function runPreparation(onProgress: (p: PreparationProgress) => void): Pro
       headers: { "Content-Type": "text/plain" },
     }));
     if (!await readOfflineReady()) throw new Error("Önbellek bütünlük kontrolü başarısız.");
+    ensureActive(signal);
   } catch (cause) {
     localStorage.removeItem(READY_KEY);
     await (await caches.open(META_CACHE)).delete(READY_MARKER);
     throw cause;
   }
-  update("ready", "5 belge kaydedildi. Tam çevrimdışı PDF testi yayın öncesi E2E'de yapılacaktır.");
+  update("ready", "5 belgenin çevrimdışı kaynakları doğrulandı.");
 }
 
 export async function prepareBelgelerOffline(onProgress:(p:PreparationProgress)=>void):Promise<void> {
