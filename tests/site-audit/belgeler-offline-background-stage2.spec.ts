@@ -33,13 +33,14 @@ test("an interrupted first download checkpoints on hidden and can resume on visi
     window.dispatchEvent(new Event("focus"));
   });
   await expect.poll(() => page.evaluate(() => {
+    if (localStorage.getItem("belgeler:pwa:ready:v2")) return "ready";
     const raw = localStorage.getItem("belgeler:pwa:preparation:v4");
     return raw ? JSON.parse(raw).status : null;
-  }), { timeout: 25000 }).toMatch(/loading|verifying|retry_wait|paused/);
+  }), { timeout: 25000 }).toMatch(/loading|verifying|retry_wait|ready/);
 
   // Prevent a long background transfer from affecting subsequent tests.
   await holder.getByRole("button", { name: "Çevrimdışı ayrıntılarını göster" }).click();
   const stop = page.getByTestId("belgeler-offline-cancel-download");
   if (await stop.isVisible()) await stop.click();
-  await page.evaluate(() => { delete (document as Document & {visibilityState?: string}).visibilityState; });
+  await page.evaluate(() => { Reflect.deleteProperty(document, "visibilityState"); });
 });
