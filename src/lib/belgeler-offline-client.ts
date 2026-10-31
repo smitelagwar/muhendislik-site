@@ -289,6 +289,10 @@ async function downloadResource(url: string, kind: ResourceKind): Promise<void> 
         throw new PreparationError("MIME", key, "Yanlış dosya türü");
       const buffer = await response.arrayBuffer();
       if (buffer.byteLength < 8) throw new PreparationError("EMPTY", key, "Boş kaynak");
+      // A CDN/error fallback can incorrectly return HTML with a script MIME.
+      if (kind === "asset" && /\.(?:js|mjs|css)$/.test(key) &&
+          /^\s*(?:<!doctype\s+html|<html\b)/i.test(new TextDecoder().decode(buffer.slice(0, 384))))
+        throw new PreparationError("MIME", key, "Betik yerine HTML sayfası döndü");
       if (kind === "pdf" && new TextDecoder().decode(buffer.slice(0, 5)) !== "%PDF-")
         throw new PreparationError("PDF", key, "PDF imzası geçersiz");
       if (kind === "page") {
