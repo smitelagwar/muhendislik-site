@@ -535,38 +535,97 @@ async function runPreparation(onProgress: (p: PreparationProgress) => void, sign
   update("ready", "5 belgenin çevrimdışı kaynakları doğrulandı.");
 }
 
-export async function prepareBelgelerOffline(onProgress:(p:PreparationProgress)=>void):Promise<void> {
-  if(activePreparation)return activePreparation;
-  const perform=async()=>{
-    const locks=(navigator as Navigator & {locks?:LockManager}).locks;
-    if(locks){
-      await locks.request("belgeler-offline-prepare",{ifAvailable:true},async lock=>{
-        if(!lock)throw new Error("Başka sekmede hazırlanıyor. Bu sekmeye dönün veya biraz sonra devam edin.");
-        await runPreparation(onProgress)
+export async function prepareBelgelerOffline(
+  onProgress: (progress: PreparationProgress) => void,
+  options: { automatic?: boolean } = {},
+): Promise<void> {
+  if (activePreparation) return activePreparation;
+  const automatic = options.automatic === true;
+  if (automatic && isUserCancelled()) throw new DOMException("Kullanıcı iptal etti", "AbortError");
+  const perform = async () => {
+    const runLocked = async () => {
+      const previous = readPreparationJournal();
+      if (automatic && (!previous || previous.status === "cancelled_by_user"))
+        throw new DOMException("Otomatik devam engellendi", "AbortError");
+      const runId = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+      const controller = new AbortController();
+      activeRunId = runId;
+      activeController = controller;
+      writeJournal({
+        version: 4, runId, status: "loading",
+        completed: Math.min(previous?.completed || 0, CORE.length + ROUTES.length + 1),
+        total: CORE.length + ROUTES.length + 1,
+        updatedAt: Date.now(),
+        attempt: automatic ? Math.min(100000, (previous?.attempt || 0) + 1) : 0,
       });
-    }else{
-      // Fallback for engines without Web Locks. Expiring best-effort tab lease;
-      // cache verification is idempotent even if two tabs race.
-      const key="belgeler:pwa:lock";
-      const token=String(Date.now())+":"+Math.random().toString(36).slice(2);
-      const previous=localStorage.getItem(key);
-      if(previous){
-        try{
-          const data=JSON.parse(previous) as {until:number};
-          if(data.until>Date.now())throw new Error("Başka sekmede hazırlık sürüyor.");
-        }catch(e){if(e instanceof Error&&e.message.includes("Başka sekmede"))throw e}
+      const onStorage = (event: StorageEvent) => {
+        if (event.key !== JOURNAL_KEY) return;
+        const journal = readPreparationJournal();
+        if (journal?.status === "cancelled_by_user" || (journal && journal.runId !== runId)) {
+          controller.abort();
+        }
+      };
+      window.addEventListener("storage", onStorage);
+      try {
+        await runPreparation(onProgress, controller.signal, automatic);
+      } catch (cause) {
+        if (controller.signal.aborted || isUserCancelled())
+          throw new DOMException("Hazırlık durduruldu", "AbortError");
+        const message = cause instanceof Error ? cause.message : "İndirme işlemi durakladı.";
+        const state = readPreparationJournal();
+        const temporaryNetwork = !navigator.onLine || message.includes("İnternet bağlantısı");
+        saveJournal(temporaryNetwork ? "paused_network" : "retry_wait",
+          state?.completed || 0, state?.total || CORE.length + ROUTES.length + 1,
+          message.slice(0, 240));
+        throw cause;
+      } finally {
+        window.removeEventListener("storage", onStorage);
+        if (activeRunId === runId) {
+          activeRunId = null;
+          activeController = null;
+        }
       }
-      localStorage.setItem(key,JSON.stringify({token,until:Date.now()+120_000}));
-      const refresh=window.setInterval(()=>{try{localStorage.setItem(key,JSON.stringify({token,until:Date.now()+120_000}))}catch{}},8000);
-      try{await runPreparation(onProgress)}finally{
-        clearInterval(refresh);
-        try{if(JSON.parse(localStorage.getItem(key)||"{}").token===token)localStorage.removeItem(key)}catch{}
+    };
+    const locks = (navigator as Navigator & { locks?: LockManager }).locks;
+    if (locks) {
+      await locks.request("belgeler-offline-prepare", { ifAvailable: true }, async lock => {
+        if (!lock) throw new Error("Başka sekmede çevrimdışı indirme devam ediyor.");
+        await runLocked();
+      });
+      return;
+    }
+    // Fallback for browsers without Web Locks: expiring per-tab lease.
+    const key = "belgeler:pwa:lock";
+    const token = Date.now() + ":" + Math.random().toString(36).slice(2);
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try {
+        const previous = JSON.parse(raw) as { until?: number };
+        if ((previous.until || 0) > Date.now())
+          throw new Error("Başka sekmede çevrimdışı indirme devam ediyor.");
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("Başka sekmede")) throw error;
       }
     }
+    localStorage.setItem(key, JSON.stringify({ token, until: Date.now() + 120000 }));
+    const refresh = window.setInterval(() => {
+      try {
+        if (JSON.parse(localStorage.getItem(key) || "{}").token === token)
+          localStorage.setItem(key, JSON.stringify({ token, until: Date.now() + 120000 }));
+      } catch { /* storage unavailable */ }
+    }, 8000);
+    try { await runLocked(); } finally {
+      window.clearInterval(refresh);
+      try {
+        if (JSON.parse(localStorage.getItem(key) || "{}").token === token)
+          localStorage.removeItem(key);
+      } catch { /* best effort */ }
+    }
   };
-  activePreparation=perform().finally(()=>{activePreparation=null});
+  activePreparation = perform().finally(() => { activePreparation = null; });
   return activePreparation;
 }
+
 /** Safe, public-only technical snapshot for QA. No draft, PDF form, URL query or tokens. */
 export async function getBelgelerOfflineDiagnostics() {
   const cacheNames = (await caches.keys()).filter(name => name.startsWith("belgeler-offline-"));
