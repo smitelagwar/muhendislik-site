@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
 import { synthesizeIdeFile } from "./synthesize";
 import { createDemoModel } from "../model";
 import { parseIde10 } from "../ide-import/index";
@@ -127,4 +129,34 @@ test("multi-storey model synthesis and floor assignment", () => {
   const f1Elements = project.elements.filter(e => e.floorId === "ide-floor-1");
   assert.equal(f1Elements.length, 1);
   assert.equal(f1Elements[0].name, "S101");
+});
+
+test("real-world Mustafa Selvi round-trip synthesis (1273 elements)", () => {
+  const configPath = path.join(process.cwd(), ".data/hsyncad/ide-examples.json");
+  if (!fs.existsSync(configPath)) return;
+  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const samplePath = config["mustafa-selvi-1"];
+  if (!fs.existsSync(samplePath)) return;
+
+  const buf = fs.readFileSync(samplePath);
+  const orig = parseIde10(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer, "mustafa.ide10");
+  assert.ok(orig.floors.length >= 6, "Original must have at least 6 floors");
+  assert.ok(orig.elements.length >= 1000, "Original must have > 1000 elements");
+
+  // Synthesize both ide11 and ide10 without crash
+  const bytes11 = synthesizeIdeFile(orig, "ide11");
+  const bytes10 = synthesizeIdeFile(orig, "ide10");
+
+  assert.ok(bytes11.byteLength > 200_000, "ide11 output size must be > 200KB");
+  assert.ok(bytes10.byteLength > 200_000, "ide10 output size must be > 200KB");
+
+  const crc11 = verifyIdeHeaderChecksum(bytes11);
+  assert.equal(crc11.valid, true, "ide11 CRC32 must be valid");
+  const crc10 = verifyIdeHeaderChecksum(bytes10);
+  assert.equal(crc10.valid, true, "ide10 CRC32 must be valid");
+
+  // Parse back
+  const reparsed11 = parseIde10(bytes11.buffer.slice(bytes11.byteOffset, bytes11.byteOffset + bytes11.byteLength) as ArrayBuffer, "synth.ide11");
+  assert.equal(reparsed11.floors.length, orig.floors.length, "Floor counts must match exactly");
+  assert.ok(reparsed11.elements.length >= orig.elements.length * 0.95, "At least 95% elements must survive round-trip");
 });

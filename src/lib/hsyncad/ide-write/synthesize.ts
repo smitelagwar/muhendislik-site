@@ -14,9 +14,13 @@ import {
 import {
   computePointsBbox,
   encodeAxisRecord,
+  encodeBandRecord,
   encodeBeamRecord,
   encodeColumnRecord,
+  encodeGenericRecord,
+  encodeSlabEdgeRecord,
   encodeSlabRecord,
+  encodeStairRecord,
   encodeWallRecord,
   type BoundingBox,
 } from "./record-builders";
@@ -170,6 +174,14 @@ export function synthesizeIdeFile(
         chunks.push(encodeWallRecord(raw, el.nativeId, format));
       } else if (el.type === "slab") {
         chunks.push(encodeSlabRecord(raw, el.nativeId, format));
+      } else if (el.type === "band") {
+        chunks.push(encodeBandRecord(raw, el.nativeId));
+      } else if (el.type === "stair") {
+        chunks.push(encodeStairRecord(raw, el.nativeId));
+      } else if (el.type === "slabEdge" || el.type === "line") {
+        chunks.push(encodeSlabEdgeRecord(raw, el.nativeId));
+      } else {
+        chunks.push(encodeGenericRecord(raw, el.nativeId));
       }
     }
 

@@ -9,10 +9,16 @@ import {
   DEFAULT_COLORS,
   DEFAULT_LAYER_IDS,
   PRIMITIVE_AXIS,
+  PRIMITIVE_BAND,
   PRIMITIVE_BEAM,
   PRIMITIVE_COLUMN,
+  PRIMITIVE_LINE,
+  PRIMITIVE_SECTION,
   PRIMITIVE_SHEAR_WALL,
   PRIMITIVE_SLAB,
+  PRIMITIVE_SLAB_EDGE,
+  PRIMITIVE_STAIR,
+  PRIMITIVE_WALL,
   type IdeFormatVersion,
 } from "./format-constants";
 
@@ -55,6 +61,38 @@ export function computeLineFootprint(
     { x: end.x + nx * left, y: end.y + ny * left },
     { x: start.x + nx * left, y: start.y + ny * left },
   ];
+}
+
+/**
+ * Universal safe endpoint resolver that supports CadElement (start/end),
+ * IdeElement (points array), and positioned elements. Never throws TypeError.
+ */
+export function resolveElementEndpoints(el: {
+  start?: Point;
+  end?: Point;
+  points?: Point[];
+  position?: Point;
+}): { start: Point; end: Point } {
+  if (el.start && typeof el.start.x === "number" && typeof el.start.y === "number" &&
+      el.end && typeof el.end.x === "number" && typeof el.end.y === "number") {
+    return { start: el.start, end: el.end };
+  }
+  if (el.points && el.points.length >= 2) {
+    const p0 = el.points[0];
+    const p1 = el.points[1];
+    if (typeof p0.x === "number" && typeof p0.y === "number" &&
+        typeof p1.x === "number" && typeof p1.y === "number") {
+      return { start: p0, end: p1 };
+    }
+  }
+  if (el.points && el.points.length === 1) {
+    const p0 = el.points[0];
+    return { start: p0, end: { x: p0.x + 1, y: p0.y } };
+  }
+  if (el.position && typeof el.position.x === "number" && typeof el.position.y === "number") {
+    return { start: el.position, end: { x: el.position.x + 1, y: el.position.y } };
+  }
+  return { start: { x: 0, y: 0 }, end: { x: 1, y: 0 } };
 }
 
 export interface CommonGeometryParams {
@@ -188,10 +226,18 @@ export function buildCommonRecord(params: CommonGeometryParams): Uint8Array {
 
 /** Encodes an Axis element record. */
 export function encodeAxisRecord(
-  axis: { name: string; start: Point; end: Point; layer?: string },
+  axis: {
+    name: string;
+    start?: Point;
+    end?: Point;
+    points?: Point[];
+    position?: Point;
+    layer?: string;
+  },
   nativeId: number,
 ): Uint8Array {
-  const points = [axis.start, axis.end];
+  const { start, end } = resolveElementEndpoints(axis);
+  const points = [start, end];
   const bbox = computePointsBbox(points);
   // Expand bounds slightly for axes
   bbox.minX -= 0.1;
@@ -220,20 +266,31 @@ export function encodeColumnRecord(
     name: string;
     position?: Point;
     points?: Point[];
-    width: number;
+    width?: number;
     depth?: number;
     height?: number;
     rotation?: number;
     baseOffset?: number;
+    nativeZ?: number;
   },
   nativeId: number,
 ): Uint8Array {
+  const width = typeof col.width === "number" && col.width > 0 ? col.width : 0.5;
+  const depth = typeof col.depth === "number" && col.depth > 0 ? col.depth : width;
   let points: Point[];
   if (col.points && col.points.length >= 4) {
     points = col.points.slice(0, 4);
+  } else if (col.points && col.points.length > 0) {
+    const p0 = col.points[0];
+    points = [
+      p0,
+      { x: p0.x + width, y: p0.y },
+      { x: p0.x + width, y: p0.y + depth },
+      { x: p0.x, y: p0.y + depth },
+    ];
   } else if (col.position) {
-    const w = col.width / 2;
-    const d = (col.depth ?? col.width) / 2;
+    const w = width / 2;
+    const d = depth / 2;
     const rotRad = ((col.rotation ?? 0) * Math.PI) / 180;
     const cos = Math.cos(rotRad);
     const sin = Math.sin(rotRad);
@@ -250,9 +307,9 @@ export function encodeColumnRecord(
   } else {
     points = [
       { x: 0, y: 0 },
-      { x: col.width, y: 0 },
-      { x: col.width, y: col.depth ?? col.width },
-      { x: 0, y: col.depth ?? col.width },
+      { x: width, y: 0 },
+      { x: width, y: depth },
+      { x: 0, y: depth },
     ];
   }
 
@@ -262,8 +319,8 @@ export function encodeColumnRecord(
     primitiveType: PRIMITIVE_COLUMN,
     points,
     nativeId,
-    nativeZ: col.baseOffset ?? 0,
-    width: col.width,
+    nativeZ: col.baseOffset ?? col.nativeZ ?? 0,
+    width,
     layerId: DEFAULT_LAYER_IDS.column,
     rotation: col.rotation ?? 0,
     lateralOffset: 0,
@@ -277,19 +334,25 @@ export function encodeColumnRecord(
 export function encodeBeamRecord(
   beam: {
     name: string;
-    start: Point;
-    end: Point;
-    width: number;
-    height: number;
+    start?: Point;
+    end?: Point;
+    points?: Point[];
+    position?: Point;
+    width?: number;
+    height?: number;
     topOffset?: number;
     offset?: number;
+    lateralOffset?: number;
   },
   nativeId: number,
   version: IdeFormatVersion = "ide11",
 ): Uint8Array {
-  const points = [beam.start, beam.end];
-  const lateralOffset = beam.offset ?? 0;
-  const footprint = computeLineFootprint(beam.start, beam.end, beam.width, lateralOffset);
+  const { start, end } = resolveElementEndpoints(beam);
+  const points = [start, end];
+  const width = typeof beam.width === "number" && beam.width > 0 ? beam.width : 0.25;
+  const height = typeof beam.height === "number" && beam.height > 0 ? beam.height : 0.50;
+  const lateralOffset = beam.offset ?? beam.lateralOffset ?? 0;
+  const footprint = computeLineFootprint(start, end, width, lateralOffset);
   const bbox = computePointsBbox(footprint);
 
   // Extra attributes payload for beam (includes section label and height)
@@ -300,7 +363,7 @@ export function encodeBeamRecord(
   // Tag at relative p + 262: (In buildCommonRecord, extra starts right after color at p+4)
   // relative offset in extra = 262 - 4 = 258
   extraView.setUint32(258, 1, true); // beam tag = 1
-  extraView.setFloat64(262, beam.height, true); // height at p + 266 -> relative 262
+  extraView.setFloat64(262, height, true); // height at p + 266 -> relative 262
 
   if (version === "ide11") {
     // [21, 61, 25004, 10049, 1, 1] at p + 274 -> relative 270
@@ -314,8 +377,8 @@ export function encodeBeamRecord(
   extraView.setFloat64(310, 1.0, true);
 
   // Section label string at relative 350
-  const widthCm = Math.round(beam.width * 100);
-  const heightCm = Math.round(beam.height * 100);
+  const widthCm = Math.round(width * 100);
+  const heightCm = Math.round(height * 100);
   const sectionLabel = `${widthCm}/${heightCm}`;
   const labelBytes = encodeCp1254NulString(sectionLabel);
   extra.set(labelBytes, 350);
@@ -325,7 +388,7 @@ export function encodeBeamRecord(
     points,
     nativeId,
     nativeZ: beam.topOffset ?? 0,
-    width: beam.width,
+    width,
     layerId: DEFAULT_LAYER_IDS.beam,
     rotation: 0,
     lateralOffset,
@@ -340,19 +403,31 @@ export function encodeBeamRecord(
 export function encodeWallRecord(
   wall: {
     name: string;
-    start: Point;
-    end: Point;
-    thickness: number;
-    height: number;
+    start?: Point;
+    end?: Point;
+    points?: Point[];
+    position?: Point;
+    thickness?: number;
+    width?: number;
+    height?: number;
     baseOffset?: number;
     offset?: number;
+    lateralOffset?: number;
+    primitiveType?: number;
   },
   nativeId: number,
   version: IdeFormatVersion = "ide11",
 ): Uint8Array {
-  const points = [wall.start, wall.end];
-  const lateralOffset = wall.offset ?? 0;
-  const footprint = computeLineFootprint(wall.start, wall.end, wall.thickness, lateralOffset);
+  const { start, end } = resolveElementEndpoints(wall);
+  const points = [start, end];
+  const thickness = typeof wall.thickness === "number" && wall.thickness > 0
+    ? wall.thickness
+    : typeof wall.width === "number" && wall.width > 0
+    ? wall.width
+    : 0.25;
+  const height = typeof wall.height === "number" && wall.height > 0 ? wall.height : 3.0;
+  const lateralOffset = wall.offset ?? wall.lateralOffset ?? 0;
+  const footprint = computeLineFootprint(start, end, thickness, lateralOffset);
   const bbox = computePointsBbox(footprint);
 
   const extra = new Uint8Array(650);
@@ -360,7 +435,7 @@ export function encodeWallRecord(
 
   // Tag at p + 262 -> relative 258
   extraView.setUint32(258, 119, true);
-  extraView.setFloat64(262, wall.height, true); // height at p + 266 -> relative 262
+  extraView.setFloat64(262, height, true); // height at p + 266 -> relative 262
 
   if (version === "ide11") {
     const v11Vals = [98, 70, 25035, 10062, 1, 1];
@@ -372,9 +447,9 @@ export function encodeWallRecord(
   extraView.setFloat64(310, 1.0, true);
 
   // Wall plan section string at relative 400
-  const wallLen = Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y);
+  const wallLen = Math.hypot(end.x - start.x, end.y - start.y);
   const lenCm = Math.round(wallLen * 100);
-  const thickCm = Math.round(wall.thickness * 100);
+  const thickCm = Math.round(thickness * 100);
   const wallSection = `${lenCm}/${thickCm}`;
   const sectionBytes = encodeCp1254NulString(wallSection);
   extra.set(sectionBytes, 400);
@@ -383,12 +458,14 @@ export function encodeWallRecord(
   const fullBytes = encodeCp1254NulString(fullLabel);
   extra.set(fullBytes, 450);
 
+  const primType = wall.primitiveType === PRIMITIVE_WALL ? PRIMITIVE_WALL : PRIMITIVE_SHEAR_WALL;
+
   return buildCommonRecord({
-    primitiveType: PRIMITIVE_SHEAR_WALL,
+    primitiveType: primType,
     points,
     nativeId,
     nativeZ: wall.baseOffset ?? 0,
-    width: wall.thickness,
+    width: thickness,
     layerId: DEFAULT_LAYER_IDS.wall,
     rotation: 0,
     lateralOffset,
@@ -403,8 +480,10 @@ export function encodeWallRecord(
 export function encodeSlabRecord(
   slab: {
     name: string;
-    points: Point[];
-    thickness: number;
+    points?: Point[];
+    footprint?: Point[];
+    thickness?: number;
+    width?: number;
     topOffset?: number;
     liveLoad?: number;
     deadLoad?: number;
@@ -413,7 +492,20 @@ export function encodeSlabRecord(
   nativeId: number,
   version: IdeFormatVersion = "ide11",
 ): Uint8Array {
-  const points = slab.points;
+  let points = slab.points && slab.points.length >= 3 ? slab.points : slab.footprint ?? [];
+  if (points.length < 3) {
+    points = [
+      { x: 0, y: 0 },
+      { x: 5, y: 0 },
+      { x: 5, y: 5 },
+      { x: 0, y: 5 },
+    ];
+  }
+  const thickness = typeof slab.thickness === "number" && slab.thickness > 0
+    ? slab.thickness
+    : typeof slab.width === "number" && slab.width > 0
+    ? slab.width
+    : 0.15;
   const bbox = computePointsBbox(points);
 
   // Extra attributes payload for slab loads and design axes (up to ~1200 bytes)
@@ -421,18 +513,6 @@ export function encodeSlabRecord(
   const extraView = new DataView(extra.buffer);
 
   const shift = version === "ide11" ? 4 : 0;
-  // In index.ts readSlabPlanLoads:
-  // p = nameOffset + name.length + 1
-  // p + 466: 43
-  // if v11: p + 470: 36
-  // p + 470 + shift: 1
-  // p + 475 + shift: 1
-  // p + 481 + shift: live load (f64 LE)
-  // p + 489 + shift: 85
-  // p + 493 + shift: 45
-  // p + 497 + shift: dead load (f64 LE)
-  // Note: in buildCommonRecord, extra starts at p + 4 (since color is 4 bytes).
-  // Therefore, relative index in extra is: (offset from p) - 4
   extraView.setUint32(466 - 4, 43, true);
   if (version === "ide11") {
     extraView.setUint32(470 - 4, 36, true);
@@ -449,14 +529,9 @@ export function encodeSlabRecord(
   extraView.setFloat64(497 + shift - 4, dead, true);
 
   // Slab calculation axes (readSlabDesignAxes):
-  // first axis at p + 776 + shift -> relative 776 + shift - 4 = 772 + shift
-  // line equation: a, b, d (3 x f64 LE = 24 bytes) at offset - 24
-  // points: 4 x 16 bytes = 64 bytes at offset
   const axis1Offset = 772 + shift;
-  const midX = (bbox.minX + bbox.maxX) / 2;
   const midY = (bbox.minY + bbox.maxY) / 2;
 
-  // Direction X axis: horizontal line y = midY => 0*x + 1*y - midY = 0 => a=0, b=1, d=-midY
   extraView.setFloat64(axis1Offset - 24, 0, true);
   extraView.setFloat64(axis1Offset - 16, 1, true);
   extraView.setFloat64(axis1Offset - 8, -midY, true);
@@ -475,7 +550,7 @@ export function encodeSlabRecord(
     points,
     nativeId,
     nativeZ: slab.topOffset ?? 0,
-    width: slab.thickness,
+    width: thickness,
     layerId: DEFAULT_LAYER_IDS.slab,
     rotation: 0,
     lateralOffset: 0,
@@ -483,5 +558,135 @@ export function encodeSlabRecord(
     name: slab.name,
     color: DEFAULT_COLORS.slab,
     extraAttributes: extra,
+  });
+}
+
+/** Encodes a Band Beam record (primitiveType = 128). */
+export function encodeBandRecord(
+  band: {
+    name: string;
+    start?: Point;
+    end?: Point;
+    points?: Point[];
+    width?: number;
+    height?: number;
+  },
+  nativeId: number,
+): Uint8Array {
+  const { start, end } = resolveElementEndpoints(band);
+  const width = band.width ?? 0.6;
+  const footprint = computeLineFootprint(start, end, width, 0);
+  const bbox = computePointsBbox(footprint);
+
+  return buildCommonRecord({
+    primitiveType: PRIMITIVE_BAND,
+    points: [start, end],
+    nativeId,
+    nativeZ: 0,
+    width,
+    layerId: DEFAULT_LAYER_IDS.beam,
+    rotation: 0,
+    lateralOffset: 0,
+    bbox,
+    name: band.name || `B${nativeId}`,
+    color: DEFAULT_COLORS.beam,
+  });
+}
+
+/** Encodes a Slab Edge or Line record (primitiveType = 45 or 44). */
+export function encodeSlabEdgeRecord(
+  edge: {
+    name?: string;
+    start?: Point;
+    end?: Point;
+    points?: Point[];
+    type?: string;
+  },
+  nativeId: number,
+): Uint8Array {
+  const { start, end } = resolveElementEndpoints(edge);
+  const points = [start, end];
+  const bbox = computePointsBbox(points);
+  const isLine = edge.type === "line";
+
+  return buildCommonRecord({
+    primitiveType: isLine ? PRIMITIVE_LINE : PRIMITIVE_SLAB_EDGE,
+    points,
+    nativeId,
+    nativeZ: 0,
+    width: 0,
+    layerId: DEFAULT_LAYER_IDS.slab,
+    rotation: 0,
+    lateralOffset: 0,
+    bbox,
+    name: edge.name || (isLine ? `L${nativeId}` : `DK${nativeId}`),
+    color: DEFAULT_COLORS.slab,
+  });
+}
+
+/** Encodes a Stair record (primitiveType = 40). */
+export function encodeStairRecord(
+  stair: {
+    name?: string;
+    start?: Point;
+    position?: Point;
+    points?: Point[];
+    width?: number;
+  },
+  nativeId: number,
+): Uint8Array {
+  const { start } = resolveElementEndpoints(stair);
+  const points = stair.points && stair.points.length > 0 ? stair.points : [start];
+  const bbox = computePointsBbox(points);
+
+  return buildCommonRecord({
+    primitiveType: PRIMITIVE_STAIR,
+    points,
+    nativeId,
+    nativeZ: 0,
+    width: stair.width ?? 1.2,
+    layerId: DEFAULT_LAYER_IDS.stair,
+    rotation: 0,
+    lateralOffset: 0,
+    bbox,
+    name: stair.name || `M${nativeId}`,
+    color: DEFAULT_COLORS.stair,
+  });
+}
+
+/** Encodes a generic fallback record for unhandled element types. */
+export function encodeGenericRecord(
+  el: {
+    name?: string;
+    start?: Point;
+    end?: Point;
+    points?: Point[];
+    position?: Point;
+    primitiveType?: number;
+    width?: number;
+  },
+  nativeId: number,
+): Uint8Array {
+  let points: Point[];
+  if (el.points && el.points.length > 0) {
+    points = el.points;
+  } else {
+    const { start, end } = resolveElementEndpoints(el);
+    points = [start, end];
+  }
+  const bbox = computePointsBbox(points);
+
+  return buildCommonRecord({
+    primitiveType: el.primitiveType ?? PRIMITIVE_SECTION,
+    points,
+    nativeId,
+    nativeZ: 0,
+    width: el.width ?? 0,
+    layerId: DEFAULT_LAYER_IDS.dimension,
+    rotation: 0,
+    lateralOffset: 0,
+    bbox,
+    name: el.name || `E${nativeId}`,
+    color: 1000000000,
   });
 }

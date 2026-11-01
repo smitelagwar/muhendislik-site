@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent } from "react";
 import dynamic from "next/dynamic";
-import { Box, Check, ChevronRight, Download, Eye, Hand, Layers, Maximize2, MousePointer2, Move, Plus, Redo2, RotateCcw, Ruler, Trash2, Undo2, X } from "lucide-react";
+import { Box, Check, ChevronRight, Download, Eye, FileDown, Hand, Layers, Maximize2, MousePointer2, Move, Plus, Redo2, RotateCcw, Ruler, Trash2, Undo2, X } from "lucide-react";
+import { synthesizeIdeFile } from "@/lib/hsyncad/ide-write";
 import { createDemoModel, createEmptyModel, isSolidElement, validateModel, type CadModel, type Point } from "@/lib/hsyncad/model";
 import { calculateQuantities } from "@/lib/hsyncad/quantities";
 import { resolveJunctions } from "@/lib/hsyncad/junctions";
@@ -391,6 +392,38 @@ export default function HsynCadWorkbench() {
     const link = document.createElement("a"); link.href = url; link.download = "hsyncad-model.json"; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000); setMessage("Model JSON dosyası indirildi.");
   }
+  function exportIde11() {
+    try {
+      const bytes = synthesizeIdeFile(model, "ide11");
+      const blob = new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const baseName = (model.name || "hsyncad-model").replace(/[<>:"/\\|?*\x00-\x1f]/g, "-");
+      link.href = url;
+      link.download = `${baseName}.ide11`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 15000);
+      setMessage(`${baseName}.ide11 (v11 Native) dosyası indirildi.`);
+    } catch (err) {
+      setMessage(`ide11 aktarma hatası: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`);
+    }
+  }
+  function exportIde10() {
+    try {
+      const bytes = synthesizeIdeFile(model, "ide10");
+      const blob = new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const baseName = (model.name || "hsyncad-model").replace(/[<>:"/\\|?*\x00-\x1f]/g, "-");
+      link.href = url;
+      link.download = `${baseName}.ide10`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 15000);
+      setMessage(`${baseName}.ide10 (v10 Native) dosyası indirildi.`);
+    } catch (err) {
+      setMessage(`ide10 aktarma hatası: ${err instanceof Error ? err.message : "Bilinmeyen hata"}`);
+    }
+  }
   function runCommand() {
     const value = command.trim().toLocaleLowerCase("tr");
     if (value === "sil") deleteSelected();
@@ -507,7 +540,7 @@ export default function HsynCadWorkbench() {
     [-3]: { run: () => replaceModel(createFeatureDemo(), "Gelişmiş örnek açıldı.") },
     [-4]: { run: () => replaceModel(createWorkflowDemo(), "Bağlı çizim akışı örneği açıldı.") },
     [-5]: { run: () => replaceModel(createSevenStoreyCommercialBuilding(), "7 Katlı Plaza (1536 m² / Kat) perdeli ve radye temelli model açıldı.") },
-    11300: { run: () => fileInput.current?.click() }, 11320: { run: exportFile },
+    11300: { run: () => fileInput.current?.click() }, 11320: { run: exportFile }, 11321: { run: exportIde11 }, 11322: { run: exportIde10 },
     12590: { run: () => selectTool("axis"), active: tool === "axis" },
     12580: { run: () => selectTool("axis"), hint: "Yeni aks seçeneklerini açar" },
     12671: { run: () => { selectTool("axis"); setAxisOptions(old => ({ ...old, direction: old.direction === "horizontal" ? "vertical" : old.direction === "vertical" ? "free" : "horizontal" })); } },
@@ -731,7 +764,7 @@ export default function HsynCadWorkbench() {
       {(tab === "Çizimler" || tab === "Araçlar") && <><ReferenceButtons tool={tool} onTool={selectTool} /><ReferenceOptions sources={referenceSources} sourceId={referenceSource?.id ?? ""} onSource={setReferenceId} onDirection={constrainToReference} onLocal={localReference} onGlobal={globalReference} hasFrame={!!references.frame?.enabled} />{tool === "measureArea" && <button type="button" disabled={pending.length < 3} onClick={references.finish} data-testid="finish-measure-area">Alanı tamamla ↵</button>}<span className="hcad-fine">{instruction}</span></>}
       {tab === "Görünüm" && <><button type="button" aria-pressed={showGrid} onClick={() => setShowGrid(!showGrid)}>Izgara göster</button><button type="button" onClick={() => setCadTheme(cadTheme === "light" ? "dark" : "light")}>{cadTheme === "light" ? "Koyu çalışma alanı" : "Açık çalışma alanı"}</button><div className="hcad-ribbon-group"><button type="button" onClick={() => setFitKey((n) => n + 1)}><Maximize2 size={18} />2B çizimi sığdır</button><label className="hcad-toggle"><input type="checkbox" checked={snapping} onChange={(e) => setSnapping(e.target.checked)} />Nokta yakalama</label><label className="hcad-toggle"><input type="checkbox" checked={ortho} onChange={(e) => setOrtho(e.target.checked)} />Dik çizim</label><button type="button" onClick={() => setSettings("snap")}>Yakalama ayarları</button><button type="button" onClick={() => setSettings("layers")}>Katman ayarları</button></div><div className="hcad-ribbon-group hcad-layer-list">{layerOptions.map((layer) => <label key={layer} className="hcad-toggle"><input type="checkbox" checked={!hiddenLayers.includes(layer) && layerState(model, layer, floor.id).visible} onChange={(e) => { setHiddenLayers(old => old.filter(l => l !== layer)); commit(setLayerState(model, layer, { ...layerState(model, layer, floor.id), visible: e.target.checked }, "all", floor.id), "Katman görünürlüğü güncellendi."); }} />{layer}</label>)}</div><p className="hcad-fine">Gizlenen katmanlar metraja dahildir.<br />2B aktif katı, 3B bütün katları gösterir.</p></>}
       {tab === "Katlar" && <><FloorProperties key={JSON.stringify(floor)} floor={floor} onApply={(next) => commit({ ...model, floors: model.floors.map((f) => f.id === next.id ? next : f) }, "Kat güncellendi. Kat tavanına bağlı elemanlar birlikte güncellendi.")} /><button type="button" onClick={addFloor}><Plus size={16} />Yeni kat</button><button type="button" onClick={() => { const next = addStorey(model, floor, true); if (commit(next.model, "Alt kat eklendi.")) { setFloorId(next.floor.id); setSelectedId(null); drawing.clearDraft(); references.clear(); } }}>Aşağı kat ekle</button><button type="button" onClick={copyFloor}>Katı üste kopyala</button><button type="button" disabled={model.floors.length < 2} onClick={deleteFloor}>Katı ve elemanlarını sil</button><p className="hcad-fine">Statik taban: {number(floor.elevation)} m · tavan: {number(floor.elevation + floor.height)} m.<br />Mimari referans: {number(floor.elevation + (floor.architecturalOffset ?? 0))} m; geometrik kotları değiştirmez.</p></>}
-      {tab === "Proje" && <><button type="button" onClick={() => replaceModel(createEmptyModel(), "Yeni boş model açıldı. Önceki model Geri al ile geri getirilebilir.")}><Plus size={17} />Yeni model</button><button type="button" data-testid="load-demo" onClick={() => replaceModel(createDemoModel(), "4 × 4 m ölçülü örnek açıldı. Tüm işlemler geri alınabilir.")}><Box size={18} />4 × 4 m örneği aç</button><button type="button" onClick={exportFile}><Download size={17} />JSON kaydet</button><p className="hcad-fine">Model bu tarayıcıda otomatik saklanır.<br />Kalıcı yedek için JSON dosyası indirin.</p></>}
+      {tab === "Proje" && <><button type="button" onClick={() => replaceModel(createEmptyModel(), "Yeni boş model açıldı. Önceki model Geri al ile geri getirilebilir.")}><Plus size={17} />Yeni model</button><button type="button" data-testid="load-demo" onClick={() => replaceModel(createDemoModel(), "4 × 4 m ölçülü örnek açıldı. Tüm işlemler geri alınabilir.")}><Box size={18} />4 × 4 m örneği aç</button><button type="button" onClick={exportFile}><Download size={17} />JSON kaydet</button><button type="button" data-testid="workbench-export-ide11" onClick={exportIde11}><FileDown size={17} />ideCAD v11 İndir (.ide11)</button><button type="button" data-testid="workbench-export-ide10" onClick={exportIde10}><FileDown size={17} />ideCAD v10 İndir (.ide10)</button><p className="hcad-fine">Model bu tarayıcıda otomatik saklanır.<br />ideCAD veya JSON dosyası indirin.</p></>}
       {tab === "Proje" && <button type="button" onClick={() => setSettings("materials")}>Malzeme tanımları</button>}
       {tab === "Proje" && <button type="button" data-testid="load-feature-demo" onClick={() => replaceModel(createFeatureDemo(), "Gelişmiş örnek açıldı. Daire/poligon/eğik kolon, eğrisel perde ve eğimli katmanlı döşemeyi seçerek inceleyin.")}>Gelişmiş örneği aç</button>}
       {tab === "Proje" && <button type="button" data-testid="load-workflow-demo" onClick={() => replaceModel(createWorkflowDemo(), "Bağlı örnek açıldı. Bir aksı taşıyınca kolonlar, kirişler, orta perde ve döşeme sınırları birlikte güncellenir.")}>Çizim akışı örneği</button>}
