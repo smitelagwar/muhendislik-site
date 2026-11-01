@@ -1276,27 +1276,33 @@ export async function generateQuantityReportPDF(
   // Group elementBreakdown by floor and structural member type
   // --------------------------------------------------------------------------
   const floorElementMap: Record<string, {
-    formwork: { slab: number; beam: number; wall: number; total: number };
-    concrete: { slab: number; beam: number; wall: number; total: number };
+    formwork: { slab: number; beam: number; column: number; wall: number; raft: number; total: number };
+    concrete: { slab: number; beam: number; column: number; wall: number; raft: number; total: number };
   }> = {};
 
   for (const item of takeoff.elementBreakdown ?? []) {
     const flKey = item.floorName.trim().toUpperCase();
     if (!floorElementMap[flKey]) {
       floorElementMap[flKey] = {
-        formwork: { slab: 0, beam: 0, wall: 0, total: 0 },
-        concrete: { slab: 0, beam: 0, wall: 0, total: 0 },
+        formwork: { slab: 0, beam: 0, column: 0, wall: 0, raft: 0, total: 0 },
+        concrete: { slab: 0, beam: 0, column: 0, wall: 0, raft: 0, total: 0 },
       };
     }
     const f = floorElementMap[flKey];
     const t = item.type.toLowerCase();
-    if (t === "slab" || t === "raft" || t === "stair") {
+    if (t === "slab" || t === "stair") {
       f.formwork.slab += item.formworkM2;
       f.concrete.slab += item.concreteM3;
+    } else if (t === "raft") {
+      f.formwork.raft += item.formworkM2;
+      f.concrete.raft += item.concreteM3;
     } else if (t === "beam" || t === "band") {
       f.formwork.beam += item.formworkM2;
       f.concrete.beam += item.concreteM3;
-    } else if (t === "wall" || t === "column") {
+    } else if (t === "column") {
+      f.formwork.column += item.formworkM2;
+      f.concrete.column += item.concreteM3;
+    } else if (t === "wall") {
       f.formwork.wall += item.formworkM2;
       f.concrete.wall += item.concreteM3;
     }
@@ -1317,40 +1323,51 @@ export async function generateQuantityReportPDF(
   curY += 4;
 
   const formCols: TableColumn[] = [
-    { header: "Kat Adı", width: 45, align: "left" },
-    { header: "Döşemeler (m²)", width: 35, align: "right" },
-    { header: "Kirişler (m²)", width: 30, align: "right" },
-    { header: "Perdeler (m²)", width: 35, align: "right" },
-    { header: "Kat Toplamı (m²)", width: 35, align: "right" },
+    { header: "Kat Adı", width: 30, align: "left" },
+    { header: "Döşemeler (m²)", width: 25, align: "right" },
+    { header: "Kirişler (m²)", width: 25, align: "right" },
+    { header: "Kolonlar (m²)", width: 25, align: "right" },
+    { header: "Perdeler (m²)", width: 25, align: "right" },
+    { header: "Temeller (m²)", width: 25, align: "right" },
+    { header: "Kat Toplamı (m²)", width: 25, align: "right" },
   ];
 
   const formRows: string[][] = [];
   let formSlabSum = 0;
   let formBeamSum = 0;
+  let formColSum = 0;
   let formWallSum = 0;
+  let formRaftSum = 0;
 
   for (const [flName, st] of Object.entries(takeoff.rebarTonnage.byFloor)) {
     const normKey = flName.trim().toUpperCase();
     const fb = floorElementMap[normKey] || Object.entries(floorElementMap).find(([k]) => normKey.includes(k.split(" ")[0]))?.[1] || {
-      formwork: { slab: 0, beam: 0, wall: 0, total: 0 },
+      formwork: { slab: 0, beam: 0, column: 0, wall: 0, raft: 0, total: 0 },
     };
 
     const totF = fb.formwork.total > 0 ? fb.formwork.total : 1;
     const hasElements = fb.formwork.total > 0;
-    const sSlab = hasElements ? st.formworkM2 * (fb.formwork.slab / totF) : (st.formworkM2 > 0 ? st.formworkM2 * 0.44 : 0);
-    const sBeam = hasElements ? st.formworkM2 * (fb.formwork.beam / totF) : (st.formworkM2 > 0 ? st.formworkM2 * 0.22 : 0);
-    const sWall = hasElements ? st.formworkM2 * (fb.formwork.wall / totF) : (st.formworkM2 > 0 ? st.formworkM2 * 0.34 : 0);
+    const sSlab = hasElements ? fb.formwork.slab : (st.formworkM2 > 0 ? st.formworkM2 * 0.44 : 0);
+    const sBeam = hasElements ? fb.formwork.beam : (st.formworkM2 > 0 ? st.formworkM2 * 0.22 : 0);
+    const sCol = hasElements ? fb.formwork.column : (st.formworkM2 > 0 ? st.formworkM2 * 0.15 : 0);
+    const sWall = hasElements ? fb.formwork.wall : (st.formworkM2 > 0 ? st.formworkM2 * 0.19 : 0);
+    const sRaft = hasElements ? fb.formwork.raft : 0;
+    const rowTot = sSlab + sBeam + sCol + sWall + sRaft;
 
     formSlabSum += sSlab;
     formBeamSum += sBeam;
+    formColSum += sCol;
     formWallSum += sWall;
+    formRaftSum += sRaft;
 
     formRows.push([
       flName,
       sSlab.toFixed(2),
       sBeam.toFixed(2),
+      sCol.toFixed(2),
       sWall.toFixed(2),
-      st.formworkM2.toFixed(2),
+      sRaft.toFixed(2),
+      rowTot.toFixed(2),
     ]);
   }
 
@@ -1358,7 +1375,9 @@ export async function generateQuantityReportPDF(
     "GENEL TOPLAM",
     formSlabSum.toFixed(2),
     formBeamSum.toFixed(2),
+    formColSum.toFixed(2),
     formWallSum.toFixed(2),
+    formRaftSum.toFixed(2),
     takeoff.formworkAreaM2.total.toFixed(2),
   ]);
 
@@ -1380,40 +1399,50 @@ export async function generateQuantityReportPDF(
   curY += 4;
 
   const concCols: TableColumn[] = [
-    { header: "Kat Adı", width: 45, align: "left" },
-    { header: "Döşemeler (m³)", width: 35, align: "right" },
-    { header: "Kirişler (m³)", width: 30, align: "right" },
-    { header: "Perdeler (m³)", width: 35, align: "right" },
-    { header: "Kat Toplamı (m³)", width: 35, align: "right" },
+    { header: "Kat Adı", width: 30, align: "left" },
+    { header: "Döşemeler (m³)", width: 25, align: "right" },
+    { header: "Kirişler (m³)", width: 25, align: "right" },
+    { header: "Kolonlar (m³)", width: 25, align: "right" },
+    { header: "Perdeler (m³)", width: 25, align: "right" },
+    { header: "Temeller (m³)", width: 25, align: "right" },
+    { header: "Kat Toplamı (m³)", width: 25, align: "right" },
   ];
 
   const concRows: string[][] = [];
   let concSlabSum = 0;
   let concBeamSum = 0;
+  let concColSum = 0;
   let concWallSum = 0;
+  let concRaftSum = 0;
 
   for (const [flName, st] of Object.entries(takeoff.rebarTonnage.byFloor)) {
     const normKey = flName.trim().toUpperCase();
     const fb = floorElementMap[normKey] || Object.entries(floorElementMap).find(([k]) => normKey.includes(k.split(" ")[0]))?.[1] || {
-      concrete: { slab: 0, beam: 0, wall: 0, total: 0 },
+      concrete: { slab: 0, beam: 0, column: 0, wall: 0, raft: 0, total: 0 },
     };
 
-    const totC = fb.concrete.total > 0 ? fb.concrete.total : 1;
     const hasElements = fb.concrete.total > 0;
-    const cSlab = hasElements ? st.concreteM3 * (fb.concrete.slab / totC) : (st.concreteM3 > 0 ? st.concreteM3 * 0.45 : 0);
-    const cBeam = hasElements ? st.concreteM3 * (fb.concrete.beam / totC) : (st.concreteM3 > 0 ? st.concreteM3 * 0.20 : 0);
-    const cWall = hasElements ? st.concreteM3 * (fb.concrete.wall / totC) : (st.concreteM3 > 0 ? st.concreteM3 * 0.35 : 0);
+    const cSlab = hasElements ? fb.concrete.slab : (st.concreteM3 > 0 ? st.concreteM3 * 0.45 : 0);
+    const cBeam = hasElements ? fb.concrete.beam : (st.concreteM3 > 0 ? st.concreteM3 * 0.20 : 0);
+    const cCol = hasElements ? fb.concrete.column : (st.concreteM3 > 0 ? st.concreteM3 * 0.15 : 0);
+    const cWall = hasElements ? fb.concrete.wall : (st.concreteM3 > 0 ? st.concreteM3 * 0.20 : 0);
+    const cRaft = hasElements ? fb.concrete.raft : 0;
+    const rowTot = cSlab + cBeam + cCol + cWall + cRaft;
 
     concSlabSum += cSlab;
     concBeamSum += cBeam;
+    concColSum += cCol;
     concWallSum += cWall;
+    concRaftSum += cRaft;
 
     concRows.push([
       flName,
       cSlab.toFixed(3),
       cBeam.toFixed(3),
+      cCol.toFixed(3),
       cWall.toFixed(3),
-      st.concreteM3.toFixed(3),
+      cRaft.toFixed(3),
+      rowTot.toFixed(3),
     ]);
   }
 
@@ -1421,7 +1450,9 @@ export async function generateQuantityReportPDF(
     "GENEL TOPLAM",
     concSlabSum.toFixed(3),
     concBeamSum.toFixed(3),
+    concColSum.toFixed(3),
     concWallSum.toFixed(3),
+    concRaftSum.toFixed(3),
     takeoff.concreteVolumeM3.total.toFixed(3),
   ]);
 
@@ -1443,12 +1474,13 @@ export async function generateQuantityReportPDF(
   curY += 4;
 
   const diaCols: TableColumn[] = [
-    { header: "Kat Adı", width: 45, align: "left" },
+    { header: "Kat Adı", width: 30, align: "left" },
     { header: "Ø8 (kg)", width: 25, align: "right" },
     { header: "Ø10 (kg)", width: 25, align: "right" },
     { header: "Ø14 (kg)", width: 25, align: "right" },
-    { header: "İnce (≤Ø12)", width: 30, align: "right" },
-    { header: "Kalın (≥Ø14)", width: 30, align: "right" },
+    { header: "İnce (≤Ø12)", width: 25, align: "right" },
+    { header: "Kalın (≥Ø14)", width: 25, align: "right" },
+    { header: "Kat Toplamı", width: 25, align: "right" },
   ];
 
   const diaRows = Object.entries(takeoff.rebarTonnage.byFloor).map(([flName, st]) => [
@@ -1458,6 +1490,7 @@ export async function generateQuantityReportPDF(
     (st.byDiameter[14] ?? 0).toFixed(2),
     st.thinKg.toFixed(2),
     st.thickKg.toFixed(2),
+    (st.thinKg + st.thickKg).toFixed(2),
   ]);
 
   diaRows.push([
@@ -1467,6 +1500,7 @@ export async function generateQuantityReportPDF(
     (takeoff.rebarTonnage.byDiameter[14] ?? 0).toFixed(2),
     takeoff.rebarTonnage.thinKg.toFixed(2),
     takeoff.rebarTonnage.thickKg.toFixed(2),
+    takeoff.rebarTonnage.totalKg.toFixed(2),
   ]);
 
   curY = drawReportTable(pdf, diaCols, diaRows, { startY: curY, pageHeaderTitle: "DONATI METRAJI", meta });

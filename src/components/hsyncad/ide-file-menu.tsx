@@ -10,6 +10,7 @@ import {
   exportIdeSvg,
   ideExportBasename,
   serializeIdeProject,
+  synthesizeIdeFile,
 } from "@/lib/hsyncad/ide-export";
 import styles from "./ide-file-menu.module.css";
 
@@ -62,8 +63,8 @@ export default function IdeFileMenu({ project, sourceFile, floorId, elements, la
     return () => document.removeEventListener("pointerdown", outside);
   }, [open]);
 
-  const canExportIde11 = Boolean(project && sourceFile && (project.format === "ide11trial" || project.format === "ide11"));
-  const canExportIde10 = Boolean(project && sourceFile);
+  const canExportIde11 = Boolean(project);
+  const canExportIde10 = Boolean(project);
 
   const save = async (format: "source" | "snapshot" | "ide11" | "ide10" | "dxf" | "svg" | "png") => {
     if (!project || busy) return;
@@ -79,19 +80,28 @@ export default function IdeFileMenu({ project, sourceFile, floorId, elements, la
       } else if (format === "snapshot") {
         filename = `${base}.hsyncad`; download(new Blob([serializeIdeProject(project)], { type: "application/json;charset=utf-8" }), filename);
       } else if (format === "ide11") {
-        if (!sourceFile) throw new Error(".ide11 dönüşümü için özgün kaynak dosya gereklidir.");
-        const srcBuffer = await sourceFile.arrayBuffer();
-        const donorBuffer = await fetchOptionalDonorBuffer(base, project);
-        const bytes = exportIde11Binary(srcBuffer, project, donorBuffer);
+        let bytes: Uint8Array;
+        if (sourceFile) {
+          const srcBuffer = await sourceFile.arrayBuffer();
+          const donorBuffer = await fetchOptionalDonorBuffer(base, project);
+          bytes = exportIde11Binary(srcBuffer, project, donorBuffer);
+        } else {
+          bytes = synthesizeIdeFile(project, "ide11");
+        }
         filename = `${base}.ide11`;
         download(new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: "application/octet-stream" }), filename);
       } else if (format === "ide10") {
-        if (!sourceFile) throw new Error(".ide10 dönüşümü için özgün kaynak dosya gereklidir.");
-        const srcBuffer = await sourceFile.arrayBuffer();
-        const donorBuffer = await fetchOptionalDonorBuffer(base, project);
-        const res = exportIde10Binary(srcBuffer, project, donorBuffer);
+        let bytes: Uint8Array;
+        if (sourceFile) {
+          const srcBuffer = await sourceFile.arrayBuffer();
+          const donorBuffer = await fetchOptionalDonorBuffer(base, project);
+          const res = exportIde10Binary(srcBuffer, project, donorBuffer);
+          bytes = res.bytes;
+        } else {
+          bytes = synthesizeIdeFile(project, "ide10");
+        }
         filename = `${base}.ide10`;
-        download(new Blob([res.bytes.buffer.slice(res.bytes.byteOffset, res.bytes.byteOffset + res.bytes.byteLength) as ArrayBuffer], { type: "application/octet-stream" }), filename);
+        download(new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: "application/octet-stream" }), filename);
       } else if (format === "png") {
         const canvas = root.current?.closest('[data-testid="ide-viewer"]')?.querySelector<HTMLCanvasElement>('[data-testid="ide-plan-canvas"]');
         if (!canvas) throw new Error("PNG için önce 2B Plan görünümünü açın.");

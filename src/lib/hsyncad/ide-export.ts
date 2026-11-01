@@ -271,3 +271,6 @@ export function exportIde10Binary(
     donorIde10Buffer,
   });
 }
+
+export { synthesizeIdeFile } from "./ide-write";
+
