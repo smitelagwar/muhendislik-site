@@ -17,8 +17,8 @@ test.describe("CAD V1 ASAMA_06 — real shape/selection overlay and source prese
     await expect(host).toHaveAttribute("data-cad-upstream-state","ready",{timeout:30000});
     const canvas=host.locator("canvas").first();
     await expect(canvas).toBeVisible();
-    const projected=await host.evaluate((el)=>{
-      const adapter=(el as HTMLElement & {
+    const projected=await page.evaluate(()=>{
+      const adapter=(window as Window & {
         __cadAdapter?: {
           projectWorldPoint:(p:{x:number;y:number})=>{x:number;y:number}|null;
           getRenderReadinessSnapshot?:()=>{entityCount:number};
@@ -37,8 +37,9 @@ test.describe("CAD V1 ASAMA_06 — real shape/selection overlay and source prese
     const hi={x:box!.x+projected.high!.x,y:box!.y+projected.high!.y};
     const lo={x:box!.x+projected.low!.x,y:box!.y+projected.low!.y};
 
-    await page.locator('[data-testid="cad-tool-shapes-dropdown"]').first().click();
-    await page.locator('[data-testid="cad-tool-shape-rect"]').first().click();
+    // The primary Shapes tool defaults to a rectangle. Avoid drawing through
+    // a still-open popover that would intercept viewport pointer events.
+    await page.locator('[data-testid="cad-tool-shapes"]').first().click();
     await page.mouse.move(hi.x,hi.y);
     await page.mouse.down();
     await page.mouse.move(lo.x,lo.y,{steps:8});
@@ -55,8 +56,11 @@ test.describe("CAD V1 ASAMA_06 — real shape/selection overlay and source prese
     },fileId);
     let items=await fromLocal() as Array<{id:string;p1:{x:number;y:number};p2:{x:number;y:number}}>;
     expect(items).toHaveLength(1);
-    expect(items[0]?.p1).toEqual({x:2500,y:3000});
-    expect(items[0]?.p2).toEqual({x:500,y:500});
+    // Browser CSS-pixel rounding produces sub-0.001 world-unit inverse error.
+    expect(items[0]?.p1.x).toBeCloseTo(2500, 3);
+    expect(items[0]?.p1.y).toBeCloseTo(3000, 3);
+    expect(items[0]?.p2.x).toBeCloseTo(500, 3);
+    expect(items[0]?.p2.y).toBeCloseTo(500, 3);
     const original=items[0]!;
 
     await page.locator('[data-testid="cad-tool-select"]').first().click();
@@ -76,8 +80,8 @@ test.describe("CAD V1 ASAMA_06 — real shape/selection overlay and source prese
     items=await fromLocal() as typeof items;
     expect(items[0]?.p1.x).not.toBe(original.p1.x);
 
-    const count=await host.evaluate((el)=>{
-      const adapter=(el as HTMLElement & {
+    const count=await page.evaluate(()=>{
+      const adapter=(window as Window & {
         __cadAdapter?: {getRenderReadinessSnapshot?:()=>{entityCount:number}};
       }).__cadAdapter;
       return adapter?.getRenderReadinessSnapshot?.().entityCount??null;
