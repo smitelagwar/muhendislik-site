@@ -4,9 +4,9 @@ Plan revision: 2
 Date: 2026-11-02 (Europe/Istanbul)
 Planning status: PLAN_HAZIR
 Execution status: KOD_HAZIR_DOGRULAMA_BEKLIYOR
-Completed stages: ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04 (code checkpoints; runtime verification pending)
+Completed stages: ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04, ASAMA_05 (code checkpoints; runtime verification pending)
 Active stage: none
-Next stage: ASAMA_05 (ONLY after user says devam)
+Next stage: ASAMA_06 (ONLY after user says devam)
 Stage 01 acceptance: DOCUMENTED_BASELINE; runtime/device verification NOT_RUN
 Release-ready: NO
 Branch: internal-cad-v1-pro-review-r2-20261102
@@ -14,7 +14,7 @@ Checkpoint: this document's containing branch HEAD (first stage checkpoint; see 
 Checkpoint parent: 32a1c818d06c5b191cdc5bd4efdeaf71407e6559
 Plan source: attached revision 2 copied verbatim to PLAN.md
 Deployment: no Preview, no Production, no main merge
-Scope: ASAMA_01 baseline + ASAMA_02 review units/history + ASAMA_03 chain/OSNAP + ASAMA_04 bounded distance gesture/unified store/overlay, engine frozen
+Scope: ASAMA_01 baseline + ASAMA_02 review units/history + ASAMA_03 chain/OSNAP + ASAMA_04 distance + ASAMA_05 validated area/perimeter, engine frozen
 
 ## 1. Branch, source and engine freeze
 
@@ -381,3 +381,53 @@ Persisted review points/length remain untouched CAD world values; source-depende
 5. Export and inspect raw coordinates; DO NOT trust review DXF physical units until `INSUNITS` header is fixed in ASAMA_08.
 
 Rollback: revert **only ASAMA_04 checkpoint** on internal branch; leave ASAMA_01–03 and core V1 engine untouched. STOP. ASAMA_05 (manual area and perimeter) starts only on a fresh explicit `devam`.
+
+
+## 11. ASAMA_05 — Manual area/perimeter, robust geometry and one store owner
+
+Date: 2026-11-02 Europe/Istanbul.
+Status: KOD_HAZIR_DOGRULAMA_BEKLIYOR (code checkpoint, NOT runtime PASS, NOT release-ready).
+Branch: internal-cad-v1-pro-review-r2-20261102. No main promotion.
+Developer/user agreement: from ASAMA_05 onward the user permits **at most one Preview OR Production deployment per stage**, OPTIONAL. Do not repeat failed deploys; prefer Preview solely for useful build/browser checks.
+
+### Actual stage files
+
+- src/lib/dokumantasyon/cad-upstream/polygon-geometry.ts (NEW): robust origin-shifted signed area, centroid, closed perimeter, valid simple straight polygon geometry. Rejects repeated vertices, self-intersection, short edge, invalid bounds and degenerate area; does not interpret arc/bulge as true curved area.
+- src/lib/dokumantasyon/cad-upstream/area-measurement.ts: preserve existing polygon gestures; validate before Finish; show validationError and allow Backspace correction. Reject mouse pan drag (greater than 8 CSS pixels), duplicate doubleclick endpoint, lost pointer ownership, nonprimary touch, blur and visibility cancel without committed area. One-shot finish.
+- src/components/dokumantasyon/preview/cad-area-overlay.tsx: source-aware area AND perimeter label, explicit 'düz kenarlı poligon' (not curved arc) notice, validation warning, accessible selection, mobile finish and undo-point buttons, existing test IDs preserved.
+- src/components/dokumantasyon/preview/cad-upstream-viewer.tsx: store-only completed area in review mode. World points/area/perimeter persisted in one addMeasuredItem transaction with frozen source/display context; CadAreaOverlay is the only review-completed area renderer; side panel and Undo/Redo use same data. No simultaneous local + store committed item. When review flag is explicitly disabled, old local display-only fallback remains.
+- src/lib/dokumantasyon/cad-upstream/adapter.ts: narrow popAreaMeasurementPoint and async start epoch fence. No low-level rendering, parser or viewer engine rewrite.
+- tests/document-studio/cad-area-stage05-contract.test.ts (NEW): Stage 05 independent source tests for 12m2, 20m2, unitless scale, UTM +4e6, 37-degree rotation, mirror, CW/CCW, self-cross, tiny edges, pointer clicks/touch/ESC/Backspace, one review item + undo/redo/JSON.
+- tests/document-studio/cad-stage6-area-measurement.spec.ts: existing browser fixture strengthened to check 12.00m2 + 14m physical display, 12,000,000 world mm2 + 14,000 world mm, single item, Undo/Redo, F5, clear.
+- docs/cad-v1-review/IMPLEMENTATION_STATE.md: this state/checklist.
+
+### Fixture and math contract (source-supported, no live PASS claimed)
+
+- known-geometry-measurements.dxf: INSUNITS=4 (mm), corners (0,0),(3000,0),(3000,4000),(0,4000): raw area 12,000,000, raw closed perimeter 14,000; at physical display m/m2 -> 12m2 and 14m.
+- stage9-area-20m2.dxf: INSUNITS=4, 5000 x 4000 source-mm: area 20m2, perimeter 18m.
+- stage9-unitless-calibration.dxf: INSUNITS=0, 400 x 600 raw source units. Must report raw area 240,000 drawing-unit-squared until calibrated. Calibration known 100 world = 50cm gives 5mm per world unit => area 6m2.
+- Area algorithm shifts each vertex by the first vertex before summing oriented triangles: signed area flips CW/CCW and negative mirror; absolute area remains same; perimeter includes closing edge. Reference offset centroid is similarly translated. Pure math oracle is source-guided but running the repository test is a different gate.
+- Invalid polygon cannot be saved or displayed as valid; toast/diagnostic remains editable for Backspace. Closed shape has >=3 distinct vertices. Only picked straight edges are measured; no unverified curved/bulge precision or original entity mutation.
+- One completed valid area -> one Zod-validated world item, one history command; review list, SVG, local cached JSON and later Undo/Redo reuse the same store. A saved item captures INSUNITS/physical scale, area/linear display unit and revisions. No destructive reuniting/migration for legacy items.
+- Existing Stage04 initial GET hydration bug was narrowly corrected but complete server POST/409/conflict/versioning is STILL open. Review-only DXF export still writes hardcoded INSUNITS=6 regardless of source; PDF binary issue deferred to ASAMA_08. DO NOT claim round-trip export PASS.
+- Existing Stage03 and Stage04 tests were NOT_RUN, so the ASAMA_05 entry condition of accepted full runtime behavior is not asserted.
+
+### Input / behavior contract
+
+Mouse click primary down/up within 8 CSS pixels -> one vertex. Press-drag or pan -> no extra vertex. Dblclick second release near same point within 380ms/5px -> no duplicate vertex; Enter, click/tap first vertex after 3 points or Finish button validates and commits once. ESC or second touch cancels. Backspace / Geri removes unfinished vertex. Pointercancel, blur or hidden tab cancels gesture. On tool switch and unmount no stale area callback commits. No parallel event coordinator was introduced.
+
+### Verification matrix
+
+- GitHub changed-path scope, protected blob hashes and branch HEAD: VERIFY after checkpoint.
+- New Node/TSX test: NOT_RUN. Command: npx tsx --test tests/document-studio/cad-area-stage05-contract.test.ts
+- Existing area browser: NOT_RUN. Command: npx playwright test tests/document-studio/cad-stage6-area-measurement.spec.ts
+- Typecheck: NOT_RUN (npx tsc --noEmit).
+- ESLint: NOT_RUN (changed files).
+- Actual DXF/DWG area and WCS/UTM/bulge, mobile touch/stylus/pinch, F5 and server recovery: NOT_RUN.
+- One optional Vercel Preview deployment: user-authorized, not yet requested at commit creation. Check the actual result; no retry without a NEW stage/explicit permission.
+- Main and Production must stay unchanged unless a separately justified release authorization exists.
+
+### Acceptance blockers
+
+Release-ready stays NO until full TypeScript/build tests, actual device and fixture checks, correct export INSUNITS header, remote server persistence/version and fallback regression pass. A preview build does not prove all browser scenarios.
+Rollback: revert ONLY the ASAMA_05 stage commit; preserve the original renderer/parser/fallback and stages01-04. STOP; next ASAMA_06 only upon explicit subsequent 'devam'.

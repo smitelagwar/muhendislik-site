@@ -5,7 +5,7 @@ import {
   cleanupUploadedCadFixtures,
 } from "./cad-test-helpers";
 
-test.describe("CAD Preview V2 — Stage 6/8 Alan Ölçümü: Türkçe Komut Akışı & Gerçek Sayısal Oracle", () => {
+test.describe("CAD V1 Stage05 — source-aware area/perimeter and one review record", () => {
   test.beforeEach(async ({ context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   });
@@ -14,7 +14,7 @@ test.describe("CAD Preview V2 — Stage 6/8 Alan Ölçümü: Türkçe Komut Akı
     await cleanupUploadedCadFixtures(page);
   });
 
-  test("Desktop: Dört nokta seçimi + Enter ile alan ölçümü tamamlanır, 12.000.000 oracle'ı UI overlay'inde doğrulanır", async ({
+  test("Desktop: dört nokta => world 12.000.000 mm² / 14.000 mm => 12 m² ve 14 m; undo/redo/F5", async ({
     page,
     isMobile,
   }) => {
@@ -122,15 +122,41 @@ test.describe("CAD Preview V2 — Stage 6/8 Alan Ölçümü: Türkçe Komut Akı
     await expect(completedOverlay).toBeVisible({ timeout: 5000 });
     await expect(completedOverlay.locator('[data-cad-area-polygon="true"]').first()).toBeVisible();
 
-    // UI text must match 12.000.000 and drawing units
-    const labelText = await completedOverlay.locator("text").textContent();
-    expect(labelText).toMatch(/12[.,]?000[.,]?000/);
-    expect(labelText).toContain("çizim birimi²");
+    // DXF INSUNITS=4. Assert physical label and raw persisted geometry separately.
+    const labelText = await completedOverlay.locator("text").first().textContent();
+    expect(labelText).toContain("12,00 m²");
+    await expect(completedOverlay).toContainText("14,00 m");
+    await expect(page.locator('[data-cad-area-complete="true"]')).toHaveCount(1);
 
-    // Clear button clears measurements
-    const clearBtn = page.locator('[data-testid="cad-tool-clear"]').first();
-    await clearBtn.click();
-    await expect(completedOverlay).not.toBeVisible();
+    const stored = await page.evaluate((id) => {
+      const raw = window.localStorage.getItem(`dok_cad_review_v1_${id}`);
+      const doc = raw ? JSON.parse(raw) : null;
+      return doc?.items?.filter((i: { type?: string }) => i.type === "area") ?? [];
+    }, fileId) as Array<{
+      measuredArea: number;
+      measuredPerimeter: number;
+      points: Array<{ x: number; y: number }>;
+      measurementContext?: { sourceUnit?: string };
+    }>;
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.measuredArea).toBe(12_000_000);
+    expect(stored[0]?.measuredPerimeter).toBe(14_000);
+    expect(stored[0]?.points).toHaveLength(4);
+    expect(stored[0]?.measurementContext?.sourceUnit).toBe("mm");
+
+    await page.locator('[data-testid="cad-tool-undo"]').first().click();
+    await expect(page.locator('[data-cad-area-complete="true"]')).toHaveCount(0);
+    await page.locator('[data-testid="cad-tool-redo"]').first().click();
+    await expect(page.locator('[data-cad-area-complete="true"]')).toHaveCount(1);
+
+    await page.reload();
+    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", {timeout:30_000});
+    await expect(page.locator('[data-cad-area-complete="true"]')).toHaveCount(1);
+
+    // Clear button clears review measurements and keeps original CAD drawing.
+    await page.locator('[data-testid="cad-tool-clear"]').first().click();
+    await expect(page.locator('[data-cad-area-complete="true"]')).toHaveCount(0);
+    await expect(host.locator("canvas").first()).toBeVisible();
   });
 
   test("Escape, Backspace ve buton toggle ile alan ölçümü temiz biçimde yönetilir", async ({

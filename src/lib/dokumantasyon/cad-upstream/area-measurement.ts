@@ -1,11 +1,12 @@
 import {
+  pointDistance, validateCadPolygon, CAD_POLYGON_ERRORS,
+} from "./polygon-geometry";
+export { shoelaceArea, polygonPerimeter, polygonCentroid, pointDistance } from "./polygon-geometry";
+import {
   CadSnapCandidate,
   CadSnapMode,
   CadSnapPoint,
 } from "./snap-engine";
-export function pointDistance(a: CadSnapPoint, b: CadSnapPoint): number {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
 
 export interface CadAreaMeasurementSnapshot {
   readonly phase: "inactive" | "awaiting-first" | "awaiting-next" | "complete";
@@ -14,6 +15,7 @@ export interface CadAreaMeasurementSnapshot {
   readonly previewSnap: CadSnapCandidate | null;
   readonly area: number | null;
   readonly perimeter: number | null;
+  readonly validationError?: string | null;
 }
 
 export interface CadAreaMeasurementResult {
@@ -38,59 +40,6 @@ export interface CadAreaMeasurementRuntime {
   readonly setCameraInteractionEnabled?: (enabled: boolean) => void;
 }
 
-export function shoelaceArea(points: readonly CadSnapPoint[]): number {
-  if (points.length < 3) return 0;
-  let sum = 0;
-  const n = points.length;
-  for (let i = 0; i < n; i++) {
-    const next = (i + 1) % n;
-    sum += points[i].x * points[next].y - points[next].x * points[i].y;
-  }
-  return Math.abs(sum) / 2;
-}
-
-export function polygonPerimeter(points: readonly CadSnapPoint[], closed = true): number {
-  if (points.length < 2) return 0;
-  let total = 0;
-  for (let i = 0; i < points.length - 1; i++) {
-    total += pointDistance(points[i], points[i + 1]);
-  }
-  if (closed && points.length >= 3) {
-    total += pointDistance(points[points.length - 1], points[0]);
-  }
-  return total;
-}
-
-export function polygonCentroid(points: readonly CadSnapPoint[]): CadSnapPoint {
-  if (points.length === 0) return { x: 0, y: 0 };
-  if (points.length < 3) {
-    const x = points.reduce((acc, p) => acc + p.x, 0) / points.length;
-    const y = points.reduce((acc, p) => acc + p.y, 0) / points.length;
-    return { x, y };
-  }
-  let cx = 0;
-  let cy = 0;
-  let signedArea = 0;
-  const n = points.length;
-  for (let i = 0; i < n; i++) {
-    const next = (i + 1) % n;
-    const a = points[i].x * points[next].y - points[next].x * points[i].y;
-    signedArea += a;
-    cx += (points[i].x + points[next].x) * a;
-    cy += (points[i].y + points[next].y) * a;
-  }
-  signedArea *= 0.5;
-  if (Math.abs(signedArea) < 1e-6) {
-    const x = points.reduce((acc, p) => acc + p.x, 0) / points.length;
-    const y = points.reduce((acc, p) => acc + p.y, 0) / points.length;
-    return { x, y };
-  }
-  return {
-    x: cx / (6 * signedArea),
-    y: cy / (6 * signedArea),
-  };
-}
-
 export function formatArea(value: number): string {
   return new Intl.NumberFormat("tr-TR", {
     minimumFractionDigits: 2,
@@ -108,6 +57,8 @@ export class CadAreaMeasurementController {
   private previewSnap: CadSnapCandidate | null = null;
   private phase: "inactive" | "awaiting-first" | "awaiting-next" | "complete" = "inactive";
   private active = false;
+  private pointerDownState: { id: number; x: number; y: number } | null = null;
+  private lastTap: { x: number; y: number; time: number } | null = null;
 
   constructor(host: HTMLElement, runtime: CadAreaMeasurementRuntime) {
     this.host = host;
@@ -130,6 +81,8 @@ export class CadAreaMeasurementController {
     this.previewPoint = null;
     this.previewSnap = null;
     this.phase = "awaiting-first";
+    this.pointerDownState = null;
+    this.lastTap = null;
 
     this.attachEventListeners();
     this.emit(this.getSnapshot());
@@ -140,24 +93,20 @@ export class CadAreaMeasurementController {
   }
 
   finish(): boolean {
-    if (!this.active || this.points.length < 3) return false;
-    const confirmed = [...this.points];
-    const area = shoelaceArea(confirmed);
-    const perimeter = polygonPerimeter(confirmed, true);
-    const centroid = polygonCentroid(confirmed);
-
-    this.phase = "complete";
-    this.previewPoint = null;
-    this.previewSnap = null;
-
-    const result: CadAreaMeasurementResult = {
-      points: confirmed,
-      area,
-      perimeter,
-      centroid,
-    };
-
+    if (!this.active) return false;
+    const verdict = validateCadPolygon(this.points);
+    if (!verdict.valid || verdict.area === null ||
+        verdict.perimeter === null || verdict.centroid === null) {
+      this.emit({ ...this.getSnapshot(), validationError: CAD_POLYGON_ERRORS[verdict.reason!] });
+      return false;
+    }
     const onComplete = this.callbacks.onComplete;
+    const result: CadAreaMeasurementResult = {
+      points: this.points.map(p => ({ ...p })),
+      area: verdict.area,
+      perimeter: verdict.perimeter,
+      centroid: verdict.centroid,
+    };
     this.cleanup();
     onComplete?.(result);
     return true;
@@ -188,6 +137,8 @@ export class CadAreaMeasurementController {
     this.active = false;
     this.phase = "inactive";
     this.points = [];
+    this.pointerDownState = null;
+    this.lastTap = null;
     this.previewPoint = null;
     this.previewSnap = null;
     this.callbacks = {};
@@ -196,24 +147,18 @@ export class CadAreaMeasurementController {
   }
 
   private getSnapshot(): CadAreaMeasurementSnapshot {
-    let currentArea: number | null = null;
-    let currentPerimeter: number | null = null;
-
-    if (this.points.length >= 3) {
-      currentArea = shoelaceArea(this.points);
-      currentPerimeter = polygonPerimeter(this.points, true);
-    } else if (this.points.length === 2 && this.previewPoint) {
-      currentArea = shoelaceArea([...this.points, this.previewPoint]);
-      currentPerimeter = polygonPerimeter([...this.points, this.previewPoint], true);
-    }
-
+    const polygon = this.previewPoint && this.points.length >= 2
+      ? [...this.points, this.previewPoint] : this.points;
+    const check = polygon.length >= 3 ? validateCadPolygon(polygon) : null;
     return {
       phase: this.phase,
-      points: [...this.points],
+      points: this.points.map(p => ({ ...p })),
       previewPoint: this.previewPoint ? { ...this.previewPoint } : null,
       previewSnap: this.previewSnap ? { ...this.previewSnap } : null,
-      area: currentArea,
-      perimeter: currentPerimeter,
+      area: check?.valid ? check.area : null,
+      perimeter: check?.valid ? check.perimeter : null,
+      validationError: check && !check.valid && check.reason
+        ? CAD_POLYGON_ERRORS[check.reason] : null,
     };
   }
 
@@ -226,72 +171,86 @@ export class CadAreaMeasurementController {
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
 
-  private readonly handlePointerMove = (event: PointerEvent): void => {
+  private readonly handlePointerDown = (event: PointerEvent): void => {
     if (!this.active) return;
-    const screenPoint = this.eventScreenPoint(event);
-    const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes);
-    if (!resolved) {
-      this.previewPoint = null;
-      this.previewSnap = null;
-    } else {
-      this.previewPoint = resolved.point;
-      this.previewSnap = resolved.snap;
+    if (!event.isPrimary) {
+      this.cancel(true); // pinch/multitouch gives camera back its ownership
+      return;
     }
+    if (event.pointerType !== "touch" && event.button !== 0) return;
+    const screen = this.eventScreenPoint(event);
+    this.pointerDownState = { id: event.pointerId, ...screen };
+  };
+
+  private readonly handlePointerMove = (event: PointerEvent): void => {
+    if (!this.active || !event.isPrimary) return;
+    const resolved = this.runtime.resolvePoint(this.eventScreenPoint(event), this.snapModes);
+    this.previewPoint = resolved ? { ...resolved.point } : null;
+    this.previewSnap = resolved?.snap ?? null;
     this.emit(this.getSnapshot());
   };
 
   private readonly handlePointerUp = (event: PointerEvent): void => {
     if (!this.active) return;
-    // Primary button only
-    if (event.button !== 0 && event.pointerType !== "touch") return;
-
-    const screenPoint = this.eventScreenPoint(event);
-    const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes);
-    if (!resolved) return;
-
-    // Check if user clicked close to the first point to close the polygon
+    const down = this.pointerDownState;
+    this.pointerDownState = null;
+    if (!down || down.id !== event.pointerId || !event.isPrimary) return;
+    const screen = this.eventScreenPoint(event);
+    if (pointDistance(down, screen) > 8) return; // pan/drag is not a new vertex
+    const resolved = this.runtime.resolvePoint(screen, this.snapModes);
+    if (!resolved || !Number.isFinite(resolved.point.x) || !Number.isFinite(resolved.point.y)) return;
+    if (Math.abs(resolved.point.x) > 1e9 || Math.abs(resolved.point.y) > 1e9) return;
     if (this.points.length >= 3 && this.runtime.projectWorldPoint) {
-      const firstProjected = this.runtime.projectWorldPoint(this.points[0]);
-      if (firstProjected) {
-        const distToFirst = pointDistance(firstProjected, screenPoint);
-        if (distToFirst <= 20) {
-          this.finish();
-          return;
-        }
+      const projected = this.runtime.projectWorldPoint(this.points[0]!);
+      if (projected && pointDistance(projected, screen) <= 20) {
+        this.finish(); // failed validation does not complete or mutate
+        return;
       }
     }
-
-    this.points.push({ ...resolved.point });
+    const candidate = { ...resolved.point };
+    const last = this.points[this.points.length - 1];
+    if (last && pointDistance(last, candidate) <= 1e-9) {
+      this.emit({ ...this.getSnapshot(), validationError: CAD_POLYGON_ERRORS["duplicate-vertex"] });
+      return;
+    }
+    // Suppress second pointerup in a mouse double-click, without losing first vertex.
+    if (event.pointerType !== "touch" && this.lastTap &&
+        event.timeStamp >= this.lastTap.time && event.timeStamp - this.lastTap.time < 380 &&
+        pointDistance(this.lastTap, screen) <= 5) return;
+    if (this.points.length >= 5000) {
+      this.emit({ ...this.getSnapshot(), validationError: CAD_POLYGON_ERRORS["too-many-points"] });
+      return;
+    }
+    this.lastTap = { ...screen, time: event.timeStamp };
+    this.points.push(candidate);
     this.phase = "awaiting-next";
     this.emit(this.getSnapshot());
+  };
+
+  private readonly handlePointerCancel = (): void => {
+    if (this.active) this.cancel(true);
+  };
+  private readonly handleWindowBlur = (): void => {
+    if (this.active) this.cancel(true);
+  };
+  private readonly handleVisibilityChange = (): void => {
+    if (typeof document !== "undefined" && document.hidden && this.active) this.cancel(true);
   };
 
   private readonly handleDblClick = (event: MouseEvent): void => {
     if (!this.active) return;
     event.preventDefault();
-    if (this.points.length >= 3) {
-      this.finish();
-    }
+    if (this.points.length >= 3) this.finish();
   };
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
-    if (!this.active) return;
-
+    if (!this.active || event.isComposing) return;
     const target = event.target as HTMLElement | null;
-    if (
-      target &&
-      (target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable)
-    ) {
-      return;
-    }
-
+    if (target?.closest?.("input, textarea, select, [contenteditable='true'], [role='textbox']") ||
+        target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
     if (event.key === "Enter") {
       event.preventDefault();
-      if (this.points.length >= 3) {
-        this.finish();
-      }
+      this.finish();
     } else if (event.key === "Escape") {
       event.preventDefault();
       this.cancel(true);
@@ -302,16 +261,24 @@ export class CadAreaMeasurementController {
   };
 
   private attachEventListeners(): void {
+    this.host.addEventListener("pointerdown", this.handlePointerDown);
     this.host.addEventListener("pointermove", this.handlePointerMove);
     this.host.addEventListener("pointerup", this.handlePointerUp);
+    this.host.addEventListener("pointercancel", this.handlePointerCancel);
     this.host.addEventListener("dblclick", this.handleDblClick);
     window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("blur", this.handleWindowBlur);
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
   }
 
   private detachEventListeners(): void {
+    this.host.removeEventListener("pointerdown", this.handlePointerDown);
     this.host.removeEventListener("pointermove", this.handlePointerMove);
     this.host.removeEventListener("pointerup", this.handlePointerUp);
+    this.host.removeEventListener("pointercancel", this.handlePointerCancel);
     this.host.removeEventListener("dblclick", this.handleDblClick);
     window.removeEventListener("keydown", this.handleKeyDown);
+    window.removeEventListener("blur", this.handleWindowBlur);
+    document.removeEventListener("visibilitychange", this.handleVisibilityChange);
   }
 }

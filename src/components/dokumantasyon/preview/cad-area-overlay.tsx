@@ -6,10 +6,20 @@ import {
 } from "@/lib/dokumantasyon/cad-upstream/area-measurement";
 import { CadSnapPoint } from "@/lib/dokumantasyon/cad-upstream/snap-engine";
 import { Button } from "@/components/ui/button";
+import { validateCadPolygon } from "@/lib/dokumantasyon/cad-upstream/polygon-geometry";
 import { Check } from "lucide-react";
+import {
+  formatArea as formatPhysicalArea,
+  formatDistance as formatPhysicalDistance,
+  type CadAreaUnit, type CadUnit, type CadSourceUnitContext,
+} from "@/lib/dokumantasyon/cad-review/units";
 
 export interface CompletedAreaMeasurement extends CadAreaMeasurementResult {
   readonly id: string;
+  readonly formattedArea?: string;
+  readonly formattedPerimeter?: string;
+  readonly color?: string;
+  readonly isSelected?: boolean;
 }
 
 interface CadAreaOverlayProps {
@@ -17,6 +27,13 @@ interface CadAreaOverlayProps {
   readonly measurements: readonly CompletedAreaMeasurement[];
   readonly projectPoint: (point: CadSnapPoint) => CadSnapPoint | null;
   readonly onFinish?: () => void;
+  readonly onUndoPoint?: () => void;
+  readonly onSelectMeasurement?: (id: string) => void;
+  readonly sourceContext?: CadSourceUnitContext;
+  readonly displayAreaUnit?: CadAreaUnit;
+  readonly displayLengthUnit?: CadUnit;
+  readonly precision?: number;
+  readonly areaPrecision?: number;
 }
 
 function pointsToString(points: readonly (CadSnapPoint | null)[]): string {
@@ -31,6 +48,13 @@ export function CadAreaOverlay({
   measurements,
   projectPoint,
   onFinish,
+  onUndoPoint,
+  onSelectMeasurement,
+  sourceContext,
+  displayAreaUnit = "m2",
+  displayLengthUnit = "m",
+  precision = 2,
+  areaPrecision = 2,
 }: CadAreaOverlayProps) {
   const [, setRenderTick] = useState(0);
 
@@ -47,6 +71,12 @@ export function CadAreaOverlay({
     snapshot && (snapshot.phase === "awaiting-first" || snapshot.phase === "awaiting-next")
   );
   const hasCompleted = measurements.length > 0;
+  const liveArea = (raw: number) => sourceContext
+    ? formatPhysicalArea(raw, sourceContext, displayAreaUnit, areaPrecision)
+    : `${formatArea(raw)} çizim birimi²`;
+  const livePerimeter = (raw: number) => sourceContext
+    ? formatPhysicalDistance(raw, sourceContext, displayLengthUnit, precision)
+    : `${formatArea(raw)} çizim birimi`;
 
   if (!hasActive && !hasCompleted) {
     return null;
@@ -76,13 +106,27 @@ export function CadAreaOverlay({
           const centroidProjected = projectPoint(m.centroid);
 
           return (
-            <g key={m.id} data-cad-area-complete="true">
+            <g
+              key={m.id}
+              data-cad-area-complete="true"
+              data-review-id={m.id}
+              style={onSelectMeasurement ? { pointerEvents: "auto", cursor: "pointer" } : undefined}
+              role={onSelectMeasurement ? "button" : undefined}
+              tabIndex={onSelectMeasurement ? 0 : undefined}
+              onClick={onSelectMeasurement ? () => onSelectMeasurement(m.id) : undefined}
+              onKeyDown={onSelectMeasurement ? event => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelectMeasurement(m.id);
+                }
+              } : undefined}
+            >
               {/* Semi-transparent filled polygon */}
               <polygon
                 points={polyStr}
                 fill="rgba(16, 185, 129, 0.20)"
-                stroke="#10b981"
-                strokeWidth="2"
+                stroke={m.color ?? "#10b981"}
+                strokeWidth={m.isSelected ? 3 : 2}
                 strokeDasharray="6 4"
                 data-cad-area-polygon="true"
               />
@@ -94,7 +138,7 @@ export function CadAreaOverlay({
                   cx={p.x}
                   cy={p.y}
                   r="3.5"
-                  fill="#10b981"
+                  fill={m.color ?? "#10b981"}
                   stroke="#ffffff"
                   strokeWidth="1.5"
                 />
@@ -113,7 +157,7 @@ export function CadAreaOverlay({
                     height="30"
                     rx="6"
                     fill="rgba(15, 23, 42, 0.92)"
-                    stroke="#10b981"
+                    stroke={m.color ?? "#10b981"}
                     strokeWidth="1.2"
                   />
                   <text
@@ -124,9 +168,24 @@ export function CadAreaOverlay({
                     fontWeight="600"
                     fontFamily="monospace, sans-serif"
                   >
-                    Alan: {formatArea(m.area)} çizim birimi²
+                    Alan: {m.formattedArea ?? liveArea(m.area)}
                   </text>
                 </g>
+              ) : null}
+              {centroidProjected ? (
+                <text
+                  x={centroidProjected.x}
+                  y={centroidProjected.y + 26}
+                  textAnchor="middle"
+                  fill="currentColor"
+                  fontSize="10"
+                  className="fill-foreground"
+                  stroke="var(--background)"
+                  strokeWidth="2"
+                  paintOrder="stroke"
+                >
+                  Çevre: {m.formattedPerimeter ?? livePerimeter(m.perimeter)}
+                </text>
               ) : null}
             </g>
           );
@@ -218,36 +277,49 @@ export function CadAreaOverlay({
       {hasActive && snapshot ? (
         <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
           <div
-            className="pointer-events-none flex items-center gap-2 rounded-full border border-border/80 bg-background/95 px-4 py-1.5 shadow-md backdrop-blur text-xs font-medium"
+            className="pointer-events-auto flex max-w-[calc(100vw-1rem)] flex-wrap items-center justify-center gap-2 rounded-xl border border-border/80 bg-background/95 px-3 py-2 shadow-md backdrop-blur text-xs font-medium"
             data-testid="cad-area-status"
           >
-            <span>
-              {snapshot.points.length === 0
-                ? "1. noktayı seçin (Esc: İptal)"
-                : snapshot.points.length === 1
-                  ? "2. noktayı seçin (Esc: İptal | Backspace: Geri al)"
-                  : snapshot.points.length === 2
-                    ? snapshot.area !== null
-                      ? `Alan: ${formatArea(snapshot.area)} çizim birimi² (3. noktayı seçin | Esc: İptal | Backspace: Geri al)`
-                      : "3. noktayı seçin (Esc: İptal | Backspace: Geri al)"
-                    : `Alan: ${formatArea(snapshot.area ?? 0)} çizim birimi² (${snapshot.points.length + 1}. noktayı seçin | Enter: Bitir | Esc: İptal)`}
+            <span role="status" aria-live="polite">
+              {snapshot.validationError
+                ? snapshot.validationError
+                : snapshot.points.length === 0
+                  ? "1. noktayı seçin (Esc: İptal)"
+                  : snapshot.points.length === 1
+                    ? "2. noktayı seçin (Esc: İptal | Backspace: Geri al)"
+                    : snapshot.points.length === 2
+                      ? snapshot.area !== null
+                        ? `Alan: ${liveArea(snapshot.area)} · Çevre: ${livePerimeter(snapshot.perimeter ?? 0)} (3. noktayı seçin)`
+                        : "3. noktayı seçin (Esc: İptal | Backspace: Geri al)"
+                      : snapshot.area !== null
+                        ? `Alan: ${liveArea(snapshot.area)} · Çevre: ${livePerimeter(snapshot.perimeter ?? 0)}`
+                        : "Noktaları seçin veya düzeltin"}
             </span>
-
-            {/* Direct Finish button for touch or mouse users */}
-            {snapshot.points.length >= 3 ? (
+            <span className="text-[10px] text-muted-foreground">Düz kenarlı poligon; yaylar ölçüme dahil değil</span>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 rounded-md px-2 text-xs"
+                onClick={() => onUndoPoint?.()}
+                disabled={snapshot.points.length === 0}
+                data-testid="cad-area-undo-point"
+              >Geri</Button>
               <Button
                 type="button"
                 size="sm"
                 variant="default"
-                className="pointer-events-auto h-6 rounded-full px-2.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="h-7 rounded-md bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-700"
                 onClick={() => onFinish?.()}
+                disabled={!validateCadPolygon(snapshot.points).valid}
                 data-testid="cad-area-finish-btn"
                 title="Alan ölçümünü tamamla (Enter)"
               >
                 <Check className="mr-1 h-3 w-3" />
                 Bitir
               </Button>
-            ) : null}
+            </div>
           </div>
         </div>
       ) : null}

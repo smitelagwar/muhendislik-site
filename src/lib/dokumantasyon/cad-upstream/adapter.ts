@@ -1824,12 +1824,15 @@ export class CadUpstreamAdapter {
     callbacks: CadAreaMeasurementCallbacks = {}
   ): Promise<boolean> {
     if (this.destroyed) return false;
+    const requestedEpoch = this.measurementCommandEpoch;
     if (!this.snapReady) {
       await this.ensureSnapReady();
     }
-    if (this.destroyed || !this.snapReady || !this.areaMeasurementController) return false;
+    if (this.destroyed || requestedEpoch !== this.measurementCommandEpoch ||
+        !this.snapReady || !this.areaMeasurementController) return false;
     await this.cancelActiveCommand();
-    if (this.destroyed || !this.snapReady || !this.areaMeasurementController) return false;
+    if (this.destroyed || this.measurementCommandEpoch !== requestedEpoch + 1 ||
+        !this.snapReady || !this.areaMeasurementController) return false;
 
     this.activeMeasurementCommand = "area";
     this.areaMeasurementController.start(snapModes, {
@@ -1922,7 +1925,11 @@ export class CadUpstreamAdapter {
   }
 
   finishAreaMeasurement(): boolean {
-    return this.areaMeasurementController?.finish() ?? false;
+    return !this.destroyed && (this.areaMeasurementController?.finish() ?? false);
+  }
+
+  popAreaMeasurementPoint(): boolean {
+    return !this.destroyed && (this.areaMeasurementController?.popPoint() ?? false);
   }
 
   searchCadText(options: CadTextSearchQuery): CadTextSearchResult[] {
