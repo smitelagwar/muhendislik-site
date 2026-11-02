@@ -3,10 +3,10 @@ Plan ID: CADV1-PRO-REVIEW-20261102
 Plan revision: 2
 Date: 2026-11-02 (Europe/Istanbul)
 Planning status: PLAN_HAZIR
-Execution status: ASAMA_06_HEDEFLI_TESTLER_PASS; GENEL_RELEASE_BEKLIYOR
+Execution status: ASAMA_07_HEDEFLI_TESTLER_PASS; GENEL_RELEASE_BEKLIYOR
 Completed stages: ASAMA_01–05 (code checkpoints; partial runtime gates pending); ASAMA_06 (targeted build/TS/lint/Node/Chromium PASS; legacy suite BLOCKED)
 Active stage: none
-Next stage: ASAMA_07 (ONLY after user says devam)
+Next stage: ASAMA_08 (ONLY after user says devam)
 Stage 01 acceptance: DOCUMENTED_BASELINE; runtime/device verification NOT_RUN
 Release-ready: NO
 Branch: internal-cad-v1-pro-review-r2-20261102
@@ -544,3 +544,31 @@ This is the later ACTUALLY EXECUTED verification record and supersedes older ASA
 - Review DXF export still has the known wrong INSUNITS=6 header for raw millimeter drawings; Stage08 open TODO. Server source-hash synchronization/remote conflict recovery/cross-device save is not proved by isolated local API 409.
 - Real mobile, real DWG and browser variability tests must still be run before overall release. The source DWG V1 engine and existing production remain protected. GPL distribution notice/WASM risk separate P0.
 - **STOP AFTER ASAMA_06.** ASAMA_07 must not begin without the user's separate explicit "devam".
+
+## 14. ASAMA_07 — completed, verified, STOP (2026-11-02)
+
+Work branch: `internal-cad-v1-pro-review-r2-20261102`.
+Source commit: `0c093b8733f658825a20dc5283bfaafc2b34522d`.
+Runtime source paths changed only within the review controller, freehand simplifier/facade, small review-input dialog and narrow in-app viewer binding. Test files were added. No parser/renderer/worker/fallback or dependency changes and no modifications to source CAD entities.
+
+### Implemented
+- Replaced review pin, text and callout `window.prompt` with accessible in-app Radix dialog and textarea. Save/cancel/empty validation, length limits and sanitization; asynchronous responses fenced on tool change, Escape, cancellation and viewer teardown; focus management. Other app dialogs/prompt calls untouched.
+- Review freehand stroke takes mouse, pen/coalesced events and touch pointer samples; filters/simplifies in **CSS pixels** while preserving stored world-space vertices. Bound of 5000 samples per stroke; live draft notifications via requestAnimationFrame when supported. One committed history transaction.
+- Review eraser uses review-only hit testing and one undoable batch deletion per gesture. Measurement annotations and original CAD source entities are never eraser targets.
+- Gesture hygiene: pointer identity, pointer capture release, second-touch rejection, Escape, lost capture, blur, backgrounding, tool switches and cancellation; avoid late or partial commits.
+
+### Actual test evidence
+- `tsx --test` across stage02, stage03, stage04, stage05, stage06, stage07 contracts in isolated Vercel sandbox: **55 total, 54 passed, 0 failed, 1 planned TODO** (known Stage08 DXF INSUNITS bug).
+- New Stage07 contracts: **7/7 PASS**, including 4e6-offset/zoom cases, coalesced stylus input, multi-touch cancellation, single-undo eraser and async text/pin stale-result safety.
+- Independent `tsc -p tsconfig.next.json --noEmit --incremental false`: **PASS**, exit 0.
+- Targeted ESLint on changed source and contract tests: **PASS**, exit 0.
+- New `cad-stage07-browser.spec.ts` on isolated development server with Chromium and real DXF fixtures: **2/2 PASS** — pin/text dialog validation, save/cancel and sanitization, Undo/Redo and F5 recovery, freehand stroke then erase/Undo/Redo, original DXF entity count unchanged.
+- Browser tests were run against the sandbox source before GitHub upload, and GitHub source commit records these exact seven scoped files. The stage07 GitHub commit was already present when final branch validation began; do not re-apply it.
+- **No ASAMA_07 Preview or Production deploy**. Latest ready Preview from ASAMA_06 is not the Stage07 code; branch-only test verification is the basis of this checkpoint.
+
+### Outstanding, not claimed passing
+- Real physical touch/stylus devices and the broad DWG file corpus were not exercised. Browser real-DXF desktop and pure touch pointer contracts passed, not physical mobile acceptance.
+- Pre-existing `cad-stage3-review-tools.spec.ts` remains uncollectable due to nonexistent `active-store` module. This is a legacy test-maintenance item, not a stage07 runtime PASS.
+- DXF export `$INSUNITS`/review export, persistence reconciliation, remote revision handling remain Stage08 work. Cross-device release not accepted.
+- Production, `main`, existing DWG viewer/renderer and DB left unchanged.
+- **STOP. ASAMA_08 ONLY AFTER NEXT USER `devam`.**
