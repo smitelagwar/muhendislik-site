@@ -4,6 +4,10 @@ Bu klasörün amacı çalışan CAD/DXF görüntüleme motorunun nasıl kuruldu�
 
 Bu belgeler bir "eski plan" değildir. **Çalışan motor için koruma ve referans setidir.**
 
+## V1 ölçüm ve review geliştirmesi için zorunlu ek
+
+Mevcut V1 mesafe/alan/zincir, OSNAP, pointer, markup, toolbar, undo ve export araçlarına dokunanlar ayrıca **`.agents/rules/cad-v1-review-kurallari.md`** okur. `docs/cad-review-tools.md` ürün hedefidir, `docs/cad-review-architecture-decisions.md` geçmiş ADR'dir; gerçek davranışın kanıtı güncel kaynak ve browser testidir. Review iyileştirmesi çalışan DWG/DXF renderer/fallback'i değiştirme yetkisi değildir.
+
 ## Neden oluşturuldu?
 
 DXF görüntüleyici geçmişte AI ile yapılan kapsamlı yeniden tasarımlar sırasında bozuldu. Çalıştığı bilinen Vercel `IGNORE2` Production sürümü GitHub'daki golden committen birebir restore edilerek tekrar devreye alındı. Bu klasör, aynı hatanın tekrarlanmasını engellemek için oluşturuldu.

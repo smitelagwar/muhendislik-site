@@ -7,6 +7,12 @@
 
 ---
 
+## Yaşayan netleştirme — 2 Kasım 2026
+
+Bu 30 Ağustos tarihli mimari karar kaydı güncel bütün V1 tuşlarının PASS olduğunu göstermez. Kullanıcı önce var olan ölçüm, OSNAP, markup ve inceleme tuşlarının iyileştirilmesini, gerçek CAD entity düzenlemesinin sonraya bırakılmasını istemektedir. Ham DWG/DXF review fazında değişmez. Bağlayıcı standart: **`.agents/rules/cad-v1-review-kurallari.md`**.
+
+Kod incelemesinde `cad-upstream-viewer.tsx` yerel distance/area state'leri ile `CadReviewStore` farklı yollardan geçmektedir; markup/freehand/area denetleyicileri kendi pointer listener'larını bağlayabilmektedir. `CadPointerRouter` dosyasının bulunması tek event-owner'ın bugün çalıştığını kanıtlamaz. Aşağıdaki tek router ifadesi hedef mimaridir; **güncel runtime doğrulaması değil**. Bu bir hata hipotezidir, canlı testi yapılmış kesin kök neden değildir.
+
 ## 1. Bağlam ve Problem Tanımı
 
 Doküman Studio içindeki CAD önizleyici, DWG ve DXF formatlarını yüksek doğruluk ve fallback güvencesiyle açmaktadır. Yeni hedef, çizimi düzenleyen tam bir CAD editörü inşa etmek değil; kullanıcıların çizim üzerinde arama yapabileceği, zincir ölçümler alabileceği, pin/ok/bulut/metin işaretlemeleri ve serbest el eskizleri ekleyebileceği, çıktısını güvenle alabileceği bir **CAD Review Workspace V1** oluşturmaktır.
@@ -44,7 +50,7 @@ Bu karar kaydı, Aşama 1 itibarıyla benimsenen temel mimari sınırları, reus
 ### Karar 6: Renderer & Overlay Seçimi (SVG + Pointer Event Architecture)
 - Yeni üçüncü taraf bir Canvas/WebGL kütüphanesi eklenmemiş; mevcut doğrulanmış SVG + Pointer Event overlay mimarisi seçilmiştir.
 - SVG katmanı DPI/zoom değişimlerinde vektörel netlik sağlar, CSS animasyon ve GPU hızlandırmasıyla çalışır.
-- `CadPointerRouter` ile yerel mesafe/alan ölçüm kontrolcüleri ile review araçları (pin, markup, çizim) arasında tek ve deterministik event routing sağlanmıştır.
+- **Hedef:** `CadPointerRouter` veya eşdeğer event-owner ile deterministik tek routing. Mevcut kontrolcüler bağımsız event listener bağlayabildiğinden bu madde bugün uygulanmış/kanıtlanmış davranış sayılamaz.
 
 ### Karar 7: 3-State Sınıflandırması ve Command Tabanlı History
 - **Committed Document State**: Kalıcı, senkronize edilebilir review elemanları listesi.

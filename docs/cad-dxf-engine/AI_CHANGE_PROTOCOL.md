@@ -2,6 +2,10 @@
 
 Bu protokol çalışan motoru gelecekte Gemini/Codex/Claude/ChatGPT ile geliştirirken production baseline'ın kaybolmasını engeller.
 
+## V1 review/ölçüm için özel sınır (2 Kasım 2026)
+
+V1 araç/OSNAP/markup işi önce **`.agents/rules/cad-v1-review-kurallari.md`** kapsamına girer. `V1 REVIEW/INTERACTION` ve `V1 CORE PARSER/RENDER/WORKER/ROUTING` farklı izin sınıflarıdır. Korunan host/adapter'da yalnız zorunlu dar interaction değişikliği, açıklanmış etki alanı, mevcut API, motor regresyonu ve geri dönüş kanıtıyla yapılabilir; bununla core rewrite izni oluşmaz. Aşağıdaki core izin/backup/baseline kuralları değişmez.
+
 ## 1. İlk soru: görev gerçekten engine değişikliği mi?
 
 ### Engine değişikliği DEĞİL

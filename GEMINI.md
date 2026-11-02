@@ -29,17 +29,19 @@ Gemini mevcut çalışan sistemi tahmin ederek yeniden kurmaz; önce repo gerçe
 
 ## 2. CAD / DXF / DWG / DWF görevi için ZORUNLU özel okuma
 
-Görev CAD, DXF, DWG, DWF, CAD toolbar, CAD ölçüm, CAD viewer, parser, renderer, worker, MLightCAD veya LibreDWG ile ilgiliyse **kod değiştirmeden önce** şu sıra zorunludur:
-
+V1 viewer, ölçüm, OSNAP, toolbar, markup/inceleme, CAD parser/renderer veya worker görevi varsa koddan önce:
 1. `.agents/rules/cad-dxf-engine-koruma.md`
-2. `docs/cad-dxf-engine/README.md`
-3. `docs/cad-dxf-engine/BASELINE_MANIFEST.md`
-4. `docs/cad-dxf-engine/ARCHITECTURE.md`
-5. `docs/cad-dxf-engine/VISUAL_INTERACTION_CONTRACT.md`
-6. `docs/cad-dxf-engine/AI_CHANGE_PROTOCOL.md`
-7. `docs/DOKUMANTASYON_CAD_MIMARI_HAFIZA.md`
+2. **`.agents/rules/cad-v1-review-kurallari.md`** (V1 araç/etkileşim)
+3. `docs/cad-dxf-engine/README.md`
+4. `docs/cad-dxf-engine/BASELINE_MANIFEST.md`
+5. `docs/cad-dxf-engine/ARCHITECTURE.md`
+6. `docs/cad-dxf-engine/VISUAL_INTERACTION_CONTRACT.md`
+7. `docs/cad-dxf-engine/AI_CHANGE_PROTOCOL.md`
+8. `docs/DOKUMANTASYON_CAD_MIMARI_HAFIZA.md`
+9. `docs/cad-review-architecture-decisions.md` ve `docs/cad-review-tools.md` (V1 işi)
+10. Güncel kaynak, route, feature flag, sabit paket sürümü ve testler.
 
-Bu okuma atlanamaz.
+V1 interaction/review düzeltmesi protected adapter/host'un sınırsız refactor'ı, parser/renderer/worker/fallback upgrade'i değildir. Korunan path'te zorunlu dar değişiklik ancak gerekçe, eski davranış testi ve rollback'le yapılır.
 
 ## 3. CAD/DXF motoru için varsayılan: DOKUNMA
 

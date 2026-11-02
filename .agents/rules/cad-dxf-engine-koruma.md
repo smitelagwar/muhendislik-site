@@ -12,6 +12,11 @@ CAD/DXF ile ilgili herhangi bir kaynak dosyayı değiştirmeden önce şu belgel
 4. `docs/cad-dxf-engine/VISUAL_INTERACTION_CONTRACT.md`
 5. `docs/cad-dxf-engine/AI_CHANGE_PROTOCOL.md`
 6. `docs/DOKUMANTASYON_CAD_MIMARI_HAFIZA.md`
+7. V1 ölçüm/OSNAP/review işinde `.agents/rules/cad-v1-review-kurallari.md`, `docs/cad-review-architecture-decisions.md`, `docs/cad-review-tools.md`
+
+## V1 review/ölçüm için kontrollü etkileşim izni
+
+Kullanıcı V1'in mevcut ölçüm, OSNAP ve işaretleme araçlarını profesyonelleştirmeyi hedeflemiştir. Bu **review/interaction iyileştirme** kapsamıdır, parser/renderer/worker/fallback, kaynak entity veya V2 motorunu yeniden yazma yetkisi değildir. `cad-upstream-viewer.tsx` ve `cad-upstream/adapter.ts` gibi korunan dosyalarda gerekiyorsa yalnız zorunlu dar UI/interaction köprüsü, mevcut API uyumu, regresyon/rollback kanıtıyla değiştirilebilir. Ayrıntılı kabul: `.agents/rules/cad-v1-review-kurallari.md`.
 
 ## Korunan production baseline
 

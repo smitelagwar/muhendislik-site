@@ -1,5 +1,11 @@
 # CAD Review Workspace V1 — Kullanıcı ve Mimari Kılavuzu
 
+> **Durum ayrımı — 2 Kasım 2026:** Bu kılavuz hedef davranışı anlatır; mevcut tüm butonların çalıştığının güncel test raporu değildir. Zorunlu kural: **`.agents/rules/cad-v1-review-kurallari.md`**.
+
+### Öncelik ve kabul
+
+Önce iyileştirilmiş düz mesafeyi koru ve ortak world/screen + OSNAP + event ownership doğrula. Ardından zincir mesafe, alan/çevre; sonra seçim, şekiller, daire, revizyon bulutu, callout, pin/metin, serbest çizim, silgi, undo/redo, katman, arama, kayıt ve JSON/DXF/PNG/PDF export'u gerçek çizim ve tarayıcı testleriyle kabul et. Ölçü birimi/kalibrasyon, zoom/pan, touch/desktop, cancel, reload ve source değişmezliği ortak şarttır. Mevcut tuşlar PASS olmadan yeni özellik yığma. Açı/yay ölçme ve gerçek DWG entity düzenleme ayrı fazdır.
+
 ## 1. Ürün Kapsamı ve Mimari İlkeler
 
 CAD Review Workspace V1, mühendis ve mimarların DWG ve DXF formatındaki teknik çizimler üzerinde işbirliği yapmasını, ölçüm almasını, inceleme notları eklemesini ve revizyon bulutları ile işaretleme yapmasını sağlayan profesyonel bir inceleme ortamıdır.

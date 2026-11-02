@@ -8,6 +8,10 @@ Bu dosyanın amacı, yeni bir AI oturumunun `/dokumantasyon` ve CAD görüntüle
 >
 > **Yaşayan belge kuralı:** Bu mimari anlamlı biçimde değiştirildiğinde, değişiklik hangi bölümü etkiliyorsa bu dosyanın o bölümü de aynı çalışma kapsamında güncellenmelidir. Amaç sistemi dondurmak değil, sonraki AI oturumuna yanlış hafıza bırakmamaktır.
 
+## V1 ölçüm/inceleme yönü — 2 Kasım 2026
+
+V1'in mevcut DWG/DXF görüntülemesi korunurken öncelik mevcut mesafe/zincir/alan, OSNAP, markup, seçim, undo/redo, katman, arama ve review export tuşlarının profesyonelleştirilmesidir. Source DWG/DXF değiştirilmez. Zorunlu kurallar: `.agents/rules/cad-dxf-engine-koruma.md` ve **`.agents/rules/cad-v1-review-kurallari.md`**. İlgili ürün/ADR: `docs/cad-review-tools.md`, `docs/cad-review-architecture-decisions.md`. Eski release beyanları güncel her-tuştaki PASS kanıtı değildir; host state ve controller listener riskleri gerçek kod/browser testiyle doğrulanacak. Bu iş ayrı V2 compiler/cutover çalışması değildir.
+
 ## 1. Production durumu
 
 CAD upstream migration 24 Ağustos 2026'da production'a alınmıştır.

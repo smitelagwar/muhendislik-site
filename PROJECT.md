@@ -126,6 +126,10 @@ muhendislik-site/
 
 ---
 
+## V1 CAD inceleme/ölçüm hedefi (2 Kasım 2026)
+
+Mevcut V1 DWG/DXF görüntüleme fidelitesi korunarak önce mevcut mesafe/zincir/alan, OSNAP, işaretleme, seçim, silgi, undo, katman, arama, kayıt/export tuşları gerçek web CAD kalitesinde çalıştırılacak; sonra yeni araçlar ve ayrı izinle gerçek CAD düzenleme değerlendirilecek. Review aşamasında ham DWG/DXF değişmez; `src/lib/cad-v2/**` ve `motor_v2/**` ayrı iş akışıdır. **Zorunlu talimat:** `.agents/rules/cad-v1-review-kurallari.md` + `.agents/rules/cad-dxf-engine-koruma.md`. İlgili kılavuz/ADR: `docs/cad-review-tools.md`, `docs/cad-review-architecture-decisions.md`. Bu hedef, kodun şimdiden değiştirilmiş veya kabul edilmiş olduğu anlamına gelmez.
+
 ## Aktif Workstream'ler
 
 ### 1. Yapım Rehberleri / Bina İçerik Ağı

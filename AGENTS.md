@@ -26,6 +26,10 @@ Her AI oturumu, ilk remote write işleminden önce şu sırayı uygular:
 
 Markdown ile güncel kaynak kod/testler çelişirse çalışan repo gerçekliği doğrulanır; eski doküman körü körüne uygulanmaz. Gerekirse yaşayan doküman aynı çalışma kapsamında güncellenir.
 
+### CAD V1 DWG/DXF araçları için zorunlu okuma
+
+V1 görüntüleme, mesafe/alan/zincir, OSNAP, review/markup, toolbar, seçim, katman, pointer veya export işlerinde **kaynak koddan önce** sırasıyla `.agents/rules/cad-dxf-engine-koruma.md` ve **`.agents/rules/cad-v1-review-kurallari.md`** okunur. Bunların referans verdiği engine koruma, review ADR ve yaşayan CAD belgeleri de zorunludur. Bu görevler parser/renderer/worker/fallback veya V2 değişikliğine genel yetki vermez. Dokumentasyon değişikliği, kullanıcı istemeden deploy hakkı doğurmaz.
+
 ## 2. Ana ilke: çok çalışma, az remote write
 
 GitHub uzak deposu bir scratchpad değildir.

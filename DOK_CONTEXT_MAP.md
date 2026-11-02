@@ -87,6 +87,10 @@ Document Studio bir full-viewport shell'dir. CAD upstream host'u üst barın alt
 
 Bu full-viewport/topbar düzeni PR `#22` ile kabul testlerinden geçirilerek `main`e alınmıştır. Squash merge SHA `da0b5eb5de1bf9798bd3f4668af9354dcbdfd8a9` tarihsel cutover referansıdır; ileride normal geliştirmelerle `main` SHA'nın değişmesi beklenir.
 
+### V1 araç/ölçüm zorunlu çalışma standardı
+
+V1 DWG/DXF review, OSNAP, ölçüm, pointer, toolbar, katman, undo ve export işlerinde `.agents/rules/cad-dxf-engine-koruma.md` ve **`.agents/rules/cad-v1-review-kurallari.md`** bağlayıcıdır. `docs/cad-review-tools.md` ile `docs/cad-review-architecture-decisions.md` ürün/ADR olup gerçek test kanıtı yerine geçmez. V1 source değişmez; ayrı V2 server engine/cutover otomatik etkilenmez.
+
 ### CAD ownership — güncel production
 
 CAD'nin primary sahibi:
