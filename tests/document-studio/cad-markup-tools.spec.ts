@@ -209,8 +209,8 @@ test.describe("CAD Review Workspace V1 — Stage 5/10 Yorum Pini ve Yapılandır
     await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
 
     // 1. Ön kontrol: Taban database entity sayısını al
-    const initialEntityCount = await host.evaluate((el: HTMLElement) => {
-      const adapter = (el as unknown as {
+    const initialEntityCount = await page.evaluate(() => {
+      const adapter = (window as unknown as {
         __cadAdapter?: {
           manager?: {
             curDocument?: {
@@ -242,8 +242,8 @@ test.describe("CAD Review Workspace V1 — Stage 5/10 Yorum Pini ve Yapılandır
     expect(initialEntityCount).toBe(4);
 
     // 2. Browser içinde Store ve Facade ile Yorum Pini, Şekil ve Callout ekle
-    const markupAdded = await host.evaluate((el: HTMLElement) => {
-      const adapter = (el as unknown as {
+    const markupAdded = await page.evaluate(() => {
+      const adapter = (window as unknown as {
         __cadAdapter?: {
           manager?: { curDocument?: unknown };
         };
@@ -256,8 +256,8 @@ test.describe("CAD Review Workspace V1 — Stage 5/10 Yorum Pini ve Yapılandır
     expect(markupAdded).toBe(true);
 
     // 3. Son kontrol: Taban database entity sayısının KESİNLİKLE değişmediğini kanıtla (Negatif İmutability Testi)
-    const finalEntityCount = await host.evaluate((el: HTMLElement) => {
-      const adapter = (el as unknown as {
+    const finalEntityCount = await page.evaluate(() => {
+      const adapter = (window as unknown as {
         __cadAdapter?: {
           manager?: {
             curDocument?: {

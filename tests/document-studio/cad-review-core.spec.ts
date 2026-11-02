@@ -180,9 +180,18 @@ test.describe("CAD Review Workspace V1 — Stage 2/10 Review Core, Schema & Pers
     const host = page.locator('[data-cad-upstream-host="true"]').first();
     await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
 
+    // Readiness bounds may become available after the host is visually ready.
+    // Wait for the original source geometry oracle before immutability comparison.
+    await expect.poll(async () => page.evaluate(() => {
+      const adapter = (window as unknown as {
+        __cadAdapter?: { getRenderReadinessSnapshot?: () => { bounds: unknown } };
+      }).__cadAdapter;
+      return Boolean(adapter?.getRenderReadinessSnapshot?.()?.bounds);
+    }), { timeout: 30_000 }).toBe(true);
+
     // Review öncesi taban çizim entity ve geometrik durumu
-    const beforeStats = await host.evaluate((el: HTMLElement) => {
-      const adapter = (el as unknown as { __cadAdapter?: { getRenderReadinessSnapshot?: () => unknown } }).__cadAdapter;
+    const beforeStats = await page.evaluate(() => {
+      const adapter = (window as unknown as { __cadAdapter?: { getRenderReadinessSnapshot?: () => unknown } }).__cadAdapter;
       return adapter?.getRenderReadinessSnapshot?.() as {
         entityCount: number;
         bounds: { min: { x: number; y: number }; max: { x: number; y: number } } | null;
@@ -226,8 +235,8 @@ test.describe("CAD Review Workspace V1 — Stage 2/10 Review Core, Schema & Pers
     expect(saveResponse.body.success).toBe(true);
 
     // Review sonrası taban çizim entity ve geometrik durumunu tekrar al
-    const afterStats = await host.evaluate((el: HTMLElement) => {
-      const adapter = (el as unknown as { __cadAdapter?: { getRenderReadinessSnapshot?: () => unknown } }).__cadAdapter;
+    const afterStats = await page.evaluate(() => {
+      const adapter = (window as unknown as { __cadAdapter?: { getRenderReadinessSnapshot?: () => unknown } }).__cadAdapter;
       return adapter?.getRenderReadinessSnapshot?.() as {
         entityCount: number;
         bounds: { min: { x: number; y: number }; max: { x: number; y: number } } | null;
@@ -236,10 +245,8 @@ test.describe("CAD Review Workspace V1 — Stage 2/10 Review Core, Schema & Pers
 
     // İmmutability negatif kanıtı: Taban çizim entity sayısı ve bounds birebir aynı kalmalıdır!
     expect(afterStats!.entityCount).toBe(beforeStats!.entityCount);
-    expect(afterStats!.bounds!.min.x).toBe(beforeStats!.bounds!.min.x);
-    expect(afterStats!.bounds!.min.y).toBe(beforeStats!.bounds!.min.y);
-    expect(afterStats!.bounds!.max.x).toBe(beforeStats!.bounds!.max.x);
-    expect(afterStats!.bounds!.max.y).toBe(beforeStats!.bounds!.max.y);
+    // Compare complete geometry, including nullable metadata, after stable readiness.
+    expect(afterStats!.bounds).toEqual(beforeStats!.bounds);
   });
 
   test("4. Server Persistence: GET/PUT döngüsü, Optimistic Concurrency (409 Conflict) ve Kaynak Hash Uyuşmazlığı Koruması", async ({
