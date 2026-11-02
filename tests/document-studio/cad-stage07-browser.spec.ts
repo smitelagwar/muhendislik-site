@@ -47,7 +47,8 @@ test.describe("CAD V1 ASAMA_07 — review-only notes, freehand and eraser", () =
     await expect(page.locator('[data-review-type="text"]')).toHaveCount(1);
 
     const items=await page.evaluate((id)=>{
-      const raw=localStorage.getItem("dok_cad_review_v1_"+id);
+      const key=Object.keys(localStorage).find(key => key.startsWith(`dok_cad_review_v1_${id}__`));
+      const raw=key ? localStorage.getItem(key) : null;
       return (raw?JSON.parse(raw).items:[]) as {type:string;comment?:string;text?:string}[];
     },fileId);
     expect(items.find(x=>x.type==="comment_pin")?.comment).toBe("bYorum/b");
@@ -92,7 +93,10 @@ test.describe("CAD V1 ASAMA_07 — review-only notes, freehand and eraser", () =
     await page.mouse.move(to.x,to.y,{steps:8});
     await page.mouse.up();
     await expect(page.locator('[data-review-type="stroke"]')).toHaveCount(1);
-    const raw=await page.evaluate(id=>localStorage.getItem("dok_cad_review_v1_"+id),fileId);
+    const raw=await page.evaluate(id => {
+      const key=Object.keys(localStorage).find(key => key.startsWith(`dok_cad_review_v1_${id}__`));
+      return key ? localStorage.getItem(key) : null;
+    },fileId);
     const strokes=JSON.parse(raw??"{}").items?.filter((x:{type:string})=>x.type==="stroke");
     expect(strokes).toHaveLength(1);
     expect(strokes[0].points.length).toBeGreaterThanOrEqual(2);

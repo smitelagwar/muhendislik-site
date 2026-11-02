@@ -3,10 +3,10 @@ Plan ID: CADV1-PRO-REVIEW-20261102
 Plan revision: 2
 Date: 2026-11-02 (Europe/Istanbul)
 Planning status: PLAN_HAZIR
-Execution status: ASAMA_10_HEDEFLI_TESTLER_PASS; PINCH_FAIL; GENEL_KABUL_ENGELLI
-Completed stages: ASAMA_01–05 (code checkpoints; runtime gates pending); ASAMA_06–10 (targeted code/tests and measured Stage10; release blocked)
-Active stage: none
-Next stage: ASAMA_11 (ONLY after user says devam)
+Execution status: ASAMA_11_FINAL_AUDIT_KAYDEDILDI; RELEASE_READY=NO; ZORUNLU_KABUL_ENGELLI
+Completed stages: ASAMA_01–10 (targeted checkpoints); ASAMA_11 audit documentation completed, final acceptance BLOCKED
+Active stage: ASAMA_11 (acceptance blocked)
+Next stage: NONE (ASAMA_11 is final; blocked release gates require separate QA resolution)
 Stage 01 acceptance: DOCUMENTED_BASELINE; runtime/device verification NOT_RUN
 Release-ready: NO
 Branch: internal-cad-v1-pro-review-r2-20261102
@@ -693,3 +693,25 @@ Stage09 Pixel 7 regression remains **FAIL** on two-finger pinch. Stage10 focused
 **Rollback:** Revert only the Stage10 new focused contract test and this state entry if necessary; Stage01–09 checkpoints, main and Production remain preserved. No new Preview or Production deploy, no user DB migration, no source CAD edits.
 
 **STOP:** Only ASAMA_11 upon next explicit user `devam`, for independently audited acceptance matrix/license/rollback. Do not auto-deploy or mark final acceptance PASS while failures remain.
+
+## 18. ASAMA_11 — Bağımsız nihai audit, kabul ENGELLİ (2 Kasım 2026)
+
+**Audit source:** temiz checkout `96f1a4cacd93c6381cf6b16f916d9878ff99dd13`, `main=3df5e45924c6f83e2d5cbbdb81e5d02c3fe07dc4`; `main...branch` ahead 19, behind 0. **Çalışma/denetim:** Ayrı Vercel Sandbox; Production ve main üzerine merge/deploy yok. **ASAMA_11 deploy 0**, plan yasağı gereği deploy çağrısı yapılmadı.
+
+### Bağımsız test ve belge kanıtı
+
+- Temiz checkout `npm ci`: PASS; `npx tsc -p tsconfig.next.json --noEmit --incremental false`: PASS; kapsamlı CAD review/test hedefli ESLint: PASS; `git diff --check`: PASS; `npm run build`: PASS.
+- `npx tsx --test` ASAMA_02–10 contract suite: **65/65 PASS**.
+- `npm run check:cad-review:release`: **BLOCKED**, çünkü `.data/dok_db.json` bulunmuyor; kompozit script minimum 50 gerçek dosya ister, tarayıcı suite'ine veya release aşamasına ulaşmıyor. Testi geçirmek için veri uydurulmadı.
+- ASAMA_10 geniş `check:cad-preview-v2`: en az iki DWG cache/fallback regresyonu, bir tarihsel üst toolbar selector uyuşmazlığı; bütün suite başarıyla tamamlanmadı. Bu FAIL/BLOCKED kaydı korunuyor.
+- ASAMA_11 temiz Chromium 5-spec bağımsız koşu uzun süre sonra kontrollü durduruldu. Stale ASAMA_07 localStorage key beklentisi test-only revizyon-kapsamlı key ile güncellendi. Ayrı `PLAYWRIGHT_PORT=3013` ile düzeltilmiş iki test yeniden çalıştırıldı: **1 PASS (stroke/eraser/undo/redo)**, **1 FAIL (Pin/Text/F5 birleşik akış 100 saniye timeout)**. Kesin test-kodu/uygulama/ortam kök nedeni ayrıştırılmadı; bağımsız nihai uçtan uca kabul BLOCKED.
+- Mobil pinch: gerçek Pixel 7 emülasyonunda **FAIL**, iki parmak aralığı artarken kamera zoom sabit kalıyor, pan oluyor. Fiziksel telefon kabulü yapılmadı.
+- Büyük gerçek DWG/DXF matrisi: ASAMA_10 `ERR_ABORTED / Channel closed`, **BLOCKED**. Dört kaynak SHA-256 değeri ASAMA_11 temiz checkout ile tekrar kontrol edildi, ASAMA_10 değerleriyle aynı.
+- Final dokümanlar: `docs/cad-v1-review/FINAL_ACCEPTANCE.md` (38 maddelik kontrol matrisi), `docs/cad-v1-review/ROLLBACK.md` (veri silmeden geri dönüş), güncellenmiş araç, ADR ve yaşayan mimari kılavuzları.
+- Kullanıcı isteği doğrultusunda bu aşamada lisans incelemesi yapılmadı; mevcut bağımlılık/notices değişmedi. Lisans uygunluğu iddiası yok.
+
+**Teknik sonuç:** Kodun hedefli testleri güçlü ancak önemli FAIL/BLOCKED/NOT_RUN maddeleri sürüyor; `RELEASE_READY=NO`, `MERGE_ALLOWED=NO`, `DEPLOY_ALLOWED=NO`. Planın son teknik audit belgesi oluşturuldu; zorunlu release kabulü **henüz sağlanmadı**.
+
+**Geri dönüş:** `main` ve Production değişmediğinden şimdiki durum için prod rollback yok. Stage11 sadece docs ve eski storage key'ine bakan test expectation düzeltmesi; ilgili tek commit güvenli revert ile geri alınabilir. `NEXT_PUBLIC_CAD_REVIEW_V1` veya EXPORT flag değişimi ancak ayrı onaylı build/deploy ile etki eder.
+
+**Dur:** ASAMA_12 yok. ASAMA_11 kabulü engellidir; yeni 'devam' tek başına release/merge/deploy yetkisi vermez. Açık QA/gerçek ortam kanıtları sağlandıktan sonra ASAMA_11 kabul kapısı yeniden doğrulanabilir.

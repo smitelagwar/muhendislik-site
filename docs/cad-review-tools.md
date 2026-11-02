@@ -85,3 +85,13 @@ npx eslint "src/lib/dokumantasyon/cad-review/**/*.ts" "src/components/dokumantas
 # Kompozit Tüm Sürüm Kapısı (Testler + Build + DB İzolasyonu)
 npm run check:cad-review:release
 ```
+
+## ASAMA_11 kabul notu — 2 Kasım 2026
+
+**Güncel karar: RELEASE_READY=NO.** Bu sayfadaki araç açıklamaları mevcut kodun kapsamını anlatır; nihai yayın kabulü değildir. `docs/cad-v1-review/FINAL_ACCEPTANCE.md` dosyasında her araç için PASS/FAIL/BLOCKED/NOT_RUN matrisi vardır. `docs/cad-v1-review/ROLLBACK.md` kontrollü geri dönüş ve iki dakikalık smoke checklist'idir.
+
+- Sürüm-kapsamlı yerel kayıt/F5, JSON/DXF/PNG/PDF çıktısı ve temel ölçüm/markup işlemleri hedefli testlerde doğrulandı.
+- İki parmak pinch-zoom **FAIL**; geniş DWG cache/fallback ve büyük gerçek çizim kabulü **açık**.
+- Gerçek kullanıcı DB izolasyonu olmadan `check:cad-review:release` kapısı geçemez.
+- Production'a merge veya deploy yapılmadı. Dokunma/performans sayıları izole test ortamıyla sınırlıdır.
+- Review özelliği için `NEXT_PUBLIC_CAD_REVIEW_V1=false`, dışa aktarma için `NEXT_PUBLIC_CAD_REVIEW_EXPORT_V1=false` bulunmaktadır; bu public build-time değişkenlerin etkili olması yeni onaylı build/deploy gerektirir.

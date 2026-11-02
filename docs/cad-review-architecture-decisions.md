@@ -75,3 +75,13 @@ Bu karar kaydı, Aşama 1 itibarıyla benimsenen temel mimari sınırları, reus
 - **Platformlar**: Desktop Chromium (1920x1080), Mobile Chromium (Pixel 7 Touch).
 - **Corpus Bütünlüğü**: `tests/fixtures/cad-preview-v2/manifest.ts` içindeki SHA-256 ve dosya boyutu manifesti her test öncesinde ve sonrasında doğrulanır.
 - **Veri İzolasyonu**: `.data/dok_db.json` içindeki 1133 dosya sayısı sabit kalmalıdır (0 sızıntı).
+
+## ASAMA_11 mimari doğrulama eki — 2 Kasım 2026
+
+Bu ek güncel kodun kanıtlanmış sınırlarını eski hedef mimariden ayırır. Nihai durum için `docs/cad-v1-review/FINAL_ACCEPTANCE.md` ve geri dönüş için `docs/cad-v1-review/ROLLBACK.md` esas alınır.
+
+- **Store / source binding:** Review verisi `CadReviewStore` içinde ayrı tutulur; yerel cache `fileId + sourceVersionKey` ile ayrılır. Eski kaynak revizyonu sessizce yeniden eşleştirilmez.
+- **Sunucu kaydı:** Sunucu senkronizasyonu gerçek source SHA-256 ve optimistic revision bekler; olmayan SHA veya çatışma durumunda yerel kopya korunur. Eski kayıtlarla gerçek iki-cihaz senkronizasyonu henüz kabul edilmedi.
+- **Dışa aktarım:** JSON, native world-unit'li review-only DXF, PNG ve `pdf-lib` ile üretilmiş gerçek PDF'dir; kaynak DWG/DXF yeniden yazılmaz. Bağımsız CAD DXF import/piksel karşılaştırması hâlâ gerekli.
+- **Engine ve etkileşim:** MLightCAD V1 adapter, CAD coordinate otoritesidir; renderer/parser/worker replacement yapılmadı. 375px mobil kontroller ve keyboard isolation hedefli testlerde geçse de gerçek pinch-zoom testinde kamera **kaydırıyor, zoom değişmiyor**.
+- **Dağıtım:** Çalışma dalı izole, Production ve `main` üzerindeki mevcut sistem değiştirilmedi; bu ek yeni yayın onayı değildir. Eski `100% ready` beyanları yeni kodu otomatik onaylamaz.
