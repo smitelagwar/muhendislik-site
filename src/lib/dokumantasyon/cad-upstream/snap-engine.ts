@@ -7,7 +7,7 @@ export function projectPerpendicularPoint(
   const dx = line.b.x - line.a.x;
   const dy = line.b.y - line.a.y;
   const lenSq = dx * dx + dy * dy;
-  if (lenSq <= 1e-9) return null;
+  if (!Number.isFinite(lenSq) || lenSq <= Number.EPSILON) return null;
   const t = ((origin.x - line.a.x) * dx + (origin.y - line.a.y) * dy) / lenSq;
   return {
     point: {
@@ -279,6 +279,15 @@ export class CadSnapEngine {
     if (primitive.kind !== "line" && (!(primitive.radius > 0) || !Number.isFinite(primitive.radius))) {
       return;
     }
+    // Replacing an entity must invalidate stale spatial-index membership.
+    const previous = this.primitives.get(primitive.id);
+    if (previous) {
+      for (const key of this.keysForBounds(primitiveBounds(previous))) {
+        const ids = this.cells.get(key);
+        ids?.delete(primitive.id);
+        if (ids?.size === 0) this.cells.delete(key);
+      }
+    }
     this.primitives.set(primitive.id, primitive);
     const bounds = primitiveBounds(primitive);
     for (const key of this.keysForBounds(bounds)) {
@@ -328,7 +337,7 @@ export class CadSnapEngine {
         push("nearest", nearestOnLine(input.point, primitive), [primitive.id]);
         if (input.origin && modes.has("perpendicular")) {
           const perp = projectPerpendicularPoint(input.origin, primitive);
-          if (perp && perp.t >= -0.05 && perp.t <= 1.05) {
+          if (perp && perp.t >= -EPS && perp.t <= 1 + EPS) {
             push("perpendicular", perp.point, [primitive.id]);
           }
         }

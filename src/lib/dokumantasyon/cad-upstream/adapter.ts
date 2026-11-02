@@ -59,6 +59,10 @@ import {
   CadChainDistanceController,
   type CadChainDistanceCallbacks,
 } from "./chain-distance";
+import {
+  sourceContextFromInsunits,
+  type CadSourceUnitContext,
+} from "../cad-review/units";
 export type {
   CadChainDistanceCallbacks,
   CadChainDistanceResult,
@@ -1346,8 +1350,8 @@ export class CadUpstreamAdapter {
     this.chainDistanceMeasurementController = new CadChainDistanceController(
       this.interactionHost,
       {
-        resolvePoint: (screenPoint, snapModes) =>
-          this.resolveDistancePoint(screenPoint, snapModes),
+        resolvePoint: (screenPoint, snapModes, options) =>
+          this.resolveDistancePoint(screenPoint, snapModes, options),
         projectWorldPoint: (point) => this.projectWorldPoint(point),
         setCameraInteractionEnabled: (enabled) =>
           this.setCameraInteractionEnabled(enabled),
@@ -1482,6 +1486,11 @@ export class CadUpstreamAdapter {
       return;
     }
 
+    if (this.activeMeasurementCommand === "chain_distance") {
+      this.chainDistanceMeasurementController?.cancel(true);
+    } else if (this.activeMeasurementCommand === "area") {
+      this.areaMeasurementController?.cancel(true);
+    }
     this.activeMeasurementCommand = null;
     this.restorePanMode();
     void this.manager.commandManager.cancelActive().catch(() => {});
@@ -1875,6 +1884,36 @@ export class CadUpstreamAdapter {
     if (this.destroyed || !this.chainDistanceMeasurementController) return false;
     this.chainDistanceMeasurementController.finish();
     return true;
+  }
+
+  isChainDistanceActive(): boolean {
+    return !this.destroyed && (this.chainDistanceMeasurementController?.isActive ?? false);
+  }
+
+  confirmChainDistancePoint(): boolean {
+    return !this.destroyed && (this.chainDistanceMeasurementController?.confirmPreviewPoint() ?? false);
+  }
+
+  popChainDistancePoint(): boolean {
+    if (this.destroyed || !this.chainDistanceMeasurementController) return false;
+    this.chainDistanceMeasurementController.removeLastPoint();
+    return true;
+  }
+
+  updateChainDistanceSnapModes(snapModes: ReadonlySet<CadSnapMode>): void {
+    this.chainDistanceMeasurementController?.updateSnapModes(snapModes);
+  }
+
+  /**
+   * Read-only source metadata bridge. Only a finite INSUNITS from the opened
+   * database is trusted; no guessed physical unit for unsupported/missing.
+   */
+  getSourceUnitContext(): CadSourceUnitContext {
+    const db = this.manager.curDocument?.database as unknown as {
+      insunits?: unknown;
+    } | undefined;
+    const code = db?.insunits;
+    return sourceContextFromInsunits(typeof code === "number" && Number.isInteger(code) ? code : null);
   }
 
   finishAreaMeasurement(): boolean {

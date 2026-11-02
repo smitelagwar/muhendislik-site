@@ -38,7 +38,8 @@ export interface CadChainDistanceCallbacks {
 export interface CadChainDistanceRuntime {
   readonly resolvePoint: (
     screenPoint: CadSnapPoint,
-    snapModes: ReadonlySet<CadSnapMode>
+    snapModes: ReadonlySet<CadSnapMode>,
+    options?: { originPoint?: CadSnapPoint | null }
   ) => { point: CadSnapPoint; snap: CadSnapCandidate | null } | null;
   readonly projectWorldPoint?: (point: CadSnapPoint) => CadSnapPoint | null;
   readonly setCameraInteractionEnabled?: (enabled: boolean) => void;
@@ -55,7 +56,7 @@ export class CadChainDistanceMachine {
   }
 
   get isActive(): boolean {
-    return this.phaseValue !== "inactive";
+    return this.phaseValue === "awaiting-first" || this.phaseValue === "awaiting-next";
   }
 
   get points(): readonly CadSnapPoint[] {
@@ -71,7 +72,7 @@ export class CadChainDistanceMachine {
   }
 
   addPoint(point: CadSnapPoint): CadChainDistanceSnapshot {
-    if (this.phaseValue === "inactive") return this.snapshot();
+    if (this.phaseValue !== "awaiting-first" && this.phaseValue !== "awaiting-next") return this.snapshot();
 
     // Epsilon check: avoid duplicate consecutive points (< 1e-4 distance)
     const last = this.pointsValue[this.pointsValue.length - 1];
@@ -108,6 +109,7 @@ export class CadChainDistanceMachine {
   }
 
   complete(): { snapshot: CadChainDistanceSnapshot; result: CadChainDistanceResult | null } {
+    if (!this.isActive) return { snapshot: this.snapshot(), result: null };
     if (this.pointsValue.length < 2) {
       this.phaseValue = "inactive";
       this.pointsValue = [];
@@ -161,6 +163,9 @@ export class CadChainDistanceController {
   private destroyed = false;
   private readonly machine = new CadChainDistanceMachine();
   private callbacks: CadChainDistanceCallbacks = {};
+  private lastMouseDown: { x: number; y: number; time: number } | null = null;
+  private activePointerId: number | null = null;
+  private lastPointerType: string | null = null;
   private snapModes: ReadonlySet<CadSnapMode> = new Set([
     "endpoint",
     "midpoint",
@@ -175,13 +180,20 @@ export class CadChainDistanceController {
     this.attach();
   }
 
+  get isActive(): boolean {
+    return !this.destroyed && this.machine.isActive;
+  }
+
   start(
     snapModes?: ReadonlySet<CadSnapMode>,
     callbacks?: CadChainDistanceCallbacks
   ): CadChainDistanceSnapshot {
     if (this.destroyed) return this.machine.snapshot();
-    if (snapModes) this.snapModes = snapModes;
+    if (snapModes) this.snapModes = new Set(snapModes);
     this.callbacks = callbacks ?? {};
+    this.lastMouseDown = null;
+    this.activePointerId = null;
+    this.lastPointerType = null;
     this.runtime.setCameraInteractionEnabled?.(false);
     const snap = this.machine.start();
     this.emit(snap);
@@ -191,28 +203,49 @@ export class CadChainDistanceController {
   cancel(notify = true): void {
     if (this.destroyed) return;
     const wasActive = this.machine.isActive;
+    const callbacks = this.callbacks;
+    this.callbacks = {};
+    this.lastMouseDown = null;
+    this.activePointerId = null;
+    this.machine.cancel();
     this.runtime.setCameraInteractionEnabled?.(true);
-    const snap = this.machine.cancel();
-    this.emit(snap);
-    if (notify && wasActive) {
-      this.callbacks.onCancel?.();
-    }
+    callbacks.onSnapshot?.(null);
+    if (notify && wasActive) callbacks.onCancel?.();
   }
 
+  /** Completion is one-shot; incomplete chains cancel without creating history. */
   finish(): void {
-    if (this.destroyed) return;
-    const { snapshot, result } = this.machine.complete();
+    if (this.destroyed || !this.machine.isActive) return;
+    const { result } = this.machine.complete();
+    const callbacks = this.callbacks;
+    this.callbacks = {};
+    this.machine.cancel();
+    this.lastMouseDown = null;
+    this.activePointerId = null;
     this.runtime.setCameraInteractionEnabled?.(true);
-    this.emit(snapshot);
-    if (result) {
-      this.callbacks.onComplete?.(result);
-    }
+    callbacks.onSnapshot?.(null);
+    if (result) callbacks.onComplete?.(result);
+    else callbacks.onCancel?.();
+  }
+
+  updateSnapModes(modes: ReadonlySet<CadSnapMode>): void {
+    this.snapModes = new Set(modes);
+  }
+
+  /** On touch devices the first tap aims; the overlay's Add button confirms. */
+  confirmPreviewPoint(): boolean {
+    if (this.destroyed || !this.machine.isActive) return false;
+    const snap = this.machine.snapshot();
+    if (!snap.previewPoint) return false;
+    const before = this.machine.points.length;
+    this.emit(this.machine.addPoint(snap.previewPoint));
+    return this.machine.points.length > before;
   }
 
   removeLastPoint(): void {
     if (this.destroyed || !this.machine.isActive) return;
-    const snap = this.machine.removeLastPoint();
-    this.emit(snap);
+    this.lastMouseDown = null;
+    this.emit(this.machine.removeLastPoint());
   }
 
   destroy(): void {
@@ -236,25 +269,40 @@ export class CadChainDistanceController {
 
   private readonly handlePointerDown = (event: PointerEvent): void => {
     if (this.destroyed || !this.machine.isActive || event.button > 0) return;
+    this.activePointerId = event.pointerId;
+    this.lastPointerType = event.pointerType;
     event.preventDefault();
     const screenPoint = this.eventScreenPoint(event);
-    const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes);
+    const origin = this.machine.points[this.machine.points.length - 1] ?? null;
+    const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes, { originPoint: origin });
     if (!resolved) return;
-
-    const snap = this.machine.addPoint(resolved.point);
-    this.emit(snap);
+    if (event.pointerType === "touch") {
+      this.emit(this.machine.updatePreview(resolved)); // tap-to-aim, not an accidental commit
+      return;
+    }
+    const time = event.timeStamp;
+    if (this.lastMouseDown &&
+        time >= this.lastMouseDown.time && time - this.lastMouseDown.time < 380 &&
+        Math.hypot(screenPoint.x - this.lastMouseDown.x, screenPoint.y - this.lastMouseDown.y) <= 5) {
+      return; // second press of a double-click must not add a phantom vertex
+    }
+    this.lastMouseDown = { ...screenPoint, time };
+    this.emit(this.machine.addPoint(resolved.point));
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
     if (this.destroyed || !this.machine.isActive) return;
     const screenPoint = this.eventScreenPoint(event);
-    const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes);
+    const origin = this.machine.points[this.machine.points.length - 1] ?? null;
+    const resolved = this.runtime.resolvePoint(screenPoint, this.snapModes, { originPoint: origin });
     const snap = this.machine.updatePreview(resolved);
     this.emit(snap);
   };
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
-    if (this.destroyed || !this.machine.isActive) return;
+    if (this.destroyed || !this.machine.isActive || event.isComposing) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest?.("input, textarea, select, [contenteditable='true'], [role='textbox']")) return;
     if (event.key === "Enter") {
       event.preventDefault();
       this.finish();
@@ -263,12 +311,41 @@ export class CadChainDistanceController {
       this.removeLastPoint();
     } else if (event.key === "Escape") {
       event.preventDefault();
-      this.cancel(true);
+      // First ESC discards only the in-progress points; the next exits the tool.
+      const snap = this.machine.snapshot();
+      if (snap.points.length > 0 || snap.previewPoint) {
+        this.lastMouseDown = null;
+        this.emit(this.machine.start());
+      } else {
+        this.cancel(true);
+      }
     }
   };
 
+  private readonly handlePointerUp = (event: PointerEvent): void => {
+    if (event.pointerId === this.activePointerId) this.activePointerId = null;
+  };
+
+  private readonly handlePointerCancel = (event: PointerEvent): void => {
+    if (this.machine.isActive && (this.activePointerId === null ||
+        event.pointerId === this.activePointerId)) this.cancel(true);
+  };
+
+  private readonly handleLostPointerCapture = (event: PointerEvent): void => {
+    // Normal release after pointerup is not a cancellation!
+    if (this.machine.isActive && event.pointerId === this.activePointerId) this.cancel(true);
+  };
+
+  private readonly handleWindowBlur = (): void => {
+    if (this.machine.isActive) this.cancel(true);
+  };
+
+  private readonly handleVisibilityChange = (): void => {
+    if (typeof document !== "undefined" && document.hidden && this.machine.isActive) this.cancel(true);
+  };
+
   private readonly handleDblClick = (event: MouseEvent): void => {
-    if (this.destroyed || !this.machine.isActive) return;
+    if (this.destroyed || !this.machine.isActive || this.lastPointerType === "touch") return;
     event.preventDefault();
     this.finish();
   };
@@ -276,14 +353,26 @@ export class CadChainDistanceController {
   private attach(): void {
     this.host.addEventListener("pointerdown", this.handlePointerDown, { passive: false });
     this.host.addEventListener("pointermove", this.handlePointerMove, { passive: true });
+    this.host.addEventListener("pointerup", this.handlePointerUp);
+    this.host.addEventListener("pointercancel", this.handlePointerCancel);
+    this.host.addEventListener("lostpointercapture", this.handleLostPointerCapture);
     this.host.addEventListener("dblclick", this.handleDblClick, { passive: false });
     window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("blur", this.handleWindowBlur);
+    window.addEventListener("pagehide", this.handleWindowBlur);
+    document.addEventListener("visibilitychange", this.handleVisibilityChange);
   }
 
   private detach(): void {
     this.host.removeEventListener("pointerdown", this.handlePointerDown);
     this.host.removeEventListener("pointermove", this.handlePointerMove);
+    this.host.removeEventListener("pointerup", this.handlePointerUp);
+    this.host.removeEventListener("pointercancel", this.handlePointerCancel);
+    this.host.removeEventListener("lostpointercapture", this.handleLostPointerCapture);
     this.host.removeEventListener("dblclick", this.handleDblClick);
     window.removeEventListener("keydown", this.handleKeyDown);
+    window.removeEventListener("blur", this.handleWindowBlur);
+    window.removeEventListener("pagehide", this.handleWindowBlur);
+    document.removeEventListener("visibilitychange", this.handleVisibilityChange);
   }
 }

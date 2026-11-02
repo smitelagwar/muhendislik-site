@@ -9,7 +9,12 @@
 
 import React, { useCallback } from "react";
 import type { CadReviewItem } from "@/lib/dokumantasyon/cad-review/schema";
-import { formatCadDistance, formatCadArea } from "@/lib/dokumantasyon/cad-review/units";
+import {
+  formatCadDistance,
+  formatCadArea,
+  formatCapturedDistance,
+  formatCapturedArea,
+} from "@/lib/dokumantasyon/cad-review/units";
 
 export type ProjectPointFn = (point: { x: number; y: number }) => { x: number; y: number } | null;
 
@@ -135,7 +140,11 @@ function ReviewItemRenderer({
     if (!s || !e) return null;
     const mx = (s.x + e.x) / 2;
     const my = (s.y + e.y) / 2;
-    const label = item.label ?? formatCadDistance(item.measuredLength, "m", 2);
+    const label = item.label ?? (
+      item.measurementContext
+        ? formatCapturedDistance(item.measuredLength, item.measurementContext)
+        : formatCadDistance(item.measuredLength, "m", 2)
+    );
     return (
       <g {...commonProps} data-review-type="distance" data-review-id={item.id}>
         <line x1={s.x} y1={s.y} x2={e.x} y2={e.y} stroke={color} strokeWidth={sw} />
@@ -171,7 +180,9 @@ function ReviewItemRenderer({
     if (projected.some((p) => !p)) return null;
     const pts = projected as { x: number; y: number }[];
     const d = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-    const label = formatCadDistance(item.totalDistance, "m", 2);
+    const label = item.measurementContext
+      ? formatCapturedDistance(item.totalDistance, item.measurementContext)
+      : formatCadDistance(item.totalDistance, "m", 2);
     return (
       <g {...commonProps} data-review-type="chain_distance" data-review-id={item.id}>
         <path d={d} fill="none" stroke={color} strokeWidth={sw} strokeLinejoin="round" />
@@ -210,7 +221,9 @@ function ReviewItemRenderer({
       pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ") + " Z";
     const cx = pts.reduce((sum, p) => sum + p.x, 0) / pts.length;
     const cy = pts.reduce((sum, p) => sum + p.y, 0) / pts.length;
-    const label = formatCadArea(item.measuredArea, "m", 2);
+    const label = item.measurementContext
+      ? formatCapturedArea(item.measuredArea, item.measurementContext)
+      : formatCadArea(item.measuredArea, "m", 2);
     return (
       <g {...commonProps} data-review-type="area" data-review-id={item.id}>
         <path

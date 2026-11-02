@@ -12,6 +12,7 @@ import {
   type CadBackgroundColorOption,
   type CadDistanceMeasurementSnapshot,
   type CadAreaMeasurementSnapshot,
+  type CadChainDistanceSnapshot,
   type CadLayerItem,
   type CadLoadingPhase,
   type CadUpstreamDisplayMode,
@@ -40,6 +41,12 @@ import { CadTechnologyLoader } from "./cad-technology-loader";
 // ── CAD Review V1 ──────────────────────────────────────────────────────────────
 import type { CadSidePanelTab, CadTextSearchResultItem } from "./cad-review-side-panel";
 import { CadReviewOverlay } from "./cad-review-overlay";
+import { CadChainDistanceOverlay } from "./cad-chain-distance-overlay";
+import {
+  captureMeasurementContext,
+  formatCapturedDistance,
+  sourceContextFromInsunits,
+} from "@/lib/dokumantasyon/cad-review/units";
 
 // ── Non-critical UI panels deferred from initial frame bundle ─────────────────
 const CadLayerPanel = dynamic(
@@ -175,6 +182,7 @@ export function DokCadUpstreamViewer({
   const [areaMeasurements, setAreaMeasurements] = useState<
     CompletedAreaMeasurement[]
   >([]);
+  const [chainSnapshot, setChainSnapshot] = useState<CadChainDistanceSnapshot | null>(null);
   const [, setViewRevision] = useState(0);
   const [fontDiagnostics, setFontDiagnostics] = useState<CadFontParityEvaluation | null>(null);
   const [isSnapReady, setIsSnapReady] = useState(false);
@@ -207,7 +215,9 @@ export function DokCadUpstreamViewer({
   });
   const [measurementUnitSettings, setMeasurementUnitSettings] = useState<CadMeasurementUnitSettings>({
     unit: "m",
+    areaUnit: "m2",
     precision: 2,
+    areaPrecision: 2,
     color: "#3b82f6",
   });
   const [saveStatus, setSaveStatus] = useState<"clean" | "dirty" | "saving">("clean");
@@ -542,6 +552,7 @@ export function DokCadUpstreamViewer({
       setDistanceMeasurements([]);
       setAreaSnapshot(null);
       setAreaMeasurements([]);
+      setChainSnapshot(null);
       setIsSnapReady(false);
       setIsTextSearchReady(false);
       setTextSearchError(null);
@@ -810,6 +821,7 @@ export function DokCadUpstreamViewer({
       }
 
       if (event.key === "Escape") {
+        if (adapterRef.current?.isChainDistanceActive()) return;
         setLayerPanelOpen(false);
         setSnapPanelOpen(false);
         setViewPanelOpen(false);
@@ -906,6 +918,7 @@ export function DokCadUpstreamViewer({
     adapterRef.current?.updateDistanceMeasurementSnapModes(
       getEnabledCadSnapModes(next)
     );
+    adapterRef.current?.updateChainDistanceSnapModes(getEnabledCadSnapModes(next));
   };
 
   const handleZoomToFit = () => {
@@ -1016,6 +1029,7 @@ export function DokCadUpstreamViewer({
     await adapter.cancelActiveCommand();
     setDistanceSnapshot(null);
     setAreaSnapshot(null);
+    setChainSnapshot(null);
 
     if (!adapter.isSnapReady()) {
       setIsPreparingTool(true);
@@ -1025,11 +1039,22 @@ export function DokCadUpstreamViewer({
       const started = await adapter.startChainDistanceMeasurement(
         getEnabledCadSnapModes(snapSettings),
         {
-          onSnapshot: () => {},
+          onSnapshot: setChainSnapshot,
           onComplete: (measurement) => {
-            if (reviewStoreRef.current) {
-              reviewStoreRef.current.addItem({
-                id: `chain-${Date.now()}`,
+            setChainSnapshot(null);
+            const store = reviewStoreRef.current;
+            if (store) {
+              const settings = store.getMeasurementUnitSettings();
+              const context = captureMeasurementContext(adapter.getSourceUnitContext(), {
+                displayUnit: settings.unit,
+                areaDisplayUnit: settings.areaUnit,
+                precision: settings.precision,
+                areaPrecision: settings.areaPrecision,
+              });
+              const now = new Date().toISOString();
+              const committed = store.addMeasuredItem({
+                id: typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                  ? crypto.randomUUID() : `chain-${Date.now()}`,
                 type: "chain_distance",
                 points: measurement.points.map((p) => ({ x: p.x, y: p.y })),
                 segmentDistances: [...measurement.segmentDistances],
@@ -1037,15 +1062,17 @@ export function DokCadUpstreamViewer({
                 author: "Admin",
                 comment: "",
                 status: "open",
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-                style: { color: "#007aff", strokeWidth: 2, opacity: 1 },
-              });
+                createdAt: now,
+                updatedAt: now,
+                style: { color: settings.color, strokeWidth: 2, opacity: 1 },
+              }, context);
+              if (!committed) toast.error("Zincir ölçümü kaydedilemedi; veri geçerliliğini kontrol edin.");
             }
             setReviewTool("select");
             reviewStoreRef.current?.setActiveTool("select");
           },
           onCancel: () => {
+            setChainSnapshot(null);
             setReviewTool("select");
             reviewStoreRef.current?.setActiveTool("select");
           },
@@ -1136,6 +1163,7 @@ export function DokCadUpstreamViewer({
 
   // ── CAD Review V1 Handlers ─────────────────────────────────────────────────
   const handleSelectReviewTool = useCallback((tool: CadReviewTool) => {
+    if (tool !== "chain_distance") setChainSnapshot(null);
     setReviewTool(tool);
     reviewStoreRef.current?.setActiveTool(tool);
 
@@ -1325,6 +1353,19 @@ export function DokCadUpstreamViewer({
         ) : null}
 
         {state === "ready" ? (
+          <CadChainDistanceOverlay
+            snapshot={chainSnapshot}
+            projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
+            sourceContext={adapterRef.current?.getSourceUnitContext() ?? sourceContextFromInsunits(null)}
+            displayUnit={measurementUnitSettings.unit}
+            precision={measurementUnitSettings.precision}
+            onConfirmPoint={() => adapterRef.current?.confirmChainDistancePoint()}
+            onUndoPoint={() => adapterRef.current?.popChainDistancePoint()}
+            onFinish={() => adapterRef.current?.finishChainDistanceMeasurement()}
+          />
+        ) : null}
+
+        {state === "ready" ? (
           <CadAreaOverlay
             snapshot={areaSnapshot}
             measurements={areaMeasurements}
@@ -1341,7 +1382,7 @@ export function DokCadUpstreamViewer({
             projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
             containerWidth={containerSize.width}
             containerHeight={containerSize.height}
-            onClickItem={(id) => reviewStoreRef.current?.setSelectedItems([id])}
+            onClickItem={chainSnapshot ? undefined : (id) => reviewStoreRef.current?.setSelectedItems([id])}
           />
         ) : null}
 
@@ -1371,6 +1412,8 @@ export function DokCadUpstreamViewer({
                     ? `${(item as { measuredLength: number }).measuredLength.toFixed(2)}`
                     : item.type === "area"
                     ? `${(item as { measuredArea: number }).measuredArea.toFixed(2)}`
+                    : item.measurementContext
+                    ? formatCapturedDistance(item.totalDistance, item.measurementContext)
                     : `${(item as { totalDistance: number }).totalDistance.toFixed(2)}`,
               }))}
             onDeleteMeasurement={(id) => reviewStoreRef.current?.removeItem(id)}

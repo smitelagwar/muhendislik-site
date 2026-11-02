@@ -206,7 +206,9 @@ export function CadStudioRibbon({
   onUpdateMarkupStyle,
   measurementUnitSettings = {
     unit: "m",
+    areaUnit: "m2",
     precision: 2,
+    areaPrecision: 2,
     color: "#3b82f6",
   },
   onUpdateMeasurementUnitSettings,

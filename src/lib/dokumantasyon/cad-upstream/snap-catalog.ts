@@ -138,6 +138,20 @@ function readVertices(entity: EntityLike): CadSnapPoint[] {
   return [];
 }
 
+function getPolylineBulge(entity: EntityLike, index: number): number {
+  const vertices = Array.isArray(entity.vertices) ? entity.vertices : null;
+  const vertex = vertices?.[index] as { bulge?: unknown } | undefined;
+  if (typeof vertex?.bulge === "number" && Number.isFinite(vertex.bulge)) return vertex.bulge;
+  const getter = entity.getBulgeAt;
+  if (typeof getter === "function") {
+    try {
+      const value = getter.call(entity, index) as unknown;
+      if (typeof value === "number" && Number.isFinite(value)) return value;
+    } catch { /* original entity remains read-only */ }
+  }
+  return 0;
+}
+
 function pushPolyline(
   out: CadSnapPrimitive[],
   entity: EntityLike,
@@ -145,17 +159,42 @@ function pushPolyline(
   id: string,
   layer?: string
 ): void {
-  const vertices = readVertices(entity).map((p) => transformPoint(matrix, p));
+  const sourceVertices = readVertices(entity);
+  const vertices = sourceVertices.map((p) => transformPoint(matrix, p));
   if (vertices.length < 2) return;
   const closed = Boolean(entity.closed ?? entity.isClosed);
   const segmentCount = closed ? vertices.length : vertices.length - 1;
   for (let i = 0; i < segmentCount; i++) {
+    const a = vertices[i]!;
+    const b = vertices[(i + 1) % vertices.length]!;
+    const bulge = getPolylineBulge(entity, i);
+    if (Math.abs(bulge) > 1e-12) {
+      // Bulge = tan(sweep/4); never silently treat the curved edge as a chord.
+      const p = sourceVertices[i]!;
+      const q = sourceVertices[(i + 1) % sourceVertices.length]!;
+      const dx = q.x - p.x;
+      const dy = q.y - p.y;
+      const chord = Math.hypot(dx, dy);
+      if (!(chord > 0)) continue;
+      const factor = (1 - bulge * bulge) / (4 * bulge);
+      const center = {
+        x: (p.x + q.x) / 2 - dy * factor,
+        y: (p.y + q.y) / 2 + dx * factor,
+      };
+      const radius = Math.hypot(p.x - center.x, p.y - center.y);
+      pushCircleOrArc(out, {
+        center, radius, clockwise: bulge < 0,
+        startAngle: Math.atan2(p.y - center.y, p.x - center.x),
+        endAngle: Math.atan2(q.y - center.y, q.x - center.x),
+      }, matrix, `${id}:bulge:${i}`, layer, true);
+      continue;
+    }
     out.push({
       kind: "line",
       id: `${id}:seg:${i}`,
       layer,
-      a: vertices[i]!,
-      b: vertices[(i + 1) % vertices.length]!,
+      a,
+      b,
     });
   }
 }
@@ -192,9 +231,25 @@ function pushCircleOrArc(
   }
   const r = radius * scales.x;
   if (arc) {
-    const startAngle = typeof entity.startAngle === "number" ? entity.startAngle : 0;
-    const endAngle = typeof entity.endAngle === "number" ? entity.endAngle : Math.PI * 2;
-    out.push({ kind: "arc", id, layer, center: transformedCenter, radius: r, startAngle, endAngle, clockwise: Boolean(entity.clockwise) });
+    // The original angles are local to the block. Transform actual endpoints
+    // into world space, including parent rotation and negative determinant.
+    const startLocal = typeof entity.startAngle === "number" ? entity.startAngle : 0;
+    const endLocal = typeof entity.endAngle === "number" ? entity.endAngle : Math.PI * 2;
+    const start = transformPoint(matrix, {
+      x: center.x + Math.cos(startLocal) * radius,
+      y: center.y + Math.sin(startLocal) * radius,
+    });
+    const end = transformPoint(matrix, {
+      x: center.x + Math.cos(endLocal) * radius,
+      y: center.y + Math.sin(endLocal) * radius,
+    });
+    const det = matrix[0]! * matrix[5]! - matrix[1]! * matrix[4]!;
+    const startAngle = Math.atan2(start.y - transformedCenter.y, start.x - transformedCenter.x);
+    const endAngle = Math.atan2(end.y - transformedCenter.y, end.x - transformedCenter.x);
+    out.push({
+      kind: "arc", id, layer, center: transformedCenter, radius: r,
+      startAngle, endAngle, clockwise: Boolean(entity.clockwise) !== (det < 0),
+    });
   } else {
     out.push({ kind: "circle", id, layer, center: transformedCenter, radius: r });
   }

@@ -4,9 +4,9 @@ Plan revision: 2
 Date: 2026-11-02 (Europe/Istanbul)
 Planning status: PLAN_HAZIR
 Execution status: KOD_HAZIR_DOGRULAMA_BEKLIYOR
-Completed stages: ASAMA_01, ASAMA_02 (code checkpoint; runtime verification pending)
+Completed stages: ASAMA_01, ASAMA_02, ASAMA_03 (code checkpoints; runtime verification pending)
 Active stage: none
-Next stage: ASAMA_03 (ONLY after user says devam)
+Next stage: ASAMA_04 (ONLY after user says devam)
 Stage 01 acceptance: DOCUMENTED_BASELINE; runtime/device verification NOT_RUN
 Release-ready: NO
 Branch: internal-cad-v1-pro-review-r2-20261102
@@ -14,7 +14,7 @@ Checkpoint: this document's containing branch HEAD (first stage checkpoint; see 
 Checkpoint parent: 32a1c818d06c5b191cdc5bd4efdeaf71407e6559
 Plan source: attached revision 2 copied verbatim to PLAN.md
 Deployment: no Preview, no Production, no main merge
-Scope: ASAMA_01 documented baseline + ASAMA_02 additive review data, unit, history and test contract; engine frozen
+Scope: ASAMA_01 baseline + ASAMA_02 validated review data + ASAMA_03 chain/OSNAP/preview bridge, engine frozen
 
 ## 1. Branch, source and engine freeze
 
@@ -251,3 +251,70 @@ No new global pointer coordinator is added: root cause of duplicate events has n
 - Remaining blockers: actual metadata wiring, all distance/area committed to one store, server GET stale reference, real export/PDF correctness, complete regression and physical tests, GPL deployed assets/legal review. No release approval.
 
 Rollback is revert of ASAMA_02 atomic commit only; preserve ASAMA_01 and protected engine. STOP. Next ASAMA_03 only upon another explicit user command devam.
+
+
+## 9. ASAMA_03 — Chain distance / OSNAP / ownership vertical slice
+
+Date: 2026-11-02 Europe/Istanbul
+Status: **KOD_HAZIR_DOGRULAMA_BEKLIYOR**. Source changes checkpointed; no TypeScript/Playwright or physical device PASS, no deployment. The stage's entire browser/reload/export acceptance is NOT YET SATISFIED.
+Branch: internal-cad-v1-pro-review-r2-20261102. Atomic stage checkpoint SHA is the commit containing this state section.
+
+### Scope and changes
+
+- src/lib/dokumantasyon/cad-upstream/chain-distance.ts: one-shot chain finish and controller callback, transient segments/Backspace, double-click suppress second pointerdown within 5 CSS px and 380 ms, first ESC resets in-progress draft and second exits, keyboard typing isolation, pointercancel/blur/visibility/pagehide cleanup, normal pointerup+lostcapture safety, explicit touch aim and confirm button, last point as perpendicular snap origin.
+- src/lib/dokumantasyon/cad-upstream/adapter.ts: narrow adapter bridge for previous snap origin, active chain getter, confirm-point/undo-point/update modes, read-only INSUNITS unit metadata lookup, and correct chain/area cancel on two-touch gesture. No renderer, parser, database mutation or viewer engine changes.
+- src/lib/dokumantasyon/cad-upstream/snap-engine.ts: perpendicular foot must fall on segment; spatial-index duplicate ID replacement removes prior cell entries. Existing six OSNAP modes and grid are preserved.
+- src/lib/dokumantasyon/cad-upstream/snap-catalog.ts: arc start/end transformed into world angles under rotations/mirrors; negative determinant reverses sweep. Polyline bulge recognized by vertex.get bulge/getBulgeAt and represented by circular arc rather than false straight chord. Cached polyline source vertices once per input; nested INSERT transform recursion retained.
+- src/components/dokumantasyon/preview/cad-chain-distance-overlay.tsx: SVG transient connected segments and rubber band, OSNAP mode-dependent marker, dynamic source-aware total and point count; responsive explicit Point Add, Undo Point, Finish controls including touch aim-confirm.
+- src/components/dokumantasyon/preview/cad-upstream-viewer.tsx: necessary bounded chain callback/overlay bridge, snap modes updates, source-aware measurementContext capture and single-store addMeasuredItem; chain review labels, ESC ownership, chain overlay pointer pass-through; stage02 unit defaults completed.
+- src/components/dokumantasyon/preview/cad-review-overlay.tsx: frozen context display for persisted chain/distance/area items when available; old records retain legacy labels.
+- src/components/dokumantasyon/preview/cad-studio-ribbon.tsx: narrowly restore required areaUnit/areaPrecision defaults for ASAMA_02 type compatibility. No ribbon controls removed or reorganized.
+- tests/document-studio/cad-chain-stage03-contract.test.ts: pure Node/TSX oracle, snap, nested insertion, bulge and fake event-host/controller lifecycle plus in-memory store/JSON cycle.
+- docs/cad-v1-review/IMPLEMENTATION_STATE.md: this stage audit.
+
+### Root-cause/evidence (code-confirmed, live symptoms NOT_RUN)
+
+1. Previous host chain callback had onSnapshot: () => {}, so live chain path was not rendered by host. Added dedicated ephemeral overlay instead of a new renderer.
+2. Chain controller's complete could be invoked repeatedly while phase remained complete, and doubleclick's second pointerdown could add an extra vertex. One-shot finish + duplicate guard + dedicated regression source.
+3. Previous adapter abortMeasurementForMultiTouch restored camera but did not cancel chain/area controller, allowing an active gesture to remain after pinch. Now calls proper cancel on those controller paths.
+4. Chain's resolver did not provide the last committed point as origin, so "perpendicular" candidate in snap-engine could never apply to chain. Narrow resolver options bridge added.
+5. Existing snap catalog used local arc start/end angles after a rotated or mirrored block insertion, and drew polyline bulges as straight edges. Now geometrically correct for uniform-scale circular arcs (bulge-based arcs included).
+6. Snap index add(same id) left old grid membership. Corrected without rebuilding global spatial data or introducing dependencies.
+7. Global host Escape key listener could cancel a chain while chain listener simultaneously processed the key; host now defers to active chain controller (no unproven new coordinator).
+8. Existing source unit and review undo pathways split. Chain now makes one store transaction with the ASAMA_02 source+display snapshot. History/JSON of chain are covered in tests; actual persistence still subject to the known server GET replacement defect.
+
+### Explicit technical limitations and performance
+
+- Existing spatial grid already indexes world bounds. No runtime pointermove latency or query counts could be obtained here: **NOT_RUN**, so no speculative quadtree/new index was added. Pairwise intersection cost can rise for dense local clusters; sample before optimization in a browser runner.
+- Database unit getter reads finite integer insunits when available. A missing or unverified value yields unitless/unknown and "çizim birimi" rather than invented metres. Whether a particular DWG/DXF parser's INSUNITS getter reflects a header default vs explicit source metadata requires real fixture validation; no physical-unit correctness PASS is claimed.
+- Nonuniform-scale circles/elliptic arcs still use the pre-existing polyline approximation in snap catalog; this is NOT an exact curved snap guarantee. Must be investigated with recorded fixtures before enabling high-accuracy acceptance.
+- Live server-load replacement of CadReviewStore and placeholder source hash are not resolved here; ASAMA_08 must implement consistent store owner and reliable fingerprint without data loss. Stage03 local JSON round-trip test does NOT prove browser F5/reload and server persistence.
+- Review DXF export retains raw chain geometry but legacy DXF text/units and PDF binary bug remain for ASAMA_08. Do NOT claim truthful end-to-end export unit labels yet.
+- For new records, raw world coordinates and segment total are persisted unchanged, and source/display context is captured. Old v1 review JSON is not destructively migrated.
+- Touch flow: touching canvas aims preview, separate Add Point confirms; second touch cancels active chain and releases camera to navigation. Needs real browser/stylus/pinch verification; event tests are mocks, not physical device proof.
+- Layer visibility uses existing adapter filter (visible = isOn && !isFrozen) and rebuild on layer-store change. Real layer-change event propagation needs runtime test.
+
+### Test matrix (do not overclaim)
+
+| Gate | Status | Evidence/owner |
+|---|---|---|
+| Relevant source diff within ASAMA_03 allowed boundaries | PASS (GitHub compare, after checkpoint) | GitHub ref, protected blob SHA |
+| Pure Node/TSX test | NOT_RUN | npx tsx --test tests/document-studio/cad-chain-stage03-contract.test.ts |
+| Existing machine+browser test | NOT_RUN | npx playwright test tests/document-studio/cad-chain-measurement.spec.ts |
+| Existing distance and native measure smoke | NOT_RUN | cad-stage5-distance-measurement.spec.ts / cad-native-measurements.spec.ts |
+| Typecheck and lint | NOT_RUN | npx tsc --noEmit / npx eslint (changed files) |
+| Real snap + layer/arc/nested insert fixture | NOT_RUN | insert-attrib-transforms.dxf / layers-frozen-locked-zero.dxf / known-geometry-measurements.dxf |
+| Mobile tap/confirm, double-click, ESC, multi touch/pinch | NOT_RUN | real Chromium and physical phone/tablet |
+| Browser F5/reload and true export/reimport; PDF magic bytes | NOT_RUN; partially blocked by existing host/review export defects | ASAMA_08 |
+| Snapshot/physical unit verified on actual INSUNITS source metadata | NOT_RUN | browser fixture + source metadata audit |
+| Vercel Preview or Production | NOT_DEPLOYED | explicitly prohibited until user authorization |
+
+### Two-minute real-user verification when an approved test runner is available
+
+1. Open known-geometry-measurements.dxf (source mm), use chain clicks along a 3000 then 4000 segment: expect raw total 7000 source units (7 m if INSUNITS=4 verified), two segments, visible rubber-band/OSNAP.
+2. Backspace removes the last temporary point. Doubleclick near the last point or use Finish: exactly one committed chain, no phantom point; Undo removes, Redo restores.
+3. Hit F5 and inspect saved chain; export JSON and review-only DXF, verify raw geometry/label consistency; if server GET path swaps store, record failure without claiming release PASS.
+4. On phone/tablet, touch targets for aim, press Nokta ekle for confirmation; two fingers while measuring cancels chain without a locked camera; test Escape and tool switch on desktop.
+5. Verify straight distance/normal pan, layer visibility including frozen layer, inserted mirrored block snap and arc bulge cases. Report values, browser/device/version and screenshot only from actual run.
+
+Rollback: revert **only ASAMA_03 checkpoint**, not main, golden renderer or ASAMA_01/02. No Preview/Production and no changes to parser/renderer/worker/fallback or MLightCAD dependencies. STOP after this stage; ASAMA_04 only with new user "devam".
