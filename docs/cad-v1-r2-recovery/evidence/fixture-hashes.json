@@ -1,0 +1,34 @@
+[
+  {
+    "size": 55259742,
+    "path": null,
+    "expected": "36f87f826fe4dd9a8f03f8c83bafeeddfc84f1e0efada5c0fded8014a2ef7cf1",
+    "actual": null,
+    "match": null,
+    "status": "NOT_FOUND_IN_TESTS_FIXTURES"
+  },
+  {
+    "size": 16084252,
+    "path": null,
+    "expected": "8ff5680fa4f9d570fed738def92bc6ca8149fde1b5aed9e0a495dd2baaf521e6",
+    "actual": null,
+    "match": null,
+    "status": "NOT_FOUND_IN_TESTS_FIXTURES"
+  },
+  {
+    "size": 3440087,
+    "path": null,
+    "expected": "17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086",
+    "actual": null,
+    "match": null,
+    "status": "NOT_FOUND_IN_TESTS_FIXTURES"
+  },
+  {
+    "size": 2139550,
+    "path": null,
+    "expected": "9a59ff9e5496e2a3c62b378f062e5f0f3cfa707b9bd4b5a0bf6749cd8bf52459",
+    "actual": null,
+    "match": null,
+    "status": "NOT_FOUND_IN_TESTS_FIXTURES"
+  }
+]

@@ -1,0 +1,281 @@
+[
+  {
+    "sha": "32a1c818d06c5b191cdc5bd4efdeaf71407e6559",
+    "date": "2026-11-02 10:31:58 +0300",
+    "subject": "docs(cad-v1): make professional CAD review standards mandatory [skip ci]",
+    "changed_path_count": 12,
+    "changed_paths": [
+      ".agents/rules/cad-dxf-engine-koruma.md",
+      ".agents/rules/cad-v1-review-kurallari.md",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "DOK_CONTEXT_MAP.md",
+      "GEMINI.md",
+      "PROJECT.md",
+      "docs/DOKUMANTASYON_CAD_MIMARI_HAFIZA.md",
+      "docs/cad-dxf-engine/AI_CHANGE_PROTOCOL.md",
+      "docs/cad-dxf-engine/README.md",
+      "docs/cad-review-architecture-decisions.md",
+      "docs/cad-review-tools.md"
+    ]
+  },
+  {
+    "sha": "d4340c77a34a0f3441f507a00e1fbd1e93cb98af",
+    "date": "2026-11-02 11:11:39 +0300",
+    "subject": "docs(cad-v1): capture R2 stage-01 baseline, tool audit and GPL risk [skip ci]",
+    "changed_path_count": 3,
+    "changed_paths": [
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+      "docs/cad-v1-review/PLAN.md",
+      "docs/cad-viewer-license-decision.md"
+    ]
+  },
+  {
+    "sha": "2bd4b07f72dc14dca8a04aaea16a5976cc0bde50",
+    "date": "2026-11-02 11:35:29 +0300",
+    "subject": "feat(cad-v1-review): stage 02 safe measurement units, history and schema contract [skip ci] [skip vercel]",
+    "changed_path_count": 7,
+    "changed_paths": [
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+      "src/lib/dokumantasyon/cad-review/measurement-facade.ts",
+      "src/lib/dokumantasyon/cad-review/schema.ts",
+      "src/lib/dokumantasyon/cad-review/store.ts",
+      "src/lib/dokumantasyon/cad-review/units.ts",
+      "tests/document-studio/cad-measurement-units.spec.ts",
+      "tests/document-studio/cad-review-stage02-contract.test.ts"
+    ]
+  },
+  {
+    "sha": "8ccd764149e2c076137d879951e21d55556b0c9b",
+    "date": "2026-11-02 11:55:23 +0300",
+    "subject": "feat(cad-v1): stage 03 chain live preview, snap geometry and input ownership [skip ci] [skip vercel]",
+    "changed_path_count": 10,
+    "changed_paths": [
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+      "src/components/dokumantasyon/preview/cad-chain-distance-overlay.tsx",
+      "src/components/dokumantasyon/preview/cad-review-overlay.tsx",
+      "src/components/dokumantasyon/preview/cad-studio-ribbon.tsx",
+      "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+      "src/lib/dokumantasyon/cad-upstream/adapter.ts",
+      "src/lib/dokumantasyon/cad-upstream/chain-distance.ts",
+      "src/lib/dokumantasyon/cad-upstream/snap-catalog.ts",
+      "src/lib/dokumantasyon/cad-upstream/snap-engine.ts",
+      "tests/document-studio/cad-chain-stage03-contract.test.ts"
+    ]
+  },
+  {
+    "sha": "21a63a47abfbd01ced11a6dc084bc1deb4555d88",
+    "date": "2026-11-02 12:24:06 +0300",
+    "subject": "feat(cad-v1): stage 04 preserve distance gesture and unify persisted review measurements [skip ci] [skip vercel]",
+    "changed_path_count": 8,
+    "changed_paths": [
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+      "src/components/dokumantasyon/preview/cad-distance-overlay.tsx",
+      "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+      "src/lib/dokumantasyon/cad-review/store.ts",
+      "src/lib/dokumantasyon/cad-upstream/adapter.ts",
+      "src/lib/dokumantasyon/cad-upstream/distance-measurement.ts",
+      "tests/document-studio/cad-distance-stage04-contract.test.ts",
+      "tests/document-studio/cad-stage5-distance-measurement.spec.ts"
+    ]
+  },
+  {
+    "sha": "f80204908f2c018606d4e626c97d94d3b89e50db",
+    "date": "2026-11-02 12:39:54 +0300",
+    "subject": "feat(cad-v1): stage 05 robust area perimeter and single review ownership [skip ci] [skip vercel]",
+    "changed_path_count": 8,
+    "changed_paths": [
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+      "src/components/dokumantasyon/preview/cad-area-overlay.tsx",
+      "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+      "src/lib/dokumantasyon/cad-upstream/adapter.ts",
+      "src/lib/dokumantasyon/cad-upstream/area-measurement.ts",
+      "src/lib/dokumantasyon/cad-upstream/polygon-geometry.ts",
+      "tests/document-studio/cad-area-stage05-contract.test.ts",
+      "tests/document-studio/cad-stage6-area-measurement.spec.ts"
+    ]
+  },
+  {
+    "sha": "5545f29232897ebd112d80e69831dcde396f6220",
+    "date": "2026-11-02 13:15:27 +0300",
+    "subject": "feat(cad-v1): stage 06 review selection, shape hit geometry and atomic markup edits [skip ci] [skip vercel]",
+    "changed_path_count": 10,
+    "changed_paths": [
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+      "src/components/dokumantasyon/preview/cad-review-overlay.tsx",
+      "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+      "src/lib/dokumantasyon/cad-review/cloud-generator.ts",
+      "src/lib/dokumantasyon/cad-review/hit-test.ts",
+      "src/lib/dokumantasyon/cad-review/markup-controller.ts",
+      "src/lib/dokumantasyon/cad-review/markup-facade.ts",
+      "src/lib/dokumantasyon/cad-review/store.ts",
+      "tests/document-studio/cad-markup-stage06-browser.spec.ts",
+      "tests/document-studio/cad-markup-stage06-contract.test.ts"
+    ]
+  },
+  {
+    "sha": "8db52b36c5104dfc334b46053ec872478e70776e",
+    "date": "2026-11-02 13:19:18 +0300",
+    "subject": "docs(cad-v1): stage 06 Vercel provisioning failure evidence [skip ci] [skip vercel]",
+    "changed_path_count": 1,
+    "changed_paths": [
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md"
+    ]
+  },
+  {
+    "sha": "9e4942282c3098ae2caae851e45d9b56000f6907",
+    "date": "2026-11-02 14:09:34 +0300",
+    "subject": "fix(cad-v1): remove duplicate area pop bridge blocking Preview typecheck [skip ci] [skip vercel]",
+    "changed_path_count": 1,
+    "changed_paths": [
+      "src/lib/dokumantasyon/cad-upstream/adapter.ts"
+    ]
+  },
+  {
+    "sha": "0377884d3d24bfe98e9e6911dbbc997ba977403b",
+    "date": "2026-11-02 14:28:10 +0300",
+    "subject": "fix(cad-v1): stage06 verified regressions, legacy JSON and render state [skip ci] [skip vercel]",
+    "changed_path_count": 3,
+    "changed_paths": [
+      "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+      "src/lib/dokumantasyon/cad-review/schema.ts",
+      "src/lib/dokumantasyon/cad-upstream/area-measurement.ts"
+    ]
+  },
+  {
+    "sha": "ebf82b9a579e36d21f56c91b9f372af5843b4f9b",
+    "date": "2026-11-02 14:49:30 +0300",
+    "subject": "test(cad-v1): use real window adapter and mouse coordinate precision [skip ci] [skip vercel]",
+    "changed_path_count": 1,
+    "changed_paths": [
+      "tests/document-studio/cad-markup-stage06-browser.spec.ts"
+    ]
+  },
+  {
+    "sha": "7f30174a2ca98b7aef8e55bb1aedbf4b5ffc1f36",
+    "date": "2026-11-02 15:03:02 +0300",
+    "subject": "test(cad-v1): correct historical adapter lookup and wait for source bounds [skip ci] [skip vercel]",
+    "changed_path_count": 2,
+    "changed_paths": [
+      "tests/document-studio/cad-markup-tools.spec.ts",
+      "tests/document-studio/cad-review-core.spec.ts"
+    ]
+  },
+  {
+    "sha": "0984e4e656daba97a16aace6df87d4fc2ca3efff",
+    "date": "2026-11-02 15:05:32 +0300",
+    "subject": "docs(cad-v1): stage06 final Preview and executed test audit [skip ci] [skip vercel]",
+    "changed_path_count": 1,
+    "changed_paths": [
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md"
+    ]
+  },
+  {
+    "sha": "0c093b8733f658825a20dc5283bfaafc2b34522d",
+    "date": "2026-11-02 15:32:32 +0300",
+    "subject": "feat(cad-v1): stage07 accessible review dialogs, freehand and atomic eraser [skip ci] [skip vercel]",
+    "changed_path_count": 7,
+    "changed_paths": [
+      "src/components/dokumantasyon/preview/cad-review-input-dialog.tsx",
+      "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+      "src/lib/dokumantasyon/cad-review/freehand-controller.ts",
+      "src/lib/dokumantasyon/cad-review/markup-facade.ts",
+      "src/lib/dokumantasyon/cad-review/stroke-simplifier.ts",
+      "tests/document-studio/cad-stage07-browser.spec.ts",
+      "tests/document-studio/cad-stage07-contract.test.ts"
+    ]
+  },
+  {
+    "sha": "4b454ffe4d0850e3ff48bb3b3753220a6547a52f",
+    "date": "2026-11-02 17:32:24 +0300",
+    "subject": "docs(cad-v1): stage07 verified gates and stop checkpoint [skip ci] [skip vercel]",
+    "changed_path_count": 1,
+    "changed_paths": [
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md"
+    ]
+  },
+  {
+    "sha": "f3e81a5528d334c966510c2d1874256b08b2783a",
+    "date": "2026-11-02 18:30:19 +0300",
+    "subject": "feat(cad-v1): ASAMA_08 review persistence and valid JSON/DXF/PNG/PDF exports, targeted verification [skip ci] [skip vercel]",
+    "changed_path_count": 11,
+    "changed_paths": [
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+      "src/components/dokumantasyon/preview/cad-export-dialog.tsx",
+      "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+      "src/lib/dokumantasyon/cad-review/export-dxf.ts",
+      "src/lib/dokumantasyon/cad-review/export-image.ts",
+      "src/lib/dokumantasyon/cad-review/schema.ts",
+      "src/lib/dokumantasyon/cad-review/store.ts",
+      "tests/document-studio/cad-distance-stage04-contract.test.ts",
+      "tests/document-studio/cad-review-export.spec.ts",
+      "tests/document-studio/cad-stage08-browser.spec.ts",
+      "tests/document-studio/cad-stage08-contract.test.ts"
+    ]
+  },
+  {
+    "sha": "f3bc89835bb3d486af4538354d7b8e4849e7361c",
+    "date": "2026-11-02 18:51:12 +0300",
+    "subject": "fix(cad-v1): restore full tested ASAMA_08 source and tests after truncated transfer [skip ci] [skip vercel]",
+    "changed_path_count": 11,
+    "changed_paths": [
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+      "src/components/dokumantasyon/preview/cad-export-dialog.tsx",
+      "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+      "src/lib/dokumantasyon/cad-review/export-dxf.ts",
+      "src/lib/dokumantasyon/cad-review/export-image.ts",
+      "src/lib/dokumantasyon/cad-review/schema.ts",
+      "src/lib/dokumantasyon/cad-review/store.ts",
+      "tests/document-studio/cad-distance-stage04-contract.test.ts",
+      "tests/document-studio/cad-review-export.spec.ts",
+      "tests/document-studio/cad-stage08-browser.spec.ts",
+      "tests/document-studio/cad-stage08-contract.test.ts"
+    ]
+  },
+  {
+    "sha": "885a2f5e6872437544bdd0fcf5d9c042622a5f75",
+    "date": "2026-11-02 20:24:26 +0300",
+    "subject": "feat(cad-v1): ASAMA_09 responsive CAD UX, keyboard/search/layer feedback and tested checkpoint (pinch gate open) [skip ci] [skip vercel]",
+    "changed_path_count": 13,
+    "changed_paths": [
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+      "src/components/dokumantasyon/preview/cad-area-overlay.tsx",
+      "src/components/dokumantasyon/preview/cad-chain-distance-overlay.tsx",
+      "src/components/dokumantasyon/preview/cad-layer-panel.tsx",
+      "src/components/dokumantasyon/preview/cad-precision-overlay.tsx",
+      "src/components/dokumantasyon/preview/cad-review-shortcuts.ts",
+      "src/components/dokumantasyon/preview/cad-review-side-panel.tsx",
+      "src/components/dokumantasyon/preview/cad-review-status-line.tsx",
+      "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+      "tests/document-studio/cad-mobile-stage8.spec.ts",
+      "tests/document-studio/cad-stage09-browser.spec.ts",
+      "tests/document-studio/cad-stage09-contract.test.ts",
+      "tests/document-studio/cad-text-search.spec.ts"
+    ]
+  },
+  {
+    "sha": "96f1a4cacd93c6381cf6b16f916d9878ff99dd13",
+    "date": "2026-11-02 21:08:05 +0300",
+    "subject": "test(cad-v1): ASAMA_10 measured performance and resilience gates; document blocked release risks [skip ci] [skip vercel]",
+    "changed_path_count": 2,
+    "changed_paths": [
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+      "tests/document-studio/cad-stage10-perf-contract.test.ts"
+    ]
+  },
+  {
+    "sha": "555b89ae6b5d14659905af49dcd88c303da881c0",
+    "date": "2026-11-02 21:38:01 +0300",
+    "subject": "docs(cad-v1): ASAMA_11 final independent acceptance audit, rollback and blocked release gate [skip ci] [skip vercel]",
+    "changed_path_count": 7,
+    "changed_paths": [
+      "docs/DOKUMANTASYON_CAD_MIMARI_HAFIZA.md",
+      "docs/cad-review-architecture-decisions.md",
+      "docs/cad-review-tools.md",
+      "docs/cad-v1-review/FINAL_ACCEPTANCE.md",
+      "docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+      "docs/cad-v1-review/ROLLBACK.md",
+      "tests/document-studio/cad-stage07-browser.spec.ts"
+    ]
+  }
+]

@@ -1,0 +1,74 @@
+[
+  {
+    "path": "src/components/dokumantasyon/preview/cad-runtime-orchestrator.tsx",
+    "main_blob": "5ab11bd957b02e5348a02c172510cb24be30c73f",
+    "r2_blob": "5ab11bd957b02e5348a02c172510cb24be30c73f",
+    "gold_blob": "44d10674954b457d6fd74ba26bf7b7a390c73bf0",
+    "same_as_main": true,
+    "same_as_golden": false
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+    "main_blob": "b102b4b8d64b372c31b9abca4faee6c9f62dd839",
+    "r2_blob": "4b471484981c29c3888254a7cb9ac22bde5b07c6",
+    "gold_blob": "1e3461f4499cfb7aba0fc1893c36325668376a4f",
+    "same_as_main": false,
+    "same_as_golden": false
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-viewer.tsx",
+    "main_blob": "93c5e3db2ee3bd41eadc34f4f4f38600ca738d2c",
+    "r2_blob": "93c5e3db2ee3bd41eadc34f4f4f38600ca738d2c",
+    "gold_blob": "93c5e3db2ee3bd41eadc34f4f4f38600ca738d2c",
+    "same_as_main": true,
+    "same_as_golden": true
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/dxf-viewer-worker.ts",
+    "main_blob": "4b43906928bfcb31d71038b01927d018022cad11",
+    "r2_blob": "4b43906928bfcb31d71038b01927d018022cad11",
+    "gold_blob": "4b43906928bfcb31d71038b01927d018022cad11",
+    "same_as_main": true,
+    "same_as_golden": true
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-studio-ribbon.tsx",
+    "main_blob": "b6e05b03006aaf114bb7cacfb3e172c8884c817f",
+    "r2_blob": "0a05fbef40efa9cd745df942b984a8dafa5db585",
+    "gold_blob": "1c771ce559855e99d1210c42286a140f547f01a2",
+    "same_as_main": false,
+    "same_as_golden": false
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-view-settings-panel.tsx",
+    "main_blob": "bd25c149f3cc82a2546919d50f5f89a6277c1d07",
+    "r2_blob": "bd25c149f3cc82a2546919d50f5f89a6277c1d07",
+    "gold_blob": "bd25c149f3cc82a2546919d50f5f89a6277c1d07",
+    "same_as_main": true,
+    "same_as_golden": true
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-upstream/adapter.ts",
+    "main_blob": "4f00c7fc6f01c2b7ca27f48c3a7ff24563f3e9c8",
+    "r2_blob": "3135fb8b03ec6d0ebecf07892dff159339f425f9",
+    "gold_blob": "9dc29c67516e70cb83ee7eae23720b0153842876",
+    "same_as_main": false,
+    "same_as_golden": false
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-upstream/snap-engine.ts",
+    "main_blob": "d7f3b7f94d187620e0be20d948ff73011a52d540",
+    "r2_blob": "3f462819b1f71f3530f38e6c6ced70e00f15e355",
+    "gold_blob": "a4facb38a14447c3729a1a6e0c0184c43bfe9c72",
+    "same_as_main": false,
+    "same_as_golden": false
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-upstream/snap-catalog.ts",
+    "main_blob": "5db6b43b82cad37877d8068007322cd60af0faa1",
+    "r2_blob": "05a4d37937602d458412e118a54625fb04197a98",
+    "gold_blob": "85addde4ca3aa79ba01848095abf5a2efbef9775",
+    "same_as_main": false,
+    "same_as_golden": false
+  }
+]

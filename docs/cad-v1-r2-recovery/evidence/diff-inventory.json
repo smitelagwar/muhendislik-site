@@ -1,0 +1,562 @@
+[
+  {
+    "path": ".agents/rules/cad-dxf-engine-koruma.md",
+    "kind": "documentation-or-policy",
+    "status": "M",
+    "base_blob": "b9b91b86e19b23ee269de3517f2539b56243c6f0",
+    "r2_blob": "fd23c97c96add69f3b43f66ac7ba6977ed1e21f4",
+    "domain": "policy/project context"
+  },
+  {
+    "path": ".agents/rules/cad-v1-review-kurallari.md",
+    "kind": "documentation-or-policy",
+    "status": "A",
+    "base_blob": "origin/main:.agents/rules/cad-v1-review-kurallari.md",
+    "r2_blob": "130515e2376e12ebd7d8d3519ca1f652701b9229",
+    "domain": "policy/project context"
+  },
+  {
+    "path": "AGENTS.md",
+    "kind": "documentation-or-policy",
+    "status": "M",
+    "base_blob": "4a488ee7ab5f246737bbbcfeefb3572be758725d",
+    "r2_blob": "e8279587ba122a52a73c997125b151505c90b72a",
+    "domain": "policy/project context"
+  },
+  {
+    "path": "CLAUDE.md",
+    "kind": "documentation-or-policy",
+    "status": "A",
+    "base_blob": "origin/main:CLAUDE.md",
+    "r2_blob": "39d89e2ba9656814078cce5d14cf0d5ad041dbc9",
+    "domain": "policy/project context"
+  },
+  {
+    "path": "DOK_CONTEXT_MAP.md",
+    "kind": "documentation-or-policy",
+    "status": "M",
+    "base_blob": "3675770a7ea1e3b2bbe483e43e7da3baf6bd0b03",
+    "r2_blob": "87b4f68f0f8f5c689792d47a866da82bd9286f1e",
+    "domain": "review/migration documentation"
+  },
+  {
+    "path": "GEMINI.md",
+    "kind": "documentation-or-policy",
+    "status": "M",
+    "base_blob": "574bda0093fd0173c6d507340c04abcb6cb141b5",
+    "r2_blob": "5c1bfb63e2212fc87f3f88817394d93283334b8f",
+    "domain": "policy/project context"
+  },
+  {
+    "path": "PROJECT.md",
+    "kind": "documentation-or-policy",
+    "status": "M",
+    "base_blob": "ed2b51ea2915ac621f8763bc62c5fa10935e51b0",
+    "r2_blob": "22d5a8d3fe13bdfa2e79fcd726d787944ae073df",
+    "domain": "policy/project context"
+  },
+  {
+    "path": "docs/DOKUMANTASYON_CAD_MIMARI_HAFIZA.md",
+    "kind": "documentation-or-policy",
+    "status": "M",
+    "base_blob": "f2d174771ba67c37a03b2e1d634706e00a359fca",
+    "r2_blob": "577f805eeadf3b8cfacd1bb160c08e4593b5d5c4",
+    "domain": "review/migration documentation"
+  },
+  {
+    "path": "docs/cad-dxf-engine/AI_CHANGE_PROTOCOL.md",
+    "kind": "documentation-or-policy",
+    "status": "M",
+    "base_blob": "872b93593cfa4fa8a6aecdccb8c0503e93a31472",
+    "r2_blob": "807906803b6060765eb2dab27a7fb60264015eaf",
+    "domain": "review/migration documentation"
+  },
+  {
+    "path": "docs/cad-dxf-engine/README.md",
+    "kind": "documentation-or-policy",
+    "status": "M",
+    "base_blob": "ed1cc3f195e64d05d33b97bab6281042e94360a6",
+    "r2_blob": "f3d9c369839d145adc0a3fe1f60651bc4c16d218",
+    "domain": "review/migration documentation"
+  },
+  {
+    "path": "docs/cad-review-architecture-decisions.md",
+    "kind": "documentation-or-policy",
+    "status": "M",
+    "base_blob": "145e852c5f268db16c1b80998a0dc8b1be166f07",
+    "r2_blob": "c0a4af43ae30399bfa9eef74da48098eda3ec764",
+    "domain": "review/migration documentation"
+  },
+  {
+    "path": "docs/cad-review-tools.md",
+    "kind": "documentation-or-policy",
+    "status": "M",
+    "base_blob": "3ebbfbc1a361e9a87d7e0d0263422574b5c36e92",
+    "r2_blob": "c2508371ec7875caf76042d453177c69b93f0079",
+    "domain": "review/migration documentation"
+  },
+  {
+    "path": "docs/cad-v1-review/FINAL_ACCEPTANCE.md",
+    "kind": "documentation-or-policy",
+    "status": "A",
+    "base_blob": "origin/main:docs/cad-v1-review/FINAL_ACCEPTANCE.md",
+    "r2_blob": "a7b00487e4561bf222a3abd41e03c059c8c782a9",
+    "domain": "review/migration documentation"
+  },
+  {
+    "path": "docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+    "kind": "documentation-or-policy",
+    "status": "A",
+    "base_blob": "origin/main:docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+    "r2_blob": "011d745bcac2b931b3336ddf6b0ca191b8b14b41",
+    "domain": "review/migration documentation"
+  },
+  {
+    "path": "docs/cad-v1-review/PLAN.md",
+    "kind": "documentation-or-policy",
+    "status": "A",
+    "base_blob": "origin/main:docs/cad-v1-review/PLAN.md",
+    "r2_blob": "0420c6c16d59739cc98d9aea2ebe6f2c6321e53b",
+    "domain": "review/migration documentation"
+  },
+  {
+    "path": "docs/cad-v1-review/ROLLBACK.md",
+    "kind": "documentation-or-policy",
+    "status": "A",
+    "base_blob": "origin/main:docs/cad-v1-review/ROLLBACK.md",
+    "r2_blob": "2d6ecf356e6b4bd28a83f700bead7f921143949d",
+    "domain": "review/migration documentation"
+  },
+  {
+    "path": "docs/cad-viewer-license-decision.md",
+    "kind": "documentation-or-policy",
+    "status": "M",
+    "base_blob": "18da508205d3c44c2b7e87d23ce791cae68cb705",
+    "r2_blob": "d26f7bee0245ca67f225d3d99859b0fe541b08f7",
+    "domain": "review/migration documentation"
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-area-overlay.tsx",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "51c4a1f4db78c1869e578150f2aa06006e1bb732",
+    "r2_blob": "5bf4603e928488ff40c7f31bcec91a97fb4614ea",
+    "domain": "review UI/host"
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-chain-distance-overlay.tsx",
+    "kind": "product-source",
+    "status": "A",
+    "base_blob": "origin/main:src/components/dokumantasyon/preview/cad-chain-distance-overlay.tsx",
+    "r2_blob": "96aea8058a94e3ba9d2c2cd6f3e86cccef42dd93",
+    "domain": "review UI/host"
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-distance-overlay.tsx",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "8951ab0697ba89c78d66e34fed2ed3242aabfb78",
+    "r2_blob": "2398eb1b3511dd6faa90afb6f258b80a0a3f8edd",
+    "domain": "review UI/host"
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-export-dialog.tsx",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "768425881abb7a32f175e4218720c136e5a55ffc",
+    "r2_blob": "727a8903c9d245899c04c432c9a7501e54be4fc4",
+    "domain": "review UI/host"
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-layer-panel.tsx",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "1bec0d6dc62f40a6f5bed1437a74826c776bfef7",
+    "r2_blob": "eeeb0aa00e9d4d43a238591c75b3699fa8095aae",
+    "domain": "review UI/host"
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-precision-overlay.tsx",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "272038f738dcda1965699e5fb1bc907ba9340311",
+    "r2_blob": "fd564c4ed711e105915e55af00b9c5032d5efa6e",
+    "domain": "review UI/host"
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-review-input-dialog.tsx",
+    "kind": "product-source",
+    "status": "A",
+    "base_blob": "origin/main:src/components/dokumantasyon/preview/cad-review-input-dialog.tsx",
+    "r2_blob": "6da750e338783f82464a081442a78fb8e1020c73",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-review-overlay.tsx",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "73f803af023e6f8af57e011d3b08165bab5c8fd4",
+    "r2_blob": "f81b8921fec0ac27bab4ec7407424479fb3bf6ce",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-review-shortcuts.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "3b6f5f82ad325756455d9300fd49fcce3d3ef514",
+    "r2_blob": "37f7d3b17b8b7cdfe88b1b245848dde17a4b67aa",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-review-side-panel.tsx",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "bff9cacef23f0d6c5b8c93732e5309c834034275",
+    "r2_blob": "4c9961c79a2621fa85ca5ba3470ea8b3de09dcde",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-review-status-line.tsx",
+    "kind": "product-source",
+    "status": "A",
+    "base_blob": "origin/main:src/components/dokumantasyon/preview/cad-review-status-line.tsx",
+    "r2_blob": "aa3e8ce0f2f12bd175b85fc0b97a01659b771b81",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-studio-ribbon.tsx",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "b6e05b03006aaf114bb7cacfb3e172c8884c817f",
+    "r2_blob": "0a05fbef40efa9cd745df942b984a8dafa5db585",
+    "domain": "review UI/host"
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "b102b4b8d64b372c31b9abca4faee6c9f62dd839",
+    "r2_blob": "4b471484981c29c3888254a7cb9ac22bde5b07c6",
+    "domain": "measurement/snap/adapter"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/cloud-generator.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "ee64ab905f0adb2021c2afe3e20dc033e551ca61",
+    "r2_blob": "72024f966435699087cac17184cdc2334f99cb8e",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/export-dxf.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "2de096c847cca3a0979a5c152535b10d9101de3b",
+    "r2_blob": "9c47fe9df1cafd37320a87c64970d1e21baea7b1",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/export-image.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "84430becc1a524dc440a14c7f32de32c0b285920",
+    "r2_blob": "c206fc86ac3bd90cfcb53d34558a5546aef77e32",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/freehand-controller.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "30123904ef2385635ccca7367ce8aacc280b9f69",
+    "r2_blob": "b23ecb4a9e9ea00985f6f3263648790f1e417f01",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/hit-test.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "e8e743c5f74dd974b082b13d645860bedd67fe1b",
+    "r2_blob": "ffdde154649f002c0081bdddfc30faf682badf8a",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/markup-controller.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "b0e923c379da4288ef9363b565509222c7067b16",
+    "r2_blob": "d75da2baf0e3fba3036a6ac26bce7b0a9a585c8e",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/markup-facade.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "7b0bfc84d12e4973bf1906d9441eb2ade6d362bf",
+    "r2_blob": "8b1180fe2e3c879167ac9b9ca8f3f4adeb944180",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/measurement-facade.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "b392b84ca7eda892f48309b248c6e8e9f3ca4f6a",
+    "r2_blob": "506c3cb87087287b37160ebcf4738020999cd1ab",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/schema.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "ae8357d40dfc6edf1ee9b7a8051711741a9b1816",
+    "r2_blob": "8a3ca308beba89106ed865fb486d2319a7ce6c0b",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/store.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "fb1db1846caaf485618be953cc66c50d504b83a3",
+    "r2_blob": "0c84c215b99db68ed30a6bac1cf2bb9cbc125768",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/stroke-simplifier.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "e1db0ba0d40d56ec8dd00c65f60870fd36dedc0a",
+    "r2_blob": "6b17b51f59f0df06c08a10a28e929c86e18a7e6e",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/units.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "99090557e5a2493eaaadc0b9f59619a2a4b6f5b3",
+    "r2_blob": "217d1d5db619dab18bff6e8d0e477264ed73051d",
+    "domain": "review domain/store/export"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-upstream/adapter.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "4f00c7fc6f01c2b7ca27f48c3a7ff24563f3e9c8",
+    "r2_blob": "3135fb8b03ec6d0ebecf07892dff159339f425f9",
+    "domain": "measurement/snap/adapter"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-upstream/area-measurement.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "e8da5b6a037370f9c3cb007acbf015085191aebb",
+    "r2_blob": "309cf521d423abdc84e62c95f3ad35aa3c514fa9",
+    "domain": "measurement/snap/adapter"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-upstream/chain-distance.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "2e8b07fc426b138542ddbf241b6db69a72bb8246",
+    "r2_blob": "6acf1f55117e3148763037ebeca51d942aa4e209",
+    "domain": "measurement/snap/adapter"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-upstream/distance-measurement.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "3117632c6c57627d20f5aac1c236397189ac8122",
+    "r2_blob": "4090e84554f42f152786e3c420decf21d260712f",
+    "domain": "measurement/snap/adapter"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-upstream/polygon-geometry.ts",
+    "kind": "product-source",
+    "status": "A",
+    "base_blob": "origin/main:src/lib/dokumantasyon/cad-upstream/polygon-geometry.ts",
+    "r2_blob": "fde4193da9b7b49ca184c9f5dfa9115e537f936b",
+    "domain": "measurement/snap/adapter"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-upstream/snap-catalog.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "5db6b43b82cad37877d8068007322cd60af0faa1",
+    "r2_blob": "05a4d37937602d458412e118a54625fb04197a98",
+    "domain": "measurement/snap/adapter"
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-upstream/snap-engine.ts",
+    "kind": "product-source",
+    "status": "M",
+    "base_blob": "d7f3b7f94d187620e0be20d948ff73011a52d540",
+    "r2_blob": "3f462819b1f71f3530f38e6c6ced70e00f15e355",
+    "domain": "measurement/snap/adapter"
+  },
+  {
+    "path": "tests/document-studio/cad-area-stage05-contract.test.ts",
+    "kind": "test",
+    "status": "A",
+    "base_blob": "origin/main:tests/document-studio/cad-area-stage05-contract.test.ts",
+    "r2_blob": "208288a3ae52d73a97553b284f288d5b0cc1453d",
+    "domain": "contract/oracle"
+  },
+  {
+    "path": "tests/document-studio/cad-chain-stage03-contract.test.ts",
+    "kind": "test",
+    "status": "A",
+    "base_blob": "origin/main:tests/document-studio/cad-chain-stage03-contract.test.ts",
+    "r2_blob": "54785585d174de59aedee52512822794411d1b20",
+    "domain": "contract/oracle"
+  },
+  {
+    "path": "tests/document-studio/cad-distance-stage04-contract.test.ts",
+    "kind": "test",
+    "status": "A",
+    "base_blob": "origin/main:tests/document-studio/cad-distance-stage04-contract.test.ts",
+    "r2_blob": "76e681a823e807682c9b31510e27bad1191b116d",
+    "domain": "contract/oracle"
+  },
+  {
+    "path": "tests/document-studio/cad-markup-stage06-browser.spec.ts",
+    "kind": "test",
+    "status": "A",
+    "base_blob": "origin/main:tests/document-studio/cad-markup-stage06-browser.spec.ts",
+    "r2_blob": "4f829ee96a0fbf7b3ce77130405a407e4ef60260",
+    "domain": "browser/E2E"
+  },
+  {
+    "path": "tests/document-studio/cad-markup-stage06-contract.test.ts",
+    "kind": "test",
+    "status": "A",
+    "base_blob": "origin/main:tests/document-studio/cad-markup-stage06-contract.test.ts",
+    "r2_blob": "9245556e97ba0f8217673cd79430f7a83dbf4d97",
+    "domain": "contract/oracle"
+  },
+  {
+    "path": "tests/document-studio/cad-markup-tools.spec.ts",
+    "kind": "test",
+    "status": "M",
+    "base_blob": "f3454340f28bf17a30b7bc9460f14304e5d01f16",
+    "r2_blob": "bc5451b22c4e48ce1dbce3b396b6a8d8df76eb30",
+    "domain": "browser/E2E"
+  },
+  {
+    "path": "tests/document-studio/cad-measurement-units.spec.ts",
+    "kind": "test",
+    "status": "M",
+    "base_blob": "9150ef2e340ea72d9c754dca4cb46b52385c9e33",
+    "r2_blob": "628b71f61c58a1e54e31bed868e4f64d03406793",
+    "domain": "browser/E2E"
+  },
+  {
+    "path": "tests/document-studio/cad-mobile-stage8.spec.ts",
+    "kind": "test",
+    "status": "M",
+    "base_blob": "44df122f086cde684f5a8a4baf1c4dc169be3bc9",
+    "r2_blob": "1b441cef7237097cb6b7bc5aba4923dcf893befa",
+    "domain": "browser/E2E"
+  },
+  {
+    "path": "tests/document-studio/cad-review-core.spec.ts",
+    "kind": "test",
+    "status": "M",
+    "base_blob": "aa9e46d6097dd1d5b50f1d45753df3845b783729",
+    "r2_blob": "e67cfb10b3ddfdf478337ec7e8097716e30529b4",
+    "domain": "browser/E2E"
+  },
+  {
+    "path": "tests/document-studio/cad-review-export.spec.ts",
+    "kind": "test",
+    "status": "M",
+    "base_blob": "792931a0bfabb0bb73d7baac83148d60944feed5",
+    "r2_blob": "469c1bb0f685d2ab94da53b10d15330110411492",
+    "domain": "browser/E2E"
+  },
+  {
+    "path": "tests/document-studio/cad-review-stage02-contract.test.ts",
+    "kind": "test",
+    "status": "A",
+    "base_blob": "origin/main:tests/document-studio/cad-review-stage02-contract.test.ts",
+    "r2_blob": "e160fcc2105298ebb6307c1c7ef0f3419b4aee06",
+    "domain": "contract/oracle"
+  },
+  {
+    "path": "tests/document-studio/cad-stage07-browser.spec.ts",
+    "kind": "test",
+    "status": "A",
+    "base_blob": "origin/main:tests/document-studio/cad-stage07-browser.spec.ts",
+    "r2_blob": "9b0e27d897172e2b0551c1f7f85b29db35eb38f8",
+    "domain": "browser/E2E"
+  },
+  {
+    "path": "tests/document-studio/cad-stage07-contract.test.ts",
+    "kind": "test",
+    "status": "A",
+    "base_blob": "origin/main:tests/document-studio/cad-stage07-contract.test.ts",
+    "r2_blob": "60df39c345005e217213cd04a1696ff85aba4a1a",
+    "domain": "contract/oracle"
+  },
+  {
+    "path": "tests/document-studio/cad-stage08-browser.spec.ts",
+    "kind": "test",
+    "status": "A",
+    "base_blob": "origin/main:tests/document-studio/cad-stage08-browser.spec.ts",
+    "r2_blob": "c9292c3ec0891d96cf118f7a3a254c459b5c73fe",
+    "domain": "browser/E2E"
+  },
+  {
+    "path": "tests/document-studio/cad-stage08-contract.test.ts",
+    "kind": "test",
+    "status": "A",
+    "base_blob": "origin/main:tests/document-studio/cad-stage08-contract.test.ts",
+    "r2_blob": "4c0a8210116bf60cecc86bed41483517f76a219f",
+    "domain": "contract/oracle"
+  },
+  {
+    "path": "tests/document-studio/cad-stage09-browser.spec.ts",
+    "kind": "test",
+    "status": "A",
+    "base_blob": "origin/main:tests/document-studio/cad-stage09-browser.spec.ts",
+    "r2_blob": "ee7bef6da86abe0d991adbf1bb98088ef2d1ce02",
+    "domain": "browser/E2E"
+  },
+  {
+    "path": "tests/document-studio/cad-stage09-contract.test.ts",
+    "kind": "test",
+    "status": "A",
+    "base_blob": "origin/main:tests/document-studio/cad-stage09-contract.test.ts",
+    "r2_blob": "eb52475b994392ced65f017c83957448ff4f3370",
+    "domain": "contract/oracle"
+  },
+  {
+    "path": "tests/document-studio/cad-stage10-perf-contract.test.ts",
+    "kind": "test",
+    "status": "A",
+    "base_blob": "origin/main:tests/document-studio/cad-stage10-perf-contract.test.ts",
+    "r2_blob": "d2cc277a7afe87a6f228e339932a7323e5a6f12c",
+    "domain": "contract/oracle"
+  },
+  {
+    "path": "tests/document-studio/cad-stage5-distance-measurement.spec.ts",
+    "kind": "test",
+    "status": "M",
+    "base_blob": "e646cd5b34701b08507b7a385d99eeec9c01f340",
+    "r2_blob": "09af351fb7791c0d1c84625bdb5efe33506fcfe6",
+    "domain": "browser/E2E"
+  },
+  {
+    "path": "tests/document-studio/cad-stage6-area-measurement.spec.ts",
+    "kind": "test",
+    "status": "M",
+    "base_blob": "6064fae516ffb2181003f64aa0b01c8a5f564a2e",
+    "r2_blob": "daa3c56d14ca69ab45bc0bc8af693c0ec2234b23",
+    "domain": "browser/E2E"
+  },
+  {
+    "path": "tests/document-studio/cad-text-search.spec.ts",
+    "kind": "test",
+    "status": "M",
+    "base_blob": "3066aa688635618a6ace0598f9ceb29762abb37c",
+    "r2_blob": "9132d52e8cb846df12ed0829157ade42c497c394",
+    "domain": "browser/E2E"
+  }
+]

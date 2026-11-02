@@ -1,0 +1,14 @@
+{
+  "node": "v24.15.0",
+  "npm": "11.12.1",
+  "git": "2.53.0.windows.2",
+  "playwright": "npx reported Playwright 1.64.1 via npm exec fallback; local node_modules absent",
+  "vercel": "59.1.4",
+  "gh": "CLI API status read-only success",
+  "fixture_env_set": false,
+  "application_test_commands_run": [],
+  "application_tests_status": "NOT_RUN (ASAMA_01 audit only; no local node_modules; large fixture directory not configured)",
+  "git_diff_check": "FAIL exit 2; trailing spaces in legacy R2 report docs",
+  "review_branch_checkout_status": "clean before audit docs",
+  "main_checkout_status": "two pre-existing untracked user scripts; preserved"
+}

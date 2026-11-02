@@ -1,0 +1,68 @@
+[
+  {
+    "path": "docs/cad-v1-review/IMPLEMENTATION_STATE.md",
+    "restored_blob": "2eeabf68a4021b1ad0d702108c1f776774435893",
+    "current_blob": "011d745bcac2b931b3336ddf6b0ca191b8b14b41",
+    "current_matches_restore": false
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-export-dialog.tsx",
+    "restored_blob": "727a8903c9d245899c04c432c9a7501e54be4fc4",
+    "current_blob": "727a8903c9d245899c04c432c9a7501e54be4fc4",
+    "current_matches_restore": true
+  },
+  {
+    "path": "src/components/dokumantasyon/preview/cad-upstream-viewer.tsx",
+    "restored_blob": "1fb245f1517e0409ccce533fea24be249cf085ee",
+    "current_blob": "4b471484981c29c3888254a7cb9ac22bde5b07c6",
+    "current_matches_restore": false
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/export-dxf.ts",
+    "restored_blob": "9c47fe9df1cafd37320a87c64970d1e21baea7b1",
+    "current_blob": "9c47fe9df1cafd37320a87c64970d1e21baea7b1",
+    "current_matches_restore": true
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/export-image.ts",
+    "restored_blob": "c206fc86ac3bd90cfcb53d34558a5546aef77e32",
+    "current_blob": "c206fc86ac3bd90cfcb53d34558a5546aef77e32",
+    "current_matches_restore": true
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/schema.ts",
+    "restored_blob": "8a3ca308beba89106ed865fb486d2319a7ce6c0b",
+    "current_blob": "8a3ca308beba89106ed865fb486d2319a7ce6c0b",
+    "current_matches_restore": true
+  },
+  {
+    "path": "src/lib/dokumantasyon/cad-review/store.ts",
+    "restored_blob": "0c84c215b99db68ed30a6bac1cf2bb9cbc125768",
+    "current_blob": "0c84c215b99db68ed30a6bac1cf2bb9cbc125768",
+    "current_matches_restore": true
+  },
+  {
+    "path": "tests/document-studio/cad-distance-stage04-contract.test.ts",
+    "restored_blob": "76e681a823e807682c9b31510e27bad1191b116d",
+    "current_blob": "76e681a823e807682c9b31510e27bad1191b116d",
+    "current_matches_restore": true
+  },
+  {
+    "path": "tests/document-studio/cad-review-export.spec.ts",
+    "restored_blob": "469c1bb0f685d2ab94da53b10d15330110411492",
+    "current_blob": "469c1bb0f685d2ab94da53b10d15330110411492",
+    "current_matches_restore": true
+  },
+  {
+    "path": "tests/document-studio/cad-stage08-browser.spec.ts",
+    "restored_blob": "c9292c3ec0891d96cf118f7a3a254c459b5c73fe",
+    "current_blob": "c9292c3ec0891d96cf118f7a3a254c459b5c73fe",
+    "current_matches_restore": true
+  },
+  {
+    "path": "tests/document-studio/cad-stage08-contract.test.ts",
+    "restored_blob": "4c0a8210116bf60cecc86bed41483517f76a219f",
+    "current_blob": "4c0a8210116bf60cecc86bed41483517f76a219f",
+    "current_matches_restore": true
+  }
+]
