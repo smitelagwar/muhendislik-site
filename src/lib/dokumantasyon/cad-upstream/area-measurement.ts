@@ -202,7 +202,7 @@ export class CadAreaMeasurementController {
     if (Math.abs(resolved.point.x) > 1e9 || Math.abs(resolved.point.y) > 1e9) return;
     if (this.points.length >= 3 && this.runtime.projectWorldPoint) {
       const projected = this.runtime.projectWorldPoint(this.points[0]!);
-      if (projected && pointDistance(projected, screen) <= 20) {
+      if (projected && pointDistance(projected, screen) <= 5) {
         this.finish(); // failed validation does not complete or mutate
         return;
       }

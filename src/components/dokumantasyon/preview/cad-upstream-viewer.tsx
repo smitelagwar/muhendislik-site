@@ -152,6 +152,8 @@ export function DokCadUpstreamViewer({
 }: DokCadUpstreamViewerProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const adapterRef = useRef<CadUpstreamAdapter | null>(null);
+  // Render from React state snapshots, not mutable ref.current.
+  const [readyAdapter, setReadyAdapter] = useState<CadUpstreamAdapter | null>(null);
   const displayModeRef = useRef<CadUpstreamDisplayMode>("source");
   const lineWeightVisibleRef = useRef(false);
   const backgroundColorRef = useRef<CadBackgroundColorOption>("autocad");
@@ -203,6 +205,15 @@ export function DokCadUpstreamViewer({
   const freehandControllerRef = useRef<CadFreehandController | null>(null);
   const [reviewItems, setReviewItems] = useState<readonly CadReviewItem[]>([]);
   const [reviewDraft, setReviewDraft] = useState<CadReviewDraftState | null>(null);
+  const [reviewSession, setReviewSession] = useState<{
+    selectedItemIds: Set<string>;
+    hoveredItemId: string | null;
+    activeLayoutId: string | null;
+  }>({
+    selectedItemIds: new Set<string>(),
+    hoveredItemId: null,
+    activeLayoutId: null,
+  });
   const [reviewTool, setReviewTool] = useState<CadReviewTool>("select");
   const [reviewCanUndo, setReviewCanUndo] = useState(false);
   const [reviewCanRedo, setReviewCanRedo] = useState(false);
@@ -360,6 +371,12 @@ export function DokCadUpstreamViewer({
         setReviewCanUndo(store.canUndo());
         setReviewCanRedo(store.canRedo());
         setReviewDocument(store.getDocument());
+        const session = store.getSession();
+        setReviewSession({
+          selectedItemIds: new Set(session.selectedItemIds),
+          hoveredItemId: session.hoveredItemId,
+          activeLayoutId: session.activeLayoutId,
+        });
       }
     });
 
@@ -390,6 +407,12 @@ export function DokCadUpstreamViewer({
         setReviewCanRedo(reviewStoreRef.current.canRedo());
         setReviewDocument({ ...curDoc });
         setReviewDraft({ ...reviewStoreRef.current.getDraft() });
+        const session = reviewStoreRef.current.getSession();
+        setReviewSession({
+          selectedItemIds: new Set(session.selectedItemIds),
+          hoveredItemId: session.hoveredItemId,
+          activeLayoutId: session.activeLayoutId,
+        });
 
         // Auto-save to localStorage
         saveLocalCadReview(fileId, curDoc);
@@ -548,6 +571,7 @@ export function DokCadUpstreamViewer({
 
       initCadPerfSession();
       setState("loading");
+      setReadyAdapter(null);
       setMessage("MLightCAD hazırlanıyor");
       setLayerPanelOpen(false);
       setSnapPanelOpen(false);
@@ -663,6 +687,7 @@ export function DokCadUpstreamViewer({
           setFontDiagnostics(adapterRef.current.getFontFidelityDiagnostics());
         }
         markCadPerfReady();
+        setReadyAdapter(adapterRef.current);
         setState("ready");
         setMessage("");
         onReady?.();
@@ -1509,24 +1534,24 @@ export function DokCadUpstreamViewer({
                       ? formatCapturedDistance(item.measuredLength, item.measurementContext)
                       : formatPhysicalDistance(item.measuredLength, sourceContextFromInsunits(null), "m", 2),
                   ].filter(Boolean).join(" · "),
-                  isSelected: reviewStoreRef.current?.getSession().selectedItemIds.has(item.id) ?? false,
+                  isSelected: reviewSession.selectedItemIds.has(item.id) ?? false,
                 }] : [])
               : distanceMeasurements}
-            projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
-            sourceUnitContext={adapterRef.current?.getSourceUnitContext() ?? sourceContextFromInsunits(null)}
+            projectPoint={(point) => readyAdapter?.projectWorldPoint(point) ?? null}
+            sourceUnitContext={readyAdapter?.getSourceUnitContext() ?? sourceContextFromInsunits(null)}
             displayUnit={measurementUnitSettings.unit}
             precision={measurementUnitSettings.precision}
             onSelectMeasurement={reviewEnabled ? (id) => reviewStoreRef.current?.setSelectedItems([id]) : undefined}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            adapter={adapterRef.current as any}
+            adapter={readyAdapter as any}
           />
         ) : null}
 
         {state === "ready" ? (
           <CadChainDistanceOverlay
             snapshot={chainSnapshot}
-            projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
-            sourceContext={adapterRef.current?.getSourceUnitContext() ?? sourceContextFromInsunits(null)}
+            projectPoint={(point) => readyAdapter?.projectWorldPoint(point) ?? null}
+            sourceContext={readyAdapter?.getSourceUnitContext() ?? sourceContextFromInsunits(null)}
             displayUnit={measurementUnitSettings.unit}
             precision={measurementUnitSettings.precision}
             onConfirmPoint={() => adapterRef.current?.confirmChainDistancePoint()}
@@ -1552,11 +1577,11 @@ export function DokCadUpstreamViewer({
                     ? formatCapturedDistance(item.measuredPerimeter, item.measurementContext)
                     : formatPhysicalDistance(item.measuredPerimeter, sourceContextFromInsunits(null), "m", 2),
                   color: item.style.color,
-                  isSelected: reviewStoreRef.current?.getSession().selectedItemIds.has(item.id) ?? false,
+                  isSelected: reviewSession.selectedItemIds.has(item.id) ?? false,
                 }] : [])
               : areaMeasurements}
-            projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
-            sourceContext={adapterRef.current?.getSourceUnitContext() ?? sourceContextFromInsunits(null)}
+            projectPoint={(point) => readyAdapter?.projectWorldPoint(point) ?? null}
+            sourceContext={readyAdapter?.getSourceUnitContext() ?? sourceContextFromInsunits(null)}
             displayAreaUnit={measurementUnitSettings.areaUnit}
             displayLengthUnit={measurementUnitSettings.unit}
             precision={measurementUnitSettings.precision}
@@ -1572,13 +1597,13 @@ export function DokCadUpstreamViewer({
           <CadReviewOverlay
             items={reviewItems.filter((item) => {
               if (item.type === "distance" || item.type === "area") return false;
-              const layoutId = reviewStoreRef.current?.getSession().activeLayoutId;
+              const layoutId = reviewSession.activeLayoutId;
               return !layoutId || !item.layoutId || item.layoutId === layoutId;
             })}
             draft={reviewDraft}
-            selectedItemIds={reviewStoreRef.current?.getSession().selectedItemIds}
-            hoveredItemId={reviewStoreRef.current?.getSession().hoveredItemId ?? null}
-            projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
+            selectedItemIds={reviewSession.selectedItemIds}
+            hoveredItemId={reviewSession.hoveredItemId}
+            projectPoint={(point) => readyAdapter?.projectWorldPoint(point) ?? null}
             containerWidth={containerSize.width}
             containerHeight={containerSize.height}
           />

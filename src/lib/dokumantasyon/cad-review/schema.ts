@@ -24,7 +24,7 @@ export type CadPoint2d = z.infer<typeof cadPoint2dSchema>;
 export const cadReviewItemStatusSchema = z.enum(["open", "question", "answered", "closed"]);
 export type CadReviewItemStatus = z.infer<typeof cadReviewItemStatusSchema>;
 
-export const cadReviewLineDashSchema = z.enum(["continuous", "dashed", "dotted"]).default("continuous");
+export const cadReviewLineDashSchema = z.enum(["continuous", "dashed", "dotted"]);
 export type CadReviewLineDash = z.infer<typeof cadReviewLineDashSchema>;
 
 export const cadReviewItemStyleSchema = z.object({
