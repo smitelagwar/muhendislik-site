@@ -4,17 +4,17 @@ Plan revision: 2
 Date: 2026-11-02 (Europe/Istanbul)
 Planning status: PLAN_HAZIR
 Execution status: KOD_HAZIR_DOGRULAMA_BEKLIYOR
-Completed stages: ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04, ASAMA_05 (code checkpoints; runtime verification pending)
+Completed stages: ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04, ASAMA_05, ASAMA_06 (code checkpoints; runtime verification pending)
 Active stage: none
-Next stage: ASAMA_06 (ONLY after user says devam)
+Next stage: ASAMA_07 (ONLY after user says devam)
 Stage 01 acceptance: DOCUMENTED_BASELINE; runtime/device verification NOT_RUN
 Release-ready: NO
 Branch: internal-cad-v1-pro-review-r2-20261102
 Checkpoint: this document's containing branch HEAD (first stage checkpoint; see branch history)
 Checkpoint parent: 32a1c818d06c5b191cdc5bd4efdeaf71407e6559
 Plan source: attached revision 2 copied verbatim to PLAN.md
-Deployment: no Preview, no Production, no main merge
-Scope: ASAMA_01 baseline + ASAMA_02 review units/history + ASAMA_03 chain/OSNAP + ASAMA_04 distance + ASAMA_05 validated area/perimeter, engine frozen
+Deployment: Stage05 attempted exactly one Preview (Vercel resource provisioning ERROR; no build), production/main unchanged. Stage06 deployment separately recorded below.
+Scope: ASAMA_01–05 data/measurements + ASAMA_06 markup selection, shapes, hit-test, movement, history; renderer/parser/worker/fallback frozen
 
 ## 1. Branch, source and engine freeze
 
@@ -431,3 +431,61 @@ Mouse click primary down/up within 8 CSS pixels -> one vertex. Press-drag or pan
 
 Release-ready stays NO until full TypeScript/build tests, actual device and fixture checks, correct export INSUNITS header, remote server persistence/version and fallback regression pass. A preview build does not prove all browser scenarios.
 Rollback: revert ONLY the ASAMA_05 stage commit; preserve the original renderer/parser/fallback and stages01-04. STOP; next ASAMA_06 only upon explicit subsequent 'devam'.
+
+
+## 12. ASAMA_06 — Review-only selection, shape geometry, callout arrow and atomic markup history
+
+Date: 2026-11-02 Europe/Istanbul.
+Branch: internal-cad-v1-pro-review-r2-20261102
+Stage code status: **KOD_HAZIR_DOGRULAMA_BEKLIYOR**. Runtime/playwright/TS verification may update only after actually executed. Not a release signoff.
+User's deployment authorization updated: Vercel errors may be diagnosed, corrected and redeployed when justified. No uncontrolled repeated deploys or automatic Production promotion; each deployment state must be reported.
+
+### Code-confirmed root causes, decisions, narrow diff
+
+1. Existing src/lib/dokumantasyon/cad-review/hit-test.ts used **circle center=p1 and radius=|p2−p1|**, but src/components/dokumantasyon/preview/cad-review-overlay.tsx painted circle at midpoint(p1,p2), radius=half max axis delta. Result: circles could be picked in the wrong location. Now both use p1 as center and p2 as circumference point, preserving the intended stored circle geometry and world radius in review v1; render stroke is CSS-pixel stable.
+2. The old cloud renderer generated an unbounded number of independent arc commands from rectangle dimensions in pixels, while hit-test selected a rectangle not the cloud outline. Existing cloud-generator.ts was improved with bounded radius/step/scallop count and rejecting degenerate cases. The actual SVG uses generateRevisionCloudSvgPath on projected CSS-pixel corners, and the hit-test uses the same generated points. A bounding box negative filter guards needless tessellation for distant clicks. Reversed drag produces the same cloud shape.
+3. Review SVG markup group had pointerEvents:auto on click, while CadMarkupController listened on the underlying viewer viewport sibling: overlay swallowed some input before the controller could process it. ReviewItemRenderer SVG now stays pointer-events:none. Native viewport controller owns review hit-test; this does NOT enable source CAD object editing.
+4. Previous markup controller only selected item on pointerdown; selectedItemIds and hoveredItemId were not passed from the parent into CADReviewOverlay, so selected/hover state and handles were not reliably visible. Parent now binds store session selected and hovered state, while the controller supports Shift+click multiple selections and displays a **real** center move grip only on selected editable shape items, not fake resize handles.
+5. New own-world-geometry translation helper (markup-facade.ts) moves independent review pins, text, strokes, rectangle, circle, revision cloud, and callout tip+anchor. It NEVER touches source CAD entities and refuses move on measurement items or a closed review item. Mouse drag produces a transient draft preview (old source item hidden during move); releasing executes exactly **one store.updateItem** undoable transaction. Shift-click multi-selection is supported for selection + batch delete, not a misleading simultaneous multi-object move. Drag movement is calculated through the existing screenToWorld adapter, not hardcoded zoom scale.
+6. New CadReviewStore.removeItems(ids) narrow bridge groups Delete of multiple selected review records into a SINGLE undo command restoring original indexes on Undo. Freehand eraser now targets only markup, not an overlapping measurement. Existing original-DWG entity data remains read-only; this is purely review geometry.
+7. Pointed comment-pin, callout arrow, text and shape creation all check store.addItem success; rejected items cannot leave a phantom selected ID. The callout leader now draws a visible arrowhead toward its tip. Slow asynchronous prompt results are discarded when the controller is destroyed, canceled or tool switched. Invalid/oversize points, tiny shape dimensions and input capture/window blur/visibility/pointercancel are guarded. Shape review operations remain independent of MLightCAD's parser/renderer.
+8. The review overlay displays statuses separately: hover stroke vs selected outline and editable selected MOVE grip; closed items remain selectable for inspection but do not offer moving grips until reopened. Active review layoutId is respected in hit-test and visible overlay. **There is no persistent generic visibility/readOnly item flag in the current v1 Zod schema**; this stage does not invent an incompatible migration or confuse source CAD layer visibility with review visibility.
+9. src/components/dokumantasyon/preview/cad-upstream-viewer.tsx changed only necessary binding: session-selected/hovered IDs and active layout, safe markup error toast callback, read-only closed-item predicate and one-call multi-delete; no DWG worker/render or conversion edits.
+
+### MLightCAD 1.6.2 version/license comparison (source references, no external code copied)
+
+- Version-locked package @mlightcad/cad-simple-viewer 1.6.2 declares MIT. Repository LICENSE MIT:
+  https://github.com/mlightcad/cad-viewer/blob/v1.6.2/LICENSE
+  License blob SHA: ddef7211081889f7b1ef9c734a6d9907853f0008.
+- Circle uses center + positive radius via AcApMarkupCircleCmd:
+  https://github.com/mlightcad/cad-viewer/blob/v1.6.2/packages/cad-simple-viewer/src/command/markup/AcApMarkupCircleCmd.ts
+  Blob SHA 0399070a4c8daef29cb3b4ebdf0a2cf912a2e3c6.
+- Markup shape builder sizes cloud lobes by CSS pixels via view projection:
+  https://github.com/mlightcad/cad-viewer/blob/v1.6.2/packages/cad-simple-viewer/src/command/markup/AcApMarkupShapeBuilder.ts
+  Blob SHA 011d1c62b10ce64f1983f74b5361bfcd47dbceb0.
+- Translation / hit test geometry:
+  https://github.com/mlightcad/cad-viewer/blob/v1.6.2/packages/cad-simple-viewer/src/command/markup/AcApMarkupGeometry.ts
+  Blob SHA 905b84f7800b6c0270fab122f58e416d8cb3d518.
+- Existing in-repository cloud-generator algorithm and own small translation helpers were adjusted independently. **No upstream source vendored or verbatim ported; the links above are attribution to reference behavior, not code copies.** The GPL-3.0 converter/WASM distribution question from Stage01 remains separate P0 and is not resolved by upstream markup's MIT license.
+
+### Test source created (NOT yet executed)
+
+- tests/document-studio/cad-markup-stage06-contract.test.ts: pure node/tsx contract (10 tests), circle center/radius consistency, cloud bounded and reversed, controller draft→commit→undo, selected grip translation and one move undo, Shift multiselect + one batch-delete undo, layout/read-only separation, ESC/pointercancel/lostcapture/blur, tool switch, eraser preserves measurement, closed review lock.
+- tests/document-studio/cad-markup-stage06-browser.spec.ts: physical CAD viewport desktop fixture, rectangle reverse drag, one SVG and one review store record, selected drag and Undo/Redo, F5 local recovery, original database entity count unchanged.
+- Existing tests to re-run: tests/document-studio/cad-markup-tools.spec.ts, cad-review-core.spec.ts, cad-stage3-review-tools.spec.ts. Some pre-existing tests mention schema.fillOpacity, clearMarkupItems or active-store helpers not implemented in this stage; do not silently claim those tests passed or rewrite expectations to hide missing features.
+- Recommended commands: npx tsx --test tests/document-studio/cad-markup-stage06-contract.test.ts ; npx playwright test tests/document-studio/cad-markup-stage06-browser.spec.ts ; npx playwright test tests/document-studio/cad-markup-tools.spec.ts tests/document-studio/cad-review-core.spec.ts tests/document-studio/cad-stage3-review-tools.spec.ts ; npx tsc --noEmit ; npm run build.
+- All above stay **NOT_RUN** until actual runtime evidence. Structural GitHub compare verifies changed paths, not TypeScript semantics or actual mobile UX.
+
+### Regression and acceptance safeguards
+
+- SVG zoom pan, reverse drag and pixel hit tolerance have pure test coverage but real browser/device result must be recorded. Source entity selection remains outside this review hit-test; source CAD erase/move/copy not used. Markup move is only for independent review records, not source geometry or measurement world anchors.
+- Multi-selection supports Shift toggle and atomic Delete. Only one actively selected review item is moved by drag; no unimplemented batch move or resize control is shown.
+- Failed Add/Update now reports an error via host toast, without fake saved items. Markup store v1 retains raw world coordinates, style, status, review JSON and single command history.
+- Stage03 OSNAP, Stage04 distance, Stage05 area runtime gates remain open. Existing Stage05 Preview deployment dpl_7SgMRPgehVXN1p9nAkT4Bpump6Rc failed with Vercel 'Resource provisioning failed' before build logs (not a verified TS error). Do not treat lack of logs as a successful build.
+- No customer data migration, worker/plugin dependency update, or Preview->Production promotion. Continue release gate only after verified build, unit fixture tests and source unchanged.
+
+### Checkpoint, deploy, rollback
+
+Stage06 atomic checkpoint: SHA equals the commit containing this document; verify with GitHub compare.
+Preview: as authorized, may create one and inspect READY/ERROR, actual build logs and browser access. If error is in code and evidence identifies fix, narrow correction + retry allowed by new user instruction. Do not retry Vercel provisioning failures without a concrete recoverable cause. Final deployment outcome must be reported after checking.
+Rollback: revert ONLY ASAMA_06 changes on internal branch, keep ASAMA_01–05 and all frozen engine files. Stop until a new user 'devam' for ASAMA_07.

@@ -19,13 +19,21 @@ export function generateRevisionCloudPoints(
   const minY = Math.min(p1.y, p2.y);
   const maxY = Math.max(p1.y, p2.y);
 
-  const width = Math.max(maxX - minX, 1);
-  const height = Math.max(maxY - minY, 1);
+  if (![minX, minY, maxX, maxY].every(Number.isFinite)) return [];
+  const width = maxX - minX;
+  const height = maxY - minY;
+  if (width < 1e-6 || height < 1e-6) return [];
 
   // Determine arc radius based on box size (approx 10-30 units, or 10% of min dimension)
-  const defaultRadius = Math.max(10, Math.min(width, height) * 0.15);
-  const radius = options?.arcRadius ?? defaultRadius;
-  const segmentsPerArc = options?.segmentsPerArc ?? 4;
+  const defaultRadius = Math.max(6, Math.min(width, height) * 0.15);
+  const suppliedRadius = options?.arcRadius;
+  const radius = suppliedRadius !== undefined && Number.isFinite(suppliedRadius) && suppliedRadius > 0
+    ? suppliedRadius : defaultRadius;
+  const requestedSteps = options?.segmentsPerArc ?? 4;
+  const segmentsPerArc = Number.isFinite(requestedSteps)
+    ? Math.max(2, Math.min(12, Math.floor(requestedSteps))) : 4;
+  // Guard construction cost for large CAD extents or extreme zoom levels.
+  const maxScallopsPerEdge = 96;
 
   const corners: CadPoint2d[] = [
     { x: minX, y: maxY }, // Top-Left
@@ -45,7 +53,7 @@ export function generateRevisionCloudPoints(
     const edgeLength = Math.hypot(dx, dy);
 
     // Number of scallops along this edge
-    const scallopCount = Math.max(1, Math.round(edgeLength / (radius * 1.8)));
+    const scallopCount = Math.max(1, Math.min(maxScallopsPerEdge, Math.round(edgeLength / (radius * 1.8))));
     const scallopLength = edgeLength / scallopCount;
 
     const unitX = dx / edgeLength;

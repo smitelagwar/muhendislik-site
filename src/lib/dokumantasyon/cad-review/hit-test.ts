@@ -1,8 +1,13 @@
 import type { CadPoint2d, CadReviewItem } from "./schema";
+import { generateRevisionCloudPoints } from "./cloud-generator";
 
 export interface CadHitTestOptions {
   tolerancePx?: number;
   projectWorldToScreen: (p: CadPoint2d) => { x: number; y: number } | null;
+  /** Review visibility is separate from the source CAD entity/layer visibility. */
+  activeLayoutId?: string | null;
+  isVisible?: (item: CadReviewItem) => boolean;
+  selectedItemIds?: ReadonlySet<string>;
 }
 
 function distToSegment(
@@ -34,8 +39,10 @@ export function hitTestReviewItem(
   screenPoint: { x: number; y: number },
   options: CadHitTestOptions
 ): boolean {
-  const tol = options.tolerancePx ?? 14;
+  const tol = options.tolerancePx ?? 10;
   const project = options.projectWorldToScreen;
+  if (options.activeLayoutId && item.layoutId && item.layoutId !== options.activeLayoutId) return false;
+  if (options.isVisible && !options.isVisible(item)) return false;
 
   switch (item.type) {
     case "comment_pin": {
@@ -74,8 +81,29 @@ export function hitTestReviewItem(
       const s1 = project(item.p1);
       const s2 = project(item.p2);
       if (!s1 || !s2) return false;
+      const selected = options.selectedItemIds?.has(item.id) ?? false;
+      const grip = item.shapeKind === "circle" ? s1
+        : { x: (s1.x + s2.x)/2, y: (s1.y + s2.y)/2 };
+      if (selected && Math.hypot(screenPoint.x-grip.x,screenPoint.y-grip.y) <= 9) {
+        return true; // visible move grip corresponds to an actual draggable target
+      }
 
-      if (item.shapeKind === "rect" || item.shapeKind === "cloud") {
+      if (item.shapeKind === "cloud") {
+        // Skip expensive scallop generation if not near the visible box.
+        const margin = tol + 18;
+        const minX = Math.min(s1.x, s2.x), maxX = Math.max(s1.x, s2.x);
+        const minY = Math.min(s1.y, s2.y), maxY = Math.max(s1.y, s2.y);
+        if (screenPoint.x < minX - margin || screenPoint.x > maxX + margin ||
+            screenPoint.y < minY - margin || screenPoint.y > maxY + margin) return false;
+        const cloud = generateRevisionCloudPoints(s1, s2, { arcRadius: 9, segmentsPerArc: 4 });
+        if (cloud.length < 3) return false;
+        for (let i = 0; i < cloud.length; i++) {
+          if (distToSegment(screenPoint, cloud[i]!, cloud[(i + 1) % cloud.length]!) <= tol) return true;
+        }
+        return Boolean(item.style.fillColor) && isPointInRect(screenPoint, s1, s2);
+      }
+
+      if (item.shapeKind === "rect") {
         const corners = [
           { x: s1.x, y: s1.y },
           { x: s2.x, y: s1.y },
@@ -94,6 +122,7 @@ export function hitTestReviewItem(
       }
 
       if (item.shapeKind === "circle") {
+        // Circle is center=p1 and radius=distance(p1,p2); same rule in SVG.
         const radius = Math.hypot(s2.x - s1.x, s2.y - s1.y);
         const dist = Math.hypot(screenPoint.x - s1.x, screenPoint.y - s1.y);
         if (Math.abs(dist - radius) <= tol) return true;

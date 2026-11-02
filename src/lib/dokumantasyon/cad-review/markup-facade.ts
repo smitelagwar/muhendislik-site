@@ -26,6 +26,20 @@ export type CadReviewCalloutItem = z.infer<typeof cadReviewCalloutItemSchema>;
 export type CadReviewTextItem = z.infer<typeof cadReviewTextItemSchema>;
 export type CadReviewStrokeItem = z.infer<typeof cadReviewStrokeItemSchema>;
 
+/** Translation applies only to independent review annotations, never to CAD source entities. */
+export function translateMarkupItem(item: CadReviewItem, dx: number, dy: number): CadReviewItem | null {
+  if (!Number.isFinite(dx) || !Number.isFinite(dy) || Math.abs(dx) > 1e9 || Math.abs(dy) > 1e9) return null;
+  const add = (p: CadPoint2d): CadPoint2d => ({ x: p.x + dx, y: p.y + dy });
+  switch (item.type) {
+    case "shape": return { ...item, p1: add(item.p1), p2: add(item.p2) };
+    case "callout": return { ...item, tip: add(item.tip), anchor: add(item.anchor) };
+    case "comment_pin": return { ...item, position: add(item.position) };
+    case "text": return { ...item, position: add(item.position) };
+    case "stroke": return { ...item, points: item.points.map(add) };
+    default: return null;
+  }
+}
+
 export class CadMarkupFacade {
 
   constructor(private readonly store: CadReviewStore) {}
@@ -79,7 +93,7 @@ export class CadMarkupFacade {
       },
     };
 
-    this.store.addItem(item);
+    if (!this.store.addItem(item)) throw new Error("Review öğesi doğrulanamadı veya kayıt sınırına ulaşıldı.");
     this.store.setSelectedItems([id]);
     return item;
   }
@@ -119,7 +133,7 @@ export class CadMarkupFacade {
       },
     };
 
-    this.store.addItem(item);
+    if (!this.store.addItem(item)) throw new Error("Review öğesi doğrulanamadı veya kayıt sınırına ulaşıldı.");
     this.store.setSelectedItems([id]);
     return item;
   }
@@ -162,7 +176,7 @@ export class CadMarkupFacade {
       },
     };
 
-    this.store.addItem(item);
+    if (!this.store.addItem(item)) throw new Error("Review öğesi doğrulanamadı veya kayıt sınırına ulaşıldı.");
     this.store.setSelectedItems([id]);
     return item;
   }
@@ -205,7 +219,7 @@ export class CadMarkupFacade {
       },
     };
 
-    this.store.addItem(item);
+    if (!this.store.addItem(item)) throw new Error("Review öğesi doğrulanamadı veya kayıt sınırına ulaşıldı.");
     this.store.setSelectedItems([id]);
     return item;
   }
@@ -214,8 +228,7 @@ export class CadMarkupFacade {
     const current = this.store.getItems().find((i) => i.id === id);
     if (!current) return false;
 
-    this.store.updateItem(id, { status: newStatus });
-    return true;
+    return this.store.updateItem(id, { status: newStatus });
   }
 
   updateItemComment(id: string, comment: string, title?: string): boolean {
@@ -228,21 +241,19 @@ export class CadMarkupFacade {
       (patch as { title?: string }).title = title.trim();
     }
 
-    this.store.updateItem(id, patch);
-    return true;
+    return this.store.updateItem(id, patch);
   }
 
   updateItemStyle(id: string, style: Partial<CadReviewItemStyle>): boolean {
     const current = this.store.getItems().find((i) => i.id === id);
     if (!current) return false;
 
-    this.store.updateItem(id, {
+    return this.store.updateItem(id, {
       style: {
         ...current.style,
         ...style,
       },
     });
-    return true;
   }
 
   addStroke(params: {
@@ -280,7 +291,7 @@ export class CadMarkupFacade {
       },
     };
 
-    this.store.addItem(item);
+    if (!this.store.addItem(item)) throw new Error("Çizgi doğrulanamadı veya kayıt sınırına ulaşıldı.");
     return item;
   }
 
@@ -291,6 +302,8 @@ export class CadMarkupFacade {
     const hit = findHitReviewItem(this.store.getItems(), screenPoint, {
       tolerancePx: 16,
       projectWorldToScreen,
+      activeLayoutId: this.store.getSession().activeLayoutId,
+      isVisible: (item) => ["shape", "callout", "comment_pin", "text", "stroke"].includes(item.type),
     });
 
     if (hit) {
@@ -306,6 +319,21 @@ export class CadMarkupFacade {
 
     this.store.removeItem(id);
     return true;
+  }
+
+  moveItem(id: string, dx: number, dy: number): boolean {
+    const item = this.store.getItems().find((value) => value.id === id);
+    if (!item || item.status === "closed" || (dx === 0 && dy === 0)) return false;
+    const translated = translateMarkupItem(item, dx, dy);
+    if (!translated) return false;
+    return this.store.updateItem(id, translated);
+  }
+
+  toggleItemSelection(id: string): void {
+    const selected = new Set(this.store.getSession().selectedItemIds);
+    if (selected.has(id)) selected.delete(id);
+    else selected.add(id);
+    this.store.setSelectedItems(selected);
   }
 
   selectItem(id: string): void {

@@ -387,6 +387,33 @@ export class CadReviewStore {
     return true;
   }
 
+  /** Multi-selection Delete is ONE undoable review-only transaction. */
+  removeItems(itemIds: Iterable<string>): number {
+    const requested = new Set(itemIds);
+    const removed = this.document.items
+      .map((item, index) => ({ item: copyItem(item), index }))
+      .filter(({ item }) => requested.has(item.id));
+    if (removed.length === 0) return 0;
+    const ids = new Set(removed.map(({ item }) => item.id));
+    this.executeCommand({
+      name: "Remove Selected Review Items",
+      execute: () => {
+        this.document.items = this.document.items.filter(item => !ids.has(item.id));
+        for (const id of ids) this.session.selectedItemIds.delete(id);
+        this.document.updatedAt = new Date().toISOString();
+      },
+      undo: () => {
+        const restored = [...this.document.items];
+        for (const { item, index } of removed) {
+          restored.splice(Math.min(index, restored.length), 0, copyItem(item));
+        }
+        this.document.items = restored;
+        this.document.updatedAt = new Date().toISOString();
+      },
+    });
+    return removed.length;
+  }
+
   removeItem(itemId: string): void {
     const existingIndex = this.document.items.findIndex((i) => i.id === itemId);
     if (existingIndex === -1) return;

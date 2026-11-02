@@ -441,6 +441,8 @@ export function DokCadUpstreamViewer({
         if (!text) return null;
         return { text };
       },
+      isItemReadOnly: (item: CadReviewItem) => item.status === "closed",
+      onError: (reason: string) => toast.error(reason),
     };
 
     const freehandRuntime = {
@@ -494,8 +496,7 @@ export function DokCadUpstreamViewer({
       onDelete: () => {
         const store = reviewStoreRef.current;
         if (!store) return;
-        const selected = [...store.getSession().selectedItemIds];
-        selected.forEach((id) => store.removeItem(id));
+        store.removeItems(store.getSession().selectedItemIds);
       },
     });
     return detach;
@@ -1569,12 +1570,17 @@ export function DokCadUpstreamViewer({
         {/* ── CAD Review V1: SVG Item Overlay ── */}
         {reviewEnabled && state === "ready" && (reviewItems.length > 0 || Boolean(reviewDraft?.draftItem)) ? (
           <CadReviewOverlay
-            items={reviewItems.filter((item) => item.type !== "distance" && item.type !== "area")}
+            items={reviewItems.filter((item) => {
+              if (item.type === "distance" || item.type === "area") return false;
+              const layoutId = reviewStoreRef.current?.getSession().activeLayoutId;
+              return !layoutId || !item.layoutId || item.layoutId === layoutId;
+            })}
             draft={reviewDraft}
+            selectedItemIds={reviewStoreRef.current?.getSession().selectedItemIds}
+            hoveredItemId={reviewStoreRef.current?.getSession().hoveredItemId ?? null}
             projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
             containerWidth={containerSize.width}
             containerHeight={containerSize.height}
-            onClickItem={chainSnapshot ? undefined : (id) => reviewStoreRef.current?.setSelectedItems([id])}
           />
         ) : null}
 

@@ -8,6 +8,7 @@
 "use client";
 
 import React, { useCallback } from "react";
+import { generateRevisionCloudSvgPath } from "@/lib/dokumantasyon/cad-review/cloud-generator";
 import type { CadReviewItem } from "@/lib/dokumantasyon/cad-review/schema";
 import {
   formatCadDistance,
@@ -65,7 +66,8 @@ export function CadReviewOverlay({
       aria-hidden="true"
       data-cad-review-overlay="true"
     >
-      {items.map((item) => (
+      {items.filter(item => !(draft?.activeTool === "select" && draft.draftItem?.id === item.id))
+        .map((item) => (
         <ReviewItemRenderer
           key={item.id}
           item={item}
@@ -128,10 +130,16 @@ function ReviewItemRenderer({
   const effectiveFill = item.style.fillColor || color;
   const effectiveFillOpacity = item.style.fillColor ? 0.22 : 0.08;
 
-  const commonProps: React.SVGProps<SVGGElement> = {
+  const commonProps: React.SVGProps<SVGGElement> & {
+    "data-review-selected": string;
+    "data-review-hovered": string;
+  } = {
     opacity,
-    style: { pointerEvents: onClick ? "auto" : "none", cursor: onClick ? "pointer" : "default" },
+    // Native viewport owns hit testing; SVG must not intercept pointerdown/up.
+    style: { pointerEvents: "none" },
     onClick: onClick ? () => onClick(item.id) : undefined,
+    "data-review-selected": isSelected ? "true" : "false",
+    "data-review-hovered": isHovered ? "true" : "false",
   };
 
   if (item.type === "distance") {
@@ -350,7 +358,15 @@ function ReviewItemRenderer({
 
     return (
       <g {...commonProps} data-review-type="callout" data-review-id={item.id}>
-        <line x1={tip.x} y1={tip.y} x2={anchor.x} y2={anchor.y} stroke={color} strokeWidth={sw} />
+        <defs>
+          <marker id={"cad-review-arrow-" + item.id} markerWidth="10" markerHeight="10"
+            refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+            <path d="M 0 0 L 10 5 L 0 10 Z" fill={color} />
+          </marker>
+        </defs>
+        <line x1={anchor.x} y1={anchor.y} x2={tip.x} y2={tip.y}
+          stroke={color} strokeWidth={sw}
+          markerEnd={"url(#cad-review-arrow-" + item.id + ")"} />
         <circle cx={tip.x} cy={tip.y} r={4} fill={color} />
         {/* bubble */}
         <rect
@@ -387,87 +403,47 @@ function ReviewItemRenderer({
     const minY = Math.min(p1.y, p2.y);
     const w = Math.abs(p2.x - p1.x);
     const h = Math.abs(p2.y - p1.y);
+    const center = item.shapeKind === "circle" ? p1 :
+      { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+    const moveHandle = isSelected && item.status !== "closed" ? (
+      <g data-cad-review-move-handle="true" pointerEvents="none">
+        <circle cx={center.x} cy={center.y} r={7} fill="#0f172a"
+          stroke="#f8fafc" strokeWidth={1.2} />
+        <path d={["M",center.x-4,center.y,"H",center.x+4,"M",center.x,center.y-4,"V",center.y+4].join(" ")}
+          stroke="white" strokeWidth={1.4} />
+      </g>
+    ) : null;
 
-    if (item.shapeKind === "rect") {
-      return (
-        <g {...commonProps} data-review-type="shape_rect" data-review-id={item.id}>
-          <rect
-            x={minX}
-            y={minY}
-            width={w}
-            height={h}
-            fill={effectiveFill}
-            fillOpacity={effectiveFillOpacity}
-            stroke={color}
-            strokeWidth={sw}
-            strokeDasharray={dashArray}
-          />
-        </g>
-      );
-    }
+    if (item.shapeKind === "rect") return (
+      <g {...commonProps} data-review-type="shape_rect" data-review-id={item.id}>
+        <rect x={minX} y={minY} width={w} height={h}
+          fill={effectiveFill} fillOpacity={effectiveFillOpacity}
+          stroke={color} strokeWidth={sw} strokeDasharray={dashArray}
+          vectorEffect="non-scaling-stroke" />
+        {moveHandle}
+      </g>
+    );
     if (item.shapeKind === "circle") {
-      const cx = (p1.x + p2.x) / 2;
-      const cy = (p1.y + p2.y) / 2;
-      const r = Math.max(Math.abs(p2.x - p1.x), Math.abs(p2.y - p1.y)) / 2;
+      const radius = Math.hypot(p2.x - p1.x, p2.y - p1.y);
       return (
         <g {...commonProps} data-review-type="shape_circle" data-review-id={item.id}>
-          <circle
-            cx={cx}
-            cy={cy}
-            r={r}
-            fill={effectiveFill}
-            fillOpacity={effectiveFillOpacity}
-            stroke={color}
-            strokeWidth={sw}
-            strokeDasharray={dashArray}
-          />
+          <circle cx={p1.x} cy={p1.y} r={radius}
+            fill={effectiveFill} fillOpacity={effectiveFillOpacity}
+            stroke={color} strokeWidth={sw} strokeDasharray={dashArray}
+            vectorEffect="non-scaling-stroke" />
+          {moveHandle}
         </g>
       );
     }
     if (item.shapeKind === "cloud") {
-      // Simplified cloud: rect with arc bumps
-      const bumpR = 8;
-      const bumpsH = Math.max(1, Math.floor(w / (bumpR * 2)));
-      const bumpsV = Math.max(1, Math.floor(h / (bumpR * 2)));
-      const bumpW = w / bumpsH;
-      const bumpH = h / bumpsV;
-      let d = "";
-      // Top edge
-      for (let i = 0; i < bumpsH; i++) {
-        const x1 = minX + i * bumpW;
-        const x2 = minX + (i + 1) * bumpW;
-        d += `M ${x1} ${minY} A ${bumpW / 2} ${bumpR} 0 0 1 ${x2} ${minY} `;
-      }
-      // Bottom edge
-      for (let i = 0; i < bumpsH; i++) {
-        const x1 = minX + (bumpsH - i) * bumpW;
-        const x2 = minX + (bumpsH - i - 1) * bumpW;
-        d += `M ${x1} ${minY + h} A ${bumpW / 2} ${bumpR} 0 0 0 ${x2} ${minY + h} `;
-      }
-      // Left edge
-      for (let i = 0; i < bumpsV; i++) {
-        const y1 = minY + i * bumpH;
-        const y2 = minY + (i + 1) * bumpH;
-        d += `M ${minX} ${y1} A ${bumpR} ${bumpH / 2} 0 0 0 ${minX} ${y2} `;
-      }
-      // Right edge
-      for (let i = 0; i < bumpsV; i++) {
-        const y1 = minY + (bumpsV - i) * bumpH;
-        const y2 = minY + (bumpsV - i - 1) * bumpH;
-        d += `M ${minX + w} ${y1} A ${bumpR} ${bumpH / 2} 0 0 1 ${minX + w} ${y2} `;
-      }
+      const path = generateRevisionCloudSvgPath(p1, p2, { arcRadius: 9, segmentsPerArc: 4 });
+      if (!path) return null;
       return (
         <g {...commonProps} data-review-type="shape_cloud" data-review-id={item.id}>
-          <rect
-            x={minX}
-            y={minY}
-            width={w}
-            height={h}
-            fill={effectiveFill}
-            fillOpacity={effectiveFillOpacity}
-            stroke="none"
-          />
-          <path d={d} fill="none" stroke={color} strokeWidth={sw} strokeDasharray={dashArray} />
+          <path d={path} fill={effectiveFill} fillOpacity={effectiveFillOpacity}
+            stroke={color} strokeWidth={sw} strokeDasharray={dashArray}
+            vectorEffect="non-scaling-stroke" />
+          {moveHandle}
         </g>
       );
     }
