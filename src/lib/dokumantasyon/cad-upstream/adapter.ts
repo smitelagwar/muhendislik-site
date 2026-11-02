@@ -1998,10 +1998,6 @@ export class CadUpstreamAdapter {
 
 
 
-  popAreaMeasurementPoint(): boolean {
-    return this.areaMeasurementController?.popPoint() ?? false;
-  }
-
   updateAreaMeasurementSnapModes(snapModes: ReadonlySet<CadSnapMode>): void {
     this.areaMeasurementController?.updateSnapModes(snapModes);
   }
