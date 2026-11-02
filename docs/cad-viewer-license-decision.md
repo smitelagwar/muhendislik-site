@@ -83,3 +83,13 @@ Viewer -> CadViewerShell` seklindedir.
   concurrency, token ve lifecycle kontrolleri basarilidir. Gercek DWG dosyalari
   mevcut olsa da APS kimlik bilgileri olmadigi icin gercek upload/translation/
   viewer testi baslatilmadi ve sahte basari uretilmedi.
+
+## Güncel ek durum — CAD V1 Review ASAMA_01 (02.11.2026)
+
+**Kapsam:** 20.08.2026 tarihli yukarıdaki karar ve o tarihteki dağıtım beyanları tarihsel kayıt olarak aynen korunmuştur. Bunlar 02.11.2026 tarihli GitHub çalışma dalının güncel lisans ve runtime içeriğini artık tek başlarına açıklamamaktadır.
+
+- Güncel package-lock.json: @mlightcad/libredwg-converter 3.14.2 ve @mlightcad/libredwg-web 0.7.10, her ikisi GPL-3.0 lisanslı. @mlightcad/cad-simple-viewer 1.6.2 ve @mlightcad/data-model 1.14.2 MIT; dxf-viewer 1.0.48 MPL-2.0.
+- THIRD_PARTY_NOTICES.md, tarayıcıya sunulan /cad-upstream/libredwg-parser-worker.js, /cad-upstream/libredwg-web.wasm ve /cad-upstream/GPL-NOTICE.txt varlıklarını kayıt altına alır. scripts/sync-cad-upstream-assets.mjs bu işçi/WASM dosyalarını node_modules paketlerinden build sırasında kopyalar ve NOTICE dosyasını oluşturur. Kaynak referansı: https://github.com/mlightcad/realdwg-web/tree/e3198a391b5c8599a94f1f1da285426443371451 . public/cad-upstream kaynak repoda takip edilen klasör değildir; üretim build çıktısıdır.
+- Bu nedenle önceki bölümdeki üretim koduna GPL/WASM hiç eklenmediği ifadesi bugünkü build düzeniyle çelişmektedir. GitHub kaynak ve manifest üzerinde bu çelişki **doğrulandı**. Gerçek deployed artifact dosyaları, corresponding-source erişimi ve lisans yükümlülüklerinin bütününün yerine getirildiği **doğrulanmadı**.
+- **P0 hukuki/dağıtım incelemesi gerekir:** GPL kapsamında worker/WASM dosyalarının sunulması, NOTICE/kaynak sağlama ve uygulamanın dağıtım modelinin etkileri uzman incelemesiyle ve gerçekleşen build varlıklarıyla teyit edilmelidir. Worker izolasyonu tek başına bütün GPL yükümlülüklerini bertaraf ettiği şeklinde yorumlanamaz. Bu belge hukuki tavsiye veya GPL uyumluluk onayı değildir.
+- Çalışan DWG/DXF V1 yolu bu aşamada **değiştirilmemiştir**; lisans değerlendirmesi yapılmadan başka GPL/AGPL bileşeni eklenmeyecektir. Yayın kararının ön koşulu bu P0 belirsizliğinin ayrıca giderilmesidir. Ayrıntılı kanıt ve test kapsamı: docs/cad-v1-review/IMPLEMENTATION_STATE.md.
