@@ -2,7 +2,9 @@ import type {
   CadReviewDocument,
   CadReviewItem,
   CadReviewLineDash,
+  CadMeasurementContext,
 } from "./schema";
+import { cadReviewItemSchema, MAX_REVIEW_ITEMS_PER_DRAWING } from "./schema";
 
 export type CadReviewTool =
   | "select"
@@ -29,8 +31,31 @@ export interface CadActiveMarkupStyle {
 
 export interface CadMeasurementUnitSettings {
   unit: "m" | "cm" | "mm";
+  areaUnit: "m2" | "cm2" | "mm2";
   precision: number;
+  areaPrecision: number;
   color: string;
+}
+
+export const CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS: Readonly<CadMeasurementUnitSettings> = Object.freeze({
+  unit: "m",
+  areaUnit: "m2",
+  precision: 2,
+  areaPrecision: 2,
+  color: "#3b82f6",
+});
+
+function isMeasurementItem(item: CadReviewItem): boolean {
+  return item.type === "distance" || item.type === "chain_distance" || item.type === "area";
+}
+
+/** Deep-clone world geometry and freeze the per-measurement context. */
+function copyItem(item: CadReviewItem): CadReviewItem {
+  const clone = JSON.parse(JSON.stringify(item)) as CadReviewItem;
+  if (isMeasurementItem(clone) && "measurementContext" in clone && clone.measurementContext) {
+    Object.freeze(clone.measurementContext);
+  }
+  return clone;
 }
 
 export interface CadReviewSessionState {
@@ -75,11 +100,7 @@ export class CadReviewStore {
       opacity: 1,
       fontSize: 16,
     },
-    measurementUnitSettings: {
-      unit: "m",
-      precision: 2,
-      color: "#3b82f6",
-    },
+    measurementUnitSettings: { ...CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS },
   };
 
   // 3. Transient Gesture Draft State (never enters undo stack or server)
@@ -99,7 +120,7 @@ export class CadReviewStore {
   constructor(initialDocument: CadReviewDocument) {
     this.document = {
       ...initialDocument,
-      items: [...initialDocument.items],
+      items: initialDocument.items.map(copyItem),
     };
   }
 
@@ -139,7 +160,7 @@ export class CadReviewStore {
     if (this.session.activeTool === tool) return;
     this.session.activeTool = tool;
     this.session.selectedItemIds.clear();
-    this.clearDraft();
+    this.resetDraftWithoutNotify();
     this.notify();
   }
 
@@ -183,12 +204,47 @@ export class CadReviewStore {
   }
 
   setMeasurementUnitSettings(settings: Partial<CadMeasurementUnitSettings>): void {
-    this.session.measurementUnitSettings = {
-      ...this.session.measurementUnitSettings,
-      ...settings,
-    };
+    const previous = this.session.measurementUnitSettings;
+    const next = { ...previous, ...settings };
+    if (!["m", "cm", "mm"].includes(next.unit) ||
+        !["m2", "cm2", "mm2"].includes(next.areaUnit) ||
+        ![next.precision, next.areaPrecision].every((p) =>
+          Number.isSafeInteger(p) && p >= 0 && p <= 6) ||
+        typeof next.color !== "string" || next.color.length < 1 || next.color.length > 32) return;
+    if (Object.keys(next).every((key) =>
+      next[key as keyof CadMeasurementUnitSettings] === previous[key as keyof CadMeasurementUnitSettings]
+    )) return;
+
+    // Display unit/precision is session-only. Color is a persistent style change:
+    // group all existing measurements in ONE undoable transaction.
+    this.session.measurementUnitSettings = next;
+    if (next.color !== previous.color && this.document.items.some(isMeasurementItem)) {
+      const oldColors = new Map<string, string>();
+      for (const item of this.document.items) {
+        if (isMeasurementItem(item)) oldColors.set(item.id, item.style.color);
+      }
+      this.executeCommand({
+        name: "Update Measurement Color",
+        execute: () => {
+          for (const item of this.document.items) {
+            if (isMeasurementItem(item)) item.style = { ...item.style, color: next.color };
+          }
+          this.document.updatedAt = new Date().toISOString();
+        },
+        undo: () => {
+          for (const item of this.document.items) {
+            const color = oldColors.get(item.id);
+            if (color !== undefined) item.style = { ...item.style, color };
+          }
+          this.document.updatedAt = new Date().toISOString();
+        },
+      });
+      return;
+    }
     this.notify();
   }
+
+
 
   // --- Transient Draft Mutations ---
 
@@ -200,12 +256,13 @@ export class CadReviewStore {
     this.notify();
   }
 
+  private resetDraftWithoutNotify(): void {
+    this.draft = { activeTool: null, draftItem: null };
+  }
+
   clearDraft(): void {
     if (!this.draft.activeTool && !this.draft.draftItem) return;
-    this.draft = {
-      activeTool: null,
-      draftItem: null,
-    };
+    this.resetDraftWithoutNotify();
     this.notify();
   }
 
@@ -219,7 +276,7 @@ export class CadReviewStore {
     }
     // New action strictly clears the redo stack
     this.redoStack = [];
-    this.clearDraft();
+    this.resetDraftWithoutNotify();
     this.isDirty = true;
     this.notify();
   }
@@ -229,7 +286,7 @@ export class CadReviewStore {
     if (!command) return false;
     command.undo();
     this.redoStack.push(command);
-    this.clearDraft();
+    this.resetDraftWithoutNotify();
     this.isDirty = true;
     this.notify();
     return true;
@@ -240,7 +297,7 @@ export class CadReviewStore {
     if (!command) return false;
     command.execute();
     this.undoStack.push(command);
-    this.clearDraft();
+    this.resetDraftWithoutNotify();
     this.isDirty = true;
     this.notify();
     return true;
@@ -248,28 +305,49 @@ export class CadReviewStore {
 
   // --- High-Level Document Actions (via Commands) ---
 
-  addItem(item: CadReviewItem): void {
-    const command: CadReviewCommand = {
-      name: `Add Item (${item.type})`,
+  /** A complete gesture commits exactly one validated history entry. */
+  addItem(item: CadReviewItem): boolean {
+    if (this.document.items.length >= MAX_REVIEW_ITEMS_PER_DRAWING ||
+        this.document.items.some((existing) => existing.id === item.id)) return false;
+    const candidate: CadReviewItem = isMeasurementItem(item) &&
+      this.session.measurementUnitSettings.color !== CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS.color
+      ? { ...item, style: { ...item.style, color: this.session.measurementUnitSettings.color } }
+      : item;
+    const validated = cadReviewItemSchema.safeParse(candidate);
+    if (!validated.success) return false;
+    if (validated.data.type === "chain_distance" &&
+        validated.data.segmentDistances.length !== validated.data.points.length - 1) return false;
+    const saved = copyItem(validated.data);
+    this.executeCommand({
+      name: "Add Item (" + saved.type + ")",
       execute: () => {
-        this.document.items.push(item);
+        this.document.items.push(saved);
         this.document.updatedAt = new Date().toISOString();
       },
       undo: () => {
-        const idx = this.document.items.findIndex((i) => i.id === item.id);
-        if (idx !== -1) {
-          this.document.items.splice(idx, 1);
+        const index = this.document.items.findIndex((existing) => existing.id === saved.id);
+        if (index !== -1) {
+          this.document.items.splice(index, 1);
           this.document.updatedAt = new Date().toISOString();
         }
       },
-    };
-    this.executeCommand(command);
+    });
+    return true;
   }
+
+  /** Explicit, immutable source/display/calibration context for new measurements. */
+  addMeasuredItem(
+    item: Extract<CadReviewItem, { type: "distance" | "chain_distance" | "area" }>,
+    context: CadMeasurementContext
+  ): boolean {
+    return this.addItem({ ...item, measurementContext: context });
+  }
+
 
   removeItem(itemId: string): void {
     const existingIndex = this.document.items.findIndex((i) => i.id === itemId);
     if (existingIndex === -1) return;
-    const existingItem = this.document.items[existingIndex]!;
+    const existingItem = copyItem(this.document.items[existingIndex]!);
 
     const command: CadReviewCommand = {
       name: `Remove Item (${existingItem.type})`,
@@ -289,28 +367,43 @@ export class CadReviewStore {
     this.executeCommand(command);
   }
 
-  updateItem(itemId: string, patch: Partial<CadReviewItem>): void {
-    const existing = this.document.items.find((i) => i.id === itemId);
-    if (!existing) return;
-    const previousSnapshot = { ...existing } as CadReviewItem;
+  updateItem(itemId: string, patch: Partial<CadReviewItem>): boolean {
+    const existing = this.document.items.find((item) => item.id === itemId);
+    if (!existing || (patch.id !== undefined && patch.id !== itemId) ||
+        (patch.type !== undefined && patch.type !== existing.type) ||
+        // No silent recalibration: a new context requires an explicit future remeasure command.
+        "measurementContext" in patch) return false;
 
-    const command: CadReviewCommand = {
-      name: `Update Item (${existing.type})`,
+    const before = copyItem(existing);
+    const proposed = { ...existing, ...patch } as CadReviewItem;
+    if (JSON.stringify(proposed) === JSON.stringify(existing)) return false;
+
+    // Some historic v1 IDs are non-UUID: preserve them when editing valid content.
+    const validationId = "00000000-0000-4000-8000-000000000001";
+    const parsed = cadReviewItemSchema.safeParse({
+      ...proposed,
+      id: validationId,
+      updatedAt: new Date().toISOString(),
+    });
+    if (!parsed.success) return false;
+    const after = copyItem({ ...proposed, ...parsed.data, id: itemId } as CadReviewItem);
+
+    this.executeCommand({
+      name: "Update Item (" + existing.type + ")",
       execute: () => {
-        const target = this.document.items.find((i) => i.id === itemId);
-        if (target) {
-          Object.assign(target, patch, { updatedAt: new Date().toISOString() });
-        }
+        const index = this.document.items.findIndex((item) => item.id === itemId);
+        if (index !== -1) this.document.items[index] = copyItem(after);
+        this.document.updatedAt = new Date().toISOString();
       },
       undo: () => {
-        const target = this.document.items.find((i) => i.id === itemId);
-        if (target) {
-          Object.assign(target, previousSnapshot);
-        }
+        const index = this.document.items.findIndex((item) => item.id === itemId);
+        if (index !== -1) this.document.items[index] = copyItem(before);
+        this.document.updatedAt = new Date().toISOString();
       },
-    };
-    this.executeCommand(command);
+    });
+    return true;
   }
+
 
 
   // Mark clean after successful save/sync with server

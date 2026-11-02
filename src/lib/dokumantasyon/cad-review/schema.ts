@@ -38,9 +38,17 @@ export const cadReviewItemStyleSchema = z.object({
 
 export type CadReviewItemStyle = z.infer<typeof cadReviewItemStyleSchema>;
 
+// Existing runtime chain IDs (chain-<timestamp>) and old review IDs must not
+// be rejected when normalizing an otherwise valid persisted item.
+const cadReviewItemIdSchema = z.string().min(1).max(128).refine(
+  (id) => z.string().uuid().safeParse(id).success ||
+    /^(?:chain|rev|dist|pin|shape|stroke|text|callout|area|measure)-[A-Za-z0-9_-]{1,96}$/.test(id),
+  { message: "Geçersiz CAD review kimliği." }
+);
+
 // Base properties for every review item
 const cadReviewItemBaseSchema = z.object({
-  id: z.string().uuid(),
+  id: cadReviewItemIdSchema,
   layoutId: z.string().max(128).optional(),
   author: z.string().min(1).max(MAX_AUTHOR_LENGTH).default("Admin"),
   createdAt: z.string().datetime(),
@@ -54,9 +62,33 @@ const cadReviewItemBaseSchema = z.object({
   }),
 });
 
+
+/** Additive v1 extension: legacy measurements carry no captured context. */
+export const cadMeasurementContextSchema = z.object({
+  version: z.literal(1),
+  sourceUnit: z.enum(["unitless", "mm", "cm", "m", "in", "ft"]),
+  source: z.enum(["dxf-insunits", "dwg-metadata", "calibration", "unknown"]),
+  sourceInsunits: z.number().int().min(0).nullable().optional(),
+  mmPerWorldUnit: z.number().finite().positive().nullable(),
+  calibrationRevision: z.number().int().min(0),
+  displayUnit: z.enum(["mm", "cm", "m", "in", "ft"]),
+  areaDisplayUnit: z.enum(["mm2", "cm2", "m2", "in2", "ft2"]),
+  precision: z.number().int().min(0).max(6),
+  areaPrecision: z.number().int().min(0).max(6),
+}).superRefine((value, ctx) => {
+  if ((value.source === "unknown") !== (value.mmPerWorldUnit === null)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Birim kaynağı ve fiziksel ölçek birbiriyle tutarlı olmalıdır.",
+    });
+  }
+});
+export type CadMeasurementContext = z.infer<typeof cadMeasurementContextSchema>;
+
 // 1. Distance Measurement item
 export const cadReviewDistanceItemSchema = cadReviewItemBaseSchema.extend({
   type: z.literal("distance"),
+  measurementContext: cadMeasurementContextSchema.optional(),
   start: cadPoint2dSchema,
   end: cadPoint2dSchema,
   measuredLength: z.number().refine((n) => Number.isFinite(n) && n >= 0, {
@@ -68,6 +100,7 @@ export const cadReviewDistanceItemSchema = cadReviewItemBaseSchema.extend({
 // 2. Chain Distance Measurement item
 export const cadReviewChainDistanceItemSchema = cadReviewItemBaseSchema.extend({
   type: z.literal("chain_distance"),
+  measurementContext: cadMeasurementContextSchema.optional(),
   points: z.array(cadPoint2dSchema).min(2).max(MAX_POINTS_PER_ITEM),
   totalDistance: z.number().refine((n) => Number.isFinite(n) && n >= 0, {
     message: "Toplam zincir mesafesi pozitif ve sonlu olmalıdır.",
@@ -78,6 +111,7 @@ export const cadReviewChainDistanceItemSchema = cadReviewItemBaseSchema.extend({
 // 3. Area Measurement item
 export const cadReviewAreaItemSchema = cadReviewItemBaseSchema.extend({
   type: z.literal("area"),
+  measurementContext: cadMeasurementContextSchema.optional(),
   points: z.array(cadPoint2dSchema).min(3).max(MAX_POINTS_PER_ITEM),
   measuredArea: z.number().refine((n) => Number.isFinite(n) && n >= 0, {
     message: "Alan değeri pozitif ve sonlu olmalıdır.",

@@ -11,7 +11,6 @@ import {
 import {
   CAD_DEFAULT_MEASUREMENT_UNIT_SETTINGS,
   CadReviewStore,
-  getCurrentCadMeasurementUnitSettings,
 } from "../../src/lib/dokumantasyon/cad-review/store";
 import type { CadReviewDocument } from "../../src/lib/dokumantasyon/cad-review/schema";
 
@@ -71,7 +70,7 @@ test.describe("CAD Stage 1 — fiziksel ölçüm birimleri", () => {
     const store = new CadReviewStore(emptyReviewDocument("units"));
     store.setMeasurementUnitSettings({ unit: "cm" });
 
-    const settings = getCurrentCadMeasurementUnitSettings();
+    const settings = store.getMeasurementUnitSettings();
     expect(settings.unit).toBe("cm");
     expect(settings.areaUnit).toBe("m2");
     expect(formatArea(2_000_000, mmSource, settings.areaUnit, settings.areaPrecision)).toBe("2,00 m²");
@@ -134,7 +133,7 @@ test.describe("CAD Stage 1 — fiziksel ölçüm birimleri", () => {
 
     const chain = store.getItems()[0];
     expect(chain?.style.color).toBe("#ef4444");
-    expect(getCurrentCadMeasurementUnitSettings().color).toBe("#ef4444");
+    expect(store.getMeasurementUnitSettings().color).toBe("#ef4444");
   });
 
   test("yeni Chain ölçümü hard-coded renge dönmez, aktif measurement color'ı devralır", () => {

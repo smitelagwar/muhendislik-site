@@ -3,10 +3,10 @@ Plan ID: CADV1-PRO-REVIEW-20261102
 Plan revision: 2
 Date: 2026-11-02 (Europe/Istanbul)
 Planning status: PLAN_HAZIR
-Execution status: DEVAM_EDIYOR
-Completed stages: ASAMA_01
+Execution status: KOD_HAZIR_DOGRULAMA_BEKLIYOR
+Completed stages: ASAMA_01, ASAMA_02 (code checkpoint; runtime verification pending)
 Active stage: none
-Next stage: ASAMA_02 (ONLY after user says devam)
+Next stage: ASAMA_03 (ONLY after user says devam)
 Stage 01 acceptance: DOCUMENTED_BASELINE; runtime/device verification NOT_RUN
 Release-ready: NO
 Branch: internal-cad-v1-pro-review-r2-20261102
@@ -14,7 +14,7 @@ Checkpoint: this document's containing branch HEAD (first stage checkpoint; see 
 Checkpoint parent: 32a1c818d06c5b191cdc5bd4efdeaf71407e6559
 Plan source: attached revision 2 copied verbatim to PLAN.md
 Deployment: no Preview, no Production, no main merge
-Scope: DOCUMENTATION / READ-ONLY BASELINE (no runtime code, package, fixture or production setting changed)
+Scope: ASAMA_01 documented baseline + ASAMA_02 additive review data, unit, history and test contract; engine frozen
 
 ## 1. Branch, source and engine freeze
 
@@ -185,3 +185,69 @@ Owner: user/CI with test file access. Results NOT_RUN until provided; screenshot
 Only files allowed in this stage: docs/cad-v1-review/PLAN.md, docs/cad-v1-review/IMPLEMENTATION_STATE.md and dated addendum to existing docs/cad-viewer-license-decision.md. No source, lock, fixture, tests, engine or Vercel configuration edits.
 Rollback: revert only this stage commit on work branch while preserving rule-branch base; never reset the entire repo to IGNORE2. No main merge or deploy.
 Stage 01 baseline/documentary acceptance is recorded here. Remaining browser/CI/physical-device and legal verification gates stay open; NOT_RUN is not PASS. ASAMA_02 may begin only on explicit user command devam; work must remain frozen until then.
+
+
+## 8. ASAMA_02 — Veri, birim, tarihçe ve girdi sözleşmesi
+
+Date: 2026-11-02 (Europe/Istanbul)
+Execution: CODE CHECKPOINT; KOD_HAZIR_DOGRULAMA_BEKLIYOR, NOT RELEASE_READY.
+Branch: internal-cad-v1-pro-review-r2-20261102; checkpoint is the stage commit containing this document. No main merge and no Preview/Production.
+
+### Changed paths (strict stage boundary)
+
+- src/lib/dokumantasyon/cad-review/schema.ts — optional Zod v1 measurementContext; legacy chain-/rev- IDs recognized.
+- src/lib/dokumantasyon/cad-review/units.ts — source INSUNITS and calibration conversion, unknown status, squared area, captured formatters.
+- src/lib/dokumantasyon/cad-review/store.ts — validated atomic add, addMeasuredItem, history/rejection safeguards, correct replacement undo, isolated session units and grouped color transaction.
+- src/lib/dokumantasyon/cad-review/measurement-facade.ts — frozen context labels for new records; unchanged legacy format path.
+- tests/document-studio/cad-review-stage02-contract.test.ts — pure Node/TSX regression cases.
+- tests/document-studio/cad-measurement-units.spec.ts — test global-getter assumption corrected to existing per-store accessor.
+- docs/cad-v1-review/IMPLEMENTATION_STATE.md — this evidence/status.
+
+No parser, renderer, worker, fallback, host, adapter, routing, V2, dependencies, lock, server schema, fixtures or deployment settings changed.
+
+### Source, display, legacy, calibration decision
+
+- Zod envelope remains schemaVersion=1; optional context uses measurementContext.version=1. Existing JSON without a context remains readable, untouched and does not silently get reinterpreted.
+- Source geometry and numeric distance/chain/area/perimeter remain raw CAD world units. New completed item can capture sourceUnit, origin, INSUNITS code, mmPerWorldUnit, calibrationRevision, chosen displayUnit and areaDisplayUnit and precision. New facade formatting reads the captured context, not later dropdown selections. Updating the saved context through ordinary item patch is rejected until an explicitly designed remeasurement action exists.
+- INSUNITS known mappings: 1=inches, 2=feet, 4=mm, 5=cm, 6=m. Zero, missing and unsupported codes are unknown: no invented metres. Other codes require explicit checked mapping. User calibration gives explicit mm/world and revision.
+- Distance conversion = raw world distance × mm/world ÷ mm/display. Area conversion = raw world area × (mm/world ÷ mm/display)². Calibration scale 2× increases length 2×, area 4×. No conversion overwrites raw world geometry.
+- Existing host chain actually generates chain-epoch IDs, so UUID-only add validation would break a working button. The Zod item ID boundary now accepts UUID and narrowly bounded known legacy prefixes (including chain/rev/dist) to preserve current behavior. Unrelated malformed IDs still fail.
+- Historic measurements without context retain existing numeric/label rendering; this does NOT validate an old metre label. Live drawing metadata, measurement overlay, new chain commitments and persistence are NOT wired yet: ASAMA_03–05/08.
+- Existing host bugs unchanged due forbidden host path: component-local distance/area, placeholder file fingerprint and server GET replacement of subscribed store; release still blocked by these until later authorized stages.
+
+### Single transaction / rejection rules
+
+Committed document has undo/redo; session tool/selection/units are ephemeral; pointer draft is transient. One valid add => one history command. Invalid Zod, duplicate item id, over-capacity, malformed chain segment count, invalid patch and silent context replacement => zero history mutation. Accepted action clears redo; rejected action leaves redo unchanged. Commit/undo/redo draft reset does not emit an extra redundant store notification. Store update undo uses full item replacement so removing optional fields is reversible. Existing non-UUID legacy items can be renamed without ID rewriting. Unit selection alone is session-only; color change applies to existing measurements as one undoable grouped style transaction, and the chosen active color applies to subsequent measurements. No global settings singleton or parallel store is introduced.
+
+### Tool phase and input contract — required, NOT browser verified
+
+| Current state | Input | Required effect and history |
+|---|---|---|
+| select/idle | tool button | one logical armed tool; no commit |
+| armed | pointerdown CAD | adapter snap+world coordinate; transient draft; no commit |
+| placing | pointermove | preview and snap marker only; no history |
+| placing chain/polygon | Backspace | remove last pending vertex only; no commit |
+| placing valid result | Enter / Finish button | one Zod-valid item; exactly one undo |
+| placing | double-click | finish once without duplicate endpoint/commit |
+| armed/placing | first Escape | cancel draft, no commit |
+| armed after cancel | second Escape | exit tool, restore select |
+| gesture | tool/file switch, unmount, stale async callback | cancel and dispose state/listeners |
+| gesture | pointercancel/lostcapture/blur | cancel or suspend and restore camera |
+| gesture | pan/pinch/touch | navigation never commits ghost point; event ownership single |
+| any | input/textarea focus | ignore tool shortcuts while typing |
+| committed | undo/redo | revert or redo one logical edit; selection remains session UI |
+
+No new global pointer coordinator is added: root cause of duplicate events has not been proved. ASAMA_03–07 must verify these behaviors with real pointer/touch events; this table is only a design contract.
+
+### Verification records and gate
+
+- Pure tests: npx tsx --test tests/document-studio/cad-review-stage02-contract.test.ts — NOT_RUN.
+- Existing unit suite: npx playwright test --config=playwright.site.config.ts tests/document-studio/cad-measurement-units.spec.ts — NOT_RUN.
+- Types: npx tsc --noEmit — NOT_RUN.
+- Lint: npx eslint src/lib/dokumantasyon/cad-review/schema.ts src/lib/dokumantasyon/cad-review/units.ts src/lib/dokumantasyon/cad-review/store.ts src/lib/dokumantasyon/cad-review/measurement-facade.ts tests/document-studio/cad-review-stage02-contract.test.ts — NOT_RUN.
+- Browser DXF/DWG, DPR, real mobile/stylus and export — NOT_RUN. Editing connector can create GitHub code/tree/commit but has no installed repository runtime. Isolated execution container has no checked-out repository or zod/tsx. Therefore tests have no fabricated PASS labels.
+- Added test source covers v1 JSON round-trip, invalid NaN/schema, runtime chain-epoch ID, INSUNITS mm/cm/m/unknown, raw 3-4-5, square-area calibration, frozen revision/JSON, exactly one undo/redo, rejected action preserving history, grouped measurement color, legacy ID edit+undo.
+- Two-minute owner/browser verification after a separate approved test environment: open known-geometry-measurements.dxf, click real chain tool through 3000+4000 geometry, check raw 7000 and source physical label, undo/redo once; change display unit, reload, cancel/double-click and ensure no duplicate vertex. Check desktop/mobil. Current production has NOT been modified.
+- Remaining blockers: actual metadata wiring, all distance/area committed to one store, server GET stale reference, real export/PDF correctness, complete regression and physical tests, GPL deployed assets/legal review. No release approval.
+
+Rollback is revert of ASAMA_02 atomic commit only; preserve ASAMA_01 and protected engine. STOP. Next ASAMA_03 only upon another explicit user command devam.

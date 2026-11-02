@@ -8,6 +8,8 @@ import type {
 import {
   formatCadDistance,
   formatCadArea,
+  formatCapturedDistance,
+  formatCapturedArea,
   type CadUnit,
   type CadCalibrationState,
 } from "./units";
@@ -53,12 +55,9 @@ export class CadMeasurementFacade {
     for (const item of items) {
       if (item.type === "distance") {
         const title = item.label || `Mesafe ${result.length + 1}`;
-        const formattedValue = formatCadDistance(
-          item.measuredLength,
-          this.unit,
-          this.precision,
-          this.calibration
-        );
+        const formattedValue = item.measurementContext
+          ? formatCapturedDistance(item.measuredLength, item.measurementContext)
+          : formatCadDistance(item.measuredLength, this.unit, this.precision, this.calibration);
         const minX = Math.min(item.start.x, item.end.x);
         const minY = Math.min(item.start.y, item.end.y);
         const maxX = Math.max(item.start.x, item.end.x);
@@ -78,12 +77,9 @@ export class CadMeasurementFacade {
         });
       } else if (item.type === "chain_distance") {
         const title = `Zincir Mesafe ${result.length + 1} (${item.points.length} nokta)`;
-        const formattedValue = formatCadDistance(
-          item.totalDistance,
-          this.unit,
-          this.precision,
-          this.calibration
-        );
+        const formattedValue = item.measurementContext
+          ? formatCapturedDistance(item.totalDistance, item.measurementContext)
+          : formatCadDistance(item.totalDistance, this.unit, this.precision, this.calibration);
         let minX = Infinity;
         let minY = Infinity;
         let maxX = -Infinity;
@@ -109,12 +105,9 @@ export class CadMeasurementFacade {
         });
       } else if (item.type === "area") {
         const title = `Alan ${result.length + 1}`;
-        const formattedValue = formatCadArea(
-          item.measuredArea,
-          this.unit,
-          this.precision,
-          this.calibration
-        );
+        const formattedValue = item.measurementContext
+          ? formatCapturedArea(item.measuredArea, item.measurementContext)
+          : formatCadArea(item.measuredArea, this.unit, this.precision, this.calibration);
         let minX = Infinity;
         let minY = Infinity;
         let maxX = -Infinity;
