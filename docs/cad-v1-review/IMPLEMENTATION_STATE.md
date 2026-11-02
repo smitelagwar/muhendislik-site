@@ -3,10 +3,10 @@ Plan ID: CADV1-PRO-REVIEW-20261102
 Plan revision: 2
 Date: 2026-11-02 (Europe/Istanbul)
 Planning status: PLAN_HAZIR
-Execution status: ASAMA_09_HEDEFLI_TESTLER_PASS; MOBIL_PINCH_GATE_ACIK; GENEL_RELEASE_BEKLIYOR
-Completed stages: ASAMA_01–05 (code checkpoints; partial runtime gates pending); ASAMA_06–09 (targeted code and tests; broader release gates remain open)
+Execution status: ASAMA_10_HEDEFLI_TESTLER_PASS; PINCH_FAIL; GENEL_KABUL_ENGELLI
+Completed stages: ASAMA_01–05 (code checkpoints; runtime gates pending); ASAMA_06–10 (targeted code/tests and measured Stage10; release blocked)
 Active stage: none
-Next stage: ASAMA_10 (ONLY after user says devam)
+Next stage: ASAMA_11 (ONLY after user says devam)
 Stage 01 acceptance: DOCUMENTED_BASELINE; runtime/device verification NOT_RUN
 Release-ready: NO
 Branch: internal-cad-v1-pro-review-r2-20261102
@@ -641,3 +641,55 @@ Work branch: `internal-cad-v1-pro-review-r2-20261102`. This stage is based on **
 - Stage09 targeted UI work is checkpointed; broader release readiness remains **NO**, especially mobile pinch regression, full physical-mobile/real DWG acceptance and preexisting license/cross-device risks. Do not mark the camera pinch test PASS, do not remove it from test suite and do not hide it behind changed thresholds.
 - Any Stage09 rollback reverts only Stage09 code/tests/docs and retains restored Stage08 code and all earlier work; no rollback on Production is necessary.
 - **STOP.** Start ASAMA_10 only on next user `devam`; focus on measured performance/gesture root causes and full DWG regression, not speculative renderer replacement.
+
+
+## 17. ASAMA_10 — Performance / real-file / resilience measurement checkpoint (2026-11-02)
+
+**State:** ASAMA_10_HEDEFLI_NODE_VE_BUILD_PASS; GENEL_KABUL_ENGELLI. This is a measurement and regression-test checkpoint, NOT a claim of all real-world CAD acceptance.
+
+**Input:** Repaired Stage08 `f3bc89835bb3d486af4538354d7b8e4849e7361c`, Stage09 `885a2f5e6872437544bdd0fcf5d9c042622a5f75`. No parser/renderer/worker/fallback, dependency, V2, migration, main or Production changes. Stage10 **0 deploy** (maximum allowed: 1).
+
+### Exact executed measurements — isolated headless Chromium / sandbox, not production user latency
+
+Existing `cad-perf-baseline.spec.ts` matrix **1/1 PASS**, recorded wall-clock time-to-ready:
+- CAD-A small DXF 747 B: **9,593.1 ms** (longest sampled main-thread task 564 ms)
+- CAD-B multi-layout DXF 1,419 B: **10,026.9 ms** (longest 3,152 ms)
+- CAD-G Turkish text DXF 461 B: **4,437.0 ms** (longest 799 ms)
+- CAD-E DWG with DXF fast-cache hit: **6,528.3 ms** (longest 2,420 ms)
+- CAD-F real DWG 2,139,550 B, fast-cache MISS: **15,395.2 ms** (longest 3,496 ms).
+
+Long tasks occur during file opening and should **not** be falsely ascribed to review overlays without a profiler. Environment contains software-rendered headless WebGL and is NOT a valid direct end-user speed claim. No comparable previous-hardware baseline was recorded, so no percentage improvement/regression is asserted.
+
+Existing 10× source-file switch / WebGL teardown stress: first run **FAIL** after pre-existing test timeout 90,000 ms; re-executed unchanged test with only Playwright runtime `--timeout=360000`: **PASS in 3.2 min**, zero observed WebGL context-loss console errors. This does not prove leak-free physical browsers or long multi-hour sessions.
+
+New deterministic `cad-stage10-perf-contract.test.ts`: **2/2 PASS**. Spatial index rebuild for 6,400 line primitives, 2,000 endpoint snap queries, checked candidate bounds, explicit clear/rebuild; first run build **10.24 ms**, query batch **44.7 ms (0.02235 ms/query)**; repeat combined suite build **10.5 ms**, query batch **33.58 ms (0.01679 ms/query)**. 300 dense review pins and large-coordinate source positions saved, JSON roundtripped with Turkish Unicode, undo/redo without data loss; first add **105.63 ms**, JSON roundtrip **159.28 ms** (159,105 B); repeat add **80.86 ms**, roundtrip **98.88 ms**. These are sandbox runtime measurements and the test asserts correctness rather than fragile hardware-specific latency thresholds. No profiling evidence supported speculative runtime cache changes.
+
+### Source bytes and real-file evidence
+
+Actual repository source fixture binaries (2,139,550 B DWG, 3,440,087 B DWG, 16,084,252 B DWG and 55,259,742 B DXF) were SHA-256 hashed **before and after** attempted browser loading. Hashes are unchanged:
+- DWG-2.14MB: `9a59ff9e5496e2a3c62b378f062e5f0f3cfa707b9bd4b5a0bf6749cd8bf52459`
+- DWG-16.08MB: `8ff5680fa4f9d570fed738def92bc6ca8149fde1b5aed9e0a495dd2baaf521e6`
+- DWG-3.44MB: `17a92cb544830845fc59717abcc22d3cdcf97c12b8450602c9c70ec4a507f086`
+- DXF-55.26MB: `36f87f826fe4dd9a8f03f8c83bafeeddfc84f1e0efada5c0fded8014a2ef7cf1`
+
+The `cad-real-repository.spec.ts` real-file matrix using sandbox symlinks **BLOCKED**: `page.goto: net::ERR_ABORTED`, `Channel closed` after the Chromium/sandbox session ended. The run did **not** demonstrate acceptance or failure of each of the four large files individually. Do not invent per-file render times, pixel parity, conversion success or application-level OOM diagnosis. No files were rewritten; no source CAD diff.
+
+### Mobil pinch root-cause evidence / open regression
+
+Stage09 Pixel 7 regression remains **FAIL** on two-finger pinch. Stage10 focused mobile-Chromium/CDP diagnostic after a committed 90px distance measurement: prior OrthographicCamera `zoom=0.3745454545`, after symmetric 80→120px two-touch spread **zoom unchanged**; controls `enabled=true`, `touches.TWO=2`, camera X position changed by +53.398 world units, world-to-screen source point moved 20px, measurement overlay moved from 206–296px to 186–276px but stayed 90px long. **Conclusion supported by trace:** in this browser test the gesture pans rather than dolly-zooms, NOT merely a stale review overlay rerender. A temporary diagnostic test was removed after the experiment; Stage09 test source SHA was restored exactly. Do not modify the upstream camera without isolated source-level proof and authorisation; leave **PINCH_FAIL** and real-device NOT_RUN.
+
+### Broad gates — transparent failures, not false PASS
+
+- `npm run check:cad-real-user-release`: **BLOCKED at preflight** because isolated sandbox lacks `.data/dok_db.json` required by the V2 gate's minimum 50 user files; do not fabricate 50 files or mark pass.
+- `npm run check:cad-preview-v2`: broad cross-version Chromium suite run for over **11 minutes**, yielded **at least 3 FAIL** (2 cached-DWG routing/fallback expectations; 1 old toolbar selector `[data-cad-display-controls=true]` missing), then **explicitly interrupted** to prevent another unbounded run in the unstable sandbox. Not a full-suite pass; further triage may reveal outdated tests vs actual V1 regression. Failing result files retained only within disposable sandbox, no known Production failure inferred.
+- `npx tsc -p tsconfig.next.json --noEmit --incremental false` and targeted ESLint and `git diff --check`: **PASS**, after rerun sequentially. An earlier simultaneous TSC+Next build produced TS6053 transient `.next/types` missing files (build cleaned generated types while TS scanned); sequential rerun passed.
+- `npm run build`: **PASS**.
+- Full Stage02–10 targeted Node/tsx suite: **65/65 PASS, 0 TODO**.
+- Stage09 focused Chromium UI/layers/text and Pixel 7 long-press/snap tests were PASS in preceding stage; Stage10 did NOT claim to rerun all those tests as a full successful mobile matrix.
+- Physical iOS/Android/stylus, independent CAD DXF re-import, independent DWG rendering pixel parity, WebGL context-loss recovery under real devices, cross-device Neon save when source SHA absent, large-file completion and GPL-3.0 converter legal decision remain **NOT_RUN / BLOCKED**.
+
+**Quality disposition:** Stage10 scoped work finished as verification and regression checkpoint, but **RELEASE_READY=NO**. Tested hot paths did not justify risky speculative renderer, parser, spatial index or worker refactors. This correctly preserves V1 rather than pretending unresolved release-blocking issues are gone.
+
+**Rollback:** Revert only the Stage10 new focused contract test and this state entry if necessary; Stage01–09 checkpoints, main and Production remain preserved. No new Preview or Production deploy, no user DB migration, no source CAD edits.
+
+**STOP:** Only ASAMA_11 upon next explicit user `devam`, for independently audited acceptance matrix/license/rollback. Do not auto-deploy or mark final acceptance PASS while failures remain.
