@@ -36,6 +36,7 @@ import {
   type CompletedAreaMeasurement,
 } from "./cad-area-overlay";
 import { CadStudioRibbon } from "./cad-studio-ribbon";
+import { CadReviewInputDialog, type CadReviewInputKind } from "./cad-review-input-dialog";
 import { CadTechnologyLoader } from "./cad-technology-loader";
 
 // ── CAD Review V1 ──────────────────────────────────────────────────────────────
@@ -202,6 +203,40 @@ export function DokCadUpstreamViewer({
   const reviewEnabled = isCadReviewEnabled();
   const reviewStoreRef = useRef<CadReviewStore | null>(null);
   const markupControllerRef = useRef<CadMarkupController | null>(null);
+  const [reviewInput, setReviewInput] = useState<{ id: number; kind: CadReviewInputKind } | null>(null);
+  const reviewInputSequenceRef = useRef(0);
+  const pendingReviewInputRef = useRef<{
+    resolve: (value: string | null) => void;
+    focusTarget: HTMLElement | null;
+  } | null>(null);
+
+  const settleReviewInput = useCallback((value: string | null) => {
+    const pending = pendingReviewInputRef.current;
+    pendingReviewInputRef.current = null;
+    setReviewInput(null);
+    pending?.resolve(value);
+    if (pending?.focusTarget?.isConnected) {
+      queueMicrotask(() => pending.focusTarget?.focus({ preventScroll: true }));
+    }
+  }, []);
+
+  const requestReviewInput = useCallback((kind: CadReviewInputKind): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (pendingReviewInputRef.current) {
+        pendingReviewInputRef.current.resolve(null);
+      }
+      pendingReviewInputRef.current = {
+        resolve,
+        focusTarget: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+      };
+      setReviewInput({ id: ++reviewInputSequenceRef.current, kind });
+    });
+  }, []);
+
+  useEffect(() => () => {
+    pendingReviewInputRef.current?.resolve(null);
+    pendingReviewInputRef.current = null;
+  }, []);
   const freehandControllerRef = useRef<CadFreehandController | null>(null);
   const [reviewItems, setReviewItems] = useState<readonly CadReviewItem[]>([]);
   const [reviewDraft, setReviewDraft] = useState<CadReviewDraftState | null>(null);
@@ -455,14 +490,12 @@ export function DokCadUpstreamViewer({
         adapterRef.current?.setCameraInteractionEnabled(enabled);
       },
       requestCommentInput: async () => {
-        const comment = window.prompt("Yorum notunuzu girin:")?.trim();
-        if (!comment) return null;
-        return { comment, title: "Yorum" };
+        const comment = await requestReviewInput("comment");
+        return comment ? { comment, title: "Yorum" } : null;
       },
       requestTextInput: async () => {
-        const text = window.prompt("Metin notunu girin:")?.trim();
-        if (!text) return null;
-        return { text };
+        const text = await requestReviewInput("text");
+        return text ? { text } : null;
       },
       isItemReadOnly: (item: CadReviewItem) => item.status === "closed",
       onError: (reason: string) => toast.error(reason),
@@ -478,6 +511,7 @@ export function DokCadUpstreamViewer({
       setCameraInteractionEnabled: (enabled: boolean) => {
         adapterRef.current?.setCameraInteractionEnabled(enabled);
       },
+      onError: (reason: string) => toast.error(reason),
     };
 
     const markupController = new CadMarkupController(host, store, facade, markupRuntime);
@@ -495,7 +529,7 @@ export function DokCadUpstreamViewer({
       markupControllerRef.current = null;
       freehandControllerRef.current = null;
     };
-  }, [reviewEnabled, state]);
+  }, [reviewEnabled, state, requestReviewInput]);
 
 
   // ── CAD Review V1: Keyboard shortcuts ──────────────────────────────────────
@@ -503,6 +537,10 @@ export function DokCadUpstreamViewer({
     if (!reviewEnabled || state !== "ready") return;
     const detach = attachCadReviewKeyboardShortcuts({
       onEscape: () => {
+        if (pendingReviewInputRef.current) {
+          settleReviewInput(null);
+          return;
+        }
         setActivePanelTab(null);
         setReviewTool("select");
         reviewStoreRef.current?.setActiveTool("select");
@@ -523,7 +561,7 @@ export function DokCadUpstreamViewer({
       },
     });
     return detach;
-  }, [reviewEnabled, state]);
+  }, [reviewEnabled, state, settleReviewInput]);
 
 
   // ── CAD Review V1: Container resize observer for SVG overlay sizing ─────────
@@ -570,6 +608,7 @@ export function DokCadUpstreamViewer({
       if (cancelled) return;
 
       initCadPerfSession();
+      if (pendingReviewInputRef.current) settleReviewInput(null);
       setState("loading");
       setReadyAdapter(null);
       setMessage("MLightCAD hazırlanıyor");
@@ -834,6 +873,7 @@ export function DokCadUpstreamViewer({
     retryKey,
     onReady,
     onViewerFailure,
+    settleReviewInput,
   ]);
 
   const handleStartDistanceRef = useRef<() => Promise<void>>(() => Promise.resolve());
@@ -1330,6 +1370,9 @@ export function DokCadUpstreamViewer({
 
   // ── CAD Review V1 Handlers ─────────────────────────────────────────────────
   const handleSelectReviewTool = useCallback((tool: CadReviewTool) => {
+    if (pendingReviewInputRef.current) settleReviewInput(null);
+    freehandControllerRef.current?.cancel();
+    markupControllerRef.current?.cancel();
     if (tool !== "area") {
       areaRequestRef.current += 1;
       setAreaSnapshot(null);
@@ -1358,7 +1401,7 @@ export function DokCadUpstreamViewer({
     // Cancel any active MLightCAD distance/area command when switching
     void adapterRef.current?.cancelActiveCommand();
     setActiveTool(null);
-  }, []);
+  }, [settleReviewInput]);
 
   const handleReviewUndo = useCallback(() => reviewStoreRef.current?.undo(), []);
   const handleReviewRedo = useCallback(() => reviewStoreRef.current?.redo(), []);
@@ -1459,6 +1502,9 @@ export function DokCadUpstreamViewer({
           }
           onSelectTool={handleSelectReviewTool}
           onPan={async () => {
+            if (pendingReviewInputRef.current) settleReviewInput(null);
+            markupControllerRef.current?.cancel();
+            freehandControllerRef.current?.cancel();
             distanceRequestRef.current += 1;
             areaRequestRef.current += 1;
             await adapterRef.current?.cancelActiveCommand();
@@ -1777,6 +1823,15 @@ export function DokCadUpstreamViewer({
           </div>
         </div>
       ) : null}
+
+      {reviewInput && (
+        <CadReviewInputDialog
+          key={reviewInput.id}
+          kind={reviewInput.kind}
+          onCancel={() => settleReviewInput(null)}
+          onSave={(value) => settleReviewInput(value)}
+        />
+      )}
     </section>
   );
 }

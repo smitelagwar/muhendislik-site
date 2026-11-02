@@ -18,6 +18,7 @@ import type {
 } from "./schema";
 import type { CadReviewStore } from "./store";
 import { findHitReviewItem } from "./hit-test";
+import { sanitizeReviewText } from "./security";
 import type { z } from "zod";
 
 export type CadReviewPinItem = z.infer<typeof cadReviewPinItemSchema>;
@@ -63,7 +64,7 @@ export class CadMarkupFacade {
     style?: Partial<CadReviewItemStyle>;
     layoutId?: string;
   }): CadReviewPinItem {
-    const commentTrimmed = params.comment.trim();
+    const commentTrimmed = sanitizeReviewText(params.comment);
     if (!commentTrimmed) {
       throw new Error("Yorum metni boş bırakılamaz.");
     }
@@ -147,7 +148,7 @@ export class CadMarkupFacade {
     style?: Partial<CadReviewItemStyle>;
     layoutId?: string;
   }): CadReviewCalloutItem {
-    const textTrimmed = params.text.trim();
+    const textTrimmed = sanitizeReviewText(params.text);
     if (!textTrimmed) {
       throw new Error("Callout metni boş bırakılamaz.");
     }
@@ -190,7 +191,7 @@ export class CadMarkupFacade {
     style?: Partial<CadReviewItemStyle>;
     layoutId?: string;
   }): CadReviewTextItem {
-    const textTrimmed = params.text.trim();
+    const textTrimmed = sanitizeReviewText(params.text);
     if (!textTrimmed) {
       throw new Error("Metin içeriği boş bırakılamaz.");
     }
@@ -295,22 +296,27 @@ export class CadMarkupFacade {
     return item;
   }
 
-  eraseItemAtPoint(
+  /** CAD model-space entities and measurement items are never erase candidates. */
+  findErasableItemAtPoint(
     screenPoint: { x: number; y: number },
     projectWorldToScreen: (p: CadPoint2d) => { x: number; y: number } | null
-  ): boolean {
-    const hit = findHitReviewItem(this.store.getItems(), screenPoint, {
+  ): string | null {
+    return findHitReviewItem(this.store.getItems(), screenPoint, {
       tolerancePx: 16,
       projectWorldToScreen,
       activeLayoutId: this.store.getSession().activeLayoutId,
       isVisible: (item) => ["shape", "callout", "comment_pin", "text", "stroke"].includes(item.type),
-    });
+    })?.id ?? null;
+  }
 
-    if (hit) {
-      this.deleteItem(hit.id);
-      return true;
-    }
-    return false;
+  /** Compatibility for existing single-click eraser callers. */
+  eraseItemAtPoint(
+    screenPoint: { x: number; y: number },
+    projectWorldToScreen: (p: CadPoint2d) => { x: number; y: number } | null
+  ): boolean {
+    const id = this.findErasableItemAtPoint(screenPoint, projectWorldToScreen);
+    if (!id) return false;
+    return this.deleteItem(id);
   }
 
   deleteItem(id: string): boolean {

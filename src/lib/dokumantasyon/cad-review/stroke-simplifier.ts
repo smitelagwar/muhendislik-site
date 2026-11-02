@@ -139,3 +139,44 @@ export function pointsToSmoothSvgPath(points: readonly CadPoint2d[]): string {
   d += ` L ${last.x} ${last.y}`;
   return d;
 }
+/**
+ * Input events are sampled in CSS pixels, while committed points must remain
+ * in source world space. Preserve the world points corresponding to the exact
+ * screen-space RDP vertices; do not distort CAD geometry when zoom changes.
+ */
+export interface CadStrokeSample {
+  screen: CadPoint2d;
+  world: CadPoint2d;
+}
+
+export function simplifyStrokeSamples(
+  samples: readonly CadStrokeSample[],
+  tolerancePx = 1.5,
+  minSpacingPx = 0.9
+): CadPoint2d[] {
+  if (samples.length < 2) return samples.map((sample) => ({ ...sample.world }));
+  const kept: CadStrokeSample[] = [samples[0]!];
+  const minSq = minSpacingPx * minSpacingPx;
+  for (let i = 1; i < samples.length - 1; i++) {
+    const p = samples[i]!;
+    const last = kept[kept.length - 1]!;
+    const dx = p.screen.x - last.screen.x;
+    const dy = p.screen.y - last.screen.y;
+    if (dx * dx + dy * dy >= minSq) kept.push(p);
+  }
+  const final = samples[samples.length - 1]!;
+  if (kept[kept.length - 1] !== final) kept.push(final);
+  const screen = kept.map((sample) => sample.screen);
+  const simplified = simplifyPointsRdp(screen, tolerancePx);
+  const world: CadPoint2d[] = [];
+  let cursor = 0;
+  for (const p of simplified) {
+    while (cursor < kept.length &&
+      (kept[cursor]!.screen.x !== p.x || kept[cursor]!.screen.y !== p.y)) cursor++;
+    if (cursor < kept.length) {
+      world.push({ ...kept[cursor]!.world });
+      cursor++;
+    }
+  }
+  return world;
+}
