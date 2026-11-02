@@ -3,8 +3,8 @@ Plan ID: CADV1-PRO-REVIEW-20261102
 Plan revision: 2
 Date: 2026-11-02 (Europe/Istanbul)
 Planning status: PLAN_HAZIR
-Execution status: KOD_HAZIR_DOGRULAMA_BEKLIYOR
-Completed stages: ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04, ASAMA_05, ASAMA_06 (code checkpoints; runtime verification pending)
+Execution status: ASAMA_06_HEDEFLI_TESTLER_PASS; GENEL_RELEASE_BEKLIYOR
+Completed stages: ASAMA_01–05 (code checkpoints; partial runtime gates pending); ASAMA_06 (targeted build/TS/lint/Node/Chromium PASS; legacy suite BLOCKED)
 Active stage: none
 Next stage: ASAMA_07 (ONLY after user says devam)
 Stage 01 acceptance: DOCUMENTED_BASELINE; runtime/device verification NOT_RUN
@@ -498,3 +498,49 @@ Rollback: revert ONLY ASAMA_06 changes on internal branch, keep ASAMA_01–05 an
 - Vercel staff reference: https://community.vercel.com/t/vercel-deployments-failing-with-resource-provisioning-failed-and-0ms-build-time/32451/6 states that suspended third-party integrations can cause this error; project connector/integration configuration lists returned none, so this does **not** establish the cause here.
 - Official public status https://www.vercel-status.com/ reported no incident on Nov 2, 2026; absence of a global notice does not prove project health.
 - No usable Preview URL, no actual CAD viewer screenshots, no runtime/tests/TS PASS. Do not auto-deploy or touch production settings. Once a stable source build can provision, execute the exact Stage06 tests and review earlier Stage03–05 regressions.
+
+
+## 13. ASAMA_06 FINAL — Actual deploy and test evidence (2026-11-02)
+
+This is the later ACTUALLY EXECUTED verification record and supersedes older ASAMA_06 notes above saying NOT_RUN or showing the first failed Vercel Preview. Historical failed attempts are retained for audit. This stage is targeted-acceptance complete, but overall release-ready remains NO.
+
+### Vercel Preview / commits
+
+- Production and main were never changed. Branch: internal-cad-v1-pro-review-r2-20261102.
+- User reported Neon configuration corrected in another chat: Production neon-bronze-engine, Preview/Development belgeler-stage13-neon-test, automatic Neon Preview branch creation OFF. Secret DB values were NOT decrypted/read or modified here; only the subsequent Vercel build demonstrated the previous provisioning blocker had cleared.
+- Verification Preview dpl_FjfN29yVrowqgkBY9yqchvnKpHuh: builder provisioned, Git cloned, npm installed, TypeScript failed with TS2393 duplicate popAreaMeasurementPoint in adapter.ts (two implementations).
+- Corrective source commit 9e4942282c3098ae2caae851e45d9b56000f6907 removed one redundant unguarded adapter method, retaining the existing guarded implementation; Preview dpl_CTcNDJy32tNU1aRoHaeukUVqo6QY READY.
+- Corrective source commit 0377884d3d24bfe98e9e6911dbbc997ba977403b: (1) area pointer-click first-vertex completion tolerance 20 CSS px -> 5 CSS px, (2) optional legacy lineDash no longer filled with synthetic default and legacy JSON round-trips losslessly, (3) review host uses React state snapshots for ready CAD adapter and selected/hovered/layout instead of mutable ref.current inside render. This eliminated all 24 reported react-hooks/refs lint errors without altering protected renderer/parser/worker.
+- Final latest source Preview dpl_EWc9zfT4BgEyAjDHTq3qFdBPosiS from source SHA 0377884d3d24bfe98e9e6911dbbc997ba977403b is READY; completed Next.js production build and TypeScript. Preview URL: https://muhendislik-site-167tsjzy3-huseying5713-2819s-projects.vercel.app. Preview is SSO-protected; successful deployment is not an external unauthenticated access test.
+- Test-only commit ebf82b9a579e36d21f56c91b9f372af5843b4f9b and test-only commit 7f30174a2ca98b7aef8e55bb1aedbf4b5ffc1f36 do not change runtime app files or Preview source. Tests are excluded from Preview uploads by .vercelignore. A docs-only audit commit follows.
+- Stage06 original shape/hit-test/selection source commit 5545f29232897ebd112d80e69831dcde396f6220. No production deployment, no main merge.
+
+### ACTUAL verification matrix
+
+| Gate | Outcome | Exact basis |
+|---|---|---|
+| Vercel provisioning and full Preview build | **PASS** | dpl_EWc9zfT4BgEyAjDHTq3qFdBPosiS READY |
+| TypeScript | **PASS** | isolated environment: tsc -p tsconfig.next.json --noEmit --incremental false, exit 0 |
+| Changed source and Stage06 spec ESLint | **PASS** | ESLint --quiet 0 errors; later modified test specs ESLint --quiet exit 0 |
+| Stage06 pure Node/TSX shape, hit-test, history and gestures | **10/10 PASS** | real isolated Sandbox execution |
+| ASAMA_02 to ASAMA_06 combined Node/TSX contracts | **47 PASS, 0 FAIL, 1 TODO (48 tests)** | one explicit TODO for Stage08 incorrect DXF export INSUNITS; no silent PASS |
+| New ASAMA_06 Chromium Playwright E2E | **1/1 PASS** | real local DXF fixture upload, reverse rectangle drawing/draft, one record and one SVG item, move, Undo/Redo, F5 restore, original CAD database entity count unchanged |
+| Existing cad-markup-tools and cad-review-core Chromium | **8/8 PASS** | real local DXF, markups, selections, source immutability, isolated server GET/PUT/409 |
+| Older cad-stage3-review-tools spec | **BLOCKED before collection** | imports nonexistent src/lib/dokumantasyon/cad-review/active-store and also expects unsupported older store methods / fillOpacity; not marked PASS |
+| Additional real DWG corpus, real mobile/stylus, export DXF reimport, cross-device persistence | **NOT_RUN / BLOCKED** | outside completed Stage06 targeted browser test; later stages and release verification required |
+| Production, main and Production Neon | **UNCHANGED** | no source merge, prod deploy or prod data mutation |
+
+### Browser test corrections and scope
+
+- New Stage06 browser spec originally read the adapter from the outer section; the real V1 adapter is exposed on window.__cadAdapter / inner viewport. Fixed to read the existing real adapter rather than introduce a debug API.
+- New Stage06 browser spec initially opened the Shapes dropdown and drew behind the still-open popover. It now uses the primary Shapes button, which selects rectangle directly, so CAD viewport receives pointerdown without a menu intercepting it.
+- Browser CSS pixel dispatch plus inverse world projection produced approx 2500.00004015 instead of mathematically exact 2500. Test now uses absolute 0.0005 CAD world-unit numeric tolerance (toBeCloseTo(...,3)), with raw point geometry assertions retained.
+- Two historical browser specs also incorrectly accessed the adapter on the outer section. Fixed test-only. CAD readiness.bounds was sometimes null when the visual host was marked ready; the legacy immutability test now waits for real computed source bounds and then compares both source entityCount and full before/after bounds without weakening the geometry oracle.
+- No changes to V1 parser/renderer/worker/fallback, snappers, dependencies, existing CAD fixture data, user data, or production configuration. Markup edit is confined to review records.
+
+### Open gates and explicit stop
+
+- The historical cad-stage3-review-tools.spec.ts cannot be collected because the referenced active-store module does not exist; also outdated test contracts differ from current v1 schema. This remains a LEGACY TEST MAINTENANCE BLOCKER, not a new runtime failure. Do not add a global store shim merely to make an obsolete test pass.
+- Review DXF export still has the known wrong INSUNITS=6 header for raw millimeter drawings; Stage08 open TODO. Server source-hash synchronization/remote conflict recovery/cross-device save is not proved by isolated local API 409.
+- Real mobile, real DWG and browser variability tests must still be run before overall release. The source DWG V1 engine and existing production remain protected. GPL distribution notice/WASM risk separate P0.
+- **STOP AFTER ASAMA_06.** ASAMA_07 must not begin without the user's separate explicit "devam".
