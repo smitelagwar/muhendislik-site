@@ -5,12 +5,12 @@ import {
   cleanupUploadedCadFixtures,
 } from "./cad-test-helpers";
 
-test.describe("CAD Preview V2 — Stage 5/8 Mesafe Ölçümü: Hassas, Doğrulanmış UX", () => {
+test.describe("CAD V1 — Mesafe: Stage 04 single review item, source units and gesture regression", () => {
   test.afterEach(async ({ page }) => {
     await cleanupUploadedCadFixtures(page);
   });
 
-  test("Desktop: İki tıklama ile mesafe ölçümü tamamlanır, 3-4-5 fixture sonucu UI overlay'inde 5.000 / 5000 olarak doğrulanır", async ({
+  test("Desktop: raw 5000-mm mesafe tek review item olarak 5,00 m etiketlenir, undo/redo/F5/clear tutarlı", async ({
     page,
     isMobile,
   }) => {
@@ -40,20 +40,15 @@ test.describe("CAD Preview V2 — Stage 5/8 Mesafe Ölçümü: Hassas, Doğrulan
     // In known-geometry-measurements.dxf, L_MEASURE_1 is from (0,0) to (3000, 4000)
     // We can evaluate canvas bounds and project the CAD points
     const points = await page.evaluate(() => {
-      const hostEl = document.querySelector('[data-cad-upstream-host="true"]') as unknown as {
+      const adapter = (window as unknown as {
         __cadAdapter?: {
-          projectWorldPoint?: (p: { x: number; y: number }) => { x: number; y: number } | null;
+          projectWorldPoint: (p: { x: number; y: number }) => { x: number; y: number } | null;
         };
+      }).__cadAdapter;
+      return {
+        p1: adapter?.projectWorldPoint?.({ x: 0, y: 0 }) ?? null,
+        p2: adapter?.projectWorldPoint?.({ x: 3000, y: 4000 }) ?? null,
       };
-      const containerEl = document.querySelector("[aria-label$='CAD görünümü']") as unknown as {
-        __cadAdapter?: {
-          projectWorldPoint?: (p: { x: number; y: number }) => { x: number; y: number } | null;
-        };
-      };
-      const adapter = hostEl?.__cadAdapter || containerEl?.__cadAdapter;
-      const p1 = adapter?.projectWorldPoint?.({ x: 0, y: 0 }) ?? null;
-      const p2 = adapter?.projectWorldPoint?.({ x: 3000, y: 4000 }) ?? null;
-      return { p1, p2 };
     });
 
     expect(points.p1).not.toBeNull();
@@ -88,19 +83,42 @@ test.describe("CAD Preview V2 — Stage 5/8 Mesafe Ölçümü: Hassas, Doğrulan
     const completedOverlay = page.locator('[data-cad-distance-complete="true"]').first();
     await expect(completedOverlay).toBeVisible({ timeout: 5000 });
 
-    // The text on the completed overlay must show 5.000 or 5000 (3-4-5 triangle hypotenuse!)
+    // Fixture INSUNITS=4 (mm). World length 5000 must display as 5,00 m.
+    // Do not weaken the oracle to allow a wrong "5000 m" display.
     const labelText = await completedOverlay.locator("text").textContent();
-    expect(labelText).toMatch(/5[.,]?000/);
+    expect(labelText).toContain("5,00 m");
+    await expect(page.locator('[data-cad-distance-complete="true"]')).toHaveCount(1);
+    await expect(page.locator('[data-review-type="distance"]')).toHaveCount(0); // no double renderer
 
-    // Active tool returns to none or pan
+    const saved = await page.evaluate((id) => {
+      const raw = window.localStorage.getItem(`dok_cad_review_v1_${id}`);
+      return raw ? JSON.parse(raw) : null;
+    }, fileId) as { items?: Array<{ type: string; measuredLength?: number; measurementContext?: { sourceUnit: string } }> } | null;
+    const stored = saved?.items?.filter((item) => item.type === "distance") ?? [];
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.measuredLength).toBe(5000); // raw world unchanged
+    expect(stored[0]?.measurementContext?.sourceUnit).toBe("mm");
+
     await expect(host).toHaveAttribute("data-cad-active-tool", "none");
+    const undo = page.locator('[data-testid="cad-tool-undo"]').first();
+    const redo = page.locator('[data-testid="cad-tool-redo"]').first();
+    await undo.click();
+    await expect(page.locator('[data-cad-distance-complete="true"]')).toHaveCount(0);
+    await redo.click();
+    await expect(page.locator('[data-cad-distance-complete="true"]')).toHaveCount(1);
 
-    // 3. Test Clear button: clears overlay while keeping drawing intact
+    // Browser local recovery; real remote-server persistence is a separate gate.
+    await page.reload();
+    const reloadedHost = page.locator('[data-cad-upstream-host="true"]').first();
+    await expect(reloadedHost).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
+    await expect(page.locator('[data-cad-distance-complete="true"]')).toHaveCount(1);
+
+    // One clear command removes completed measurement and remains undoable.
     const clearBtn = page.locator('[data-testid="cad-tool-clear"]').first();
     await clearBtn.click();
     await expect(page.locator('[data-cad-distance-complete="true"]')).toHaveCount(0);
-    await expect(canvas).toBeVisible();
-    await expect(host).toHaveAttribute("data-cad-upstream-state", "ready");
+    await expect(reloadedHost.locator("canvas").first()).toBeVisible();
+    await expect(reloadedHost).toHaveAttribute("data-cad-upstream-state", "ready");
   });
 
   test("Escape ve buton tekrarı aktif ölçümü temiz biçimde iptal eder", async ({ page }) => {

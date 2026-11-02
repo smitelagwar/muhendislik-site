@@ -45,6 +45,7 @@ import { CadChainDistanceOverlay } from "./cad-chain-distance-overlay";
 import {
   captureMeasurementContext,
   formatCapturedDistance,
+  formatDistance as formatPhysicalDistance,
   sourceContextFromInsunits,
 } from "@/lib/dokumantasyon/cad-review/units";
 
@@ -152,6 +153,8 @@ export function DokCadUpstreamViewer({
   const lineWeightVisibleRef = useRef(false);
   const backgroundColorRef = useRef<CadBackgroundColorOption>("autocad");
   const distanceMeasurementIdRef = useRef(0);
+  // Bump on tool/file/cancel transitions so late measurement callbacks cannot commit.
+  const distanceRequestRef = useRef(0);
   const areaMeasurementIdRef = useRef(0);
   const [state, setState] = useState<HostState>("loading");
   const [message, setMessage] = useState("MLightCAD hazırlanıyor");
@@ -367,12 +370,9 @@ export function DokCadUpstreamViewer({
               items: data.items as CadReviewDocument["items"],
               revision: data.revision ?? 0,
             };
-            reviewStoreRef.current = new CadReviewStore(loadedDoc);
-            setReviewItems(reviewStoreRef.current.getItems());
-            setReviewCanUndo(reviewStoreRef.current.canUndo());
-            setReviewCanRedo(reviewStoreRef.current.canRedo());
-            setReviewDocument(reviewStoreRef.current.getDocument());
-            saveLocalCadReview(fileId, loadedDoc);
+            // Keep the original subscribed instance; replacing it detached
+            // listeners and left markup/measurement controllers on a stale store.
+            store.hydrateFromServerIfPristine(loadedDoc);
           }
         }
       })
@@ -547,6 +547,7 @@ export function DokCadUpstreamViewer({
       setLayerPanelOpen(false);
       setSnapPanelOpen(false);
       setViewPanelOpen(false);
+      distanceRequestRef.current += 1;
       setActiveTool(null);
       setDistanceSnapshot(null);
       setDistanceMeasurements([]);
@@ -822,6 +823,7 @@ export function DokCadUpstreamViewer({
 
       if (event.key === "Escape") {
         if (adapterRef.current?.isChainDistanceActive()) return;
+        distanceRequestRef.current += 1;
         setLayerPanelOpen(false);
         setSnapPanelOpen(false);
         setViewPanelOpen(false);
@@ -928,8 +930,17 @@ export function DokCadUpstreamViewer({
   const handleStartDistance = async () => {
     const adapter = adapterRef.current;
     if (!adapter) return;
+    const requestId = ++distanceRequestRef.current;
+    const isCurrent = () => distanceRequestRef.current === requestId &&
+      adapterRef.current === adapter;
     if (activeTool === "distance") {
       await adapter.cancelActiveCommand();
+      if (isCurrent()) {
+        setDistanceSnapshot(null);
+        setActiveTool(null);
+        setReviewTool("select");
+        reviewStoreRef.current?.setActiveTool("select");
+      }
       return;
     }
 
@@ -941,38 +952,94 @@ export function DokCadUpstreamViewer({
       const started = await adapter.startDistanceMeasurement(
         getEnabledCadSnapModes(snapSettings),
         {
-          onSnapshot: (snapshot) => setDistanceSnapshot(snapshot),
+          onSnapshot: (snapshot) => {
+            if (isCurrent()) setDistanceSnapshot(snapshot);
+          },
           onComplete: (measurement) => {
-            distanceMeasurementIdRef.current += 1;
-            setDistanceMeasurements((current) => [
-              ...current,
-              {
-                ...measurement,
-                id: `distance-${distanceMeasurementIdRef.current}`,
-              },
-            ]);
+            if (!isCurrent()) return;
+            if (reviewEnabled) {
+              const store = reviewStoreRef.current;
+              if (!store) {
+                toast.error("Ölçüm kayıt alanı hazır değil; tekrar deneyin.");
+              } else {
+                const unitSettings = store.getMeasurementUnitSettings();
+                const context = captureMeasurementContext(adapter.getSourceUnitContext(), {
+                  displayUnit: unitSettings.unit,
+                  areaDisplayUnit: unitSettings.areaUnit,
+                  precision: unitSettings.precision,
+                  areaPrecision: unitSettings.areaPrecision,
+                });
+                const now = new Date().toISOString();
+                const saved = store.addMeasuredItem({
+                  id: typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                    ? crypto.randomUUID()
+                    : `dist-${Date.now()}-${distanceMeasurementIdRef.current++}`,
+                  type: "distance",
+                  start: { ...measurement.start },
+                  end: { ...measurement.end },
+                  measuredLength: measurement.distance,
+                  author: "Admin",
+                  comment: "",
+                  status: "open",
+                  createdAt: now,
+                  updatedAt: now,
+                  style: { color: unitSettings.color, strokeWidth: 2, opacity: 1 },
+                }, context);
+                if (!saved) toast.error("Mesafe ölçümü kaydedilemedi; noktaları kontrol edin.");
+              }
+            } else {
+              // Explicit legacy/feature-flag fallback; never also write to ReviewStore.
+              const legacyId = `distance-${++distanceMeasurementIdRef.current}`;
+              setDistanceMeasurements((previous) => [
+                ...previous,
+                {
+                  ...measurement,
+                  id: legacyId,
+                  formattedLabel: formatPhysicalDistance(
+                    measurement.distance,
+                    adapter.getSourceUnitContext(),
+                    measurementUnitSettings.unit,
+                    measurementUnitSettings.precision
+                  ),
+                },
+              ]);
+            }
             setDistanceSnapshot(null);
             setActiveTool((current) => (current === "distance" ? null : current));
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
           },
           onCancel: () => {
+            if (!isCurrent()) return;
             setDistanceSnapshot(null);
             setActiveTool((current) => (current === "distance" ? null : current));
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
           },
         }
       );
+      if (!isCurrent()) return;
       if (!started && adapter.getSnapError()) {
         toast.error("Ölçüm verileri hazırlanamadı: " + adapter.getSnapError()?.message);
         setActiveTool(null);
       } else {
         setActiveTool(started ? "distance" : null);
+        if (started) {
+          setReviewTool("distance");
+          reviewStoreRef.current?.setActiveTool("distance");
+        }
       }
     } finally {
-      setIsPreparingTool(false);
-      toast.dismiss("cad-tool-prep");
+      if (isCurrent()) {
+        setIsPreparingTool(false);
+        toast.dismiss("cad-tool-prep");
+      }
     }
   };
 
   const handleStartArea = async () => {
+    // Switching to area makes any pending async distance start obsolete.
+    distanceRequestRef.current += 1;
     const adapter = adapterRef.current;
     if (!adapter) return;
     if (activeTool === "area") {
@@ -1024,6 +1091,7 @@ export function DokCadUpstreamViewer({
   };
 
   const handleStartChainDistance = async () => {
+    distanceRequestRef.current += 1;
     const adapter = adapterRef.current;
     if (!adapter) return;
     await adapter.cancelActiveCommand();
@@ -1097,6 +1165,7 @@ export function DokCadUpstreamViewer({
   });
 
   const handleClearMeasurements = async () => {
+    distanceRequestRef.current += 1;
     setActiveTool(null);
     setDistanceSnapshot(null);
     setDistanceMeasurements([]);
@@ -1104,6 +1173,8 @@ export function DokCadUpstreamViewer({
     setAreaSnapshot(null);
     setAreaMeasurements([]);
     areaMeasurementIdRef.current = 0;
+    // Stored distance/chain/area share a single undoable clear; drafts remain transient.
+    if (reviewEnabled) reviewStoreRef.current?.clearMeasurements();
     await adapterRef.current?.clearMeasurements();
   };
 
@@ -1163,6 +1234,10 @@ export function DokCadUpstreamViewer({
 
   // ── CAD Review V1 Handlers ─────────────────────────────────────────────────
   const handleSelectReviewTool = useCallback((tool: CadReviewTool) => {
+    if (tool !== "distance") {
+      distanceRequestRef.current += 1;
+      setDistanceSnapshot(null);
+    }
     if (tool !== "chain_distance") setChainSnapshot(null);
     setReviewTool(tool);
     reviewStoreRef.current?.setActiveTool(tool);
@@ -1284,12 +1359,12 @@ export function DokCadUpstreamViewer({
           }
           onSelectTool={handleSelectReviewTool}
           onPan={async () => {
-            if (activeTool) {
-              await adapterRef.current?.cancelActiveCommand();
-              setActiveTool(null);
-              setDistanceSnapshot(null);
-              setAreaSnapshot(null);
-            }
+            distanceRequestRef.current += 1;
+            await adapterRef.current?.cancelActiveCommand();
+            setActiveTool(null);
+            setDistanceSnapshot(null);
+            setAreaSnapshot(null);
+            setChainSnapshot(null);
             setReviewTool("select");
             reviewStoreRef.current?.setActiveTool("select");
           }}
@@ -1345,8 +1420,27 @@ export function DokCadUpstreamViewer({
         {state === "ready" ? (
           <CadDistanceOverlay
             snapshot={distanceSnapshot}
-            measurements={distanceMeasurements}
+            measurements={reviewEnabled
+              ? reviewItems.flatMap((item) => item.type === "distance" ? [{
+                  id: item.id,
+                  start: item.start,
+                  end: item.end,
+                  distance: item.measuredLength,
+                  color: item.style.color,
+                  formattedLabel: [
+                    item.label,
+                    item.measurementContext
+                      ? formatCapturedDistance(item.measuredLength, item.measurementContext)
+                      : formatPhysicalDistance(item.measuredLength, sourceContextFromInsunits(null), "m", 2),
+                  ].filter(Boolean).join(" · "),
+                  isSelected: reviewStoreRef.current?.getSession().selectedItemIds.has(item.id) ?? false,
+                }] : [])
+              : distanceMeasurements}
             projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
+            sourceUnitContext={adapterRef.current?.getSourceUnitContext() ?? sourceContextFromInsunits(null)}
+            displayUnit={measurementUnitSettings.unit}
+            precision={measurementUnitSettings.precision}
+            onSelectMeasurement={reviewEnabled ? (id) => reviewStoreRef.current?.setSelectedItems([id]) : undefined}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             adapter={adapterRef.current as any}
           />
@@ -1377,7 +1471,7 @@ export function DokCadUpstreamViewer({
         {/* ── CAD Review V1: SVG Item Overlay ── */}
         {reviewEnabled && state === "ready" && (reviewItems.length > 0 || Boolean(reviewDraft?.draftItem)) ? (
           <CadReviewOverlay
-            items={reviewItems}
+            items={reviewItems.filter((item) => item.type !== "distance")}
             draft={reviewDraft}
             projectPoint={(point) => adapterRef.current?.projectWorldPoint(point) ?? null}
             containerWidth={containerSize.width}
@@ -1406,10 +1500,12 @@ export function DokCadUpstreamViewer({
               .map((item) => ({
                 id: item.id,
                 type: item.type,
-                title: item.type === "distance" ? "Mesafe" : item.type === "area" ? "Alan" : "Zincir Mesafe",
+                title: item.type === "distance" ? item.label || "Mesafe" : item.type === "area" ? "Alan" : "Zincir Mesafe",
                 formattedValue:
                   item.type === "distance"
-                    ? `${(item as { measuredLength: number }).measuredLength.toFixed(2)}`
+                    ? item.measurementContext
+                      ? formatCapturedDistance(item.measuredLength, item.measurementContext)
+                      : formatPhysicalDistance(item.measuredLength, sourceContextFromInsunits(null), "m", 2)
                     : item.type === "area"
                     ? `${(item as { measuredArea: number }).measuredArea.toFixed(2)}`
                     : item.measurementContext

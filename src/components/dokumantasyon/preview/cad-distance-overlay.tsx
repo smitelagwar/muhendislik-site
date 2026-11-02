@@ -11,9 +11,17 @@ import type {
   CadSnapPrimitive,
 } from "@/lib/dokumantasyon/cad-upstream/snap-engine";
 import { CadPrecisionOverlay } from "./cad-precision-overlay";
+import {
+  formatDistance as formatPhysicalDistance,
+  type CadSourceUnitContext,
+  type CadUnit,
+} from "@/lib/dokumantasyon/cad-review/units";
 
 export interface CadDistanceOverlayMeasurement extends CadDistanceMeasurementResult {
   id: string;
+  formattedLabel?: string;
+  color?: string;
+  isSelected?: boolean;
 }
 
 type CadRendererCanvasBridge = {
@@ -45,7 +53,10 @@ function midpoint(a: CadSnapPoint, b: CadSnapPoint): CadSnapPoint {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 }
 
-function phaseMessage(snapshot: CadDistanceMeasurementSnapshot | null): string | null {
+function phaseMessage(
+  snapshot: CadDistanceMeasurementSnapshot | null,
+  formatLive: (rawWorldLength: number) => string
+): string | null {
   if (!snapshot) return null;
   const orthoHint = snapshot.isOrthoLocked ? "Dik kilitli" : "Shift: Dik kilit";
   switch (snapshot.phase) {
@@ -58,13 +69,17 @@ function phaseMessage(snapshot: CadDistanceMeasurementSnapshot | null): string |
     case "awaiting-second":
       return snapshot.distance === null
         ? `2. noktayı seçin (${orthoHint} | Esc: İptal)`
-        : `Mesafe: ${formatDistance(snapshot.distance)} (${orthoHint} | Esc: İptal)`;
+        : snapshot.distance === 0
+          ? "Noktalar çakışıyor; farklı bir nokta seçin"
+          : `Mesafe: ${formatLive(snapshot.distance)} (${orthoHint} | Esc: İptal)`;
     case "pressing-second":
       return "Basılı tutmaya devam edin...";
     case "tracking-second":
       return snapshot.distance === null
         ? "Bırakın: ölçümü tamamla"
-        : `Bırakın: ${formatDistance(snapshot.distance)} (${orthoHint})`;
+        : snapshot.distance === 0
+          ? "Noktalar çakışıyor; farklı bir nokta seçin"
+          : `Bırakın: ${formatLive(snapshot.distance)} (${orthoHint})`;
     default:
       return null;
   }
@@ -140,11 +155,19 @@ export function CadDistanceOverlay({
   measurements,
   projectPoint,
   adapter,
+  sourceUnitContext,
+  displayUnit = "m",
+  precision = 2,
+  onSelectMeasurement,
 }: {
   snapshot: CadDistanceMeasurementSnapshot | null;
   measurements: readonly CadDistanceOverlayMeasurement[];
   projectPoint: (point: CadSnapPoint) => CadSnapPoint | null;
   adapter?: CadRendererCanvasBridge | null;
+  sourceUnitContext?: CadSourceUnitContext;
+  displayUnit?: CadUnit;
+  precision?: number;
+  onSelectMeasurement?: (id: string) => void;
 }) {
   const anchorRef = useRef<HTMLSpanElement>(null);
   const completed = measurements
@@ -157,7 +180,10 @@ export function CadDistanceOverlay({
 
   const first = snapshot?.firstPoint ? projectPoint(snapshot.firstPoint) : null;
   const preview = snapshot?.previewPoint ? projectPoint(snapshot.previewPoint) : null;
-  const message = phaseMessage(snapshot);
+  const formatLive = (distance: number): string => sourceUnitContext
+    ? formatPhysicalDistance(distance, sourceUnitContext, displayUnit, precision)
+    : formatDistance(distance);
+  const message = phaseMessage(snapshot, formatLive);
 
   const getSourceCanvas = (): HTMLCanvasElement | null => {
     const liveAdapter = resolveCadAdapter(anchorRef.current?.parentElement, adapter);
@@ -212,24 +238,39 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
 
       <svg
         className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible"
-        aria-hidden="true"
+        aria-hidden={onSelectMeasurement ? undefined : "true"}
         data-testid="cad-distance-overlay"
       >
         {completed.map(({ measurement, start, end }) => {
           const label = midpoint(start, end);
           return (
-            <g key={measurement.id} data-cad-distance-complete="true">
+            <g
+              key={measurement.id}
+              data-cad-distance-complete="true"
+              data-review-id={measurement.id}
+              role={onSelectMeasurement ? "button" : undefined}
+              tabIndex={onSelectMeasurement ? 0 : undefined}
+              style={onSelectMeasurement ? { pointerEvents: "auto", cursor: "pointer" } : undefined}
+              onClick={onSelectMeasurement ? () => onSelectMeasurement(measurement.id) : undefined}
+              onKeyDown={onSelectMeasurement ? (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onSelectMeasurement(measurement.id);
+                }
+              } : undefined}
+            >
               <line
                 x1={start.x}
                 y1={start.y}
                 x2={end.x}
                 y2={end.y}
-                className="stroke-primary"
-                strokeWidth="1.5"
+                stroke={measurement.color ?? "currentColor"}
+                className={measurement.color ? undefined : "stroke-primary"}
+                strokeWidth={measurement.isSelected ? 3 : 1.5}
                 vectorEffect="non-scaling-stroke"
               />
-              <circle cx={start.x} cy={start.y} r="3" className="fill-primary" />
-              <circle cx={end.x} cy={end.y} r="3" className="fill-primary" />
+              <circle cx={start.x} cy={start.y} r="3" fill={measurement.color ?? "currentColor"} className={measurement.color ? undefined : "fill-primary"} />
+              <circle cx={end.x} cy={end.y} r="3" fill={measurement.color ?? "currentColor"} className={measurement.color ? undefined : "fill-primary"} />
               <text
                 x={label.x}
                 y={label.y - 7}
@@ -239,7 +280,7 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
                 strokeWidth="3"
                 paintOrder="stroke"
               >
-                {formatDistance(measurement.distance)}
+                {measurement.formattedLabel ?? formatDistance(measurement.distance)}
               </text>
             </g>
           );
@@ -271,7 +312,7 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
             >
               {snapshot?.distance === null || snapshot?.distance === undefined
                 ? ""
-                : `${formatDistance(snapshot.distance)}${snapshot?.isOrthoLocked ? " (Dik)" : ""}`}
+                : `${formatLive(snapshot.distance)}${snapshot?.isOrthoLocked ? " (Dik)" : ""}`}
             </text>
           </>
         ) : null}

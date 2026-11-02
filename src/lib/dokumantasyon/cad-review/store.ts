@@ -4,7 +4,7 @@ import type {
   CadReviewLineDash,
   CadMeasurementContext,
 } from "./schema";
-import { cadReviewItemSchema, MAX_REVIEW_ITEMS_PER_DRAWING } from "./schema";
+import { cadReviewItemSchema, cadReviewDocumentSchema, MAX_REVIEW_ITEMS_PER_DRAWING } from "./schema";
 
 export type CadReviewTool =
   | "select"
@@ -144,6 +144,25 @@ export class CadReviewStore {
 
   getDirty(): boolean {
     return this.isDirty;
+  }
+
+  /**
+   * The server may return after the UI and controllers subscribed to this store.
+   * Adopt that document only when still empty/pristine; NEVER swap the store instance
+   * or overwrite in-flight locally edited review data.
+   */
+  hydrateFromServerIfPristine(candidate: CadReviewDocument): boolean {
+    if (this.isDirty || this.document.items.length > 0 ||
+        this.undoStack.length > 0 || this.redoStack.length > 0 ||
+        candidate.fileId !== this.document.fileId) return false;
+    const parsed = cadReviewDocumentSchema.safeParse(candidate);
+    if (!parsed.success) return false;
+    this.document = {
+      ...parsed.data,
+      items: parsed.data.items.map(copyItem),
+    };
+    this.notify();
+    return true;
   }
 
   canUndo(): boolean {
@@ -343,6 +362,30 @@ export class CadReviewStore {
     return this.addItem({ ...item, measurementContext: context });
   }
 
+
+  /** Clear measurements as one undoable operation; comments/markup are untouched. */
+  clearMeasurements(): boolean {
+    const removed = this.document.items
+      .map((item, index) => ({ item: copyItem(item), index }))
+      .filter(({ item }) => isMeasurementItem(item));
+    if (removed.length === 0) return false;
+    const ids = new Set(removed.map(({ item }) => item.id));
+    this.executeCommand({
+      name: "Clear Measurements",
+      execute: () => {
+        this.document.items = this.document.items.filter((item) => !ids.has(item.id));
+        for (const id of ids) this.session.selectedItemIds.delete(id);
+        this.document.updatedAt = new Date().toISOString();
+      },
+      undo: () => {
+        const restored = [...this.document.items];
+        for (const { item, index } of removed) restored.splice(index, 0, copyItem(item));
+        this.document.items = restored;
+        this.document.updatedAt = new Date().toISOString();
+      },
+    });
+    return true;
+  }
 
   removeItem(itemId: string): void {
     const existingIndex = this.document.items.findIndex((i) => i.id === itemId);

@@ -58,6 +58,19 @@ function pointDistance(a: CadSnapPoint, b: CadSnapPoint): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+function isUsableWorldPoint(point: CadSnapPoint): boolean {
+  return Number.isFinite(point.x) && Number.isFinite(point.y) &&
+    Math.abs(point.x) <= 1e9 && Math.abs(point.y) <= 1e9;
+}
+
+/** Avoid zero-length, non-finite and sub-precision results without mutating CAD geometry. */
+export function isValidCadDistance(start: CadSnapPoint, end: CadSnapPoint): boolean {
+  if (!isUsableWorldPoint(start) || !isUsableWorldPoint(end)) return false;
+  const length = pointDistance(start, end);
+  const scale = Math.max(Math.abs(start.x), Math.abs(start.y), Math.abs(end.x), Math.abs(end.y));
+  return Number.isFinite(length) && length > Math.max(1e-9, scale * Number.EPSILON * 8);
+}
+
 export class CadPressHoldDistanceMachine {
   private phaseValue: CadDistanceMeasurementPhase = "inactive";
   private pointerId: number | null = null;
@@ -163,7 +176,7 @@ export class CadPressHoldDistanceMachine {
       this.previewSnapValue = resolved.snap;
     }
     const committed = clonePoint(this.previewPointValue);
-    if (!committed) {
+    if (!committed || !isUsableWorldPoint(committed)) {
       return { snapshot: this.cancelPointer(pointerId), result: null };
     }
 
@@ -179,6 +192,9 @@ export class CadPressHoldDistanceMachine {
     if (this.phaseValue === "tracking-second" && this.firstPointValue) {
       const start = clonePoint(this.firstPointValue)!;
       const end = committed;
+      if (!isValidCadDistance(start, end)) {
+        return { snapshot: this.cancelPointer(pointerId), result: null };
+      }
       const result = { start, end, distance: pointDistance(start, end) };
       this.pointerId = null;
       this.previewPointValue = end;
@@ -212,7 +228,7 @@ export class CadPressHoldDistanceMachine {
     resolved: CadDistanceResolvedPoint
   ): { snapshot: CadDistanceMeasurementSnapshot; result: CadDistanceMeasurementResult | null } {
     const committed = clonePoint(resolved.point);
-    if (!committed) {
+    if (!committed || !isUsableWorldPoint(committed) || !this.isActive) {
       return { snapshot: this.snapshot(), result: null };
     }
 
@@ -237,6 +253,13 @@ export class CadPressHoldDistanceMachine {
     ) {
       const start = clonePoint(this.firstPointValue)!;
       const end = committed;
+      if (!isValidCadDistance(start, end)) {
+        this.pointerId = null;
+        this.previewPointValue = null;
+        this.previewSnapValue = null;
+        this.phaseValue = "awaiting-second";
+        return { snapshot: this.snapshot(), result: null };
+      }
       const result = { start, end, distance: pointDistance(start, end) };
       this.pointerId = null;
       this.previewPointValue = end;
@@ -289,6 +312,7 @@ export class CadPressHoldDistanceController {
   private pointerStart: CadSnapPoint | null = null;
   private lastScreenPoint: CadSnapPoint | null = null;
   private isMouseDown = false;
+  private mousePointerId: number | null = null;
   private isShiftDown = false;
   private destroyed = false;
 
@@ -321,6 +345,10 @@ export class CadPressHoldDistanceController {
   ): void {
     if (this.destroyed) return;
     this.clearHoldTimer();
+    this.isMouseDown = false;
+    this.mousePointerId = null;
+    this.pointerStart = null;
+    this.lastScreenPoint = null;
     this.runtime.setCameraInteractionEnabled(true);
     this.snapModes = new Set(snapModes);
     this.callbacks = callbacks;
@@ -401,6 +429,7 @@ export class CadPressHoldDistanceController {
     this.pointerStart = null;
     this.lastScreenPoint = null;
     this.isMouseDown = false;
+    this.mousePointerId = null;
     this.runtime.setCameraInteractionEnabled(true);
     this.emit(this.machine.cancelMeasurement());
     if (notify && wasActive) this.callbacks.onCancel?.();
@@ -428,13 +457,8 @@ export class CadPressHoldDistanceController {
 
   private readonly handleWindowBlur = (): void => {
     this.isShiftDown = false;
-    this.isMouseDown = false;
-    this.clearHoldTimer();
-    if (this.machine.activePointerId !== null) {
-      this.emit(this.machine.cancelPointer(this.machine.activePointerId));
-    }
-    this.pointerStart = null;
-    this.lastScreenPoint = null;
+    if (this.machine.isActive) this.cancel(true);
+    else this.runtime.setCameraInteractionEnabled(true);
   };
 
   private readonly handleVisibilityChange = (): void => {
@@ -479,8 +503,9 @@ export class CadPressHoldDistanceController {
       return;
     }
 
-    // Non-touch (desktop mouse):
+    // Non-touch (desktop mouse): two deliberate clicks; dragging belongs to PAN.
     this.isMouseDown = true;
+    this.mousePointerId = event.pointerId;
   };
 
   private readonly handlePointerMove = (event: PointerEvent): void => {
@@ -583,11 +608,15 @@ export class CadPressHoldDistanceController {
       return;
     }
 
-    // Non-touch (desktop mouse):
-    if (!this.isMouseDown) return;
+    // Non-touch (desktop mouse): never commit a pan drag or unrelated pointerup.
+    if (!this.isMouseDown || this.mousePointerId !== event.pointerId) return;
     this.isMouseDown = false;
+    this.mousePointerId = null;
     const screenPoint = this.eventScreenPoint(event);
+    const pressStart = this.pointerStart;
+    this.pointerStart = null;
     this.lastScreenPoint = screenPoint;
+    if (!pressStart || pointDistance(pressStart, screenPoint) > CAD_DISTANCE_ARM_SLOP_PX) return;
     const isOrtho = (event.shiftKey || this.isShiftDown) && Boolean(this.machine.firstPoint);
     this.machine.setOrthoLocked(isOrtho);
     const effectiveModes = isOrtho
@@ -616,13 +645,21 @@ export class CadPressHoldDistanceController {
     this.pointerStart = null;
     this.lastScreenPoint = null;
     this.isMouseDown = false;
+    this.mousePointerId = null;
     this.runtime.setCameraInteractionEnabled(true);
-    this.emit(this.machine.cancelPointer(event.pointerId));
+    if (this.machine.activePointerId !== null) {
+      this.emit(this.machine.cancelPointer(event.pointerId));
+    } else {
+      this.machine.clearHoverPreview();
+      this.emit(this.machine.snapshot());
+    }
   };
 
   private readonly handlePointerLeave = (event: PointerEvent): void => {
     if (event.pointerType !== "touch" && this.machine.isActive) {
       this.isMouseDown = false;
+      this.mousePointerId = null;
+      this.pointerStart = null;
       this.machine.clearHoverPreview();
       this.lastScreenPoint = null;
       this.emit(this.machine.snapshot());

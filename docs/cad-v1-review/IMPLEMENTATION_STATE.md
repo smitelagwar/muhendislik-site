@@ -4,9 +4,9 @@ Plan revision: 2
 Date: 2026-11-02 (Europe/Istanbul)
 Planning status: PLAN_HAZIR
 Execution status: KOD_HAZIR_DOGRULAMA_BEKLIYOR
-Completed stages: ASAMA_01, ASAMA_02, ASAMA_03 (code checkpoints; runtime verification pending)
+Completed stages: ASAMA_01, ASAMA_02, ASAMA_03, ASAMA_04 (code checkpoints; runtime verification pending)
 Active stage: none
-Next stage: ASAMA_04 (ONLY after user says devam)
+Next stage: ASAMA_05 (ONLY after user says devam)
 Stage 01 acceptance: DOCUMENTED_BASELINE; runtime/device verification NOT_RUN
 Release-ready: NO
 Branch: internal-cad-v1-pro-review-r2-20261102
@@ -14,7 +14,7 @@ Checkpoint: this document's containing branch HEAD (first stage checkpoint; see 
 Checkpoint parent: 32a1c818d06c5b191cdc5bd4efdeaf71407e6559
 Plan source: attached revision 2 copied verbatim to PLAN.md
 Deployment: no Preview, no Production, no main merge
-Scope: ASAMA_01 baseline + ASAMA_02 validated review data + ASAMA_03 chain/OSNAP/preview bridge, engine frozen
+Scope: ASAMA_01 baseline + ASAMA_02 review units/history + ASAMA_03 chain/OSNAP + ASAMA_04 bounded distance gesture/unified store/overlay, engine frozen
 
 ## 1. Branch, source and engine freeze
 
@@ -318,3 +318,66 @@ Branch: internal-cad-v1-pro-review-r2-20261102. Atomic stage checkpoint SHA is t
 5. Verify straight distance/normal pan, layer visibility including frozen layer, inserted mirrored block snap and arc bulge cases. Report values, browser/device/version and screenshot only from actual run.
 
 Rollback: revert **only ASAMA_03 checkpoint**, not main, golden renderer or ASAMA_01/02. No Preview/Production and no changes to parser/renderer/worker/fallback or MLightCAD dependencies. STOP after this stage; ASAMA_04 only with new user "devam".
+
+
+## 10. ASAMA_04 — Düz mesafe hassasiyeti ve tek committed review kaynağı
+
+Date: 2026-11-02 (Europe/Istanbul)
+Status: **KOD_HAZIR_DOGRULAMA_BEKLIYOR**. Source changes prepared in this stage's atomic branch checkpoint; real TypeScript, Playwright, DWG/DXF and physical device verification are NOT_RUN. Not release ready.
+Branch: `internal-cad-v1-pro-review-r2-20261102`.
+Deployment: ZERO requested, ZERO created; main unchanged.
+
+### Verified code root cause / changes
+
+- Before this stage, `cad-upstream-viewer.tsx` appended completed distance only to local React `distanceMeasurements`, while chain measurements were committed to `CadReviewStore`; ReviewStore distance had a separate `CadReviewOverlay` renderer. This split prevented consistent Undo/Redo, JSON local reload, review export, side panel and item selection. This is code-confirmed, not a live reproduction claim.
+- `src/lib/dokumantasyon/cad-upstream/distance-measurement.ts`: preserve existing mouse two-click and touch short-tap/500ms press-hold state machine. Add pure `isValidCadDistance(start,end)` world-coordinate oracle: finite points with absolute coordinate <=1e9; nonzero length above CAD/numeric precision epsilon; reject invalid world/zero/near-zero while leaving second point armed. Explicit mouse pointerId prevents unrelated pointerup. Pointer move >8 **CSS px** between down/up is pan, not a measurement commit. On window blur/hidden cancel active measurement and restore camera. No new renderer or controller.
+- `src/components/dokumantasyon/preview/cad-distance-overlay.tsx`: keep existing precision lens, live two-point rubber band, snap preview and `data-cad-distance-complete` regression hooks. Live values use actual source-aware physical unit or truthful "çizim birimi" fallback; persisted measurements show captured display context, active color, selection and optional user label. Keyboard-accessible review selection. This is the **only completed distance SVG renderer** for active review mode.
+- `src/components/dokumantasyon/preview/cad-upstream-viewer.tsx`: in review-enabled mode, completed valid distance writes **only one** `store.addMeasuredItem` transaction containing raw world start/end/length and frozen `measurementContext` (INSUNITS/calibration/display). Completed overlay derives from review items; `CadReviewOverlay` excludes distance to avoid double drawing. Side panel uses same captured formatter; completed/draft never enters a second local committed list. Feature-flag-off retains explicit local-only fallback for legacy distance UI. Custom item labels remain visible and length still shown.
+- `src/lib/dokumantasyon/cad-review/store.ts`: add one-transaction `clearMeasurements()` for distance/chain/area (comments and markup untouched); Undo restores original item order. `hydrateFromServerIfPristine()` accepts a validated server document only when store is still empty/pristine, maintains **same store instance/listeners** and rejects stale server data after a local edit. Host replaced previous whole-store swap in GET callback; this corrects the source-confirmed stale subscription bug without redesigning routing, server APIs or storage.
+- `src/lib/dokumantasyon/cad-upstream/adapter.ts`: very narrow `measurementCommandEpoch` fence in distance start, invalidated by cancel/tool switch, to prevent a delayed `ensureSnapReady` from reactivating stale distance after switching tools. Renderer/parser/canvas/worker methods unchanged.
+- Host request token increments for distance/area/chain/pan/clear/file reset/Escape; late onSnapshot/onComplete callbacks check token and live adapter identity. No global event arbiter/monkeypatch.
+- `tests/document-studio/cad-distance-stage04-contract.test.ts`: new pure Node/TSX regression tests for 3-4-5/physical 5m, nonzero/invalid/high-offset coordinates, hold/tap, double callback, mouse pan not commit, unrelated pointer ID, blur cleanup, same-store undo/redo/JSON, pristine server hydrate, one-step clear with unrelated pin retained; DXF header problem tracked as explicit TODO.
+- `tests/document-studio/cad-stage5-distance-measurement.spec.ts`: existing real-browser test strengthened (not weakened) to assert fixture `INSUNITS=4` and raw=5000 vs physical label **5,00 m**, exactly one visible finished distance and zero duplicate `data-review-type=distance` overlays, Undo/Redo, F5 local restore, clear. Unchanged ESC and short mobile tap checks remain.
+
+### Source / measurement / legacy contract
+
+Fixture `tests/fixtures/cad-preview-v2/known-geometry-measurements.dxf` explicitly has `$INSUNITS / 70 / 4` (mm), a 0-to-3000 horizontal + 3000-to-4000 vertical geometry; diagonal endpoints (0,0) and (3000,4000) imply **5000 raw world mm**, displayed as 5,00 m with source context and display unit "m". Independent in-tool arithmetic `Math.hypot(3000,4000)=5000`, `5000/1000=5`, tr-TR formatter yields `5,00 m` — PASS **for the independent numerical calculation only**, not viewer runtime.
+
+Persisted review points/length remain untouched CAD world values; source-dependent label is from captured context. Source-less legacy records keep raw values but are labelled "çizim birimi" instead of asserting an unsupported physical unit. Changing later dropdown choices does not silently rewrite a committed item's label.
+
+**Review enabled** is the normal V1 default; completed distance is owned exclusively by ReviewStore and shown by one `CadDistanceOverlay`. **Review disabled** retains a nonpersistent local-only distance UI for backward behavior; this does not imply it supports Undo/export.
+
+### Open gates / known issues
+
+- This source checkpoint has **NO executed TypeScript compiler, ESLint, Playwright, device, FPS or real drawing test**. Merely creating tests does not establish PASS.
+- `CadUpstreamAdapter.getSourceUnitContext()` is an existing ASAMA_03 read-only metadata bridge; real document getter must be validated against the opened parser and unit fixtures in a browser. If source metadata cannot be trusted, the UI safely says "çizim birimi"; **do not silently assume mm**.
+- Local F5 recovery is exercised by the new Playwright source but NOT_RUN. Pristine initial server GET store replacement has a targeted fix; **remote server save/409 conflict, source fingerprint zeros, file-version swap, cross-device sync and full persistence remain open for ASAMA_08**. No complete server persistence guarantee.
+- The review-only `export-dxf.ts` currently hardcodes `$INSUNITS=6` even when source geometry is mm (INSUNITS=4). Source DXF body still uses raw geometry. **Review DXF unit-correct export/reopen is BLOCKED until ASAMA_08**; do not label this release-safe. Existing PDF binary-vs-extension bug also remains ASAMA_08.
+- Actual mobile touch, press-hold, pan/zoom/DPR, OSNAP precision marker, file switch, stale async interactions and unusual entity geometry require real browser/device verification. Stage03 chain event routing has not been runtime accepted.
+- Existing historical review JSON can have IDs/formats not covered by newly strict item Zod; invalid server payloads will not overwrite a pristine document. Audit migration with real backups in ASAMA_08; do not destructively normalize old records.
+- Earlier ASAMA_01/03 notes described the server GET replacement defect as open; **only that initial blank/pristine store replacement path is now changed by ASAMA_04**. Do not infer that complete server persistence is solved.
+
+### Stage-specific verification matrix
+
+| Gate | Status | Grounding |
+|---|---|---|
+| Independent 3-4-5 mm -> metre math | PASS, **arithmetic only** | 5000 world mm = 5 m; source fixture header=4 |
+| Source diff limited to ASAMA_04 | Await GitHub compare after checkpoint | frozen engine, tests/docs, narrow host+adapter |
+| Pure Node regression | NOT_RUN | `npx tsx --test tests/document-studio/cad-distance-stage04-contract.test.ts` |
+| Existing browser gesture regression | NOT_RUN | `npx playwright test tests/document-studio/cad-stage5-distance-measurement.spec.ts` |
+| Physical unit and native measure regression | NOT_RUN | `cad-measurement-units.spec.ts`, `cad-native-measurements.spec.ts` |
+| TypeScript/lint | NOT_RUN | `npx tsc --noEmit`, ESLint changed files |
+| Real desktop / zoom / high-offset / DPR / snap / touch | NOT_RUN | Chromium and real handset/stylus |
+| F5 local persisted geometry and undo/redo | NOT_RUN | browser Playwright fixture |
+| Server cross-device persistence / DWG round-trip / export | BLOCKED/NOT_RUN | required ASAMA_08 fixes and test |
+| Preview / Production / main | NOT_DEPLOYED, unchanged | user restriction |
+
+### User-side two-minute manual inspection after an explicitly approved test runner is available
+
+1. Open `known-geometry-measurements.dxf`, choose distance. Click (0,0) and (3000,4000), inspect live marker and physical length 5,00 m (raw 5000 mm), one overlay only.
+2. Undo removes one measurement, Redo restores it; click measure again and press ESC, confirm no new entry. Drag mouse >8 CSS px with left button (pan): no unintended measurement point.
+3. F5 and verify the same completed distance from local data; click "Temizle", review-only measurements clear in one undo (notes remain). Test chain still works and clear does not mutate original DWG/DXF.
+4. On mobile, tap twice, press-hold, pinch after an incomplete gesture and switch tools: no lost camera or duplicate commit. Test different DPR/zoom and mouse/trackpad.
+5. Export and inspect raw coordinates; DO NOT trust review DXF physical units until `INSUNITS` header is fixed in ASAMA_08.
+
+Rollback: revert **only ASAMA_04 checkpoint** on internal branch; leave ASAMA_01–03 and core V1 engine untouched. STOP. ASAMA_05 (manual area and perimeter) starts only on a fresh explicit `devam`.

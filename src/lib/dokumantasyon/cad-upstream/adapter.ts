@@ -814,6 +814,8 @@ export class CadUpstreamAdapter {
   private lineWeightVisible = false;
   private container: HTMLElement | null = null;
   private activeMeasurementCommand: CadMeasurementCommand | null = null;
+  // Invalidate pending distance starts on any tool switch/cancel during snap warm-up.
+  private measurementCommandEpoch = 0;
   private mobileGestureGuard: CadMobileGestureGuard | null = null;
   private distanceMeasurementController: CadPressHoldDistanceController | null = null;
   private chainDistanceMeasurementController: CadChainDistanceController | null = null;
@@ -1782,12 +1784,15 @@ export class CadUpstreamAdapter {
     callbacks: CadDistanceMeasurementCallbacks = {}
   ): Promise<boolean> {
     if (this.destroyed) return false;
+    const requestedEpoch = this.measurementCommandEpoch;
     if (!this.snapReady) {
       await this.ensureSnapReady();
     }
-    if (this.destroyed || !this.snapReady || !this.distanceMeasurementController) return false;
+    if (this.destroyed || requestedEpoch !== this.measurementCommandEpoch ||
+        !this.snapReady || !this.distanceMeasurementController) return false;
     await this.cancelActiveCommand();
-    if (this.destroyed || !this.snapReady || !this.distanceMeasurementController) return false;
+    if (this.destroyed || this.measurementCommandEpoch !== requestedEpoch + 1 ||
+        !this.snapReady || !this.distanceMeasurementController) return false;
 
     this.activeMeasurementCommand = "distance";
     this.distanceMeasurementController.start(snapModes, {
@@ -2082,6 +2087,7 @@ export class CadUpstreamAdapter {
 
   async cancelActiveCommand(): Promise<void> {
     if (this.destroyed) return;
+    this.measurementCommandEpoch += 1;
     const active = this.activeMeasurementCommand;
     this.activeMeasurementCommand = null;
     if (active === "distance") {
