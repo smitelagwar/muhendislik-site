@@ -38,4 +38,68 @@ export async function captureReviewPngBlob(
       }
     });
     const svgString = new XMLSerializer().serializeToString(cleanSvg);
-    const svgB���q�^
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+
+    try {
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+        img.src = url;
+      });
+      ctx.drawImage(img, 0, 0, width, height);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  return new Promise<Blob>((resolve, reject) => {
+    offscreen.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("PNG blob dönüştürme başarısız oldu."));
+      },
+      "image/png",
+      1.0
+    );
+  });
+}
+
+/** Construct a real one-page PDF embedding the captured PNG, preserving its aspect ratio. */
+export async function pngToPdfBlob(pngBlob: Blob): Promise<Blob> {
+  if (pngBlob.type && pngBlob.type !== "image/png") {
+    throw new Error("PDF oluşturmak için geçerli PNG gerekiyor.");
+  }
+  const pdf = await PDFDocument.create();
+  const image = await pdf.embedPng(new Uint8Array(await pngBlob.arrayBuffer()));
+  const scale = Math.min(1, 14400 / Math.max(image.width, image.height));
+  const width = Math.max(1, image.width * scale);
+  const height = Math.max(1, image.height * scale);
+  const page = pdf.addPage([width, height]);
+  page.drawImage(image, { x: 0, y: 0, width, height });
+  return new Blob([Uint8Array.from(await pdf.save())], { type: "application/pdf" });
+}
+
+export async function exportCanvasToPdfBlob(
+  canvas: HTMLCanvasElement,
+  svgOverlay?: SVGElement | null,
+  includedItemIds?: ReadonlySet<string>
+): Promise<Blob> {
+  const pngBlob = await captureReviewPngBlob(canvas, svgOverlay, 2, includedItemIds);
+  return pngToPdfBlob(pngBlob);
+}
+
+/**
+ * Triggers a browser file download from a Blob.
+ */
+export function downloadFileBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}

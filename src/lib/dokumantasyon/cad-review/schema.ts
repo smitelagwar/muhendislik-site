@@ -38,4 +38,218 @@ export const cadReviewItemStyleSchema = z.object({
 
 export type CadReviewItemStyle = z.infer<typeof cadReviewItemStyleSchema>;
 
-// Existing runtime chain IDs (chain-<timestamp>) and old review IDs m���q�^
+// Existing runtime chain IDs (chain-<timestamp>) and old review IDs must not
+// be rejected when normalizing an otherwise valid persisted item.
+const cadReviewItemIdSchema = z.string().min(1).max(128).refine(
+  (id) => z.string().uuid().safeParse(id).success ||
+    /^(?:chain|rev|dist|pin|shape|stroke|text|callout|area|measure)-[A-Za-z0-9_-]{1,96}$/.test(id),
+  { message: "Geçersiz CAD review kimliği." }
+);
+
+// Base properties for every review item
+const cadReviewItemBaseSchema = z.object({
+  id: cadReviewItemIdSchema,
+  layoutId: z.string().max(128).optional(),
+  author: z.string().min(1).max(MAX_AUTHOR_LENGTH).default("Admin"),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  status: cadReviewItemStatusSchema.default("open"),
+  comment: z.string().max(MAX_COMMENT_LENGTH).default(""),
+  style: cadReviewItemStyleSchema.default({
+    color: "#ff3b30",
+    strokeWidth: 2,
+    opacity: 1,
+  }),
+});
+
+
+/** Additive v1 extension: legacy measurements carry no captured context. */
+export const cadMeasurementContextSchema = z.object({
+  version: z.literal(1),
+  sourceUnit: z.enum(["unitless", "mm", "cm", "m", "in", "ft"]),
+  source: z.enum(["dxf-insunits", "dwg-metadata", "calibration", "unknown"]),
+  sourceInsunits: z.number().int().min(0).nullable().optional(),
+  mmPerWorldUnit: z.number().finite().positive().nullable(),
+  calibrationRevision: z.number().int().min(0),
+  displayUnit: z.enum(["mm", "cm", "m", "in", "ft"]),
+  areaDisplayUnit: z.enum(["mm2", "cm2", "m2", "in2", "ft2"]),
+  precision: z.number().int().min(0).max(6),
+  areaPrecision: z.number().int().min(0).max(6),
+}).superRefine((value, ctx) => {
+  if ((value.source === "unknown") !== (value.mmPerWorldUnit === null)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Birim kaynağı ve fiziksel ölçek birbiriyle tutarlı olmalıdır.",
+    });
+  }
+});
+export type CadMeasurementContext = z.infer<typeof cadMeasurementContextSchema>;
+
+// 1. Distance Measurement item
+export const cadReviewDistanceItemSchema = cadReviewItemBaseSchema.extend({
+  type: z.literal("distance"),
+  measurementContext: cadMeasurementContextSchema.optional(),
+  start: cadPoint2dSchema,
+  end: cadPoint2dSchema,
+  measuredLength: z.number().refine((n) => Number.isFinite(n) && n >= 0, {
+    message: "Ölçüm mesafesi pozitif ve sonlu olmalıdır.",
+  }),
+  label: z.string().max(128).optional(),
+});
+
+// 2. Chain Distance Measurement item
+export const cadReviewChainDistanceItemSchema = cadReviewItemBaseSchema.extend({
+  type: z.literal("chain_distance"),
+  measurementContext: cadMeasurementContextSchema.optional(),
+  points: z.array(cadPoint2dSchema).min(2).max(MAX_POINTS_PER_ITEM),
+  totalDistance: z.number().refine((n) => Number.isFinite(n) && n >= 0, {
+    message: "Toplam zincir mesafesi pozitif ve sonlu olmalıdır.",
+  }),
+  segmentDistances: z.array(z.number().refine((n) => Number.isFinite(n) && n >= 0)),
+});
+
+// 3. Area Measurement item
+export const cadReviewAreaItemSchema = cadReviewItemBaseSchema.extend({
+  type: z.literal("area"),
+  measurementContext: cadMeasurementContextSchema.optional(),
+  points: z.array(cadPoint2dSchema).min(3).max(MAX_POINTS_PER_ITEM),
+  measuredArea: z.number().refine((n) => Number.isFinite(n) && n >= 0, {
+    message: "Alan değeri pozitif ve sonlu olmalıdır.",
+  }),
+  measuredPerimeter: z.number().refine((n) => Number.isFinite(n) && n >= 0, {
+    message: "Çevre değeri pozitif ve sonlu olmalıdır.",
+  }),
+});
+
+// 4. Comment Pin item
+export const cadReviewPinItemSchema = cadReviewItemBaseSchema.extend({
+  type: z.literal("comment_pin"),
+  position: cadPoint2dSchema,
+  pinIndex: z.number().int().min(1),
+  title: z.string().max(256).default("Yorum"),
+});
+
+// 5. Text item
+export const cadReviewTextItemSchema = cadReviewItemBaseSchema.extend({
+  type: z.literal("text"),
+  position: cadPoint2dSchema,
+  text: z.string().min(1).max(MAX_TEXT_LENGTH),
+  rotationDeg: z.number().refine(Number.isFinite).default(0),
+});
+
+// 6. Callout item (arrow leader + text bubble)
+export const cadReviewCalloutItemSchema = cadReviewItemBaseSchema.extend({
+  type: z.literal("callout"),
+  tip: cadPoint2dSchema,
+  anchor: cadPoint2dSchema,
+  text: z.string().min(1).max(MAX_TEXT_LENGTH),
+});
+
+// 7. Shape items (rect, circle, cloud)
+export const cadReviewShapeItemSchema = cadReviewItemBaseSchema.extend({
+  type: z.literal("shape"),
+  shapeKind: z.enum(["rect", "circle", "cloud"]),
+  p1: cadPoint2dSchema,
+  p2: cadPoint2dSchema,
+  radius: z.number().refine((n) => Number.isFinite(n) && n >= 0).optional(),
+});
+
+// 8. Freehand stroke item
+export const cadReviewStrokeItemSchema = cadReviewItemBaseSchema.extend({
+  type: z.literal("stroke"),
+  points: z.array(cadPoint2dSchema).min(2).max(MAX_POINTS_PER_ITEM),
+  smooth: z.boolean().default(true),
+});
+
+export const cadReviewItemSchema = z.discriminatedUnion("type", [
+  cadReviewDistanceItemSchema,
+  cadReviewChainDistanceItemSchema,
+  cadReviewAreaItemSchema,
+  cadReviewPinItemSchema,
+  cadReviewTextItemSchema,
+  cadReviewCalloutItemSchema,
+  cadReviewShapeItemSchema,
+  cadReviewStrokeItemSchema,
+]);
+
+export type CadReviewItem = z.infer<typeof cadReviewItemSchema>;
+
+// Document Envelope
+export const cadReviewDocumentSchema = z.object({
+  schemaVersion: z.literal(1).default(1),
+  fileId: z.string().uuid(),
+  sourceVersionKey: z.string().min(1).max(1200),
+  sourceSha256: z.string().length(64),
+  revision: z.number().int().min(0).default(0),
+  items: z.array(cadReviewItemSchema).max(MAX_REVIEW_ITEMS_PER_DRAWING).default([]),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+
+export type CadReviewDocument = z.infer<typeof cadReviewDocumentSchema>;
+
+export const cadReviewPayloadSchema = z.object({
+  fileId: z.string().uuid(),
+  sourceVersionKey: z.string().min(1).max(1200),
+  sourceSha256: z.string().length(64),
+  expectedRevision: z.number().int().min(0),
+  items: z.array(cadReviewItemSchema).max(MAX_REVIEW_ITEMS_PER_DRAWING),
+});
+
+export type CadReviewPayload = z.infer<typeof cadReviewPayloadSchema>;
+
+const CAD_REVIEW_STORAGE_PREFIX = "dok_cad_review_v1_";
+
+export function localCadReviewStorageKey(fileId: string, sourceVersionKey: string): string {
+  return `${CAD_REVIEW_STORAGE_PREFIX}${fileId}__${encodeURIComponent(sourceVersionKey)}`;
+}
+
+/** Reads only the requested source revision; legacy data is retained and never reanchored. */
+export function loadLocalCadReview(fileId: string, sourceVersionKey?: string): CadReviewDocument | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const currentKey = sourceVersionKey
+      ? localCadReviewStorageKey(fileId, sourceVersionKey)
+      : `${CAD_REVIEW_STORAGE_PREFIX}${fileId}`;
+    const raw = window.localStorage.getItem(currentKey);
+    const legacy = !raw && sourceVersionKey
+      ? window.localStorage.getItem(`${CAD_REVIEW_STORAGE_PREFIX}${fileId}`)
+      : null;
+    const candidate = raw || legacy;
+    if (!candidate) return null;
+    const parsed = cadReviewDocumentSchema.safeParse(JSON.parse(candidate));
+    if (!parsed.success || parsed.data.fileId !== fileId ||
+        (sourceVersionKey && parsed.data.sourceVersionKey !== sourceVersionKey)) return null;
+    return parsed.data;
+  } catch {
+    return null; // Corrupted originals stay in storage for recovery.
+  }
+}
+
+/** Writes review-only world data to a version-scoped key; never overwrites legacy revisions. */
+export function saveLocalCadReview(fileId: string, doc: CadReviewDocument): boolean {
+  if (typeof window === "undefined") return false;
+  const parsed = cadReviewDocumentSchema.safeParse(doc);
+  if (!parsed.success || parsed.data.fileId !== fileId) return false;
+  try {
+    window.localStorage.setItem(
+      localCadReviewStorageKey(fileId, parsed.data.sourceVersionKey),
+      JSON.stringify(parsed.data)
+    );
+    return true;
+  } catch {
+    return false; // A quota error cannot be reported as a successful save.
+  }
+}
+
+/**
+ * Clears local review document cache.
+ */
+export function clearLocalCadReview(fileId: string, sourceVersionKey?: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(sourceVersionKey ? localCadReviewStorageKey(fileId, sourceVersionKey) : `${CAD_REVIEW_STORAGE_PREFIX}${fileId}`);
+  } catch {
+    // ignore
+  }
+}

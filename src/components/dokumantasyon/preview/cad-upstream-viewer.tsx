@@ -39,4 +39,1928 @@ import { CadStudioRibbon } from "./cad-studio-ribbon";
 import { CadReviewInputDialog, type CadReviewInputKind } from "./cad-review-input-dialog";
 import { CadTechnologyLoader } from "./cad-technology-loader";
 
-// ── CAD Review V1 ──────────────────────────────────────────────┶��q�^
+// ── CAD Review V1 ──────────────────────────────────────────────────────────────
+import type { CadSidePanelTab, CadTextSearchResultItem } from "./cad-review-side-panel";
+import { CadReviewOverlay } from "./cad-review-overlay";
+import { CadChainDistanceOverlay } from "./cad-chain-distance-overlay";
+import { polygonCentroid } from "@/lib/dokumantasyon/cad-upstream/polygon-geometry";
+import {
+  captureMeasurementContext,
+  formatCapturedDistance,
+  formatCapturedArea,
+  formatArea as formatPhysicalArea,
+  formatDistance as formatPhysicalDistance,
+  sourceContextFromInsunits,
+} from "@/lib/dokumantasyon/cad-review/units";
+
+// ── Non-critical UI panels deferred from initial frame bundle ─────────────────
+const CadLayerPanel = dynamic(
+  () => import("./cad-layer-panel").then((m) => m.CadLayerPanel),
+  { ssr: false }
+);
+const CadSnapSettingsPanel = dynamic(
+  () => import("./cad-snap-settings-panel").then((m) => m.CadSnapSettingsPanel),
+  { ssr: false }
+);
+const CadViewSettingsPanel = dynamic(
+  () => import("./cad-view-settings-panel").then((m) => m.CadViewSettingsPanel),
+  { ssr: false }
+);
+const CadReviewSidePanel = dynamic(
+  () => import("./cad-review-side-panel").then((m) => m.CadReviewSidePanel),
+  { ssr: false }
+);
+const CadExportDialog = dynamic(
+  () => import("./cad-export-dialog").then((m) => m.CadExportDialog),
+  { ssr: false }
+);
+import {
+  CadReviewStore,
+  type CadReviewTool,
+  type CadReviewDraftState,
+  type CadActiveMarkupStyle,
+  type CadMeasurementUnitSettings,
+} from "@/lib/dokumantasyon/cad-review/store";
+import { CadMarkupFacade } from "@/lib/dokumantasyon/cad-review/markup-facade";
+import { CadMarkupController } from "@/lib/dokumantasyon/cad-review/markup-controller";
+import { CadFreehandController } from "@/lib/dokumantasyon/cad-review/freehand-controller";
+import { attachCadReviewKeyboardShortcuts } from "./cad-review-shortcuts";
+import {
+  type CadReviewDocument,
+  type CadReviewItem,
+  loadLocalCadReview,
+  saveLocalCadReview,
+} from "@/lib/dokumantasyon/cad-review/schema";
+import { isCadReviewEnabled } from "@/lib/dokumantasyon/cad-review/feature-flags";
+import { CAD_AUTOCAD_FONT_PARITY_V1 } from "@/lib/dokumantasyon/cad-font-fidelity-config";
+import type { CadFontParityEvaluation } from "@/lib/dokumantasyon/cad-font-registry";
+import { initCadPerfSession, markCadPerfReady } from "@/lib/dokumantasyon/cad-runtime/perf";
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface DokCadUpstreamViewerProps {
+  accessUrl: string;
+  displayName: string;
+  fileId: string;
+  extension: string;
+  sizeBytes: number;
+  sourceVersionKey?: string;
+  timeoutMs?: number;
+  onReady?: () => void;
+  onViewerFailure?: (reason: string) => void;
+}
+
+type HostState = "loading" | "ready" | "error";
+type ActiveTool = "distance" | "area" | null;
+
+let previousCadUpstreamTeardown: Promise<void> = Promise.resolve();
+
+function resolveSiteTheme(): CadUpstreamTheme {
+  if (typeof document === "undefined") return "dark";
+  const root = document.documentElement;
+  if (root.classList.contains("dark")) return "dark";
+  if (root.classList.contains("light")) return "light";
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function resolveSnapStorage(): CadSnapSettingsStorage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function failureReason(error: unknown): string {
+  if (error instanceof CadUpstreamAdapterError) {
+    return `${error.code}:${error.message}`;
+  }
+  return error instanceof Error
+    ? `upstream-error:${error.message}`
+    : "upstream-error:Bilinmeyen CAD hatası";
+}
+
+export function DokCadUpstreamViewer({
+  accessUrl,
+  displayName,
+  fileId,
+  extension,
+  sizeBytes,
+  sourceVersionKey,
+  timeoutMs,
+  onReady,
+  onViewerFailure,
+}: DokCadUpstreamViewerProps) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const adapterRef = useRef<CadUpstreamAdapter | null>(null);
+  // Render from React state snapshots, not mutable ref.current.
+  const [readyAdapter, setReadyAdapter] = useState<CadUpstreamAdapter | null>(null);
+  const displayModeRef = useRef<CadUpstreamDisplayMode>("source");
+  const lineWeightVisibleRef = useRef(false);
+  const backgroundColorRef = useRef<CadBackgroundColorOption>("autocad");
+  const distanceMeasurementIdRef = useRef(0);
+  // Bump on tool/file/cancel transitions so late measurement callbacks cannot commit.
+  const distanceRequestRef = useRef(0);
+  const areaRequestRef = useRef(0);
+  const areaMeasurementIdRef = useRef(0);
+  const [state, setState] = useState<HostState>("loading");
+  const [message, setMessage] = useState("MLightCAD hazırlanıyor");
+  const [loadingPhase, setLoadingPhase] = useState<CadLoadingPhase>("init");
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
+  const [displayMode, setDisplayMode] = useState<CadUpstreamDisplayMode>("source");
+  const [lineWeightVisible, setLineWeightVisible] = useState(false);
+  const [backgroundColor, setBackgroundColor] = useState<CadBackgroundColorOption>("autocad");
+  const [activeTool, setActiveTool] = useState<ActiveTool>(null);
+  const [layers, setLayers] = useState<CadLayerItem[]>([]);
+  const [layerPanelOpen, setLayerPanelOpen] = useState(false);
+  const [layerQuery, setLayerQuery] = useState("");
+  const layerButtonRef = useRef<HTMLButtonElement>(null);
+  const [snapPanelOpen, setSnapPanelOpen] = useState(false);
+  const [viewPanelOpen, setViewPanelOpen] = useState(false);
+  const [snapSettings, setSnapSettings] = useState<CadSnapSettings>(() =>
+    loadCadSnapSettings(resolveSnapStorage())
+  );
+  const [distanceSnapshot, setDistanceSnapshot] =
+    useState<CadDistanceMeasurementSnapshot | null>(null);
+  const [distanceMeasurements, setDistanceMeasurements] = useState<
+    CadDistanceOverlayMeasurement[]
+  >([]);
+  const [areaSnapshot, setAreaSnapshot] =
+    useState<CadAreaMeasurementSnapshot | null>(null);
+  const [areaMeasurements, setAreaMeasurements] = useState<
+    CompletedAreaMeasurement[]
+  >([]);
+  const [chainSnapshot, setChainSnapshot] = useState<CadChainDistanceSnapshot | null>(null);
+  const [, setViewRevision] = useState(0);
+  const [fontDiagnostics, setFontDiagnostics] = useState<CadFontParityEvaluation | null>(null);
+  const [isSnapReady, setIsSnapReady] = useState(false);
+  const [isTextSearchReady, setIsTextSearchReady] = useState(false);
+  const [isPreparingTool, setIsPreparingTool] = useState(false);
+
+  // ── CAD Review V1 State ────────────────────────────────────────────────────
+  const reviewEnabled = isCadReviewEnabled();
+  const reviewStoreRef = useRef<CadReviewStore | null>(null);
+  const markupControllerRef = useRef<CadMarkupController | null>(null);
+  const [reviewInput, setReviewInput] = useState<{ id: number; kind: CadReviewInputKind } | null>(null);
+  const reviewInputSequenceRef = useRef(0);
+  const pendingReviewInputRef = useRef<{
+    resolve: (value: string | null) => void;
+    focusTarget: HTMLElement | null;
+  } | null>(null);
+
+  const settleReviewInput = useCallback((value: string | null) => {
+    const pending = pendingReviewInputRef.current;
+    pendingReviewInputRef.current = null;
+    setReviewInput(null);
+    pending?.resolve(value);
+    if (pending?.focusTarget?.isConnected) {
+      queueMicrotask(() => pending.focusTarget?.focus({ preventScroll: true }));
+    }
+  }, []);
+
+  const requestReviewInput = useCallback((kind: CadReviewInputKind): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (pendingReviewInputRef.current) {
+        pendingReviewInputRef.current.resolve(null);
+      }
+      pendingReviewInputRef.current = {
+        resolve,
+        focusTarget: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+      };
+      setReviewInput({ id: ++reviewInputSequenceRef.current, kind });
+    });
+  }, []);
+
+  useEffect(() => () => {
+    pendingReviewInputRef.current?.resolve(null);
+    pendingReviewInputRef.current = null;
+  }, []);
+  const freehandControllerRef = useRef<CadFreehandController | null>(null);
+  const [reviewItems, setReviewItems] = useState<readonly CadReviewItem[]>([]);
+  const [reviewDraft, setReviewDraft] = useState<CadReviewDraftState | null>(null);
+  const [reviewSession, setReviewSession] = useState<{
+    selectedItemIds: Set<string>;
+    hoveredItemId: string | null;
+    activeLayoutId: string | null;
+  }>({
+    selectedItemIds: new Set<string>(),
+    hoveredItemId: null,
+    activeLayoutId: null,
+  });
+  const [reviewTool, setReviewTool] = useState<CadReviewTool>("select");
+  const [reviewCanUndo, setReviewCanUndo] = useState(false);
+  const [reviewCanRedo, setReviewCanRedo] = useState(false);
+  const [activePanelTab, setActivePanelTab] = useState<CadSidePanelTab | null>(null);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [reviewSearchQuery, setReviewSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<CadTextSearchResultItem[]>([]);
+  const [textSearchError, setTextSearchError] = useState<string | null>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [reviewDocument, setReviewDocument] = useState<import("@/lib/dokumantasyon/cad-review/schema").CadReviewDocument | null>(null);
+  const [markupStyle, setMarkupStyle] = useState<CadActiveMarkupStyle>({
+    color: "#ff3b30",
+    strokeWidth: 2,
+    lineDash: "continuous",
+    opacity: 1,
+    fontSize: 16,
+  });
+  const [measurementUnitSettings, setMeasurementUnitSettings] = useState<CadMeasurementUnitSettings>({
+    unit: "m",
+    areaUnit: "m2",
+    precision: 2,
+    areaPrecision: 2,
+    color: "#3b82f6",
+  });
+  const [saveStatus, setSaveStatus] = useState<"clean" | "dirty" | "saving">("clean");
+  const saveTimeoutRef = useRef<number | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  // ──────────────────────────────────────────────────────────────────────────
+
+  const handleUpdateMarkupStyle = useCallback((patch: Partial<CadActiveMarkupStyle>) => {
+    setMarkupStyle((prev) => {
+      const next = { ...prev, ...patch };
+      reviewStoreRef.current?.setActiveMarkupStyle(next);
+      markupControllerRef.current?.setStyle(next);
+      freehandControllerRef.current?.setStyle(next);
+      return next;
+    });
+  }, []);
+
+  const handleUpdateMeasurementUnitSettings = useCallback((patch: Partial<CadMeasurementUnitSettings>) => {
+    setMeasurementUnitSettings((prev) => {
+      const next = { ...prev, ...patch };
+      reviewStoreRef.current?.setMeasurementUnitSettings(next);
+      return next;
+    });
+  }, []);
+
+  const handleSearchQueryChange = async (query: string) => {
+    setReviewSearchQuery(query);
+    const q = query.trim();
+    if (!q || !adapterRef.current) {
+      setSearchResults([]);
+      setTextSearchError(null);
+      return;
+    }
+    try {
+      if (!adapterRef.current.isTextSearchReady()) {
+        await adapterRef.current.ensureTextSearchReady();
+      }
+      const searchErr = adapterRef.current.getTextSearchError();
+      if (searchErr) {
+        setTextSearchError("Arama indeksi hazırlanamadı: " + searchErr.message);
+        setSearchResults([]);
+        return;
+      }
+      setTextSearchError(null);
+      const results = adapterRef.current.searchCadText({ query: q });
+      setSearchResults(
+        results.map((r, index) => ({
+          id: `search-res-${index}`,
+          text: r.item.text,
+          layer: r.item.layer,
+          layoutName: r.item.layout,
+          bounds: r.item.bounds,
+        }))
+      );
+    } catch (err) {
+      setSearchResults([]);
+      setTextSearchError(
+        "Arama indeksi hazırlanamadı: " + (err instanceof Error ? err.message : String(err))
+      );
+    }
+  };
+
+  const effectiveTimeoutMs = timeoutMs ?? resolveCadUpstreamTimeoutMs(sizeBytes);
+
+  useEffect(() => {
+    if (state !== "loading") return;
+    const interval = window.setInterval(() => {
+      setElapsedSeconds((sec) => sec + 1);
+    }, 1000);
+    return () => {
+      window.clearInterval(interval);
+      setElapsedSeconds(0);
+    };
+  }, [state]);
+
+  // ── Post-Ready Idle Pre-warm: Secondary UI & Export Engine ────────────────
+  useEffect(() => {
+    if (state !== "ready") return;
+    if (typeof window === "undefined") return;
+
+    let cancelled = false;
+    const executeSecondaryWarm = () => {
+      if (cancelled) return;
+      void import("./cad-layer-panel");
+      void import("./cad-snap-settings-panel");
+      void import("./cad-view-settings-panel");
+      void import("./cad-review-side-panel");
+      void import("./cad-export-dialog");
+      void import("@/lib/dokumantasyon/cad-review/export-dxf");
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(executeSecondaryWarm, { timeout: 3500 });
+      return () => {
+        cancelled = true;
+        window.cancelIdleCallback(id);
+      };
+    } else {
+      const timer = window.setTimeout(executeSecondaryWarm, 1500);
+      return () => {
+        cancelled = true;
+        window.clearTimeout(timer);
+      };
+    }
+  }, [state]);
+
+  // ── CAD Review V1: Store initialization & Auto-Save Persistence ──────────
+  useEffect(() => {
+    if (!reviewEnabled || state !== "ready") return;
+    if (reviewStoreRef.current) return; // already initialized
+
+    const fallbackDoc: CadReviewDocument = {
+      schemaVersion: 1,
+      fileId,
+      sourceVersionKey: sourceVersionKey?.replace(/^fast-dxf:/, "") ?? `${fileId}:${accessUrl}`,
+      sourceSha256: "0".repeat(64),
+      revision: 0,
+      items: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // 1. Check local storage for instant offline recovery
+    const localDoc = loadLocalCadReview(fileId, fallbackDoc.sourceVersionKey);
+    const initialDoc = localDoc && localDoc.items?.length ? localDoc : fallbackDoc;
+
+    const store = new CadReviewStore(initialDoc);
+    reviewStoreRef.current = store;
+
+    queueMicrotask(() => {
+      if (reviewStoreRef.current === store) {
+        setReviewItems(store.getItems());
+        setReviewCanUndo(store.canUndo());
+        setReviewCanRedo(store.canRedo());
+        setReviewDocument(store.getDocument());
+        const session = store.getSession();
+        setReviewSession({
+          selectedItemIds: new Set(session.selectedItemIds),
+          hoveredItemId: session.hoveredItemId,
+          activeLayoutId: session.activeLayoutId,
+        });
+      }
+    });
+
+    // 2. Keep ONE subscribed store and a version-scoped local copy at all times.
+    // Remote sync starts only when the versions endpoint proves a real source SHA-256.
+    let active = true;
+    let remoteSha: string | null = null;
+    let remoteReady = false;
+    let remoteBlocked = false;
+    let inFlight = false;
+    let lastObservedItems = JSON.stringify(store.getItems());
+    let uploadedItems = JSON.stringify([]);
+    let lastLocalRevision = store.getDocument().revision;
+    let lastLocalSha = store.getDocument().sourceSha256;
+
+    const flushRemote = async () => {
+      if (!active || !remoteReady || !remoteSha || remoteBlocked || inFlight) return;
+      const snapshot = JSON.stringify(store.getItems());
+      if (snapshot === uploadedItems) {
+        setSaveStatus("clean");
+        return;
+      }
+      inFlight = true;
+      setSaveStatus("saving");
+      let saved = false;
+      try {
+        const response = await fetch(`/api/dokumantasyon/files/${fileId}/review`, {
+          method: "PUT",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fileId,
+            sourceVersionKey: fallbackDoc.sourceVersionKey,
+            sourceSha256: remoteSha,
+            expectedRevision: store.getDocument().revision,
+            items: JSON.parse(snapshot),
+          }),
+        });
+        if (!response.ok) {
+          if (response.status === 409) remoteBlocked = true;
+          throw new Error(response.status === 409
+            ? "Sunucuda başka bir CAD revizyonu bulundu."
+            : `Sunucu kayıt hatası (${response.status}).`);
+        }
+        const payload = await response.json() as { document?: CadReviewDocument };
+        const accepted = payload.document;
+        if (!accepted || accepted.sourceSha256 !== remoteSha ||
+            accepted.sourceVersionKey !== fallbackDoc.sourceVersionKey) {
+          remoteBlocked = true;
+          throw new Error("Sunucu farklı CAD kaynağı için cevap döndürdü.");
+        }
+        uploadedItems = snapshot;
+        store.acknowledgeRemoteSave(accepted.revision, snapshot);
+        saveLocalCadReview(fileId, store.getDocument());
+        saved = true;
+        if (JSON.stringify(store.getItems()) === snapshot) setSaveStatus("clean");
+      } catch (error) {
+        if (active) {
+          setSaveStatus("dirty");
+          toast.error((error instanceof Error ? error.message : "CAD kaydı başarısız.") +
+            " Yerel değişiklikler korunuyor.");
+        }
+      } finally {
+        inFlight = false;
+        if (active && saved && JSON.stringify(store.getItems()) !== uploadedItems) {
+          queueRemoteSave(350);
+        }
+      }
+    };
+
+    function queueRemoteSave(delay = 650) {
+      if (!active || !remoteReady || !remoteSha || remoteBlocked) return;
+      if (saveTimeoutRef.current) window.clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = window.setTimeout(() => {
+        saveTimeoutRef.current = null;
+        void flushRemote();
+      }, delay);
+    }
+
+    const unsubscribe = store.subscribe(() => {
+      if (!active || reviewStoreRef.current !== store) return;
+      const curDoc = store.getDocument();
+      setReviewItems([...store.getItems()]);
+      setReviewCanUndo(store.canUndo());
+      setReviewCanRedo(store.canRedo());
+      setReviewDocument({ ...curDoc });
+      setReviewDraft({ ...store.getDraft() });
+      const session = store.getSession();
+      setReviewSession({
+        selectedItemIds: new Set(session.selectedItemIds),
+        hoveredItemId: session.hoveredItemId,
+        activeLayoutId: session.activeLayoutId,
+      });
+
+      const currentItems = JSON.stringify(store.getItems());
+      const changed = currentItems !== lastObservedItems;
+      const metadataChanged = curDoc.revision !== lastLocalRevision || curDoc.sourceSha256 !== lastLocalSha;
+      if (!changed && !metadataChanged) return;
+      lastObservedItems = currentItems;
+      lastLocalRevision = curDoc.revision;
+      lastLocalSha = curDoc.sourceSha256;
+      if (!saveLocalCadReview(fileId, curDoc)) {
+        setSaveStatus("dirty");
+        toast.error("CAD revizyonu tarayıcıya kaydedilemedi. Depolama alanını kontrol edin.");
+        return;
+      }
+      if (changed) {
+        setSaveStatus(remoteReady && remoteSha ? "saving" : "clean");
+        queueRemoteSave();
+      }
+    });
+
+    void (async () => {
+      try {
+        // Cached/converted DXF must bind to the source DWG version, not a temporary URL.
+        const versionsResponse = await fetch(`/api/dokumantasyon/files/${fileId}/versions`, {
+          credentials: "same-origin",
+        });
+        if (!versionsResponse.ok) return; // Public/readonly view: local-only, no server mutation.
+        const versionsData = await versionsResponse.json() as {
+          versions?: { version_number: number; sha256_hash?: string | null }[];
+        };
+        const requestedVersion = fallbackDoc.sourceVersionKey.match(
+          new RegExp(`^${fileId}:(\\d+):`)
+        );
+        if (!requestedVersion) return;
+        const target = versionsData.versions?.find(v =>
+          v.version_number === Number(requestedVersion[1]));
+        const sha = target?.sha256_hash?.toLowerCase();
+        if (!active || !sha || !/^[a-f0-9]{64}$/.test(sha)) return;
+        const query = new URLSearchParams({
+          sourceVersionKey: fallbackDoc.sourceVersionKey,
+          sourceSha256: sha,
+        });
+        const reviewResponse = await fetch(
+          `/api/dokumantasyon/files/${fileId}/review?${query}`,
+          { credentials: "same-origin" }
+        );
+        if (!reviewResponse.ok) return;
+        const reviewData = await reviewResponse.json() as { document?: CadReviewDocument };
+        const remote = reviewData.document;
+        if (!active || reviewStoreRef.current !== store || !remote ||
+            remote.fileId !== fileId || remote.sourceVersionKey !== fallbackDoc.sourceVersionKey ||
+            remote.sourceSha256 !== sha) return;
+        const remoteItems = JSON.stringify(remote.items);
+        const localItems = JSON.stringify(store.getItems());
+        if (remoteItems !== "[]" && localItems !== "[]" && localItems !== remoteItems) {
+          remoteBlocked = true;
+          setSaveStatus("dirty");
+          toast.error("Yerel ve sunucu CAD notları farklı. Hiçbiri silinmedi; otomatik üzerine yazma durduruldu.");
+          return;
+        }
+        if (localItems === "[]" && remoteItems !== "[]") {
+          if (!store.hydrateFromServerIfPristine(remote)) {
+            remoteBlocked = true;
+            setSaveStatus("dirty");
+            return;
+          }
+        } else {
+          store.bindRemoteSource(sha, remote.revision, localItems !== remoteItems);
+        }
+        remoteSha = sha;
+        uploadedItems = remoteItems;
+        remoteReady = true;
+        if (JSON.stringify(store.getItems()) !== uploadedItems) queueRemoteSave(250);
+      } catch {
+        // Network/server failure is NOT permission to erase the local review.
+        // Existing local source-version cache remains available.
+      }
+    })();
+
+    return () => {
+      active = false;
+      unsubscribe();
+      if (saveTimeoutRef.current) {
+        window.clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      if (reviewStoreRef.current === store) reviewStoreRef.current = null;
+    };
+  }, [reviewEnabled, state, fileId, accessUrl, sourceVersionKey]);
+
+  // ── CAD Review V1: Controllers (Markup & Freehand) Initialization ──────────
+  useEffect(() => {
+    if (!reviewEnabled || state !== "ready" || !viewportRef.current || !reviewStoreRef.current) {
+      return;
+    }
+
+    const host = viewportRef.current;
+    const store = reviewStoreRef.current;
+    const facade = new CadMarkupFacade(store);
+
+    const markupRuntime = {
+      screenToWorld: (screenPoint: { x: number; y: number }) => {
+        return adapterRef.current?.screenToWorldPoint(screenPoint) ?? null;
+      },
+      worldToScreen: (worldPoint: { x: number; y: number }) => {
+        return adapterRef.current?.projectWorldPoint(worldPoint) ?? null;
+      },
+      setCameraInteractionEnabled: (enabled: boolean) => {
+        adapterRef.current?.setCameraInteractionEnabled(enabled);
+      },
+      requestCommentInput: async () => {
+        const comment = await requestReviewInput("comment");
+        return comment ? { comment, title: "Yorum" } : null;
+      },
+      requestTextInput: async () => {
+        const text = await requestReviewInput("text");
+        return text ? { text } : null;
+      },
+      isItemReadOnly: (item: CadReviewItem) => item.status === "closed",
+      onError: (reason: string) => toast.error(reason),
+    };
+
+    const freehandRuntime = {
+      screenToWorld: (screenPoint: { x: number; y: number }) => {
+        return adapterRef.current?.screenToWorldPoint(screenPoint) ?? null;
+      },
+      worldToScreen: (worldPoint: { x: number; y: number }) => {
+        return adapterRef.current?.projectWorldPoint(worldPoint) ?? null;
+      },
+      setCameraInteractionEnabled: (enabled: boolean) => {
+        adapterRef.current?.setCameraInteractionEnabled(enabled);
+      },
+      onError: (reason: string) => toast.error(reason),
+    };
+
+    const markupController = new CadMarkupController(host, store, facade, markupRuntime);
+    const freehandController = new CadFreehandController(host, store, facade, freehandRuntime);
+
+    markupController.setStyle(markupStyle);
+    freehandController.setStyle(markupStyle);
+
+    markupControllerRef.current = markupController;
+    freehandControllerRef.current = freehandController;
+
+    return () => {
+      markupController.destroy();
+      freehandController.destroy();
+      markupControllerRef.current = null;
+      freehandControllerRef.current = null;
+    };
+  }, [reviewEnabled, state, requestReviewInput]);
+
+
+  // ── CAD Review V1: Keyboard shortcuts ──────────────────────────────────────
+  useEffect(() => {
+    if (!reviewEnabled || state !== "ready") return;
+    const detach = attachCadReviewKeyboardShortcuts({
+      onEscape: () => {
+        if (pendingReviewInputRef.current) {
+          settleReviewInput(null);
+          return;
+        }
+        setActivePanelTab(null);
+        setReviewTool("select");
+        reviewStoreRef.current?.setActiveTool("select");
+        // Also forward Escape to the native CAD adapter so active
+        // distance/area measurements still cancel cleanly (non-blocking).
+        void adapterRef.current?.cancelActiveCommand().catch(() => {});
+        setActiveTool(null);
+        setDistanceSnapshot(null);
+        setAreaSnapshot(null);
+      },
+      onUndo: () => reviewStoreRef.current?.undo(),
+      onRedo: () => reviewStoreRef.current?.redo(),
+      onSearch: () => setActivePanelTab((prev) => (prev === "search" ? null : "search")),
+      onDelete: () => {
+        const store = reviewStoreRef.current;
+        if (!store) return;
+        store.removeItems(store.getSession().selectedItemIds);
+      },
+    });
+    return detach;
+  }, [reviewEnabled, state, settleReviewInput]);
+
+
+  // ── CAD Review V1: Container resize observer for SVG overlay sizing ─────────
+  useEffect(() => {
+    if (!reviewEnabled) return;
+    const el = sectionRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [reviewEnabled]);
+  // ──────────────────────────────────────────────────────────────────────────
+
+
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    let cancelled = false;
+    let timedOut = false;
+    let adapter: CadUpstreamAdapter | null = null;
+    let themeObserver: MutationObserver | null = null;
+    let systemThemeQuery: MediaQueryList | null = null;
+    let syncTheme: (() => void) | null = null;
+    let unsubscribeLayers: (() => void) | null = null;
+    let unsubscribeViewChanged: (() => void) | null = null;
+    let unsubscribeToolReady: (() => void) | null = null;
+    let timeoutId: number | null = null;
+    let handleVisibilityChange: (() => void) | null = null;
+    let handlePageShow: ((e: PageTransitionEvent) => void) | null = null;
+    let handleContextRestored: (() => void) | null = null;
+
+    const startup = previousCadUpstreamTeardown.then(async () => {
+      if (cancelled) return;
+
+      initCadPerfSession();
+      if (pendingReviewInputRef.current) settleReviewInput(null);
+      setState("loading");
+      setReadyAdapter(null);
+      setMessage("MLightCAD hazırlanıyor");
+      setLayerPanelOpen(false);
+      setSnapPanelOpen(false);
+      setViewPanelOpen(false);
+      distanceRequestRef.current += 1;
+      areaRequestRef.current += 1;
+      setActiveTool(null);
+      setDistanceSnapshot(null);
+      setDistanceMeasurements([]);
+      setAreaSnapshot(null);
+      setAreaMeasurements([]);
+      setChainSnapshot(null);
+      setIsSnapReady(false);
+      setIsTextSearchReady(false);
+      setTextSearchError(null);
+      setIsPreparingTool(false);
+
+      const upstreamWork = (async () => {
+        setMessage("CAD worker dosyaları doğrulanıyor");
+        const createdAdapter = await CadUpstreamAdapter.create({
+          container: viewport,
+          busyIndicatorHost: viewport,
+          theme: resolveSiteTheme(),
+        });
+        adapter = createdAdapter;
+        adapterRef.current = createdAdapter;
+
+        if (cancelled || timedOut || abortController.signal.aborted) {
+          adapterRef.current = null;
+          await createdAdapter.destroy().catch(() => {});
+          adapter = null;
+          return;
+        }
+
+        syncTheme = () => {
+          if (!adapter || cancelled) return;
+          adapter.applyTheme(resolveSiteTheme(), viewport);
+        };
+
+        themeObserver = new MutationObserver(syncTheme);
+        themeObserver.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ["class"],
+        });
+
+        systemThemeQuery = window.matchMedia?.("(prefers-color-scheme: dark)") ?? null;
+        systemThemeQuery?.addEventListener?.("change", syncTheme);
+
+        setMessage(
+          extension.trim().toLowerCase().includes("dwg") ? "DWG açılıyor" : "DXF açılıyor"
+        );
+        await createdAdapter.open({
+          accessUrl,
+          displayName,
+          extension,
+          fileId,
+          sourceVersionKey,
+          signal: abortController.signal,
+          onPhase: (phase, phaseText) => {
+            if (!cancelled) {
+              setLoadingPhase(phase);
+              setMessage(phaseText);
+            }
+          },
+        });
+
+        createdAdapter.setDisplayMode(displayModeRef.current, resolveSiteTheme());
+        createdAdapter.setBackgroundColor(backgroundColorRef.current);
+        const initialLineWeight = createdAdapter.getLineWeightVisible();
+        lineWeightVisibleRef.current = initialLineWeight;
+        setLineWeightVisible(initialLineWeight);
+
+        setLayers(createdAdapter.getLayers());
+        setIsSnapReady(createdAdapter.isSnapReady());
+        setIsTextSearchReady(createdAdapter.isTextSearchReady());
+        unsubscribeToolReady = createdAdapter.subscribeToolDataReady(() => {
+          if (!cancelled && adapterRef.current) {
+            setIsSnapReady(adapterRef.current.isSnapReady());
+            setIsTextSearchReady(adapterRef.current.isTextSearchReady());
+          }
+        });
+        unsubscribeLayers = createdAdapter.subscribeLayersChanged(() => {
+          if (!cancelled && adapterRef.current) {
+            setLayers(adapterRef.current.getLayers());
+          }
+        });
+        unsubscribeViewChanged = createdAdapter.subscribeViewChanged(() => {
+          if (!cancelled) setViewRevision((value) => value + 1);
+        });
+      })();
+
+      const deadline = new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          timedOut = true;
+          abortController.abort("CAD_UPSTREAM_TIMEOUT");
+          reject(
+            new CadUpstreamAdapterError(
+              "open-timeout",
+              `MLightCAD ${Math.round(
+                effectiveTimeoutMs / 1000
+              )} saniye içinde terminal sonuca ulaşamadı.`
+            )
+          );
+        }, effectiveTimeoutMs);
+      });
+
+      try {
+        await Promise.race([upstreamWork, deadline]);
+        if (timeoutId !== null) window.clearTimeout(timeoutId);
+        timeoutId = null;
+        if (cancelled || timedOut || abortController.signal.aborted) return;
+        if (adapterRef.current) {
+          setFontDiagnostics(adapterRef.current.getFontFidelityDiagnostics());
+        }
+        markCadPerfReady();
+        setReadyAdapter(adapterRef.current);
+        setState("ready");
+        setMessage("");
+        onReady?.();
+
+        handleVisibilityChange = () => {
+          if (document.visibilityState === "visible") {
+            const currentAdapter = adapterRef.current;
+            if (!currentAdapter || cancelled) return;
+
+            if (currentAdapter.isContextLost()) {
+              console.warn(
+                "[cad-upstream-viewer] Mobil arka plandan dönerken WebGL bağlam kaybı algılandı. Otomatik kurtarılıyor..."
+              );
+              setRetryKey((k) => k + 1);
+            } else {
+              currentAdapter.resumeAfterBackground();
+            }
+          }
+        };
+
+        handlePageShow = (e: PageTransitionEvent) => {
+          if (e.persisted) {
+            setRetryKey((k) => k + 1);
+          } else {
+            handleVisibilityChange?.();
+          }
+        };
+
+        handleContextRestored = () => {
+          if (!cancelled) {
+            console.log(
+              "[cad-upstream-viewer] WebGL context restored algılandı. Viewer taze başlatılıyor..."
+            );
+            setRetryKey((k) => k + 1);
+          }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        window.addEventListener("pageshow", handlePageShow);
+        window.addEventListener("focus", handleVisibilityChange);
+        viewport.addEventListener("webglcontextrestored", handleContextRestored, true);
+      } catch (error) {
+        if (timeoutId !== null) window.clearTimeout(timeoutId);
+        timeoutId = null;
+        themeObserver?.disconnect();
+        if (systemThemeQuery && syncTheme) {
+          systemThemeQuery.removeEventListener?.("change", syncTheme);
+        }
+        if (unsubscribeLayers) {
+          unsubscribeLayers();
+          unsubscribeLayers = null;
+        }
+        if (unsubscribeViewChanged) {
+          unsubscribeViewChanged();
+          unsubscribeViewChanged = null;
+        }
+        if (unsubscribeToolReady) {
+          unsubscribeToolReady();
+          unsubscribeToolReady = null;
+        }
+        if (handleVisibilityChange) {
+          document.removeEventListener("visibilitychange", handleVisibilityChange);
+          window.removeEventListener("focus", handleVisibilityChange);
+          handleVisibilityChange = null;
+        }
+        if (handlePageShow) {
+          window.removeEventListener("pageshow", handlePageShow);
+          handlePageShow = null;
+        }
+        if (handleContextRestored) {
+          viewport.removeEventListener("webglcontextrestored", handleContextRestored, true);
+          handleContextRestored = null;
+        }
+
+        if (adapter) {
+          if (adapterRef.current === adapter) adapterRef.current = null;
+          await adapter.destroy().catch(() => {});
+          adapter = null;
+        }
+
+        void upstreamWork.catch(() => undefined);
+
+        if (cancelled || (abortController.signal.aborted && !timedOut)) return;
+
+        const reason = failureReason(error);
+        setState("error");
+        setMessage(
+          reason.split(":").slice(1).join(":") || "CAD görüntüleyici başlatılamadı."
+        );
+        onViewerFailure?.(reason);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      abortController.abort("CAD_UPSTREAM_UNMOUNT");
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      themeObserver?.disconnect();
+      if (systemThemeQuery && syncTheme) {
+        systemThemeQuery.removeEventListener?.("change", syncTheme);
+      }
+      if (unsubscribeLayers) {
+        unsubscribeLayers();
+        unsubscribeLayers = null;
+      }
+      if (unsubscribeViewChanged) {
+        unsubscribeViewChanged();
+        unsubscribeViewChanged = null;
+      }
+      if (unsubscribeToolReady) {
+        unsubscribeToolReady();
+        unsubscribeToolReady = null;
+      }
+      if (handleVisibilityChange) {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+        window.removeEventListener("focus", handleVisibilityChange);
+        handleVisibilityChange = null;
+      }
+      if (handlePageShow) {
+        window.removeEventListener("pageshow", handlePageShow);
+        handlePageShow = null;
+      }
+      if (handleContextRestored) {
+        viewport.removeEventListener("webglcontextrestored", handleContextRestored, true);
+        handleContextRestored = null;
+      }
+
+      if (adapterRef.current === adapter) adapterRef.current = null;
+      previousCadUpstreamTeardown = startup
+        .catch(() => undefined)
+        .then(async () => {
+          if (adapter) {
+            await adapter.destroy().catch(() => {});
+            adapter = null;
+          }
+        });
+    };
+  }, [
+    accessUrl,
+    displayName,
+    effectiveTimeoutMs,
+    extension,
+    fileId,
+    retryKey,
+    onReady,
+    onViewerFailure,
+    settleReviewInput,
+  ]);
+
+  const handleStartDistanceRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const handleStartAreaRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const handleStartChainDistanceRef = useRef<() => Promise<void>>(() => Promise.resolve());
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        if (adapterRef.current?.isChainDistanceActive()) return;
+        distanceRequestRef.current += 1;
+        areaRequestRef.current += 1;
+        setLayerPanelOpen(false);
+        setSnapPanelOpen(false);
+        setViewPanelOpen(false);
+        setActiveTool(null);
+        setDistanceSnapshot(null);
+        setAreaSnapshot(null);
+        void adapterRef.current?.cancelActiveCommand();
+        return;
+      }
+
+      if (
+        (event.key === "t" || event.key === "T" || event.code === "KeyT") &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        if (state === "ready") {
+          event.preventDefault();
+          void handleStartDistanceRef.current?.();
+        }
+      }
+
+      if (
+        (event.key === "a" || event.key === "A" || event.code === "KeyA") &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        if (state === "ready") {
+          event.preventDefault();
+          void handleStartAreaRef.current?.();
+        }
+      }
+
+      if (
+        (event.key === "p" || event.key === "P" || event.code === "KeyP") &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        if (state === "ready") {
+          event.preventDefault();
+          setActiveTool(null);
+          setDistanceSnapshot(null);
+          setAreaSnapshot(null);
+          void adapterRef.current?.cancelActiveCommand();
+        }
+      }
+
+      if (
+        (event.key === "f" || event.key === "F" || event.code === "KeyF") &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey
+      ) {
+        if (state === "ready") {
+          event.preventDefault();
+          adapterRef.current?.zoomToFit();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [state]);
+
+  const selectDisplayMode = (mode: CadUpstreamDisplayMode) => {
+    displayModeRef.current = mode;
+    setDisplayMode(mode);
+    adapterRef.current?.setDisplayMode(mode, resolveSiteTheme());
+  };
+
+  const toggleLineWeight = async () => {
+    const adapter = adapterRef.current;
+    if (!adapter) return;
+    const next = !lineWeightVisibleRef.current;
+    try {
+      await adapter.setLineWeightVisible(next);
+      lineWeightVisibleRef.current = next;
+      setLineWeightVisible(next);
+    } catch (error) {
+      console.warn("MLightCAD lineweight değiştirilemedi", error);
+    }
+  };
+
+  const selectBackgroundColor = (color: CadBackgroundColorOption) => {
+    backgroundColorRef.current = color;
+    setBackgroundColor(color);
+    adapterRef.current?.setBackgroundColor(color);
+  };
+
+  const handleSnapSettingsChange = (next: CadSnapSettings) => {
+    setSnapSettings(next);
+    saveCadSnapSettings(resolveSnapStorage(), next);
+    adapterRef.current?.updateDistanceMeasurementSnapModes(
+      getEnabledCadSnapModes(next)
+    );
+    adapterRef.current?.updateChainDistanceSnapModes(getEnabledCadSnapModes(next));
+  };
+
+  const handleZoomToFit = () => {
+    adapterRef.current?.zoomToFit();
+  };
+
+  const handleStartDistance = async () => {
+    areaRequestRef.current += 1;
+    const adapter = adapterRef.current;
+    if (!adapter) return;
+    const requestId = ++distanceRequestRef.current;
+    const isCurrent = () => distanceRequestRef.current === requestId &&
+      adapterRef.current === adapter;
+    if (activeTool === "distance") {
+      await adapter.cancelActiveCommand();
+      if (isCurrent()) {
+        setDistanceSnapshot(null);
+        setActiveTool(null);
+        setReviewTool("select");
+        reviewStoreRef.current?.setActiveTool("select");
+      }
+      return;
+    }
+
+    if (!adapter.isSnapReady()) {
+      setIsPreparingTool(true);
+      toast.info("Ölçüm verileri hazırlanıyor...", { id: "cad-tool-prep", duration: 1500 });
+    }
+    try {
+      const started = await adapter.startDistanceMeasurement(
+        getEnabledCadSnapModes(snapSettings),
+        {
+          onSnapshot: (snapshot) => {
+            if (isCurrent()) setDistanceSnapshot(snapshot);
+          },
+          onComplete: (measurement) => {
+            if (!isCurrent()) return;
+            if (reviewEnabled) {
+              const store = reviewStoreRef.current;
+              if (!store) {
+                toast.error("Ölçüm kayıt alanı hazır değil; tekrar deneyin.");
+              } else {
+                const unitSettings = store.getMeasurementUnitSettings();
+                const context = captureMeasurementContext(adapter.getSourceUnitContext(), {
+                  displayUnit: unitSettings.unit,
+                  areaDisplayUnit: unitSettings.areaUnit,
+                  precision: unitSettings.precision,
+                  areaPrecision: unitSettings.areaPrecision,
+                });
+                const now = new Date().toISOString();
+                const saved = store.addMeasuredItem({
+                  id: typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                    ? crypto.randomUUID()
+                    : `dist-${Date.now()}-${distanceMeasurementIdRef.current++}`,
+                  type: "distance",
+                  start: { ...measurement.start },
+                  end: { ...measurement.end },
+                  measuredLength: measurement.distance,
+                  author: "Admin",
+                  comment: "",
+                  status: "open",
+                  createdAt: now,
+                  updatedAt: now,
+                  style: { color: unitSettings.color, strokeWidth: 2, opacity: 1 },
+                }, context);
+                if (!saved) toast.error("Mesafe ölçümü kaydedilemedi; noktaları kontrol edin.");
+              }
+            } else {
+              // Explicit legacy/feature-flag fallback; never also write to ReviewStore.
+              const legacyId = `distance-${++distanceMeasurementIdRef.current}`;
+              setDistanceMeasurements((previous) => [
+                ...previous,
+                {
+                  ...measurement,
+                  id: legacyId,
+                  formattedLabel: formatPhysicalDistance(
+                    measurement.distance,
+                    adapter.getSourceUnitContext(),
+                    measurementUnitSettings.unit,
+                    measurementUnitSettings.precision
+                  ),
+                },
+              ]);
+            }
+            setDistanceSnapshot(null);
+            setActiveTool((current) => (current === "distance" ? null : current));
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
+          },
+          onCancel: () => {
+            if (!isCurrent()) return;
+            setDistanceSnapshot(null);
+            setActiveTool((current) => (current === "distance" ? null : current));
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
+          },
+        }
+      );
+      if (!isCurrent()) return;
+      if (!started && adapter.getSnapError()) {
+        toast.error("Ölçüm verileri hazırlanamadı: " + adapter.getSnapError()?.message);
+        setActiveTool(null);
+      } else {
+        setActiveTool(started ? "distance" : null);
+        if (started) {
+          setReviewTool("distance");
+          reviewStoreRef.current?.setActiveTool("distance");
+        }
+      }
+    } finally {
+      if (isCurrent()) {
+        setIsPreparingTool(false);
+        toast.dismiss("cad-tool-prep");
+      }
+    }
+  };
+
+  const handleStartArea = async () => {
+    distanceRequestRef.current += 1; // invalidate pending distance callbacks
+    const adapter = adapterRef.current;
+    if (!adapter) return;
+    const requestId = ++areaRequestRef.current;
+    const isCurrent = () => areaRequestRef.current === requestId &&
+      adapterRef.current === adapter;
+    if (activeTool === "area") {
+      await adapter.cancelActiveCommand();
+      if (isCurrent()) {
+        setAreaSnapshot(null);
+        setActiveTool(null);
+        setReviewTool("select");
+        reviewStoreRef.current?.setActiveTool("select");
+      }
+      return;
+    }
+    await adapter.cancelActiveCommand();
+    if (!isCurrent()) return;
+    setDistanceSnapshot(null);
+    setAreaSnapshot(null);
+
+    if (!adapter.isSnapReady()) {
+      setIsPreparingTool(true);
+      toast.info("Ölçüm verileri hazırlanıyor...", { id: "cad-tool-prep", duration: 1500 });
+    }
+    try {
+      const started = await adapter.startAreaMeasurement(
+        getEnabledCadSnapModes(snapSettings),
+        {
+          onSnapshot: snapshot => {
+            if (isCurrent()) setAreaSnapshot(snapshot);
+          },
+          onComplete: measurement => {
+            if (!isCurrent()) return;
+            if (reviewEnabled) {
+              const store = reviewStoreRef.current;
+              if (!store) toast.error("Alan kayıt alanı hazır değil; tekrar deneyin.");
+              else {
+                const settings = store.getMeasurementUnitSettings();
+                const context = captureMeasurementContext(adapter.getSourceUnitContext(), {
+                  displayUnit: settings.unit,
+                  areaDisplayUnit: settings.areaUnit,
+                  precision: settings.precision,
+                  areaPrecision: settings.areaPrecision,
+                });
+                const now = new Date().toISOString();
+                const accepted = store.addMeasuredItem({
+                  id: typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                    ? crypto.randomUUID()
+                    : `area-${Date.now()}-${++areaMeasurementIdRef.current}`,
+                  type: "area",
+                  points: measurement.points.map(p => ({ x: p.x, y: p.y })),
+                  measuredArea: measurement.area,
+                  measuredPerimeter: measurement.perimeter,
+                  author: "Admin",
+                  comment: "",
+                  status: "open",
+                  createdAt: now,
+                  updatedAt: now,
+                  style: { color: settings.color, strokeWidth: 2, opacity: 1 },
+                }, context);
+                if (!accepted) toast.error("Alan ölçümü kaydedilemedi; poligonun geçerli olduğunu kontrol edin.");
+              }
+            } else {
+              const legacyId = `area-${++areaMeasurementIdRef.current}`;
+              setAreaMeasurements(previous => [...previous, {
+                ...measurement,
+                id: legacyId,
+                formattedArea: formatPhysicalArea(
+                  measurement.area,
+                  adapter.getSourceUnitContext(),
+                  measurementUnitSettings.areaUnit,
+                  measurementUnitSettings.areaPrecision,
+                ),
+                formattedPerimeter: formatPhysicalDistance(
+                  measurement.perimeter,
+                  adapter.getSourceUnitContext(),
+                  measurementUnitSettings.unit,
+                  measurementUnitSettings.precision,
+                ),
+              }]);
+            }
+            setAreaSnapshot(null);
+            setActiveTool(current => current === "area" ? null : current);
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
+          },
+          onCancel: () => {
+            if (!isCurrent()) return;
+            setAreaSnapshot(null);
+            setActiveTool(current => current === "area" ? null : current);
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
+          },
+        }
+      );
+      if (!isCurrent()) return;
+      if (!started && adapter.getSnapError()) {
+        toast.error("Alan verisi hazırlanamadı: " + adapter.getSnapError()?.message);
+      }
+      setActiveTool(started ? "area" : null);
+      if (started) {
+        setReviewTool("area");
+        reviewStoreRef.current?.setActiveTool("area");
+      }
+    } finally {
+      if (isCurrent()) {
+        setIsPreparingTool(false);
+        toast.dismiss("cad-tool-prep");
+      }
+    }
+  };
+
+  const handleStartChainDistance = async () => {
+    distanceRequestRef.current += 1;
+    areaRequestRef.current += 1;
+    const adapter = adapterRef.current;
+    if (!adapter) return;
+    await adapter.cancelActiveCommand();
+    setDistanceSnapshot(null);
+    setAreaSnapshot(null);
+    setChainSnapshot(null);
+
+    if (!adapter.isSnapReady()) {
+      setIsPreparingTool(true);
+      toast.info("Ölçüm verileri hazırlanıyor...", { id: "cad-tool-prep", duration: 1500 });
+    }
+    try {
+      const started = await adapter.startChainDistanceMeasurement(
+        getEnabledCadSnapModes(snapSettings),
+        {
+          onSnapshot: setChainSnapshot,
+          onComplete: (measurement) => {
+            setChainSnapshot(null);
+            const store = reviewStoreRef.current;
+            if (store) {
+              const settings = store.getMeasurementUnitSettings();
+              const context = captureMeasurementContext(adapter.getSourceUnitContext(), {
+                displayUnit: settings.unit,
+                areaDisplayUnit: settings.areaUnit,
+                precision: settings.precision,
+                areaPrecision: settings.areaPrecision,
+              });
+              const now = new Date().toISOString();
+              const committed = store.addMeasuredItem({
+                id: typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                  ? crypto.randomUUID() : `chain-${Date.now()}`,
+                type: "chain_distance",
+                points: measurement.points.map((p) => ({ x: p.x, y: p.y })),
+                segmentDistances: [...measurement.segmentDistances],
+                totalDistance: measurement.totalDistance,
+                author: "Admin",
+                comment: "",
+                status: "open",
+                createdAt: now,
+                updatedAt: now,
+                style: { color: settings.color, strokeWidth: 2, opacity: 1 },
+              }, context);
+              if (!committed) toast.error("Zincir ölçümü kaydedilemedi; veri geçerliliğini kontrol edin.");
+            }
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
+          },
+          onCancel: () => {
+            setChainSnapshot(null);
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
+          },
+        }
+      );
+      if (!started && adapter.getSnapError()) {
+        toast.error("Ölçüm verileri hazırlanamadı: " + adapter.getSnapError()?.message);
+      }
+      if (started) {
+        setActiveTool(null);
+      }
+    } finally {
+      setIsPreparingTool(false);
+      toast.dismiss("cad-tool-prep");
+    }
+  };
+
+  useEffect(() => {
+    handleStartDistanceRef.current = handleStartDistance;
+    handleStartAreaRef.current = handleStartArea;
+    handleStartChainDistanceRef.current = handleStartChainDistance;
+  });
+
+  const handleClearMeasurements = async () => {
+    distanceRequestRef.current += 1;
+    areaRequestRef.current += 1;
+    setActiveTool(null);
+    setDistanceSnapshot(null);
+    setDistanceMeasurements([]);
+    distanceMeasurementIdRef.current = 0;
+    setAreaSnapshot(null);
+    setAreaMeasurements([]);
+    areaMeasurementIdRef.current = 0;
+    // Stored distance/chain/area share a single undoable clear; drafts remain transient.
+    if (reviewEnabled) reviewStoreRef.current?.clearMeasurements();
+    await adapterRef.current?.clearMeasurements();
+  };
+
+  const handleToggleLayer = (name: string, visible: boolean) => {
+    adapterRef.current?.setLayerVisible(name, visible);
+  };
+
+  const handleIsolateLayer = (name: string) => {
+    adapterRef.current?.isolateLayer(name);
+  };
+
+  const handleShowAllLayers = () => {
+    adapterRef.current?.showAllLayers();
+  };
+
+  const handleHideAllLayers = () => {
+    adapterRef.current?.hideAllLayers();
+  };
+
+  const handleResetLayers = () => {
+    adapterRef.current?.resetLayersToSource();
+  };
+
+  const handleToggleLayerPanel = () => {
+    setLayerPanelOpen((open) => {
+      const next = !open;
+      if (next) {
+        setSnapPanelOpen(false);
+        setViewPanelOpen(false);
+      }
+      return next;
+    });
+  };
+
+
+  const handleToggleSnapPanel = () => {
+    setSnapPanelOpen((open) => {
+      const next = !open;
+      if (next) {
+        setLayerPanelOpen(false);
+        setViewPanelOpen(false);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleViewPanel = () => {
+    setViewPanelOpen((open) => {
+      const next = !open;
+      if (next) {
+        setLayerPanelOpen(false);
+        setSnapPanelOpen(false);
+      }
+      return next;
+    });
+  };
+
+  // ── CAD Review V1 Handlers ─────────────────────────────────────────────────
+  const handleSelectReviewTool = useCallback((tool: CadReviewTool) => {
+    if (pendingReviewInputRef.current) settleReviewInput(null);
+    freehandControllerRef.current?.cancel();
+    markupControllerRef.current?.cancel();
+    if (tool !== "area") {
+      areaRequestRef.current += 1;
+      setAreaSnapshot(null);
+    }
+    if (tool !== "distance") {
+      distanceRequestRef.current += 1;
+      setDistanceSnapshot(null);
+    }
+    if (tool !== "chain_distance") setChainSnapshot(null);
+    setReviewTool(tool);
+    reviewStoreRef.current?.setActiveTool(tool);
+
+    if (tool === "distance") {
+      void handleStartDistanceRef.current?.();
+      return;
+    }
+    if (tool === "area") {
+      void handleStartAreaRef.current?.();
+      return;
+    }
+    if (tool === "chain_distance") {
+      void handleStartChainDistanceRef.current?.();
+      return;
+    }
+
+    // Cancel any active MLightCAD distance/area command when switching
+    void adapterRef.current?.cancelActiveCommand();
+    setActiveTool(null);
+  }, [settleReviewInput]);
+
+  const handleReviewUndo = useCallback(() => reviewStoreRef.current?.undo(), []);
+  const handleReviewRedo = useCallback(() => reviewStoreRef.current?.redo(), []);
+
+  const handleTogglePanelTab = useCallback((tab: CadSidePanelTab) => {
+    setActivePanelTab((prev) => (prev === tab ? null : tab));
+  }, []);
+
+  const handleDownloadOriginal = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      toast.info("Orijinal çizim dosyası indiriliyor...");
+      const link = document.createElement("a");
+      link.href = accessUrl;
+      link.download = displayName;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch {
+      toast.error("Orijinal dosya indirilemedi.");
+    }
+  }, [accessUrl, displayName]);
+
+  const handleDownloadDxfRevision = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    const doc = reviewStoreRef.current?.getDocument() || reviewDocument;
+    if (!doc) {
+      toast.error("İndirilecek revizyon verisi bulunamadı.");
+      return;
+    }
+    try {
+      const { exportReviewToDxf } = await import("@/lib/dokumantasyon/cad-review/export-dxf");
+      const dxfString = exportReviewToDxf(doc, undefined, adapterRef.current?.getSourceUnitContext());
+      const blob = new Blob([dxfString], { type: "application/dxf;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const baseName = displayName.replace(/\.[^/.]+$/, "");
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${baseName}_revizyon.dxf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success(`${baseName}_revizyon.dxf başarıyla indirildi (${doc.items.length} çizim/ölçüm öğesi).`);
+    } catch {
+      toast.error("DXF dosyası oluşturulurken bir hata meydana geldi.");
+    }
+  }, [reviewDocument, displayName]);
+  // ──────────────────────────────────────────────────────────────────────────
+
+  const selectedSnapModes = CAD_SNAP_MODES.filter((mode) => snapSettings.modes[mode]).join(",");
+
+  return (
+    <section
+      ref={sectionRef}
+      className="relative flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-background"
+      style={{ backgroundColor: CAD_BACKGROUND_COLORS[backgroundColor].hex }}
+      data-cad-upstream-host="true"
+      data-file-id={fileId}
+      data-cad-upstream-state={state}
+      data-cad-loading-phase={state === "loading" ? loadingPhase : state}
+      data-cad-elapsed-seconds={elapsedSeconds}
+      data-cad-visual-ready={state === "ready" ? "true" : "false"}
+      data-cad-snap-ready={isSnapReady ? "true" : "false"}
+      data-cad-search-ready={isTextSearchReady ? "true" : "false"}
+      data-cad-tool-ready={isSnapReady && isTextSearchReady ? "true" : "false"}
+      data-cad-tool-preparing={isPreparingTool ? "true" : "false"}
+      data-cad-color-mode={displayMode}
+      data-cad-background-color={backgroundColor}
+      data-cad-lineweight={lineWeightVisible ? "on" : "off"}
+      data-cad-active-tool={activeTool ?? "none"}
+      data-cad-distance-phase={distanceSnapshot?.phase ?? "inactive"}
+      data-cad-area-phase={areaSnapshot?.phase ?? "inactive"}
+      data-cad-layer-panel-open={layerPanelOpen ? "true" : "false"}
+      data-cad-snap-panel-open={snapPanelOpen ? "true" : "false"}
+      data-cad-view-panel-open={viewPanelOpen ? "true" : "false"}
+      data-cad-snap-enabled={snapSettings.enabled ? "true" : "false"}
+      data-cad-snap-modes={snapSettings.enabled ? selectedSnapModes : ""}
+      data-cad-snap-selected-modes={selectedSnapModes}
+      data-cad-timeout-ms={effectiveTimeoutMs}
+      data-cad-font-parity-flag={CAD_AUTOCAD_FONT_PARITY_V1 ? "on" : "off"}
+      data-cad-font-parity-exact={fontDiagnostics?.fontParityExact ? "true" : "false"}
+      data-cad-missing-fonts={fontDiagnostics?.missingFonts?.join(",") ?? ""}
+      data-cad-resolved-fonts={fontDiagnostics?.resolvedExactFonts?.join(",") ?? ""}
+      data-cad-fallback-fonts={fontDiagnostics?.fallbackFonts?.join(",") ?? ""}
+    >
+      {/* ── TOP RIBBON TOOLBAR ── */}
+      {state === "ready" ? (
+        <CadStudioRibbon
+          activeTool={
+            activeTool === "distance"
+              ? "distance"
+              : activeTool === "area"
+              ? "area"
+              : reviewTool
+          }
+          onSelectTool={handleSelectReviewTool}
+          onPan={async () => {
+            if (pendingReviewInputRef.current) settleReviewInput(null);
+            markupControllerRef.current?.cancel();
+            freehandControllerRef.current?.cancel();
+            distanceRequestRef.current += 1;
+            areaRequestRef.current += 1;
+            await adapterRef.current?.cancelActiveCommand();
+            setActiveTool(null);
+            setDistanceSnapshot(null);
+            setAreaSnapshot(null);
+            setChainSnapshot(null);
+            setReviewTool("select");
+            reviewStoreRef.current?.setActiveTool("select");
+          }}
+          onFitView={handleZoomToFit}
+          displayMode={displayMode}
+          onSelectDisplayMode={selectDisplayMode}
+          lineWeightVisible={lineWeightVisible}
+          onToggleLineWeight={() => void toggleLineWeight()}
+          backgroundColor={backgroundColor}
+          onSelectBackgroundColor={selectBackgroundColor}
+          markupStyle={markupStyle}
+          onUpdateMarkupStyle={handleUpdateMarkupStyle}
+          measurementUnitSettings={measurementUnitSettings}
+          onUpdateMeasurementUnitSettings={handleUpdateMeasurementUnitSettings}
+          onStartDistance={() => void handleStartDistance()}
+          onStartChainDistance={() => void handleStartChainDistance()}
+          onStartArea={() => void handleStartArea()}
+          onClearMeasurements={() => void handleClearMeasurements()}
+          activePanelTab={activePanelTab}
+          onTogglePanelTab={handleTogglePanelTab}
+          layerPanelOpen={layerPanelOpen}
+          onToggleLayerPanel={handleToggleLayerPanel}
+          snapPanelOpen={snapPanelOpen}
+          onToggleSnapPanel={handleToggleSnapPanel}
+          snapEnabled={snapSettings.enabled}
+          layersCount={layers.length}
+          commentsCount={
+            reviewItems.filter(
+              (i) => i.type === "comment_pin" || i.type === "callout" || i.type === "text"
+            ).length
+          }
+          canUndo={reviewCanUndo}
+          canRedo={reviewCanRedo}
+          onUndo={handleReviewUndo}
+          onRedo={handleReviewRedo}
+          saveStatus={saveStatus}
+          onDownloadOriginal={handleDownloadOriginal}
+          onDownloadDxf={handleDownloadDxfRevision}
+          onOpenExportDialog={() => setExportDialogOpen(true)}
+          sourceFileName={displayName}
+        />
+      ) : null}
+
+      {/* ── CANVAS & VIEWPORT CONTAINER ── */}
+      <div className="relative flex-1 min-h-0 min-w-0 overflow-hidden">
+        <div
+          ref={viewportRef}
+          className={`absolute inset-0 ${layerPanelOpen ? "pointer-events-none sm:pointer-events-auto" : ""}`}
+          aria-label={`${displayName} CAD görünümü`}
+          aria-hidden={layerPanelOpen ? "true" : undefined}
+        />
+
+        {state === "ready" ? (
+          <CadDistanceOverlay
+            snapshot={distanceSnapshot}
+            measurements={reviewEnabled
+              ? reviewItems.flatMap((item) => item.type === "distance" ? [{
+                  id: item.id,
+                  start: item.start,
+                  end: item.end,
+                  distance: item.measuredLength,
+                  color: item.style.color,
+                  formattedLabel: [
+                    item.label,
+                    item.measurementContext
+                      ? formatCapturedDistance(item.measuredLength, item.measurementContext)
+                      : formatPhysicalDistance(item.measuredLength, sourceContextFromInsunits(null), "m", 2),
+                  ].filter(Boolean).join(" · "),
+                  isSelected: reviewSession.selectedItemIds.has(item.id) ?? false,
+                }] : [])
+              : distanceMeasurements}
+            projectPoint={(point) => readyAdapter?.projectWorldPoint(point) ?? null}
+            sourceUnitContext={readyAdapter?.getSourceUnitContext() ?? sourceContextFromInsunits(null)}
+            displayUnit={measurementUnitSettings.unit}
+            precision={measurementUnitSettings.precision}
+            onSelectMeasurement={reviewEnabled ? (id) => reviewStoreRef.current?.setSelectedItems([id]) : undefined}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            adapter={readyAdapter as any}
+          />
+        ) : null}
+
+        {state === "ready" ? (
+          <CadChainDistanceOverlay
+            snapshot={chainSnapshot}
+            projectPoint={(point) => readyAdapter?.projectWorldPoint(point) ?? null}
+            sourceContext={readyAdapter?.getSourceUnitContext() ?? sourceContextFromInsunits(null)}
+            displayUnit={measurementUnitSettings.unit}
+            precision={measurementUnitSettings.precision}
+            onConfirmPoint={() => adapterRef.current?.confirmChainDistancePoint()}
+            onUndoPoint={() => adapterRef.current?.popChainDistancePoint()}
+            onFinish={() => adapterRef.current?.finishChainDistanceMeasurement()}
+          />
+        ) : null}
+
+        {state === "ready" ? (
+          <CadAreaOverlay
+            snapshot={areaSnapshot}
+            measurements={reviewEnabled
+              ? reviewItems.flatMap(item => item.type === "area" ? [{
+                  id: item.id,
+                  points: item.points,
+                  area: item.measuredArea,
+                  perimeter: item.measuredPerimeter,
+                  centroid: polygonCentroid(item.points),
+                  formattedArea: item.measurementContext
+                    ? formatCapturedArea(item.measuredArea, item.measurementContext)
+                    : formatPhysicalArea(item.measuredArea, sourceContextFromInsunits(null), "m2", 2),
+                  formattedPerimeter: item.measurementContext
+                    ? formatCapturedDistance(item.measuredPerimeter, item.measurementContext)
+                    : formatPhysicalDistance(item.measuredPerimeter, sourceContextFromInsunits(null), "m", 2),
+                  color: item.style.color,
+                  isSelected: reviewSession.selectedItemIds.has(item.id) ?? false,
+                }] : [])
+              : areaMeasurements}
+            projectPoint={(point) => readyAdapter?.projectWorldPoint(point) ?? null}
+            sourceContext={readyAdapter?.getSourceUnitContext() ?? sourceContextFromInsunits(null)}
+            displayAreaUnit={measurementUnitSettings.areaUnit}
+            displayLengthUnit={measurementUnitSettings.unit}
+            precision={measurementUnitSettings.precision}
+            areaPrecision={measurementUnitSettings.areaPrecision}
+            onSelectMeasurement={reviewEnabled ? id => reviewStoreRef.current?.setSelectedItems([id]) : undefined}
+            onFinish={() => adapterRef.current?.finishAreaMeasurement()}
+            onUndoPoint={() => adapterRef.current?.popAreaMeasurementPoint()}
+          />
+        ) : null}
+
+        {/* ── CAD Review V1: SVG Item Overlay ── */}
+        {reviewEnabled && state === "ready" && (reviewItems.length > 0 || Boolean(reviewDraft?.draftItem)) ? (
+          <CadReviewOverlay
+            items={reviewItems.filter((item) => {
+              if (item.type === "distance" || item.type === "area") return false;
+              const layoutId = reviewSession.activeLayoutId;
+              return !layoutId || !item.layoutId || item.layoutId === layoutId;
+            })}
+            draft={reviewDraft}
+            selectedItemIds={reviewSession.selectedItemIds}
+            hoveredItemId={reviewSession.hoveredItemId}
+            projectPoint={(point) => readyAdapter?.projectWorldPoint(point) ?? null}
+            containerWidth={containerSize.width}
+            containerHeight={containerSize.height}
+          />
+        ) : null}
+
+        {/* ── CAD Review V1: Right Side Panel ── */}
+        {reviewEnabled && state === "ready" && activePanelTab ? (
+          <CadReviewSidePanel
+            activeTab={activePanelTab}
+            onSelectTab={(tab) => setActivePanelTab(tab)}
+            onClose={() => setActivePanelTab(null)}
+            searchQuery={reviewSearchQuery}
+            onSearchQueryChange={handleSearchQueryChange}
+            searchResults={searchResults}
+            searchError={textSearchError}
+            onSelectSearchResult={(result) => {
+              if (result.bounds) {
+                void adapterRef.current?.zoomToBounds(result.bounds);
+              }
+            }}
+            measurements={reviewItems
+              .filter((item) => item.type === "distance" || item.type === "area" || item.type === "chain_distance")
+              .map((item) => ({
+                id: item.id,
+                type: item.type,
+                title: item.type === "distance" ? item.label || "Mesafe" : item.type === "area" ? "Alan" : "Zincir Mesafe",
+                formattedValue:
+                  item.type === "distance"
+                    ? item.measurementContext
+                      ? formatCapturedDistance(item.measuredLength, item.measurementContext)
+                      : formatPhysicalDistance(item.measuredLength, sourceContextFromInsunits(null), "m", 2)
+                    : item.type === "area"
+                    ? item.measurementContext
+                      ? `${formatCapturedArea(item.measuredArea, item.measurementContext)} · Çevre: ${formatCapturedDistance(item.measuredPerimeter, item.measurementContext)}`
+                      : formatPhysicalArea(item.measuredArea, sourceContextFromInsunits(null), "m2", 2)
+                    : item.measurementContext
+                    ? formatCapturedDistance(item.totalDistance, item.measurementContext)
+                    : `${(item as { totalDistance: number }).totalDistance.toFixed(2)}`,
+              }))}
+            onDeleteMeasurement={(id) => reviewStoreRef.current?.removeItem(id)}
+            comments={reviewItems.filter(
+              (item) => item.type === "comment_pin" || item.type === "text" || item.type === "callout"
+            ) as CadReviewItem[]}
+            onStatusChange={(id, status) => reviewStoreRef.current?.updateItem(id, { status })}
+            onDeleteComment={(id) => reviewStoreRef.current?.removeItem(id)}
+            layers={layers.map((l) => ({ name: l.name, isVisible: l.visible }))}
+            onToggleLayer={(name) => {
+              const current = layers.find((l) => l.name === name);
+              if (current) {
+                handleToggleLayer(name, !current.visible);
+              }
+            }}
+          />
+        ) : null}
+      </div>
+
+      {/* ── CAD Review V1: Export Dialog ── */}
+      {reviewEnabled && exportDialogOpen && reviewDocument ? (
+        <CadExportDialog
+          open={exportDialogOpen}
+          onClose={() => setExportDialogOpen(false)}
+          document={reviewDocument}
+          sourceFileName={displayName}
+          sourceUnitContext={readyAdapter?.getSourceUnitContext() ?? sourceContextFromInsunits(null)}
+          originalFileUrl={accessUrl}
+          getCanvasElement={() => {
+            const vp = viewportRef.current;
+            if (!vp) return null;
+            return vp.querySelector("canvas") ?? null;
+          }}
+          getSvgOverlayElement={() => viewportRef.current?.querySelector<SVGElement>(
+            '[data-cad-review-overlay="true"]'
+          ) ?? null}
+        />
+      ) : null}
+
+      {state === "ready" && snapPanelOpen ? (
+        <CadSnapSettingsPanel
+          settings={snapSettings}
+          onChange={handleSnapSettingsChange}
+          onClose={() => setSnapPanelOpen(false)}
+        />
+      ) : null}
+
+      {state === "ready" && layerPanelOpen ? (
+        <CadLayerPanel
+          layers={layers}
+          query={layerQuery}
+          onQueryChange={setLayerQuery}
+          onToggleLayer={handleToggleLayer}
+          onIsolateLayer={handleIsolateLayer}
+          onShowAll={handleShowAllLayers}
+          onHideAll={handleHideAllLayers}
+          onResetSource={handleResetLayers}
+          onClose={() => setLayerPanelOpen(false)}
+          triggerRef={layerButtonRef}
+        />
+      ) : null}
+
+      {state === "ready" && viewPanelOpen ? (
+        <CadViewSettingsPanel
+          displayMode={displayMode}
+          lineWeightVisible={lineWeightVisible}
+          backgroundColor={backgroundColor}
+          onSelectDisplayMode={selectDisplayMode}
+          onToggleLineWeight={() => void toggleLineWeight()}
+          onSelectBackgroundColor={selectBackgroundColor}
+          onClose={() => setViewPanelOpen(false)}
+        />
+      ) : null}
+
+      {state === "loading" ? (
+        <CadTechnologyLoader
+          message={message}
+          elapsedSeconds={elapsedSeconds}
+          fileName={displayName}
+          onCancel={() => {
+            abortControllerRef.current?.abort("USER_CANCELLED");
+            setState("error");
+            setMessage("Yükleme kullanıcı tarafından iptal edildi.");
+          }}
+        />
+      ) : null}
+
+      {state === "error" ? (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center bg-background p-4"
+          data-testid="cad-error-card"
+        >
+          <div className="flex max-w-md flex-col items-center gap-3 text-center">
+            <AlertCircle className="h-7 w-7 text-destructive" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">CAD görünümü açılamadı</p>
+              <p className="mt-1 text-xs text-muted-foreground" data-testid="cad-error-message">
+                {message}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  setState("loading");
+                  setMessage("Yeniden başlatılıyor...");
+                  setRetryKey((value) => value + 1);
+                }}
+                data-testid="cad-error-retry"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Tekrar dene
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    const link = document.createElement("a");
+                    link.href = accessUrl;
+                    link.download = displayName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }
+                }}
+                data-testid="cad-error-download"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Dosyayı indir
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {reviewInput && (
+        <CadReviewInputDialog
+          key={reviewInput.id}
+          kind={reviewInput.kind}
+          onCancel={() => settleReviewInput(null)}
+          onSave={(value) => settleReviewInput(value)}
+        />
+      )}
+    </section>
+  );
+}
