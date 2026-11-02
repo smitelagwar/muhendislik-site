@@ -486,6 +486,15 @@ User's deployment authorization updated: Vercel errors may be diagnosed, correct
 
 ### Checkpoint, deploy, rollback
 
-Stage06 atomic checkpoint: SHA equals the commit containing this document; verify with GitHub compare.
-Preview: as authorized, may create one and inspect READY/ERROR, actual build logs and browser access. If error is in code and evidence identifies fix, narrow correction + retry allowed by new user instruction. Do not retry Vercel provisioning failures without a concrete recoverable cause. Final deployment outcome must be reported after checking.
+Stage06 atomic code checkpoint: 5545f29232897ebd112d80e69831dcde396f6220 (10 scoped source/test/doc files), followed by this docs-only post-deploy outcome note. GitHub compare must show no protected code changes in docs-only update.
+Preview ASAMA_06: CREATED deployment dpl_vaXMNnEkihGdtJVoVbfAaBfXkPXX from commit 5545f29232897ebd112d80e69831dcde396f6220. Result ERROR / BUILD_FAILED: "Resource provisioning failed" before any available build log (events=[]). Preview URL https://muhendislik-site-ei919ixw4-huseying5713-2819s-projects.vercel.app is NOT a verified functional preview. Earlier ASAMA_05 deployment dpl_7SgMRPgehVXN1p9nAkT4Bpump6Rc showed the same provisioning failure. Vercel project linked GitHub repo is correct; project connector list [] and account/project integration configuration list [] (read-only checks); team plan hobby; official status page shows no global Nov 02 incident. Root cause not determined; platform Git-source provisioning / account setup is a possibility, NOT a proven diagnosis. No build logs or TypeScript error, so code cannot be blamed nor declared PASS. No second deployment triggered without a concrete remediation. User allows retry after fixing a demonstrable error; random configuration changes prohibited. Production/main unchanged.
 Rollback: revert ONLY ASAMA_06 changes on internal branch, keep ASAMA_01–05 and all frozen engine files. Stop until a new user 'devam' for ASAMA_07.
+
+
+### Post-commit deployment failure evidence (ASAMA_06)
+
+- Deployment ID: dpl_vaXMNnEkihGdtJVoVbfAaBfXkPXX; created once for Preview. State: ERROR, errorCode BUILD_FAILED, errorMessage Resource provisioning failed; events log empty.
+- Matched error during ASAMA_05: dpl_7SgMRPgehVXN1p9nAkT4Bpump6Rc. Stage06 did not trigger additional deployments after unsuccessful provisioning.
+- Vercel staff reference: https://community.vercel.com/t/vercel-deployments-failing-with-resource-provisioning-failed-and-0ms-build-time/32451/6 states that suspended third-party integrations can cause this error; project connector/integration configuration lists returned none, so this does **not** establish the cause here.
+- Official public status https://www.vercel-status.com/ reported no incident on Nov 2, 2026; absence of a global notice does not prove project health.
+- No usable Preview URL, no actual CAD viewer screenshots, no runtime/tests/TS PASS. Do not auto-deploy or touch production settings. Once a stable source build can provision, execute the exact Stage06 tests and review earlier Stage03–05 regressions.
