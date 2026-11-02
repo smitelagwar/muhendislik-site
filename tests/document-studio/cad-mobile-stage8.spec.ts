@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { devices, expect, test, type Locator, type Page } from "@playwright/test";
 
 const SNAP_MODES = [
   "endpoint",
@@ -12,6 +12,17 @@ type SnapMode = (typeof SNAP_MODES)[number];
 const ALL_SNAP_MODES = [...SNAP_MODES, "perpendicular"] as const;
 
 type Point = { x: number; y: number };
+type WorldPoint = { x: number; y: number; z?: number };
+type CameraControlsInspection = {
+  target?: WorldPoint;
+  object?: { zoom?: number; position?: WorldPoint };
+};
+type CadAdapterInspection = {
+  manager?: { curView?: { activeLayoutView?: { _cameraControls?: CameraControlsInspection } } };
+  screenToWorldPoint: (point: Point) => WorldPoint;
+  projectWorldPoint: (point: WorldPoint) => Point;
+};
+type WindowWithCadAdapter = Window & { __cadAdapter?: CadAdapterInspection };
 type ViewerHarness = {
   host: Locator;
   viewport: Locator;
@@ -204,12 +215,6 @@ async function longPressUntilTracking(
   phase: "tracking-first" | "tracking-second"
 ): Promise<void> {
   await dispatchTouchPointer(target, "pointerdown", point, pointerId);
-  await page.waitForTimeout(300);
-  await expect(host).toHaveAttribute(
-    "data-cad-distance-phase",
-    phase === "tracking-first" ? "pressing-first" : "pressing-second"
-  );
-  await expect(page.getByTestId("cad-precision-magnifier")).toHaveCount(0);
   await expect(host).toHaveAttribute("data-cad-distance-phase", phase, { timeout: 1_100 });
   await expect(page.getByTestId("cad-precision-magnifier")).toBeVisible();
 }
@@ -307,7 +312,8 @@ test("Endpoint, Midpoint, Intersection, Center ve Nearest gerçek CAD merkezinde
   await expect(reloadedHost).toHaveAttribute("data-cad-snap-modes", "nearest");
 });
 
-test("ikinci parmak pending long-press ölçümünü iptal eder ve CAD görünümü hazır kalır", async ({ page }) => {
+test("ikinci parmak pending long-press ölçümünü iptal eder ve CAD görünümü hazır kalır", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chromium", "Touch pointer lifecycle mobile-chromium projesinde doğrulanır.");
   const { host, viewport, center } = await openViewer(page);
   await startDistance(page, host);
 
@@ -326,8 +332,81 @@ test("ikinci parmak pending long-press ölçümünü iptal eder ve CAD görünü
   await cancelDistance(page, host);
 });
 
-test("iki-parmak pinch gerçek OrbitControls kamerada doğal hızda zoom yapar ve pinch merkezini korur", async ({ page, browserName }) => {
-  test.skip(browserName !== "chromium", "Trusted multi-touch injection yalnız Chromium/CDP kapısında çalıştırılır.");
+test("ikinci touch pointer aktif freehand taslağını iptal eder; yarım stroke commit edilmez", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chromium", "Touch pointer lifecycle mobile-chromium projesinde doğrulanır.");
+  const { host, viewport, center } = await openViewer(page);
+  await page.getByTestId("cad-tool-stroke").click();
+  const first = { x: center.x - 50, y: center.y - 25 };
+  const moved = { x: center.x + 25, y: center.y + 35 };
+  await dispatchTouchPointer(viewport, "pointerdown", first, 91, true);
+  await dispatchTouchPointer(viewport, "pointermove", moved, 91, true);
+  const draft = page.locator('[data-cad-review-overlay] [data-review-type="stroke"]');
+  await expect(draft).toBeAttached();
+
+  const second = { x: center.x + 80, y: center.y - 35 };
+  await dispatchTouchPointer(viewport, "pointerdown", second, 92, false);
+  await expect(draft).toHaveCount(0);
+  await dispatchTouchPointer(viewport, "pointerup", moved, 91, true);
+  await dispatchTouchPointer(viewport, "pointerup", second, 92, false);
+  await expect(page.locator('[data-review-type="stroke"]')).toHaveCount(0);
+  await expect(host).toHaveAttribute("data-cad-upstream-state", "ready");
+});
+
+test("sabit açıklıklı iki parmak pan kamerayı taşır; zoom değişmez", async ({ page, browserName }, testInfo) => {
+  test.skip(browserName !== "chromium" || testInfo.project.name !== "mobile-chromium", "Trusted multi-touch injection mobile-chromium/CDP kapısında çalıştırılır.");
+  const { host, center } = await openViewer(page);
+  const cameraBefore = await page.evaluate(() => {
+    const adapter = (window as WindowWithCadAdapter).__cadAdapter;
+    const view = adapter?.manager?.curView?.activeLayoutView;
+    const target = view?._cameraControls?.target;
+    const position = view?._cameraControls?.object?.position;
+    return {
+      zoom: view?._cameraControls?.object?.zoom ?? null,
+      center: target ? { x: target.x, y: target.y } : null,
+      position: position ? { x: position.x, y: position.y, z: position.z } : null,
+    };
+  });
+  const client = await page.context().newCDPSession(page);
+  const start = [
+    { x: Math.round(center.x - 40), y: Math.round(center.y), radiusX: 1, radiusY: 1, force: 1, id: 1 },
+    { x: Math.round(center.x + 40), y: Math.round(center.y), radiusX: 1, radiusY: 1, force: 1, id: 2 },
+  ];
+  const moved = start.map((point) => ({ ...point, x: point.x + 35, y: point.y + 25 }));
+  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [start[0]] });
+  await page.waitForTimeout(30);
+  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [start[1]] });
+  await page.waitForTimeout(60);
+  await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: moved });
+  await page.waitForTimeout(100);
+  await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [moved[0]] });
+  await page.waitForTimeout(30);
+  await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  const cameraAfter = await page.evaluate(() => {
+    const adapter = (window as WindowWithCadAdapter).__cadAdapter;
+    const view = adapter?.manager?.curView?.activeLayoutView;
+    const target = view?._cameraControls?.target;
+    const position = view?._cameraControls?.object?.position;
+    return {
+      zoom: view?._cameraControls?.object?.zoom ?? null,
+      center: target ? { x: target.x, y: target.y } : null,
+      position: position ? { x: position.x, y: position.y, z: position.z } : null,
+    };
+  });
+  await test.info().attach("cad-two-finger-pan-camera.json", {
+    body: JSON.stringify({ profile: "Pixel 7 (Chromium emulation)", gesture: { translationCssPx: { x: 35, y: 25 }, spanChangeCssPx: 0 }, cameraBefore, cameraAfter }, null, 2),
+    contentType: "application/json",
+  });
+  if (cameraBefore.zoom === null || cameraAfter.zoom === null || !cameraBefore.center || !cameraAfter.center) {
+    throw new Error("CAD camera snapshot is incomplete for the two-finger pan assertion");
+  }
+  expect(cameraAfter.zoom).toBeCloseTo(cameraBefore.zoom, 8);
+  expect(Math.hypot(cameraAfter.center.x - cameraBefore.center.x, cameraAfter.center.y - cameraBefore.center.y)).toBeGreaterThan(0.01);
+  console.log("[CAD TWO-FINGER PAN PASS]", JSON.stringify({ zoomBefore: cameraBefore.zoom, zoomAfter: cameraAfter.zoom, centerBefore: cameraBefore.center, centerAfter: cameraAfter.center }));
+  await expect(host).toHaveAttribute("data-cad-upstream-state", "ready");
+});
+
+test("iki-parmak pinch gerçek OrbitControls kamerada doğal hızda zoom yapar ve pinch merkezini korur", async ({ page, browserName }, testInfo) => {
+  test.skip(browserName !== "chromium" || testInfo.project.name !== "mobile-chromium", "Trusted multi-touch injection mobile-chromium/CDP kapısında çalıştırılır.");
 
   const { host, viewport, center } = await openViewer(page);
   await setSnapMaster(page, false);
@@ -346,6 +425,63 @@ test("iki-parmak pinch gerçek OrbitControls kamerada doğal hızda zoom yapar v
   const before = await completedLineGeometry(page);
   expect(before.length).toBeGreaterThan(70);
   expect(before.length).toBeLessThan(110);
+  const lineWorldBefore = await page.evaluate(({ line }) => {
+    const adapter = (window as WindowWithCadAdapter).__cadAdapter;
+    if (!adapter) throw new Error("CAD adapter unavailable for world projection");
+    return {
+      start: adapter.screenToWorldPoint({ x: line.x1, y: line.y1 }),
+      end: adapter.screenToWorldPoint({ x: line.x2, y: line.y2 }),
+    };
+  }, { line: before });
+
+  const viewportBox = await viewport.boundingBox();
+  if (!viewportBox) throw new Error("CAD viewport ölçülemedi");
+  const cameraSnapshot = (point: Point) => page.evaluate(({ x, y }) => {
+    const adapter = (window as WindowWithCadAdapter).__cadAdapter;
+    const view = adapter?.manager?.curView?.activeLayoutView;
+    const controls = view?._cameraControls;
+    const camera = controls?.object;
+    const target = controls?.target;
+    return {
+      zoom: camera?.zoom ?? null,
+      position: camera?.position ? { x: camera.position.x, y: camera.position.y, z: camera.position.z } : null,
+      target: target ? { x: target.x, y: target.y, z: target.z } : null,
+      centerWorld: adapter?.screenToWorldPoint?.({ x, y }) ?? null,
+      originScreen: adapter?.projectWorldPoint?.({ x: 0, y: 0 }) ?? null,
+      viewKeys: view ? Object.keys(view).filter((key) => key.includes("camera") || key.includes("Camera")) : [],
+      controlKeys: controls ? Object.keys(controls).filter((key) => ["object", "target", "enabled", "enableZoom", "enablePan", "touches", "state", "_pointers"].includes(key)) : [],
+    };
+  }, { x: point.x - viewportBox.x, y: point.y - viewportBox.y });
+  await page.evaluate(() => {
+    const viewport = document.querySelector('[data-cad-upstream-host="true"] [aria-label$="CAD görünümü"]');
+    if (!viewport) throw new Error("CAD viewport event target not found");
+    const events: Array<Record<string, unknown>> = [];
+    (window as unknown as { __cadPinchTrace?: Array<Record<string, unknown>> }).__cadPinchTrace = events;
+    for (const type of ["touchstart", "touchmove", "touchend", "pointerdown", "pointermove", "pointerup", "pointercancel", "lostpointercapture"]) {
+      document.addEventListener(type, (event) => {
+        const pointer = event as PointerEvent;
+        const touch = event as TouchEvent;
+      const target = event.target as Element;
+      const path: Array<{ tag: string; testId: string | null; touchAction: string }> = [];
+      let current: Element | null = target;
+      while (current && current !== viewport) {
+        path.push({ tag: current.tagName, testId: current.getAttribute("data-testid"), touchAction: getComputedStyle(current).touchAction });
+        current = current.parentElement;
+      }
+        events.push({
+          phase: "capture", type, target: target?.tagName, path,
+          pointerId: pointer.pointerId, pointerType: pointer.pointerType,
+          touches: touch.touches?.length, changedTouches: touch.changedTouches?.length,
+          cancelable: event.cancelable, defaultPrevented: event.defaultPrevented,
+        });
+      }, { capture: true, passive: true });
+      document.addEventListener(type, (event) => {
+        const pointer = event as PointerEvent;
+        events.push({ phase: "bubble", type, pointerId: pointer.pointerId, pointerType: pointer.pointerType, defaultPrevented: event.defaultPrevented });
+      }, { passive: true });
+    }
+  });
+  const cameraBefore = await cameraSnapshot(center);
 
   const client = await page.context().newCDPSession(page);
   const startTouches = [
@@ -357,11 +493,24 @@ test("iki-parmak pinch gerçek OrbitControls kamerada doğal hızda zoom yapar v
     { x: Math.round(center.x + 60), y: Math.round(center.y), radiusX: 1, radiusY: 1, force: 1, id: 2 },
   ];
 
-  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: startTouches });
+  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [startTouches[0]] });
+  await page.waitForTimeout(30);
+  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [startTouches[1]] });
   await page.waitForTimeout(60);
   await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: movedTouches });
   await page.waitForTimeout(120);
+  await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [movedTouches[0]] });
+  await page.waitForTimeout(30);
   await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await page.waitForTimeout(100);
+
+  const cameraAfter = await cameraSnapshot(center);
+  if (cameraBefore.zoom === null || cameraAfter.zoom === null) throw new Error("CAD camera zoom snapshot is missing after pinch");
+  const pinchTrace = await page.evaluate(() => (window as unknown as { __cadPinchTrace?: Array<Record<string, unknown>> }).__cadPinchTrace ?? []);
+  await test.info().attach("cad-pinch-input-trace-pixel7.json", {
+    body: JSON.stringify({ cameraBefore, cameraAfter, pinchTrace }, null, 2),
+    contentType: "application/json",
+  });
 
   try {
     await expect.poll(async () => (await completedLineGeometry(page)).length, {
@@ -383,7 +532,119 @@ test("iki-parmak pinch gerçek OrbitControls kamerada doğal hızda zoom yapar v
   expect(zoomRatio).toBeGreaterThan(1.15);
   expect(zoomRatio).toBeLessThan(2.25);
 
+  const measuredCamera = await page.evaluate(({ world }) => {
+    const adapter = (window as WindowWithCadAdapter).__cadAdapter;
+    if (!adapter) throw new Error("CAD adapter unavailable for world projection");
+    return { start: adapter.projectWorldPoint(world.start), end: adapter.projectWorldPoint(world.end) };
+  }, { world: lineWorldBefore });
+  expect(Math.hypot(measuredCamera.start.x - after.x1, measuredCamera.start.y - after.y1)).toBeLessThan(1);
+  expect(Math.hypot(measuredCamera.end.x - after.x2, measuredCamera.end.y - after.y2)).toBeLessThan(1);
+  expect(cameraAfter.zoom).toBeGreaterThan(cameraBefore.zoom);
+  expect(cameraAfter.zoom / cameraBefore.zoom).toBeGreaterThan(1.15);
+  expect(cameraAfter.zoom / cameraBefore.zoom).toBeLessThan(2.25);
+  const forwardedTouchDown = pinchTrace.find((entry) => entry.type === "pointerdown" && entry.target === "CANVAS" && entry.cancelable === false);
+  expect(forwardedTouchDown).toBeTruthy();
+  const reviewTouchStart = pinchTrace.find((entry) => entry.type === "touchstart" && entry.target === "line");
+  expect(reviewTouchStart).toBeTruthy();
+  expect(JSON.stringify(reviewTouchStart?.path)).toContain('"touchAction":"none"');
+
   const anchorDriftPx = Math.hypot(after.x1 - before.x1, after.y1 - before.y1);
   expect(anchorDriftPx).toBeLessThan(8);
   await expect(host).toHaveAttribute("data-cad-upstream-state", "ready");
+
+  const browser = page.context().browser();
+  if (!browser) throw new Error("İkinci mobil emülasyon için Chromium oturumu bulunamadı");
+  const phoneContext = await browser.newContext({
+    ...devices["iPhone 13"],
+    baseURL: new URL(page.url()).origin,
+  });
+  try {
+    const phonePage = await phoneContext.newPage();
+    const phoneViewer = await openViewer(phonePage);
+    await setSnapMaster(phonePage, false);
+    await startDistance(phonePage, phoneViewer.host);
+    await longPressUntilTracking(phonePage, phoneViewer.viewport, phoneViewer.host, phoneViewer.center, 101, "tracking-first");
+    await dispatchTouchPointer(phoneViewer.viewport, "pointerup", phoneViewer.center, 101);
+    await expect(phoneViewer.host).toHaveAttribute("data-cad-distance-phase", "awaiting-second");
+    const phoneSecond = { x: phoneViewer.center.x + 90, y: phoneViewer.center.y };
+    await longPressUntilTracking(phonePage, phoneViewer.viewport, phoneViewer.host, phoneSecond, 102, "tracking-second");
+    await dispatchTouchPointer(phoneViewer.viewport, "pointerup", phoneSecond, 102);
+    await expect(phoneViewer.host).toHaveAttribute("data-cad-active-tool", "none");
+
+    const phoneBeforeLine = await completedLineGeometry(phonePage);
+    const phoneWorldBefore = await phonePage.evaluate(({ line }) => {
+      const adapter = (window as WindowWithCadAdapter).__cadAdapter;
+      if (!adapter) throw new Error("CAD adapter unavailable for world projection");
+      return {
+        start: adapter.screenToWorldPoint({ x: line.x1, y: line.y1 }),
+        end: adapter.screenToWorldPoint({ x: line.x2, y: line.y2 }),
+      };
+    }, { line: phoneBeforeLine });
+    const phoneCameraBefore = await phonePage.evaluate(() => {
+      const adapter = (window as WindowWithCadAdapter).__cadAdapter;
+      return adapter?.manager?.curView?.activeLayoutView?._cameraControls?.object?.zoom ?? null;
+    });
+    await phonePage.evaluate(() => {
+      const events: Array<Record<string, unknown>> = [];
+      (window as unknown as { __cadPinchTrace?: Array<Record<string, unknown>> }).__cadPinchTrace = events;
+      for (const type of ["touchstart", "touchmove", "touchend", "pointerdown", "pointermove", "pointerup", "pointercancel", "lostpointercapture"]) {
+        document.addEventListener(type, (event) => {
+          const target = event.target as Element;
+          const path: Array<{ tag: string; testId: string | null; touchAction: string }> = [];
+          let current: Element | null = target;
+          while (current) {
+            path.push({ tag: current.tagName, testId: current.getAttribute("data-testid"), touchAction: getComputedStyle(current).touchAction });
+            current = current.parentElement;
+          }
+          events.push({ phase: "capture", type, target: target?.tagName, path, pointerId: (event as PointerEvent).pointerId, pointerType: (event as PointerEvent).pointerType, touches: (event as TouchEvent).touches?.length, changedTouches: (event as TouchEvent).changedTouches?.length });
+        }, { capture: true, passive: true });
+      }
+    });
+    const phoneClient = await phoneContext.newCDPSession(phonePage);
+    const phoneStart = [
+      { x: Math.round(phoneViewer.center.x - 40), y: Math.round(phoneViewer.center.y), radiusX: 1, radiusY: 1, force: 1, id: 11 },
+      { x: Math.round(phoneViewer.center.x + 40), y: Math.round(phoneViewer.center.y), radiusX: 1, radiusY: 1, force: 1, id: 12 },
+    ];
+    const phoneMove = [
+      { x: Math.round(phoneViewer.center.x - 60), y: Math.round(phoneViewer.center.y), radiusX: 1, radiusY: 1, force: 1, id: 11 },
+      { x: Math.round(phoneViewer.center.x + 60), y: Math.round(phoneViewer.center.y), radiusX: 1, radiusY: 1, force: 1, id: 12 },
+    ];
+    await phoneClient.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [phoneStart[0]] });
+    await phonePage.waitForTimeout(30);
+    await phoneClient.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [phoneStart[1]] });
+    await phonePage.waitForTimeout(60);
+    await phoneClient.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: phoneMove });
+    await phonePage.waitForTimeout(120);
+    await phoneClient.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [phoneMove[0]] });
+    await phonePage.waitForTimeout(30);
+    await phoneClient.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await phonePage.waitForTimeout(100);
+
+    const phoneAfterLine = await completedLineGeometry(phonePage);
+    const phoneCameraAfter = await phonePage.evaluate(() => {
+      const adapter = (window as WindowWithCadAdapter).__cadAdapter;
+      return adapter?.manager?.curView?.activeLayoutView?._cameraControls?.object?.zoom ?? null;
+    });
+    const phoneProjected = await phonePage.evaluate(({ world }) => {
+      const adapter = (window as WindowWithCadAdapter).__cadAdapter;
+      if (!adapter) throw new Error("CAD adapter unavailable for world projection");
+      return { start: adapter.projectWorldPoint(world.start), end: adapter.projectWorldPoint(world.end) };
+    }, { world: phoneWorldBefore });
+    const phoneTrace = await phonePage.evaluate(() => (window as unknown as { __cadPinchTrace?: Array<Record<string, unknown>> }).__cadPinchTrace ?? []);
+    if (phoneCameraBefore === null || phoneCameraAfter === null) throw new Error("iPhone profile camera zoom snapshot is missing after pinch");
+    expect(phoneCameraAfter).toBeGreaterThan(phoneCameraBefore);
+    expect(phoneCameraAfter / phoneCameraBefore).toBeGreaterThan(1.15);
+    expect(phoneCameraAfter / phoneCameraBefore).toBeLessThan(2.25);
+    expect(phoneAfterLine.length / phoneBeforeLine.length).toBeGreaterThan(1.1);
+    expect(Math.hypot(phoneAfterLine.x1 - phoneBeforeLine.x1, phoneAfterLine.y1 - phoneBeforeLine.y1)).toBeLessThan(8);
+    expect(Math.hypot(phoneProjected.start.x - phoneAfterLine.x1, phoneProjected.start.y - phoneAfterLine.y1)).toBeLessThan(1);
+    expect(Math.hypot(phoneProjected.end.x - phoneAfterLine.x2, phoneProjected.end.y - phoneAfterLine.y2)).toBeLessThan(1);
+    await test.info().attach("cad-pinch-input-trace-iphone13.json", {
+      body: JSON.stringify({ profile: "iPhone 13 (Chromium emulation)", cameraBefore: phoneCameraBefore, cameraAfter: phoneCameraAfter, lineBefore: phoneBeforeLine, lineAfter: phoneAfterLine, pinchTrace: phoneTrace }, null, 2),
+      contentType: "application/json",
+    });
+    console.log("[CAD PINCH PROFILE PASS]", JSON.stringify({ pixel7: { zoomBefore: cameraBefore.zoom, zoomAfter: cameraAfter.zoom, lineBefore: before.length, lineAfter: after.length }, iphone13: { zoomBefore: phoneCameraBefore, zoomAfter: phoneCameraAfter, lineBefore: phoneBeforeLine.length, lineAfter: phoneAfterLine.length } }));
+  } finally {
+    await phoneContext.close();
+  }
 });

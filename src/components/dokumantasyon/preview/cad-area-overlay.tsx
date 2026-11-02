@@ -112,7 +112,7 @@ export function CadAreaOverlay({
               key={m.id}
               data-cad-area-complete="true"
               data-review-id={m.id}
-              style={onSelectMeasurement ? { pointerEvents: "auto", cursor: "pointer" } : undefined}
+              style={onSelectMeasurement ? { pointerEvents: "auto", cursor: "pointer", touchAction: "none" } : undefined}
               role={onSelectMeasurement ? "button" : undefined}
               tabIndex={onSelectMeasurement ? 0 : undefined}
               onClick={onSelectMeasurement ? () => onSelectMeasurement(m.id) : undefined}

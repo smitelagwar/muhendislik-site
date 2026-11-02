@@ -38,12 +38,13 @@ test.describe("CAD Preview V2 — Stage 3/8 Pan, Zoom, Fit & Görünüm Sözleş
 
     // 3. Pan is the native default navigation mode (select tool not pressed)
     const selectTool = page.locator('[data-testid="cad-tool-select"]').first();
+    const panTool = selectTool;
     await expect(selectTool).toBeVisible();
     await expect(selectTool).toHaveAttribute("aria-pressed", "false");
 
     // 4. Initial camera center
     const centerInitial = await page.evaluate(() => {
-      const hostEl = document.querySelector('[data-cad-upstream-host="true"]') as unknown as {
+      const hostEl = window as Window & {
         __cadAdapter?: { getCameraCenter?: () => { x: number; y: number } | null };
       };
       return hostEl?.__cadAdapter?.getCameraCenter?.() ?? null;
@@ -57,7 +58,7 @@ test.describe("CAD Preview V2 — Stage 3/8 Pan, Zoom, Fit & Görünüm Sözleş
     await page.waitForTimeout(200);
 
     const centerAfterLeft = await page.evaluate(() => {
-      const hostEl = document.querySelector('[data-cad-upstream-host="true"]') as unknown as {
+      const hostEl = window as Window & {
         __cadAdapter?: { getCameraCenter?: () => { x: number; y: number } | null };
       };
       return hostEl?.__cadAdapter?.getCameraCenter?.() ?? null;
@@ -78,7 +79,7 @@ test.describe("CAD Preview V2 — Stage 3/8 Pan, Zoom, Fit & Görünüm Sözleş
     await page.waitForTimeout(200);
 
     const centerAfterMiddle = await page.evaluate(() => {
-      const hostEl = document.querySelector('[data-cad-upstream-host="true"]') as unknown as {
+      const hostEl = window as Window & {
         __cadAdapter?: { getCameraCenter?: () => { x: number; y: number } | null };
       };
       return hostEl?.__cadAdapter?.getCameraCenter?.() ?? null;
@@ -90,13 +91,32 @@ test.describe("CAD Preview V2 — Stage 3/8 Pan, Zoom, Fit & Görünüm Sözleş
       Math.abs(centerAfterMiddle!.y - centerAfterLeft!.y) > 0.01;
     expect(middleMoved).toBe(true);
 
+    const zoomBeforeWheel = await page.evaluate(() => {
+      const win = window as Window & {
+        __cadAdapter?: { manager?: { curView?: { activeLayoutView?: { _cameraControls?: { object?: { zoom?: number } } } } } };
+      };
+      return win.__cadAdapter?.manager?.curView?.activeLayoutView?._cameraControls?.object?.zoom ?? null;
+    });
+    await page.mouse.move(centerX, centerY);
+    await page.mouse.wheel(0, -240);
+    await page.waitForTimeout(150);
+    const zoomAfterWheel = await page.evaluate(() => {
+      const win = window as Window & {
+        __cadAdapter?: { manager?: { curView?: { activeLayoutView?: { _cameraControls?: { object?: { zoom?: number } } } } } };
+      };
+      return win.__cadAdapter?.manager?.curView?.activeLayoutView?._cameraControls?.object?.zoom ?? null;
+    });
+    expect(zoomBeforeWheel).not.toBeNull();
+    expect(zoomAfterWheel).not.toBeNull();
+    expect(zoomAfterWheel).toBeGreaterThan(zoomBeforeWheel!);
+
     // 7. Zoom to fit restores drawing extents
     const fitBtn = page.locator('[data-testid="cad-tool-fit"]').first();
     await fitBtn.click();
     await page.waitForTimeout(300);
 
     const centerAfterFit = await page.evaluate(() => {
-      const hostEl = document.querySelector('[data-cad-upstream-host="true"]') as unknown as {
+      const hostEl = window as Window & {
         __cadAdapter?: { getCameraCenter?: () => { x: number; y: number } | null };
       };
       return hostEl?.__cadAdapter?.getCameraCenter?.() ?? null;
@@ -251,7 +271,7 @@ test.describe("CAD Preview V2 — Stage 3/8 Pan, Zoom, Fit & Görünüm Sözleş
     const centerY = canvasBox!.y + canvasBox!.height / 2;
 
     const centerBefore = await page.evaluate(() => {
-      const hostEl = document.querySelector('[data-cad-upstream-host="true"]') as unknown as {
+      const hostEl = window as Window & {
         __cadAdapter?: { getCameraCenter?: () => { x: number; y: number } | null };
       };
       return hostEl?.__cadAdapter?.getCameraCenter?.() ?? null;
@@ -288,7 +308,7 @@ test.describe("CAD Preview V2 — Stage 3/8 Pan, Zoom, Fit & Görünüm Sözleş
     await page.waitForTimeout(200);
 
     const centerAfter = await page.evaluate(() => {
-      const hostEl = document.querySelector('[data-cad-upstream-host="true"]') as unknown as {
+      const hostEl = window as Window & {
         __cadAdapter?: { getCameraCenter?: () => { x: number; y: number } | null };
       };
       return hostEl?.__cadAdapter?.getCameraCenter?.() ?? null;

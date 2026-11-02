@@ -85,3 +85,9 @@ Bu ek güncel kodun kanıtlanmış sınırlarını eski hedef mimariden ayırır
 - **Dışa aktarım:** JSON, native world-unit'li review-only DXF, PNG ve `pdf-lib` ile üretilmiş gerçek PDF'dir; kaynak DWG/DXF yeniden yazılmaz. Bağımsız CAD DXF import/piksel karşılaştırması hâlâ gerekli.
 - **Engine ve etkileşim:** MLightCAD V1 adapter, CAD coordinate otoritesidir; renderer/parser/worker replacement yapılmadı. 375px mobil kontroller ve keyboard isolation hedefli testlerde geçse de gerçek pinch-zoom testinde kamera **kaydırıyor, zoom değişmiyor**.
 - **Dağıtım:** Çalışma dalı izole, Production ve `main` üzerindeki mevcut sistem değiştirilmedi; bu ek yeni yayın onayı değildir. Eski `100% ready` beyanları yeni kodu otomatik onaylamaz.
+
+## R2 ASAMA_03 pinch-camera doğrulama eki — 2 Kasım 2026
+
+ASAMA_11'de kayıtlı pinch başarısızlığı, R2 Stage03 kapsamında tekrar üretildi ve dar host bridge ile düzeltildi. Kurulu OrbitControls renderer canvas'ında çalışırken review SVG sibling overlay'deki ikinci touch canvas'a ulaşmıyordu. Bridge pointerdown'ı OrbitControls canvas'ına iletiyor ve pointer capture alıyor; overlay'nin asıl olayı seçim/tap için kalıyor. İkinci parmak gelince review draft'ı commit edilmeden iptal edilir.
+
+İki ayrı mobil Chromium emülasyonunda kamera zoom'u 1.5× büyüdü; ölçüm overlay uçları aynı `projectWorldPoint` ile 1 CSS px altında eşleşti. Sabit aralıklı iki-finger pan kamera merkezini değiştirdi, zoom'u sabit tuttu. Hedefli mouse/wheel ve cancel/double-click/stylus-controller sözleşmeleri geçti. Fiziksel cihaz, trackpad ve stylus donanımı denenmedi; Stage03 global TSC ve release kabulini geçirmiş sayılmaz. Kod/test ve test sonuçları `docs/cad-v1-r2-recovery/evidence/stage03.md` içinde tutulur.

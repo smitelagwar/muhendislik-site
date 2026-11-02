@@ -4,8 +4,8 @@ Plan ID: `CADV1-R2-FORENSIC-RECOVERY-20261102`
 Updated: 2026-11-02 (Europe/Istanbul)
 Execution status: `CHECKPOINT_COMPLETE`
 Active stage: `none`
-Completed stages: `ASAMA_01`, `ASAMA_02`
-Next stage: `ASAMA_03` — starts only after the user's explicit `devam`.
+Completed stages: `ASAMA_01`, `ASAMA_02`, `ASAMA_03`
+Next stage: `ASAMA_04` — starts only after the user's explicit `devam`.
 
 ## Verified repositories and branches
 
@@ -48,6 +48,14 @@ Stale test contracts were corrected to explicit-store subscriptions, revision-sc
 
 Both user-data release scripts stop before reading `.data/dok_db.json` or writing evidence unless `CAD_REAL_USER_RELEASE_AUTHORIZED=1` is present. They returned `BLOCKED` with exit 2 in this checkout. No real-user dataset was read or changed; no synthetic PASS is promoted to real-user acceptance. The 38-control matrix, large real-repository CAD files, physical devices, cross-device sync, and overall release acceptance remain incomplete.
 
+## Stage 03 result
+
+See [`evidence/stage03.md`](evidence/stage03.md) and [`evidence/stage03-results.json`](evidence/stage03-results.json). Installed MLightCAD 1.6.2 binds OrbitControls to the renderer canvas while review SVGs are sibling layers. A second touch that began on a selectable review line therefore bypassed the camera's two-pointer chain. A narrow host bridge now forwards overlay-origin touch pointerdown to the canvas and captures the pointer; selectable review distance/area groups use `touch-action:none` so the browser does not take over the gesture. A second touch cancels in-progress review drafts before navigation can commit them.
+
+The targeted contract suite passed 27/27. Mobile Chromium E2E passed 4/4, including a stable-span two-finger pan and a pinch on Pixel 7 plus a separate iPhone 13 emulation. Camera zoom and review line screen projection changed together; both endpoints matched `projectWorldPoint` within 1 CSS px. Desktop left/middle pan and wheel zoom passed. Targeted ESLint had 0 errors and 3 pre-existing warnings. Repository-wide `npx tsc --noEmit` failed with 563 errors at this run; none of the five changed Stage03 code/test files appeared in the filtered diagnostics. Local production build and `git diff --check` passed.
+
+The first single-contact CDP pan attempt emitted changed touch coordinates but left OrbitControls' pointer pan delta unchanged, so it was rejected as a valid product oracle. A constant-span two-contact pan is the passing camera movement oracle. Physical iOS/Android, physical trackpad, and physical stylus remain `NOT_RUN`. Release acceptance remains `false`; no merge/deploy/Production action occurred.
+
 ## Stage checkpoints
 
 ### ASAMA_01
@@ -65,3 +73,9 @@ Both user-data release scripts stop before reading `.data/dok_db.json` or writin
 - No merge, deployment, Production action, or `main` update was performed.
 - Release ready: `false`.
 - Open critical issues include reproducible P0-01 pinch failure, large real-CAD render, cross-device sync, real-user gate, and the 38-control matrix.
+
+### ASAMA_03
+
+- Status: targeted implementation, local verification, isolated-branch checkpoint and remote synchronization complete.
+- Evidence: [`evidence/stage03.md`](evidence/stage03.md), [`evidence/stage03-results.json`](evidence/stage03-results.json).
+- `main` and Production are unchanged. No merge or deployment was performed.

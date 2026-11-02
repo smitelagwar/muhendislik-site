@@ -1,0 +1,63 @@
+{
+  "stage": "ASAMA_03",
+  "status": "targeted_interaction_pass_full_release_blocked",
+  "cause": {
+    "package": "@mlightcad/cad-simple-viewer@1.6.2",
+    "three": "0.172.0",
+    "orbitControlsInput": "renderer canvas",
+    "reviewOverlay": "sibling SVG layers",
+    "observedSecondTouchTarget": "selectable SVG line",
+    "observedSecondTouchAction": "auto",
+    "conclusion": "overlay-origin second touch did not enter OrbitControls two-pointer gesture"
+  },
+  "pinch": [
+    {
+      "profile": "Pixel 7 (Chromium emulation)",
+      "zoomBefore": 0.37454545454545457,
+      "zoomAfter": 0.5618181818181818,
+      "reviewLineLengthBeforeCssPx": 90,
+      "reviewLineLengthAfterCssPx": 135,
+      "worldProjectionEndpointMaxErrorCssPx": "<1",
+      "anchorDriftCssPx": "<8",
+      "result": "PASS"
+    },
+    {
+      "profile": "iPhone 13 (separate Chromium emulation context)",
+      "zoomBefore": 0.35454545454545455,
+      "zoomAfter": 0.5318181818181817,
+      "reviewLineLengthBeforeCssPx": 90,
+      "reviewLineLengthAfterCssPx": 135,
+      "worldProjectionEndpointMaxErrorCssPx": "<1",
+      "anchorDriftCssPx": "<8",
+      "result": "PASS"
+    }
+  ],
+  "pan": {
+    "profile": "Pixel 7 (Chromium emulation)",
+    "gestureTranslationCssPx": { "x": 35, "y": 25 },
+    "spanChangeCssPx": 0,
+    "zoomBefore": 0.37454545454545457,
+    "zoomAfter": 0.37454545454545457,
+    "cameraCenterBefore": { "x": 0, "y": 0 },
+    "cameraCenterAfter": { "x": -93.44660194174755, "y": 66.74757281553396 },
+    "result": "PASS"
+  },
+  "tests": {
+    "contracts": { "passed": 27, "failed": 0 },
+    "mobileChromiumE2E": { "passed": 4, "failed": 0 },
+    "desktopMousePanWheelE2E": { "passed": 1, "failed": 0 },
+    "targetedEslint": { "errors": 0, "warnings": 3 },
+    "repositoryTsc": { "exitCode": 2, "diagnostics": 563, "changedStage03FilesDiagnostics": 0 },
+    "physicalIosAndroid": "NOT_RUN",
+    "physicalTrackpad": "NOT_RUN",
+    "physicalStylus": "NOT_RUN"
+  },
+  "operations": {
+    "mainChanged": false,
+    "productionChanged": false,
+    "merge": false,
+    "deploy": false,
+    "build": "PASS",
+    "gitDiffCheck": "PASS"
+  }
+}

@@ -95,3 +95,9 @@ npm run check:cad-review:release
 - Gerçek kullanıcı DB izolasyonu olmadan `check:cad-review:release` kapısı geçemez.
 - Production'a merge veya deploy yapılmadı. Dokunma/performans sayıları izole test ortamıyla sınırlıdır.
 - Review özelliği için `NEXT_PUBLIC_CAD_REVIEW_V1=false`, dışa aktarma için `NEXT_PUBLIC_CAD_REVIEW_EXPORT_V1=false` bulunmaktadır; bu public build-time değişkenlerin etkili olması yeni onaylı build/deploy gerektirir.
+
+## R2 ASAMA_03 touch-camera doğrulaması — 2 Kasım 2026
+
+Kurulu MLightCAD 1.6.2'de OrbitControls renderer canvas'ını dinler. Review SVG kardeş overlay'lerinde başlayan ikinci touch kamera kontrolüne ulaşmadığı için upstream canvas'a dar pointer bridge eklendi; aynı anda ikinci parmak gelmesi aktif review draft'ını iptal eder. Tamamlanmış distance/area overlay'lerinde `touch-action:none` korunur.
+
+Pixel 7 ve iPhone 13 Chromium emülasyonlarında gerçek kamera zoom'u 1.5× arttı; review ölçüm çizgisinin iki ucu aynı adapter `projectWorldPoint` transformuyla 1 CSS px altında eşleşti. Sabit açıklıklı iki-parmak pan kamera merkezini taşıdı ve zoom'u değiştirmedi. Masaüstü mouse drag ve wheel zoom da geçti. Bu hedefli kanıt Stage03 sonucudur; fiziksel cihaz/trackpad/stylus ve genel release kabulü değildir. Ayrıntılar: `docs/cad-v1-r2-recovery/evidence/stage03.md`.

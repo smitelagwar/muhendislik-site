@@ -250,7 +250,7 @@ const CAD_NEARBY_SNAP_LIMIT = 36;
               data-review-id={measurement.id}
               role={onSelectMeasurement ? "button" : undefined}
               tabIndex={onSelectMeasurement ? 0 : undefined}
-              style={onSelectMeasurement ? { pointerEvents: "auto", cursor: "pointer" } : undefined}
+              style={onSelectMeasurement ? { pointerEvents: "auto", cursor: "pointer", touchAction: "none" } : undefined}
               onClick={onSelectMeasurement ? () => onSelectMeasurement(measurement.id) : undefined}
               onKeyDown={onSelectMeasurement ? (event) => {
                 if (event.key === "Enter" || event.key === " ") {

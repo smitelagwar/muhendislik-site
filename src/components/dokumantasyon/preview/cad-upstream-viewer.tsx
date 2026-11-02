@@ -202,6 +202,7 @@ export function DokCadUpstreamViewer({
 
   // ── CAD Review V1 State ────────────────────────────────────────────────────
   const reviewEnabled = isCadReviewEnabled();
+  const reviewTouchPointersRef = useRef(new Set<number>());
   const reviewStoreRef = useRef<CadReviewStore | null>(null);
   const markupControllerRef = useRef<CadMarkupController | null>(null);
   const [reviewInput, setReviewInput] = useState<{ id: number; kind: CadReviewInputKind } | null>(null);
@@ -1682,7 +1683,71 @@ export function DokCadUpstreamViewer({
       ) : null}
 
       {/* ── CANVAS & VIEWPORT CONTAINER ── */}
-      <div className="relative flex-1 min-h-0 min-w-0 overflow-hidden">
+      <div
+        className="relative flex-1 min-h-0 min-w-0 overflow-hidden"
+        onPointerDownCapture={(event) => {
+          if (event.pointerType !== "touch") return;
+          const target = event.target;
+          const overlayTarget = target instanceof Element && Boolean(target.closest("svg"));
+          const activePointers = reviewTouchPointersRef.current;
+          if (!activePointers.has(event.pointerId) && activePointers.size > 0) {
+            // A second finger is navigation, never the end of a review draft.
+            markupControllerRef.current?.cancel();
+            freehandControllerRef.current?.cancel();
+            // Canvas-origin measurement pointers are handled by the adapter's
+            // gesture guard, which keeps the command armed after canceling its
+            // pending one-finger draft. Overlay siblings never reach that guard.
+            if (overlayTarget) {
+              distanceRequestRef.current += 1;
+              areaRequestRef.current += 1;
+              void adapterRef.current?.cancelActiveCommand();
+              setActiveTool(null);
+              setDistanceSnapshot(null);
+              setAreaSnapshot(null);
+              setChainSnapshot(null);
+            }
+          }
+          activePointers.add(event.pointerId);
+          if (!overlayTarget || !(target instanceof Element)) return;
+
+          const canvas = adapterRef.current?.getCanvas();
+          if (!canvas || canvas.contains(target)) return;
+
+          // Review SVGs sit above (as siblings of) MLightCAD's canvas. Forward
+          // overlay-origin touch pointers to the camera canvas so OrbitControls
+          // can track both fingers, while the original event still serves the
+          // review overlay's tap/selection behavior.
+          if (event.buttons > 0) canvas.setPointerCapture(event.pointerId);
+          canvas.dispatchEvent(new PointerEvent("pointerdown", {
+            pointerId: event.pointerId,
+            pointerType: event.pointerType,
+            isPrimary: event.isPrimary,
+            button: event.button,
+            buttons: event.buttons,
+            clientX: event.clientX,
+            clientY: event.clientY,
+            screenX: event.screenX,
+            screenY: event.screenY,
+            width: event.width,
+            height: event.height,
+            pressure: event.pressure,
+            tiltX: event.tiltX,
+            tiltY: event.tiltY,
+            twist: event.twist,
+            bubbles: false,
+            cancelable: false,
+          }));
+        }}
+        onPointerUpCapture={(event) => {
+          if (event.pointerType === "touch") reviewTouchPointersRef.current.delete(event.pointerId);
+        }}
+        onPointerCancelCapture={(event) => {
+          if (event.pointerType === "touch") reviewTouchPointersRef.current.delete(event.pointerId);
+        }}
+        onLostPointerCapture={(event) => {
+          if (event.pointerType === "touch") reviewTouchPointersRef.current.delete(event.pointerId);
+        }}
+      >
         <div
           ref={viewportRef}
           className={`absolute inset-0 ${layerPanelOpen ? "pointer-events-none sm:pointer-events-auto" : ""}`}
