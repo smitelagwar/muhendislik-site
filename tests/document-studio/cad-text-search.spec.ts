@@ -103,27 +103,29 @@ test.describe("CAD Review Workspace V1 — Stage 4/10 Global ve Dikdörtgen Böl
     await expect(host).toHaveAttribute("data-cad-upstream-state", "ready", { timeout: 30_000 });
 
     // Fixture içinde TEXT_ROT_0, TEXT_ROT_90, TEXT_ROT_180, TEXT_ROT_270 var
-    const searchResults = await host.evaluate((el: HTMLElement) => {
-      const adapter = (el as unknown as {
-        __cadAdapter?: {
-          searchCadText?: (query: { query: string }) => Array<{ item: { text: string } }>;
-          zoomToBounds?: (b: { min: { x: number; y: number }; max: { x: number; y: number } }) => Promise<void>;
-        };
-      }).__cadAdapter;
-      return adapter?.searchCadText?.({ query: "TEXT_ROT" }) ?? [];
+    // Adapter is published on window / the inner viewport, not the outer section.
+    await expect.poll(async () => page.evaluate(() =>
+      (window as Window & {__cadAdapter?:{getRenderReadinessSnapshot?:()=>{entityCount:number}}})
+        .__cadAdapter?.getRenderReadinessSnapshot?.()?.entityCount ?? 0
+    ), { timeout: 30000 }).toBe(4);
+    const searchResults = await page.evaluate(async () => {
+      const adapter = (window as Window & {__cadAdapter?:{
+        ensureTextSearchReady?:()=>Promise<void>;
+        searchCadText?:(q:{query:string})=>Array<{item:{text:string}}>;
+      }}).__cadAdapter;
+      await adapter?.ensureTextSearchReady?.();
+      return adapter?.searchCadText?.({query:"TEXT_ROT"}) ?? [];
     });
 
     expect(searchResults.length).toBe(4);
 
     // Zoom to bounds çağrısının takılmadan tamamlandığını doğrula
-    const zoomSuccess = await host.evaluate(async (el: HTMLElement) => {
-      const adapter = (el as unknown as {
-        __cadAdapter?: {
-          zoomToBounds?: (b: { min: { x: number; y: number }; max: { x: number; y: number } }) => Promise<void>;
-        };
-      }).__cadAdapter;
+    const zoomSuccess = await page.evaluate(async () => {
+      const adapter = (window as Window & {__cadAdapter?: {
+        zoomToBounds?: (b:{min:{x:number;y:number};max:{x:number;y:number}})=>Promise<void>
+      }}).__cadAdapter;
       if (!adapter?.zoomToBounds) return false;
-      await adapter.zoomToBounds({ min: { x: 0, y: 0 }, max: { x: 300, y: 100 } });
+      await adapter.zoomToBounds({min:{x:0,y:0},max:{x:300,y:100}});
       return true;
     });
 

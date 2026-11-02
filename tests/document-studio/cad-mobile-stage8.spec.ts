@@ -8,6 +8,8 @@ const SNAP_MODES = [
   "nearest",
 ] as const;
 type SnapMode = (typeof SNAP_MODES)[number];
+// The settings panel has a sixth mode. Exclude it when selecting exactly one of the five fixtures.
+const ALL_SNAP_MODES = [...SNAP_MODES, "perpendicular"] as const;
 
 type Point = { x: number; y: number };
 type ViewerHarness = {
@@ -168,7 +170,7 @@ async function setOnlySnapMode(page: Page, mode: SnapMode): Promise<void> {
   const master = panel.getByTestId("cad-snap-master-toggle");
   if ((await master.getAttribute("aria-checked")) !== "true") await master.click();
 
-  for (const candidate of SNAP_MODES) {
+  for (const candidate of ALL_SNAP_MODES) {
     const toggle = panel.getByTestId(`cad-snap-mode-${candidate}`);
     const shouldBeEnabled = candidate === mode;
     if ((await toggle.getAttribute("aria-checked")) !== String(shouldBeEnabled)) {

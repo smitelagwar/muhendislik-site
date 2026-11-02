@@ -17,6 +17,7 @@ export interface CadChainDistanceOverlayProps {
   onConfirmPoint: () => void;
   onUndoPoint: () => void;
   onFinish: () => void;
+  onCancel?: () => void;
 }
 
 const SNAP_LABELS: Record<CadSnapMode, string> = {
@@ -38,6 +39,7 @@ export function CadChainDistanceOverlay({
   onConfirmPoint,
   onUndoPoint,
   onFinish,
+  onCancel,
 }: CadChainDistanceOverlayProps) {
   if (!snapshot || snapshot.phase === "inactive" || snapshot.phase === "complete") return null;
 
@@ -94,7 +96,8 @@ export function CadChainDistanceOverlay({
           </g>
         ) : null}
       </svg>
-      <div className="pointer-events-auto absolute bottom-3 right-3 flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2 rounded-xl border border-border bg-background/95 px-3 py-2 shadow-lg backdrop-blur-sm sm:bottom-4 sm:right-4">
+      <div style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+      className="pointer-events-auto absolute right-3 flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2 rounded-xl border border-border bg-background/95 px-3 py-2 shadow-lg backdrop-blur-sm sm:bottom-4 sm:right-4">
         <div className="text-right text-xs" aria-live="polite" aria-atomic="true">
           <span className="font-medium">Zincir: {totalLabel}</span>
           <span className="ml-2 text-muted-foreground">({snapshot.points.length} nokta)</span>
@@ -105,7 +108,7 @@ export function CadChainDistanceOverlay({
             type="button"
             onClick={onConfirmPoint}
             disabled={!preview}
-            className="rounded-md border border-border px-2.5 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2.5 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Hedefteki zincir noktasını ekle"
             data-testid="cad-chain-add-point"
           >Nokta ekle</button>
@@ -113,7 +116,7 @@ export function CadChainDistanceOverlay({
             type="button"
             onClick={onUndoPoint}
             disabled={snapshot.points.length === 0}
-            className="rounded-md border border-border px-2.5 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-2.5 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Zincirde son noktayı geri al"
             data-testid="cad-chain-backspace"
           >Geri</button>
@@ -121,9 +124,14 @@ export function CadChainDistanceOverlay({
             type="button"
             onClick={onFinish}
             disabled={!canFinish}
-            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40"
             data-testid="cad-chain-finish"
           >Bitir</button>
+          {onCancel ? (
+            <button type="button" onClick={onCancel}
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border px-3 text-xs font-semibold"
+              data-testid="cad-chain-cancel">İptal</button>
+          ) : null}
         </div>
         <span className="text-[10px] text-muted-foreground">ESC: taslağı sil / çık · Enter: bitir</span>
       </div>

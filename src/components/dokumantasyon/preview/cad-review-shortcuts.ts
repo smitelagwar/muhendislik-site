@@ -27,17 +27,18 @@ export function attachCadReviewKeyboardShortcuts(
   handlers: CadShortcutHandlers
 ): () => void {
   const handleKeyDown = (e: KeyboardEvent) => {
-    // If the user is typing inside an input/textarea, do not intercept CAD canvas shortcuts
-    // except Escape which may blur the input
-    const isInput = isInputElement(e.target);
+    // Never dispatch viewer commands while typing, including Escape in a modal.
+    if (e.defaultPrevented || e.isComposing) return;
+    if (isInputElement(e.target)) return;
 
     if (e.key === "Escape") {
       handlers.onEscape?.();
       return;
     }
 
-    if (isInput) {
-      return;
+    // Modified Enter/Delete must not mutate review geometry.
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      if (e.key === "Enter" || e.key === "Delete" || e.key === "Backspace") return;
     }
 
     const isCtrlOrCmd = e.ctrlKey || e.metaKey;

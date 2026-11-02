@@ -3,10 +3,10 @@ Plan ID: CADV1-PRO-REVIEW-20261102
 Plan revision: 2
 Date: 2026-11-02 (Europe/Istanbul)
 Planning status: PLAN_HAZIR
-Execution status: ASAMA_08_HEDEFLI_TESTLER_PASS; GENEL_RELEASE_BEKLIYOR
-Completed stages: ASAMA_01–05 (code checkpoints; partial runtime gates pending); ASAMA_06–08 (targeted build/TS/lint/Node/Chromium PASS; release gates open)
+Execution status: ASAMA_09_HEDEFLI_TESTLER_PASS; MOBIL_PINCH_GATE_ACIK; GENEL_RELEASE_BEKLIYOR
+Completed stages: ASAMA_01–05 (code checkpoints; partial runtime gates pending); ASAMA_06–09 (targeted code and tests; broader release gates remain open)
 Active stage: none
-Next stage: ASAMA_09 (ONLY after user says devam)
+Next stage: ASAMA_10 (ONLY after user says devam)
 Stage 01 acceptance: DOCUMENTED_BASELINE; runtime/device verification NOT_RUN
 Release-ready: NO
 Branch: internal-cad-v1-pro-review-r2-20261102
@@ -605,3 +605,39 @@ Work branch: `internal-cad-v1-pro-review-r2-20261102`. Parent before this stage:
 - Original CAD file bytes are not saved back or edited by Stage08 review workflows. Source entityCount was verified in browser fixture; no claim of a full DWG-byte hash check on customer content.
 - Roll back this stage's scoped source/test/docs diff only if needed; previous Stage01–07 checkpoints and Production are preserved.
 - **STOP:** ASAMA_09 only after the user's next explicit `devam`. Overall `RELEASE_READY=NO` until open evidence gates are closed.
+
+## 16. ASAMA_09 — CAD UX checkpoint, release gates remain open (2026-11-02)
+
+Work branch: `internal-cad-v1-pro-review-r2-20261102`. This stage is based on **repaired ASAMA_08** `f3bc89835bb3d486af4538354d7b8e4849e7361c`, not the accidentally truncated `f3e81a5` transfer. The 11 Stage08 files were restored from the original passing sandbox and verified against their own Git blob SHAs before Stage09 began; the broken snapshot is retained in history for audit. `main` and Production were never touched.
+
+### Scoped UX improvements (review-only/UI; no V1 renderer changes)
+
+- New compact Turkish CAD status HUD combines active tool, source-vs-display unit, OSNAP enabled status and currently resolved snap kind. Unknown source units are **explicitly unverified**, never silently metres. During active mobile measurements existing purpose-built distance/area/chain banners are preserved instead of overlapping them with a second HUD.
+- Area and chain measurement explicit **Geri/Bitir/İptal**, minimum 44×44 CSS-pixel target for mobile controls; chain bar respects safe-area bottom and area banner respects safe-area top. Cancel abandons only the active measurement command/draft; no original source entity is removed or edited.
+- Snap marker tooltip contrast improved for light/dark CAD background. No snap-engine tolerance, snapping geometry, camera, renderer, parsing, worker, MLightCAD version or dependency changes.
+- Review keyboard shortcut handler no longer intercepts Escape/Enter/Delete while an editable input, textarea, select, or contenteditable is focused; browser-default-handled/composing events are ignored. Tests retain proper viewer shortcut activation when drawing focus is active.
+- Search side-panel exposes live result count, result accessible name and minimum 44px touch targets. Search result focus errors are surfaced rather than silently reported as success; real adapter still owns the `zoomToBounds` action. Layer panel now exposes independently `visible`, `frozen` and `locked` state metadata for accessibility/test assertions and preserves existing source-controlled layer behavior.
+- Legacy `cad-text-search.spec.ts` incorrectly reached into the outer host instead of `window.__cadAdapter` and queried before asynchronous text index preparation. Test-only corrected to the actual adapter and `ensureTextSearchReady`; full original TEXT-only fixture count (4) remains asserted. Legacy `cad-mobile-stage8.spec.ts` test-only corrected to disable its **sixth** `perpendicular` snap mode when asserting exactly one of the five pictured modes.
+
+### Executed evidence
+
+| Gate | Result |
+|---|---|
+| Full `npm run build` | **PASS**, exit 0 |
+| `tsc -p tsconfig.next.json --noEmit --incremental false`, changed-source ESLint and diff whitespace | **PASS**, exit 0 |
+| Node/tsx contracts stages02–09 | **63/63 PASS**, 0 TODO |
+| New Stage09 Chromium responsive/source-preservation | **2/2 PASS** (375px emulator; 44px controls, cancel, layer states, entityCount unchanged) |
+| Existing public layer store + layer panel Chromium | **4/4 PASS** |
+| Text search and `zoomToBounds` Chromium | **3/3 PASS** after correcting legacy test harness and waiting for the real index |
+| Existing desktop A11y/responsive Chromium | **3/3 PASS** |
+| Pixel 7 mobile Chromium long-press, snaps, second-pointer cancel | **3/3 PASS** after fixing the legacy test mode inventory |
+| Existing mobile-CDP two-finger pinch zoom | **FAIL / OPEN**: test expected drawn distance line to grow beyond 99px from 90px, remained 90px. No source-level camera change made without proven root cause. |
+| Physical iOS/Android/stylus, real DWG corpus | **NOT_RUN** (emulated mobile ≠ physical device) |
+
+**Deployment count ASAMA_09: 0 / maximum 1**. No Preview, Production, promotion, main merge, user DB mutation or service configuration updates. Working source was tested in isolated Vercel sandbox only; sandbox is not a deployment. Renderer, parser, worker, conversion and fallback remain protected. Stage08 cross-device source-hash limitation and Stage01 GPL-3.0 converter notice P0 remain open, unchanged.
+
+### Next steps / stop
+
+- Stage09 targeted UI work is checkpointed; broader release readiness remains **NO**, especially mobile pinch regression, full physical-mobile/real DWG acceptance and preexisting license/cross-device risks. Do not mark the camera pinch test PASS, do not remove it from test suite and do not hide it behind changed thresholds.
+- Any Stage09 rollback reverts only Stage09 code/tests/docs and retains restored Stage08 code and all earlier work; no rollback on Production is necessary.
+- **STOP.** Start ASAMA_10 only on next user `devam`; focus on measured performance/gesture root causes and full DWG regression, not speculative renderer replacement.

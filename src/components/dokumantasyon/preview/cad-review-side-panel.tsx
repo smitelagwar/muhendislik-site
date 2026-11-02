@@ -235,6 +235,9 @@ export function CadReviewSidePanel({
               </div>
             </div>
 
+            <div className="mb-2 text-[11px] text-muted-foreground" role="status" aria-live="polite" data-testid="cad-search-result-count">
+              {searchError ? "Arama hazır değil" : searchQuery.trim() ? `${searchResults.length} sonuç` : "Metin araması"}
+            </div>
             <div className="flex-1 overflow-y-auto space-y-1.5">
               {searchError ? (
                 <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-center text-xs text-destructive">
@@ -251,7 +254,9 @@ export function CadReviewSidePanel({
                     key={res.id}
                     type="button"
                     onClick={() => onSelectSearchResult?.(res)}
-                    className="w-full rounded-md border border-border/50 bg-background/50 p-2.5 text-left text-xs transition-colors hover:border-primary/50 hover:bg-muted/40"
+                    className="min-h-11 w-full rounded-md border border-border/50 bg-background/50 p-2.5 text-left text-xs transition-colors hover:border-primary/50 hover:bg-muted/40"
+                    aria-label={`Çizimde bul: ${res.text}; katman ${res.layer}`}
+                    disabled={!res.bounds}
                     data-cad-search-result-item="true"
                   >
                     <div className="font-medium text-foreground">{res.text}</div>

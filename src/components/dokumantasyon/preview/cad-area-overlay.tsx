@@ -27,6 +27,7 @@ interface CadAreaOverlayProps {
   readonly measurements: readonly CompletedAreaMeasurement[];
   readonly projectPoint: (point: CadSnapPoint) => CadSnapPoint | null;
   readonly onFinish?: () => void;
+  readonly onCancel?: () => void;
   readonly onUndoPoint?: () => void;
   readonly onSelectMeasurement?: (id: string) => void;
   readonly sourceContext?: CadSourceUnitContext;
@@ -48,6 +49,7 @@ export function CadAreaOverlay({
   measurements,
   projectPoint,
   onFinish,
+  onCancel,
   onUndoPoint,
   onSelectMeasurement,
   sourceContext,
@@ -275,7 +277,8 @@ export function CadAreaOverlay({
 
       {/* 3. Top Floating Status Banner */}
       {hasActive && snapshot ? (
-        <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2">
+        <div className="pointer-events-none absolute left-1/2 z-30 -translate-x-1/2"
+             style={{ top: "calc(0.75rem + env(safe-area-inset-top))" }}>
           <div
             className="pointer-events-auto flex max-w-[calc(100vw-1rem)] flex-wrap items-center justify-center gap-2 rounded-xl border border-border/80 bg-background/95 px-3 py-2 shadow-md backdrop-blur text-xs font-medium"
             data-testid="cad-area-status"
@@ -301,7 +304,7 @@ export function CadAreaOverlay({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="h-7 rounded-md px-2 text-xs"
+                className="min-h-11 min-w-11 rounded-md px-3 text-xs"
                 onClick={() => onUndoPoint?.()}
                 disabled={snapshot.points.length === 0}
                 data-testid="cad-area-undo-point"
@@ -310,7 +313,7 @@ export function CadAreaOverlay({
                 type="button"
                 size="sm"
                 variant="default"
-                className="h-7 rounded-md bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-700"
+                className="min-h-11 min-w-11 rounded-md bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-700"
                 onClick={() => onFinish?.()}
                 disabled={!validateCadPolygon(snapshot.points).valid}
                 data-testid="cad-area-finish-btn"
@@ -319,6 +322,11 @@ export function CadAreaOverlay({
                 <Check className="mr-1 h-3 w-3" />
                 Bitir
               </Button>
+              {onCancel ? (
+                <Button type="button" size="sm" variant="outline"
+                  className="min-h-11 min-w-11 rounded-md px-3 text-xs"
+                  onClick={onCancel} data-testid="cad-area-cancel-btn">İptal</Button>
+              ) : null}
             </div>
           </div>
         </div>

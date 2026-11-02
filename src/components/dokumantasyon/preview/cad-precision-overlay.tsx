@@ -324,7 +324,7 @@ export function CadPrecisionOverlay({
 
       {label ? (
         <div
-          className="absolute rounded border border-primary/45 bg-background/94 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary shadow-sm backdrop-blur"
+          className="absolute rounded border border-foreground/60 bg-background/95 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-foreground shadow-lg backdrop-blur"
           style={{ left: target.x + 12, top: Math.max(8, target.y - 23) }}
           data-testid="cad-snap-label"
           data-cad-snap-label={snap?.mode}

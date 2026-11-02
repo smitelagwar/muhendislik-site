@@ -274,6 +274,8 @@ export function CadLayerPanel({
                 data-testid={`cad-layer-row-${layer.name}`}
                 data-layer-name={layer.name}
                 data-visible={layer.visible ? "true" : "false"}
+                data-layer-frozen={layer.isFrozen ? "true" : "false"}
+                data-layer-locked={layer.isLocked ? "true" : "false"}
                 className="flex min-h-[48px] sm:min-h-0 items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs transition hover:bg-accent/50"
               >
                 {/* Color swatch and Layer name */}

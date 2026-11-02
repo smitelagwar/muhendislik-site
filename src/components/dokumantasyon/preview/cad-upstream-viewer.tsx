@@ -38,6 +38,7 @@ import {
 import { CadStudioRibbon } from "./cad-studio-ribbon";
 import { CadReviewInputDialog, type CadReviewInputKind } from "./cad-review-input-dialog";
 import { CadTechnologyLoader } from "./cad-technology-loader";
+import { CadReviewStatusLine } from "./cad-review-status-line";
 
 // ── CAD Review V1 ──────────────────────────────────────────────────────────────
 import type { CadSidePanelTab, CadTextSearchResultItem } from "./cad-review-side-panel";
@@ -1728,6 +1729,12 @@ export function DokCadUpstreamViewer({
             onConfirmPoint={() => adapterRef.current?.confirmChainDistancePoint()}
             onUndoPoint={() => adapterRef.current?.popChainDistancePoint()}
             onFinish={() => adapterRef.current?.finishChainDistanceMeasurement()}
+            onCancel={() => {
+              void adapterRef.current?.cancelActiveCommand();
+              setChainSnapshot(null);
+              setReviewTool("select");
+              reviewStoreRef.current?.setActiveTool("select");
+            }}
           />
         ) : null}
 
@@ -1760,6 +1767,12 @@ export function DokCadUpstreamViewer({
             onSelectMeasurement={reviewEnabled ? id => reviewStoreRef.current?.setSelectedItems([id]) : undefined}
             onFinish={() => adapterRef.current?.finishAreaMeasurement()}
             onUndoPoint={() => adapterRef.current?.popAreaMeasurementPoint()}
+            onCancel={() => {
+              areaRequestRef.current += 1;
+              void adapterRef.current?.cancelActiveCommand();
+              setAreaSnapshot(null);
+              setActiveTool(null);
+            }}
           />
         ) : null}
 
@@ -1780,6 +1793,19 @@ export function DokCadUpstreamViewer({
           />
         ) : null}
 
+        {reviewEnabled && state === "ready" ? (
+          <CadReviewStatusLine
+            tool={activeTool === "distance" ? "distance" : activeTool === "area" ? "area" : reviewTool}
+            sourceUnit={readyAdapter?.getSourceUnitContext().sourceUnit ?? "unitless"}
+            displayUnit={activeTool === "area" ? measurementUnitSettings.areaUnit : measurementUnitSettings.unit}
+            snapEnabled={snapSettings.enabled}
+            snapMode={activeTool === "distance" ? distanceSnapshot?.previewSnap?.mode :
+              activeTool === "area" ? areaSnapshot?.previewSnap?.mode :
+              reviewTool === "chain_distance" ? chainSnapshot?.previewSnap?.mode : null}
+            compactWhenMeasuring={activeTool === "distance" || activeTool === "area" || reviewTool === "chain_distance"}
+          />
+        ) : null}
+
         {/* ── CAD Review V1: Right Side Panel ── */}
         {reviewEnabled && state === "ready" && activePanelTab ? (
           <CadReviewSidePanel
@@ -1792,7 +1818,9 @@ export function DokCadUpstreamViewer({
             searchError={textSearchError}
             onSelectSearchResult={(result) => {
               if (result.bounds) {
-                void adapterRef.current?.zoomToBounds(result.bounds);
+                void Promise.resolve(adapterRef.current?.zoomToBounds(result.bounds)).catch(() => {
+                  toast.error("Arama sonucu çizimde odaklanamadı.");
+                });
               }
             }}
             measurements={reviewItems
