@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { CAD_PREVIEW_V2_MANIFEST } from "../tests/fixtures/cad-preview-v2/manifest";
+import { getCadRealUserReleaseBlockReason } from "./check-cad-real-user-authorization";
 
 const ROOT = process.cwd();
 
@@ -82,6 +83,12 @@ function checkGitDiff(): boolean {
 }
 
 async function main() {
+  const blockReason = getCadRealUserReleaseBlockReason();
+  if (blockReason) {
+    log("BLOCKED", blockReason);
+    process.exitCode = 2;
+    return;
+  }
   const overallStart = Date.now();
   console.log("\n========================================================");
   console.log("   CAD PREVIEW V2 — REAL USER RELEASE GATE (AŞAMA 8/8)  ");

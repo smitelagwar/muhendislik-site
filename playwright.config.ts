@@ -27,6 +27,7 @@ if (fs.existsSync(runDataDir) && fs.readdirSync(runDataDir).length > 0 && !isReg
 fs.mkdirSync(runDataDir, { recursive: true });
 fs.writeFileSync(activeRunPointer, runDataDir, "utf8");
 process.env.DOK_LOCAL_DATA_DIR = runDataDir;
+process.env.DOK_ALLOW_LOCAL_STORAGE = "true";
 
 // Default to a live source build. Existing `.next` output may belong to another
 // checkout/revision; production acceptance must opt in explicitly after `next build`.
@@ -45,7 +46,7 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: `http://127.0.0.1:${port}`,
-    trace: "on-first-retry",
+    trace: process.env.CAD_TEST_EVIDENCE === "1" ? "retain-on-failure" : "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     launchOptions: {

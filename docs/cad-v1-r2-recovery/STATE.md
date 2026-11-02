@@ -4,8 +4,8 @@ Plan ID: `CADV1-R2-FORENSIC-RECOVERY-20261102`
 Updated: 2026-11-02 (Europe/Istanbul)
 Execution status: `CHECKPOINT_COMPLETE`
 Active stage: `none`
-Completed stages: `ASAMA_01`
-Next stage: `ASAMA_02` — starts only after the user's explicit `devam`.
+Completed stages: `ASAMA_01`, `ASAMA_02`
+Next stage: `ASAMA_03` — starts only after the user's explicit `devam`.
 
 ## Verified repositories and branches
 
@@ -16,7 +16,7 @@ Next stage: `ASAMA_02` — starts only after the user's explicit `devam`.
 | Main worktree state | Two untracked user files; not edited. One existing stash; not touched. |
 | Remote R2 branch | `origin/internal-cad-v1-pro-review-r2-20261102` |
 | Recovery worktree branch | `internal-cad-v1-r2-recovery-20261102` |
-| R2 / recovery HEAD | `555b89ae6b5d14659905af49dcd88c303da881c0` |
+| Recovery branch before ASAMA_02 | `b9dbd93f7fd3f045b4353ec8475e1ada550f454e` |
 | Pull | `git pull --ff-only origin internal-cad-v1-pro-review-r2-20261102` → `Already up to date` |
 | Merge base | `3df5e45924c6f83e2d5cbbdb81e5d02c3fe07dc4` |
 | R2 ahead / behind main | 20 / 0 commits |
@@ -40,14 +40,28 @@ The four large real-repository fixture files are not present under this checkout
 
 `git diff --check origin/main...HEAD` returned exit 2 from trailing whitespace in the pre-existing `docs/cad-v1-review/PLAN.md` and `FINAL_ACCEPTANCE.md` files. The staged ASAMA_01 docs check passes when the exact-copy `PLAN.md` is excluded; the full staged check flags the source plan's existing Markdown hard-break spaces. The copy is intentionally byte-identical and was not normalized. The exact user-provided plan copy matches its source SHA-256 (`ca219d02a532ab15503b2bc0c1e3a9bf2fa14e3d0457d69bd8d75ea76a40295`).
 
-## Stage checkpoint
+## Stage 02 result
 
-- Stage checkpoint commit: recorded in the final response for this stage. A Git commit cannot contain its own resulting SHA without a second commit; the next state update may add this SHA to the checkpoint history.
+See [`evidence/stage02.md`](evidence/stage02.md) and [`evidence/stage02-results.json`](evidence/stage02-results.json). The reproducible synthetic Node/TSX contract command now runs 66 tests (66 pass, 0 fail); TypeScript, targeted ESLint on changed test/gate files, the production build, and selected current Chromium browser contracts pass. The whole-repository lint still fails (675 errors / 765 warnings at baseline), so no full-lint PASS is claimed.
+
+Stale test contracts were corrected to explicit-store subscriptions, revision-scoped localStorage, current ribbon/dropdown controls, current `aria-pressed` semantics, and supported palette/width/dash options. The cache HIT/MISS fixtures now seed only the isolated `.test-data` local database so the server-rendered readiness hint matches the browser response scenario. The corrected cache HIT/MISS, Pin/Text/F5, 409 conflict, view controls, and selected review-tool E2E checks passed. A mobile Chromium pinch reproducer still FAILS: the 80→120 px gesture leaves the rendered measurement at 90 px and shifts its first endpoint 20 px; P0-01 remains open.
+
+Both user-data release scripts stop before reading `.data/dok_db.json` or writing evidence unless `CAD_REAL_USER_RELEASE_AUTHORIZED=1` is present. They returned `BLOCKED` with exit 2 in this checkout. No real-user dataset was read or changed; no synthetic PASS is promoted to real-user acceptance. The 38-control matrix, large real-repository CAD files, physical devices, cross-device sync, and overall release acceptance remain incomplete.
+
+## Stage checkpoints
+
+### ASAMA_01
+
+- Commit: `b9dbd93f7fd3f045b4353ec8475e1ada550f454e`.
 - Changed paths: `docs/cad-v1-r2-recovery/**` only.
-- Rollback: revert the single local ASAMA_01 documentation commit; no product or user data changes.
 - Verified base SHA: `3df5e45924c6f83e2d5cbbdb81e5d02c3fe07dc4`.
-- Verified R2 SHA: `555b89ae6b5d14659905af49dcd88c303da881c0`.
-- Production changed: `false`.
-- Deploy count for this work: `0`.
+- R2 source snapshot SHA: `555b89ae6b5d14659905af49dcd88c303da881c0`.
+
+### ASAMA_02
+
+- Commit SHA: recorded in the final response for this stage. The state file cannot contain the resulting commit SHA without a second commit.
+- Changed paths and verification: [`evidence/stage02.md`](evidence/stage02.md), [`evidence/stage02-results.json`](evidence/stage02-results.json).
+- Rollback: revert the single ASAMA_02 checkpoint on the recovery branch; no product engine or user data changed.
+- No merge, deployment, Production action, or `main` update was performed.
 - Release ready: `false`.
-- Open critical issues: P0-01 through P0-07 remain open; this stage records them without claiming resolution.
+- Open critical issues include reproducible P0-01 pinch failure, large real-CAD render, cross-device sync, real-user gate, and the 38-control matrix.

@@ -1,0 +1,130 @@
+{
+  "stage": "ASAMA_02",
+  "baseCommit": "b9dbd93f7fd3f045b4353ec8475e1ada550f454e",
+  "workingTree": "modified during verification; checkpoint commit recorded in final response",
+  "environment": {
+    "os": "Windows 11",
+    "node": "v24.15.0",
+    "npm": "11.12.1",
+    "next": "16.4.2",
+    "playwrightProject": "chromium/mobile-chromium",
+    "workers": 1,
+    "testPorts": [3102, 3103, 3104, 3105, 3106, 3107, 3108, 3109, 3110, 3111, 3112, 3113, 3114, 3115],
+    "testData": "unique isolated .test-data/run-* directories; no .data user database"
+  },
+  "results": [
+    {
+      "command": "npx tsx scripts/check-cad-review-contract.ts",
+      "status": "PASS",
+      "tests": 66,
+      "passed": 66,
+      "failed": 0,
+      "skipped": 0,
+      "todo": 0,
+      "note": "65 existing pure contracts plus one release-authorization guard test; labelled SYNTHETIC_CONTRACT_PASS"
+    },
+    {
+      "command": "npx tsc -p tsconfig.next.json --noEmit --incremental false",
+      "status": "PASS"
+    },
+    {
+      "command": "npx eslint <changed CAD test/gate files and playwright.config.ts>",
+      "status": "PASS",
+      "note": "Exact changed-file invocation is recorded in the chat/session command log; 0 diagnostics"
+    },
+    {
+      "command": "npm run lint",
+      "status": "FAIL",
+      "errors": 675,
+      "warnings": 765,
+      "note": "Whole-repository lint has extensive unrelated existing violations. No mass or unrelated lint edits were made."
+    },
+    {
+      "command": "npm run build",
+      "status": "PASS",
+      "nextVersion": "16.4.2",
+      "staticPages": 684,
+      "note": "Local webpack production build; prebuild wrote generated worker/upstream assets in ignored paths. Production-only account migration skipped."
+    },
+    {
+      "command": "git diff --check",
+      "status": "PASS"
+    },
+    {
+      "command": "Playwright CAD Stage07 Pin/Text/F5 test on port 3102",
+      "status": "PASS",
+      "passed": 1,
+      "failed": 0,
+      "testDurationSeconds": 43.7,
+      "traceMode": "retain-on-failure"
+    },
+    {
+      "command": "Playwright corrected DWG Cache HIT/MISS tests on port 3105",
+      "status": "PASS",
+      "passed": 2,
+      "failed": 0,
+      "durationsSeconds": [34.2, 12.0],
+      "note": "Ready derivative was seeded only in isolated local test DB; the server hint then allowed controlled browser HIT and 404 MISS responses."
+    },
+    {
+      "command": "Playwright review-core 409 concurrency test on port 3106",
+      "status": "PASS",
+      "passed": 1,
+      "failed": 0,
+      "testDurationSeconds": 18.1
+    },
+    {
+      "command": "Playwright mobile Chromium pinch reproducer on port 3107",
+      "status": "FAIL",
+      "expected": "projected measurement grows by >10%; natural zoom ratio >1.15; anchor drift <8px",
+      "observed": {
+        "beforeLine": { "x1": 206, "y1": 363.5, "x2": 296, "y2": 363.5, "length": 90 },
+        "afterLine": { "x1": 186, "y1": 363.5, "x2": 276, "y2": 363.5, "length": 90 },
+        "zoomRatio": 1,
+        "anchorDriftPx": 20,
+        "pollError": "Expected >99; received 90 after 2000ms"
+      },
+      "trace": "test-results/cad-mobile-stage8-iki-parm-2376d-ar-ve-pinch-merkezini-korur-mobile-chromium/trace.zip"
+    },
+    {
+      "command": "Playwright DXF upstream-primary 3-fixture test on port 3109",
+      "status": "PASS",
+      "passed": 1,
+      "failed": 0,
+      "testDurationSeconds": 47.1,
+      "note": "Updated test validated current ribbon controls and background dropdown for small, project-like, and large synthetic DXF fixtures."
+    },
+    {
+      "command": "Playwright explicit-store subscription contract",
+      "status": "PASS",
+      "passed": 1,
+      "failed": 0
+    },
+    {
+      "command": "Playwright corrected stroke style/persistence/undo/redo E2E on port 3115",
+      "status": "PASS",
+      "passed": 1,
+      "failed": 0,
+      "testDurationSeconds": 36.1,
+      "note": "Uses real Cyan, 5px, dashed options, revision-scoped localStorage, aria-pressed and actual undo/redo."
+    },
+    {
+      "command": "npx tsx scripts/check-cad-review-release.ts",
+      "status": "BLOCKED",
+      "exitCode": 2,
+      "note": "Stopped before .data/dok_db.json read because CAD_REAL_USER_RELEASE_AUTHORIZED=1 was absent."
+    },
+    {
+      "command": "npx tsx scripts/check-cad-real-user-release.ts",
+      "status": "BLOCKED",
+      "exitCode": 2,
+      "note": "Stopped before .data/dok_db.json read/evidence write because CAD_REAL_USER_RELEASE_AUTHORIZED=1 was absent."
+    }
+  ],
+  "scopeLimits": [
+    "No product engine or parser source was changed.",
+    "No real user database, real CAD corpus, physical device, external database, Blob, Production, main, merge, or deploy was accessed or changed.",
+    "Selected browser passes do not equal all 38 controls or full release acceptance.",
+    "Whole-repository lint, real-user data gate, large real CAD files, and pinch remain FAIL/BLOCKED as described."
+  ]
+}

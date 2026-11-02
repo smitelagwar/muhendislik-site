@@ -1,6 +1,7 @@
 import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
+import { getCadRealUserReleaseBlockReason } from "./check-cad-real-user-authorization";
 
 const DB_PATH = path.resolve(process.cwd(), ".data/dok_db.json");
 const MIN_EXPECTED_DB_FILE_COUNT = 50;
@@ -36,6 +37,12 @@ function run(command: string, label: string) {
 
 
 async function main() {
+  const blockReason = getCadRealUserReleaseBlockReason();
+  if (blockReason) {
+    console.error(`[CAD-REVIEW-RELEASE-GATE] BLOCKED: ${blockReason}`);
+    process.exitCode = 2;
+    return;
+  }
   const globalStart = Date.now();
   console.log("\n========================================================");
   console.log("   CAD REVIEW WORKSPACE V1 — COMPOSITE RELEASE GATE");

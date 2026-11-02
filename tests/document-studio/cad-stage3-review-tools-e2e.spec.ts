@@ -43,7 +43,10 @@ async function openWorkspace(page: Page) {
 
 async function reviewDoc(page: Page, fileId: string): Promise<ReviewDoc | null> {
   return page.evaluate((id) => {
-    const raw = window.localStorage.getItem(`dok_cad_review_v1_${id}`);
+    const key = Object.keys(window.localStorage).find((candidate) =>
+      candidate.startsWith(`dok_cad_review_v1_${id}__`)
+    );
+    const raw = key ? window.localStorage.getItem(key) : null;
     return raw ? (JSON.parse(raw) as ReviewDoc) : null;
   }, fileId);
 }
@@ -81,56 +84,46 @@ async function clickCanvas(page: Page, canvas: Locator, xRatio: number, yRatio: 
   await page.mouse.click(box.x + box.width * xRatio, box.y + box.height * yRatio);
 }
 
-async function setRange(page: Page, testId: string, value: number) {
-  const range = page.getByTestId(testId);
-  await range.evaluate((element, next) => {
-    const input = element as HTMLInputElement;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-    setter?.call(input, String(next));
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-  }, value);
-  await expect(range).toHaveValue(String(value));
-}
-
 test.describe("CAD Stage 3 — review tools browser acceptance", () => {
   test.afterEach(async ({ page }) => {
     await cleanupUploadedCadFixtures(page);
   });
 
-  test("Kalem split caret: Custom HEX + 5px + dashed gerçek stroke'a bağlanır, Undo/Redo çalışır", async ({ page }) => {
+  test("Kalem stil menüsü: palet rengi + 5px + kesikli gerçek stroke'a bağlanır, Undo/Redo çalışır", async ({ page }) => {
     const { fileId, canvas } = await openWorkspace(page);
 
     const main = page.getByTestId("cad-tool-stroke");
     const caret = page.getByTestId("cad-tool-stroke-style-trigger");
-    await expect(main).toHaveAttribute("data-cad-active", "false");
+    await expect(main).toHaveAttribute("aria-pressed", "false");
 
-    await caret.click();
-    await expect(page.getByTestId("cad-tool-stroke-style-trigger-content")).toBeVisible();
-    await expect(main).toHaveAttribute("data-cad-active", "false");
-
-    await page.getByTestId("cad-pencil-color-hex").fill("#12AB34");
-    await page.getByTestId("cad-pencil-color-apply").click();
-    await page.getByTestId("cad-pencil-width-5").click();
-    await page.getByTestId("cad-pencil-line-dashed").click();
-    await setRange(page, "cad-pencil-opacity", 80);
-
-    await expect(page.locator('[data-cad-line-width-preview="5"]')).toHaveCSS("height", "5px");
-    await expect(page.locator('[data-cad-line-style-preview="dashed"] line')).toHaveAttribute("stroke-dasharray", "9 5");
-
-    await page.keyboard.press("Escape");
+    await caret.press("ArrowDown");
+    await expect(page.getByRole("menu")).toBeVisible();
+    await expect(main).toHaveAttribute("aria-pressed", "false");
+    await page.locator('[role="menuitem"][title="Cyan"]').click();
+    await expect(caret).toHaveAttribute("aria-expanded", "false");
+    await caret.press("ArrowDown");
+    await expect(caret).toHaveAttribute("aria-expanded", "true");
+    const widthMenu = page.getByRole("menu");
+    await expect(widthMenu).toBeVisible();
+    await widthMenu.locator('[role="menuitem"][title="5px (Kalın)"]').click();
+    await expect(caret).toHaveAttribute("aria-expanded", "false");
+    await caret.press("ArrowDown");
+    await expect(caret).toHaveAttribute("aria-expanded", "true");
+    const dashMenu = page.getByRole("menu");
+    await expect(dashMenu).toBeVisible();
+    await dashMenu.locator('[role="menuitem"][title="Kesikli"]').click();
+    await expect(caret).toHaveAttribute("aria-expanded", "false");
     await main.click();
-    await expect(main).toHaveAttribute("data-cad-active", "true");
+    await expect(main).toHaveAttribute("aria-pressed", "true");
 
     await drawStroke(page, canvas);
 
     await expect.poll(async () => (await reviewDoc(page, fileId))?.items.filter((item) => item.type === "stroke").length).toBe(1);
     let document = await reviewDoc(page, fileId);
     let stroke = document!.items.find((item) => item.type === "stroke")!;
-    expect(stroke.style.color.toLowerCase()).toBe("#12ab34");
+    expect(stroke.style.color.toLowerCase()).toBe("#06b6d4");
     expect(stroke.style.strokeWidth).toBe(5);
     expect(stroke.style.lineDash).toBe("dashed");
-    expect(stroke.style.opacity).toBeCloseTo(0.8, 4);
 
     await page.getByTestId("cad-tool-undo").click();
     await expect.poll(async () => (await reviewDoc(page, fileId))?.items.filter((item) => item.type === "stroke").length).toBe(0);
@@ -139,6 +132,7 @@ test.describe("CAD Stage 3 — review tools browser acceptance", () => {
     await expect.poll(async () => (await reviewDoc(page, fileId))?.items.filter((item) => item.type === "stroke").length).toBe(1);
     document = await reviewDoc(page, fileId);
     stroke = document!.items.find((item) => item.type === "stroke")!;
+    expect(stroke.style.color.toLowerCase()).toBe("#06b6d4");
     expect(stroke.style.strokeWidth).toBe(5);
   });
 

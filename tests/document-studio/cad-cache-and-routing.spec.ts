@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   signInAdmin,
+  seedReadyDwgDxfDerivative,
   uploadCadPreviewV2Fixture,
   uploadCustomDwgFixture,
 } from "./cad-test-helpers";
@@ -15,6 +16,7 @@ test.describe("CAD Preview V2 — Cache HIT/MISS & Primary Tool Surface Routing 
 
     await signInAdmin(page);
     const fileId = await uploadCustomDwgFixture(page, "ornek-mimari-proje.dwg");
+    seedReadyDwgDxfDerivative(fileId, dxfBuffer);
 
     // Mock Cache HIT endpoint
     await page.route(`**/api/dokumantasyon/files/${fileId}/dwg-dxf`, async (route) => {
@@ -62,6 +64,8 @@ test.describe("CAD Preview V2 — Cache HIT/MISS & Primary Tool Surface Routing 
 
     await signInAdmin(page);
     const fileId = await uploadCustomDwgFixture(page, "ornek-statik-proje.dwg");
+    const dxfFixturePath = resolve(process.cwd(), "tests/fixtures/cad-preview-v2/known-geometry-measurements.dxf");
+    seedReadyDwgDxfDerivative(fileId, readFileSync(dxfFixturePath));
 
     // Mock Cache MISS endpoint
     await page.route(`**/api/dokumantasyon/files/${fileId}/dwg-dxf`, async (route) => {

@@ -5,7 +5,6 @@ import { cadReviewDocumentSchema } from "../../src/lib/dokumantasyon/cad-review/
 import { exportReviewToJson } from "../../src/lib/dokumantasyon/cad-review/export-json";
 import { CadMarkupFacade } from "../../src/lib/dokumantasyon/cad-review/markup-facade";
 import { CadReviewStore } from "../../src/lib/dokumantasyon/cad-review/store";
-import { getCurrentCadReviewStore } from "../../src/lib/dokumantasyon/cad-review/active-store";
 
 function doc(): CadReviewDocument {
   const now = new Date().toISOString();
@@ -147,18 +146,24 @@ test.describe("CAD Stage 3 — review tool data/undo contract", () => {
     expect(store.getItems().filter((item) => item.type !== "area")).toHaveLength(3);
   });
 
-  test("aktif store bridge ilk subscribe ve sonraki tool/selection etkileşimlerinde stale kalmaz", () => {
+  test("explicit store subscription yalnız kendi store değişikliklerini izler", () => {
     const first = new CadReviewStore(doc());
-    const unsubscribe = first.subscribe(() => {});
-    expect(getCurrentCadReviewStore()).toBe(first);
-    unsubscribe();
-
     const second = new CadReviewStore(doc());
-    second.setActiveTool("stroke");
-    expect(getCurrentCadReviewStore()).toBe(second);
+    let firstChanges = 0;
+    let secondChanges = 0;
+    const unsubscribeFirst = first.subscribe(() => { firstChanges += 1; });
+    const unsubscribeSecond = second.subscribe(() => { secondChanges += 1; });
 
-    const third = new CadReviewStore(doc());
-    third.setSelectedItems([]);
-    expect(getCurrentCadReviewStore()).toBe(third);
+    second.setActiveTool("stroke");
+    expect(second.getSession().activeTool).toBe("stroke");
+    expect(secondChanges).toBe(1);
+    expect(firstChanges).toBe(0);
+    expect(first.getSession().activeTool).toBe("select");
+
+    first.setActiveTool("text");
+    expect(firstChanges).toBe(1);
+    expect(secondChanges).toBe(1);
+    unsubscribeFirst();
+    unsubscribeSecond();
   });
 });

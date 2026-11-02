@@ -1,8 +1,15 @@
 import { expect, type Page } from "@playwright/test";
-import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { resolve } from "node:path";
 import { CAD_PREVIEW_V2_MANIFEST, type CadPreviewV2FixtureManifest } from "../fixtures/cad-preview-v2/manifest";
+import { getLocalStorageDir, readLocalDb, writeLocalDb } from "../../src/lib/dokumantasyon/local-store";
+import {
+  getDwgDxfConverterSignatureHash,
+  getDwgDxfSourceVersionKey,
+} from "../../src/lib/dokumantasyon/dwg/derivative-cache";
+import { DWG_DXF_CONVERTER_SIGNATURE } from "../../src/lib/dokumantasyon/dwg/signature";
 
 const trackedFixtureFileIds = new Set<string>();
 
@@ -129,6 +136,49 @@ export async function uploadCustomDwgFixture(page: Page, fileName = "test-drawin
 
   trackedFixtureFileIds.add(fileId);
   return fileId;
+}
+
+/** Seed only the isolated Playwright local store so the server sends `ready: true`. */
+export function seedReadyDwgDxfDerivative(fileId: string, dxfBytes: Buffer): void {
+  const db = readLocalDb();
+  const file = db.files.find((candidate) => candidate.id === fileId && !candidate.deleted_at);
+  if (!file) throw new Error(`Cannot seed DWG derivative; uploaded fixture not found: ${fileId}`);
+
+  const localPath = `test-derivatives/${fileId}/cached-preview.dxf`;
+  const diskPath = path.join(getLocalStorageDir(), ...localPath.split("/"));
+  mkdirSync(path.dirname(diskPath), { recursive: true });
+  writeFileSync(diskPath, dxfBytes);
+
+  const now = new Date().toISOString();
+  const dxfSha256 = createHash("sha256").update(dxfBytes).digest("hex");
+  db.dwg_dxf_derivatives ??= [];
+  db.dwg_dxf_derivatives.push({
+    id: randomUUID(),
+    file_id: fileId,
+    source_version_key: getDwgDxfSourceVersionKey(file),
+    source_sha256: file.sha256_hash || "0".repeat(64),
+    converter_signature: DWG_DXF_CONVERTER_SIGNATURE,
+    converter_signature_sha256: getDwgDxfConverterSignatureHash(),
+    dwg_version: null,
+    status: "ready",
+    validation_decision: "PASS",
+    dxf_blob_pathname: localPath,
+    dxf_blob_url: null,
+    dxf_sha256: dxfSha256,
+    dxf_size_bytes: dxfBytes.byteLength,
+    conversion_ms: 0,
+    validation_ms: 0,
+    diagnostics_json: [],
+    validation_json: { decision: "PASS", source: "isolated-playwright-fixture" },
+    error_code: null,
+    error_message: null,
+    lock_expires_at: null,
+    started_at: now,
+    completed_at: now,
+    created_at: now,
+    updated_at: now,
+  });
+  writeLocalDb(db);
 }
 
 export async function forceUpstreamUnavailable(page: Page): Promise<void> {

@@ -18,6 +18,7 @@ test.describe("CAD V1 ASAMA_07 — review-only notes, freehand and eraser", () =
     const bounds=await canvas.boundingBox();
     expect(bounds).not.toBeNull();
     const xy={x:bounds!.x+bounds!.width*0.65,y:bounds!.y+bounds!.height*0.65};
+    console.log("[CAD STEP] Pin blank-input validation and save");
     const initialEntityCount=await page.evaluate(()=>(
       window as Window & {__cadAdapter?:{getRenderReadinessSnapshot:()=>{entityCount:number}}}
     ).__cadAdapter?.getRenderReadinessSnapshot().entityCount??null);
@@ -34,11 +35,13 @@ test.describe("CAD V1 ASAMA_07 — review-only notes, freehand and eraser", () =
     await expect(dialog).toHaveCount(0);
     await expect(page.locator('[data-review-type="comment_pin"]')).toHaveCount(1);
 
+    console.log("[CAD STEP] Pin cancellation preserves the saved pin");
     await page.mouse.click(xy.x+100,xy.y-60);
     await expect(dialog).toBeVisible();
     await page.getByTestId("cad-review-input-cancel").click();
     await expect(page.locator('[data-review-type="comment_pin"]')).toHaveCount(1);
 
+    console.log("[CAD STEP] Text save and revision-scoped localStorage read");
     await page.locator('[data-testid="cad-tool-text"]').first().click();
     await page.mouse.click(xy.x+105,xy.y+30);
     await expect(dialog).toBeVisible();
@@ -58,10 +61,12 @@ test.describe("CAD V1 ASAMA_07 — review-only notes, freehand and eraser", () =
     ).__cadAdapter?.getRenderReadinessSnapshot().entityCount??null);
     expect(afterCount).toBe(initialEntityCount);
 
+    console.log("[CAD STEP] Undo and redo text item");
     await page.locator('[data-testid="cad-tool-undo"]').first().click();
     await expect(page.locator('[data-review-type="text"]')).toHaveCount(0);
     await page.locator('[data-testid="cad-tool-redo"]').first().click();
     await expect(page.locator('[data-review-type="text"]')).toHaveCount(1);
+    console.log("[CAD STEP] F5 persistence reload and readiness");
     await page.reload();
     await expect(host).toHaveAttribute("data-cad-upstream-state","ready",{timeout:30000});
     await expect(page.locator('[data-review-type="comment_pin"]')).toHaveCount(1);

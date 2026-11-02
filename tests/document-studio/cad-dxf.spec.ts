@@ -186,13 +186,14 @@ async function expectUpstreamDxfReady(page: Page) {
   expect(hostBox.width).toBeGreaterThanOrEqual(contentBox.width * 0.98);
   expect(hostBox.height).toBeGreaterThanOrEqual(contentBox.height * 0.98);
 
-  const topbarControls = page
-    .getByTestId("document-studio-topbar")
-    .locator('[data-cad-display-controls="true"]');
-  await expect(topbarControls).toBeVisible();
-  await expect(topbarControls.getByRole("button", { name: "Gerçek Renk" })).toBeVisible();
-  await expect(topbarControls.getByRole("button", { name: "Siyah-Beyaz" })).toBeVisible();
-  await expect(topbarControls.getByRole("button", { name: "Lineweight" })).toBeVisible();
+  const displayControls = page.getByTestId("cad-studio-ribbon");
+  await expect(displayControls.getByTestId("cad-display-source")).toBeVisible();
+  await expect(displayControls.getByTestId("cad-display-monochrome")).toBeVisible();
+  await expect(displayControls.getByTestId("cad-display-lineweight")).toBeVisible();
+  await page.getByTestId("cad-tool-view-settings").click();
+  await expect(page.getByTestId("cad-bg-black")).toBeVisible();
+  await expect(page.getByTestId("cad-bg-white")).toBeVisible();
+  await page.keyboard.press("Escape");
   await expect(host.locator('[data-cad-display-controls="true"]')).toHaveCount(0);
 
   console.log("--> [TEST DIAG] expectUpstreamDxfReady complete!");

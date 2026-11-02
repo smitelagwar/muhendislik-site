@@ -363,9 +363,20 @@ test("iki-parmak pinch gerçek OrbitControls kamerada doğal hızda zoom yapar v
   await page.waitForTimeout(120);
   await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
 
-  await expect.poll(async () => (await completedLineGeometry(page)).length, {
-    timeout: 2_000,
-  }).toBeGreaterThan(before.length * 1.1);
+  try {
+    await expect.poll(async () => (await completedLineGeometry(page)).length, {
+      timeout: 2_000,
+    }).toBeGreaterThan(before.length * 1.1);
+  } catch (error) {
+    const observed = await completedLineGeometry(page);
+    console.error("[CAD PINCH REPRO]", JSON.stringify({
+      before,
+      observed,
+      zoomRatio: observed.length / before.length,
+      anchorDriftPx: Math.hypot(observed.x1 - before.x1, observed.y1 - before.y1),
+    }));
+    throw error;
+  }
 
   const after = await completedLineGeometry(page);
   const zoomRatio = after.length / before.length;
