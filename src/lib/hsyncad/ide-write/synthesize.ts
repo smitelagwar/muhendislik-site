@@ -1,6 +1,6 @@
 /**
  * ideCAD Native Binary File Synthesizer (synthesizeIdeFile).
- * Synthesizes 100% genuine .ide10 and .ide11 binary project files from CadModel or IdeProject
+ * Historical unverified candidate builder retained for format research only; not a native export. Builds records from CadModel or IdeProject
  * from scratch without requiring any donor files or binary patching.
  */
 
@@ -74,13 +74,13 @@ function computeModelBounds(elements: (CadElement | IdeElement)[]): BoundingBox 
 }
 
 /**
- * Synthesizes a valid, bit-for-bit parseable ideCAD .ide10 or .ide11 binary file from scratch.
+ * Builds a candidate for research on the Hsyncad reader. ideCAD acceptance has not been established.
  *
  * @param modelOrProject - A hsynCAD CadModel or a parsed IdeProject
  * @param format - Target format version: "ide10" (201094) or "ide11" (211220)
  * @returns Fully assembled, sealed Uint8Array with valid CRC32 and carrier headers
  */
-export function synthesizeIdeFile(
+export function buildUnverifiedIdeCandidate(
   modelOrProject: CadModel | IdeProject,
   format: IdeFormatVersion = "ide11",
 ): Uint8Array {
@@ -222,4 +222,9 @@ export function synthesizeIdeFile(
   });
 
   return finalBytes;
+}
+
+/** Native serialization is incomplete. Never return an invalid project as a native export. */
+export function synthesizeIdeFile(_model: CadModel | IdeProject, _format: IdeFormatVersion = "ide11"): Uint8Array {
+  throw new Error("Sıfırdan native IDE yazıcısı ideCAD uyumluluğunu sağlamıyor. Modeli JSON olarak saklayın veya IFC ile ideCAD'e aktarın; native kaydı ideCAD içinde yapın.");
 }

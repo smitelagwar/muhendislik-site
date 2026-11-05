@@ -6,6 +6,8 @@
 
 ## 1. Başlangıç sırası
 
+Masaüstündeki ideCAD'i açma, yönetme veya native dosyayı orijinal uygulamada doğrulama görevi varsa, pencereyi kontrol etmeden önce [ideCAD masaüstü doğrulama kılavuzunu](docs/hsyncad/IDECAD_DESKTOP_WORKFLOW.md) oku. Yalnız kaynak kodu veya dosya baytlarını inceleyen işlerde bu ek okuma gerekmez.
+
 ### Sohbet kimliği verilirse zorunlu kısa yol
 
 Kullanıcı bir Codex veya Antigravity conversation/thread ID verdiğinde önce aşağıdaki dar kapsamlı yolları kullan. Tüm disk/kurulum/credential klasörlerini tarayarak token harcama. Bu bilgisayarda yollar 28 Ekim 2026'da doğrulandı; başka kullanıcıda kullanıcı kökü ve `CODEX_HOME` değişebilir.

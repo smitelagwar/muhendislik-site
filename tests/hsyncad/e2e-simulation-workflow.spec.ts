@@ -12,11 +12,8 @@ import {
 } from "../../src/lib/hsyncad/reports";
 import { exportModelToDxf, exportDetailToDxf } from "../../src/lib/hsyncad/dxf-export";
 import { generateBeamDetail } from "../../src/lib/hsyncad/detailing";
-import { patchIde10DonorBuffer } from "../../src/lib/hsyncad/ide-import/ide10-exporter";
-import { parseIde10 } from "../../src/lib/hsyncad/ide-import";
 
 const SON_DIR = "C:/Users/hsyn/Desktop/SON";
-const DONOR_IDE10_PATH = "C:/Users/hsyn/Downloads/MUSTAFA SELVİ 1.KISIM.ide10";
 
 const saved = (p: Page): Promise<CadModel> =>
   p.evaluate(() => JSON.parse(localStorage.getItem("hsyncad.model.v1")!));
@@ -387,25 +384,6 @@ test("End-to-End Structural Engineer Workflow: 7-Story 5,000m² RC Building Mode
     JSON.stringify(finalModel, null, 2),
     "utf8"
   );
-
-  // 13d-2: .ide10 donor-patched binary carrier
-  try {
-    const donorBytes = await fs.readFile(DONOR_IDE10_PATH);
-    const donorProject = parseIde10(
-      donorBytes.buffer.slice(
-        donorBytes.byteOffset,
-        donorBytes.byteOffset + donorBytes.byteLength
-      ),
-      "donor.ide10"
-    );
-    const patchedResult = patchIde10DonorBuffer(donorBytes, donorProject);
-    await fs.writeFile(
-      path.join(SON_DIR, "7_KAT_5000M2_BINA.ide10"),
-      Buffer.from(patchedResult.bytes)
-    );
-  } catch (err) {
-    console.warn("Donor patch notice:", err);
-  }
 
   // 13e. Structural CAD Drawing Sheets: Formwork Plan & Reinforcement Detailing
   // 13e-1: KALIP_PLANI.dxf

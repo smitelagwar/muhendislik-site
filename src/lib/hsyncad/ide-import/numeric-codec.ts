@@ -1,4 +1,6 @@
-/** Read-only numeric adapter for the authenticated IDE 211220 encoded carrier.
+import { IDE11_VERSION, IDE11_CURRENT_TRIAL_VERSION } from "./ide-binary-codec";
+
+/** Read-only numeric adapter for the observed IDE 211220 and 211280 trial carriers.
  *
  * Static format evidence: installed writer RVA 0x41bc20 / reader 0x419e20,
  * Blowfish initialization 0x90df40, block decrypt 0x4a4b30. The fixed P/S
@@ -166,7 +168,9 @@ export function decodeIdeNumericBlock(source: DataView, byteOffset: number): Uin
 
 export function hasIdeEncodedNumbers(buffer: ArrayBuffer): boolean {
   const header = new DataView(buffer);
-  return header.byteLength >= 83 && header.getUint8(78) === 1 && header.getUint32(74, true) === 211220;
+  if (header.byteLength < 83 || header.getUint8(78) !== 1) return false;
+  const version = header.getUint32(74, true);
+  return version === IDE11_VERSION || version === IDE11_CURRENT_TRIAL_VERSION;
 }
 
 class IdeEncodedDataView extends DataView<ArrayBuffer> {

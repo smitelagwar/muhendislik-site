@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { parseIde10 } from "./index";
+import { saveNativeIdeSource } from "../ide-native-save";
 import { parseIdeProjectSnapshot, serializeIdeProject, exportIdeDxf } from "../ide-export";
 
 const file = "C:/Users/hsyn/Desktop/MUSTAFA SELVİ 1.KISIM.ide11trial";
@@ -69,4 +70,38 @@ test("encoded carrier rejects unknown codec and incomplete source instead of inv
   assert.throws(() => parseIde10(input.slice(0, -1), "partial.ide11trial"), /boyutu uyuşmuyor/);
   const renamed = parseIde10(input, "renamed.ide10");
   assert.equal(renamed.format, "ide11trial", "header chooses the codec, never the extension");
+  assert.ok(renamed.warnings.some(warning => warning.includes("Dosya uzantısı .ide10, başlıktan okunan biçim .ide11trial")));
+});
+
+const currentTrial = process.env.HSYNCAD_IDE211280_FIXTURE;
+test("ideCAD 11.28 trial save retains the observed model and stair mesh", { skip: !currentTrial || !existsSync(original), timeout: 30_000 }, () => {
+  const source = readFileSync(currentTrial!);
+  const before = digest(source);
+  assert.equal(source.readUInt32LE(74), 211280);
+  const native = parseIde10(buffer(source), "sample.ide11trial");
+  const previous = parseIde10(buffer(readFileSync(original)), "original.ide10");
+  assert.deepEqual(native.floors.map(({name, elevation, height}) => [name, elevation, height]), previous.floors.map(({name, elevation, height}) => [name, elevation, height]));
+  assert.equal(native.elements.length, 1273);
+  assert.equal(native.elements.filter(e => e.mesh?.quads?.length).length, 7);
+  assert.equal(native.elements.filter(e => e.planAnnotation?.loads).length, 159);
+  const byId = new Map(previous.elements.map(e => [e.id, e]));
+  for (const element of native.elements) {
+    const baseline = byId.get(element.id);
+    assert.ok(baseline);
+    assert.equal(element.type, baseline.type);
+    assert.equal(element.points.length, baseline.points.length);
+    element.points.forEach((point, i) => { close(point.x, baseline.points[i].x); close(point.y, baseline.points[i].y); });
+    if (baseline.mesh) {
+      assert.equal(element.mesh?.positions.length, baseline.mesh.positions.length);
+      assert.deepEqual(element.mesh?.quads, baseline.mesh.quads);
+      element.mesh?.positions.forEach((n, i) => assert.ok(Math.abs(n - baseline.mesh!.positions[i]) < 0.00001));
+    }
+    if (baseline.planAnnotation?.loads) {
+      close(element.planAnnotation!.loads!.dead, baseline.planAnnotation.loads.dead);
+      close(element.planAnnotation!.loads!.live, baseline.planAnnotation.loads.live);
+    }
+  }
+  const saved = saveNativeIdeSource(source, native, "ide11trial");
+  assert.equal(digest(saved.bytes), before);
+  assert.equal(digest(source), before);
 });

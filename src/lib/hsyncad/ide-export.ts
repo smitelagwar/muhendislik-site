@@ -1,8 +1,8 @@
-import { parseIde10, type IdeElement, type IdeElementType, type IdePoint, type IdeProject } from "./ide-import";
+import { type IdeElement, type IdeElementType, type IdePoint, type IdeProject } from "./ide-import";
 import { axisEndLabels, memberLabel, planBounds, planPoints, slabLabelAnchor } from "./ide-plan-layout";
-import { transcodeIde11TrialToIde11 } from "./ide-import/ide11-transcoder";
+import { saveNativeIdeSource } from "./ide-native-save";
 import { exportToIde10Binary, type Ide10ExportResult } from "./ide-import/ide10-exporter";
-import { IDE11_VERSION } from "./ide-import/ide-binary-codec";
+
 
 export interface IdePlanExportOptions {
   elements?: readonly IdeElement[];
@@ -36,7 +36,7 @@ export function validateIdeProjectSnapshot(value: unknown): asserts value is Ide
     for (const [key, child] of Object.entries(item)) { assert(!["__proto__", "prototype", "constructor"].includes(key)); walk(child, depth + 1); }
   };
   walk(value, 0);
-  assert(object(value) && ["ide10", "ide11", "ide11trial"].includes(String(value.format)));
+  assert(object(value) && ["ide10", "ide11", "ide11trial", "cde"].includes(String(value.format)));
   assert(text(value.filename) && text(value.name) && integer(value.byteLength));
   assert(Array.isArray(value.floors) && value.floors.length > 0 && value.floors.length <= 1000);
   const floorIds = new Set<string>();
@@ -59,6 +59,8 @@ export function validateIdeProjectSnapshot(value: unknown): asserts value is Ide
     if (e.planTexts !== undefined) assert(Array.isArray(e.planTexts) && e.planTexts.length <= 100_000 && e.planTexts.every(t => object(t) && point(t.point) && text(t.text) && (t.rotation === undefined || finite(t.rotation))));
     for (const name of ["width", "thickness", "height", "bottom", "top"] as const) if (e[name] !== undefined) assert(finite(e[name]));
     for (const name of ["foundation", "structural", "planOnly"] as const) if (e[name] !== undefined) assert(typeof e[name] === "boolean");
+    if (e.nativeTopOffset !== undefined) assert(["column", "wall"].includes(e.type) && object(e.nativeTopOffset) && finite(e.nativeTopOffset.value) && Math.abs(e.nativeTopOffset.value) <= 100 && integer(e.nativeTopOffset.sourceOffset));
+    if (e.circleSection !== undefined) assert(e.type === "column" && object(e.circleSection) && point(e.circleSection.center) && finite(e.circleSection.radius) && e.circleSection.radius > 0 && e.circleSection.radius <= 50 && integer(e.circleSection.sourceOffset));
     if (e.mesh !== undefined) {
       assert(object(e.mesh) && ["native-analysis-mesh", "parametric-derived"].includes(String(e.mesh.source)));
       assert(Array.isArray(e.mesh.positions) && e.mesh.positions.length > 0 && e.mesh.positions.length % 3 === 0 && e.mesh.positions.length <= 3_000_000);
@@ -103,7 +105,7 @@ export function parseIdeProjectSnapshot(source: string): IdeProject {
 }
 
 export function ideExportBasename(filename: string): string {
-  return filename.replace(/^.*[\\/]/, "").replace(/\.(?:ide10|ide11|ide11trial|hsyncad|json)$/i, "").replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").trim().slice(0, 140) || "IDE-projesi";
+  return filename.replace(/^.*[\\/]/, "").replace(/\.(?:ide10|ide11|ide11trial|cde|hsyncad|json)$/i, "").replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").trim().slice(0, 140) || "IDE-projesi";
 }
 
 function floorElements(project: IdeProject, floorId: string, options: IdePlanExportOptions) {
@@ -202,75 +204,13 @@ export function exportIdeDxf(project: IdeProject, floorId: string, options: IdeP
   put(0, "ENDSEC", 0, "EOF"); return out.join("\r\n") + "\r\n";
 }
 
-/**
- * Exports the active project and its binary carrier as a decoded native .ide11 (211220, encodedFlag=0) file.
- */
-export function exportIde11Binary(
-  sourceBuffer: ArrayBuffer | Uint8Array,
-  project?: IdeProject,
-  donorIde10Buffer?: ArrayBuffer | Uint8Array,
-): Uint8Array {
-  const src = sourceBuffer instanceof Uint8Array ? sourceBuffer : new Uint8Array(sourceBuffer);
-  const view = new DataView(src.buffer, src.byteOffset, src.byteLength);
-  if (src.byteLength < 88) {
-    throw new Error("Kaynak IDE dosyası geçerli bir ikili taşıyıcı içermiyor.");
-  }
-  const version = view.getUint32(74, true);
-  if (version !== IDE11_VERSION) {
-    throw new Error(".ide11 dışa aktarımı için kaynak taşıyıcı v11 (211220) şemasında olmalıdır.");
-  }
-  const wallSectionOverrides = new Map<number, string>();
-  const slabLoadOverrides = new Map<number, { dead: number; live: number }>();
-  if (donorIde10Buffer) {
-    try {
-      const dBytes = donorIde10Buffer instanceof Uint8Array ? donorIde10Buffer : new Uint8Array(donorIde10Buffer);
-      const donorProject = parseIde10(
-        dBytes.buffer.slice(dBytes.byteOffset, dBytes.byteOffset + dBytes.byteLength) as ArrayBuffer,
-        "donor.ide10",
-      );
-      for (const el of donorProject.elements) {
-        if (el.type === "wall" && el.structural && el.planAnnotation?.section) {
-          wallSectionOverrides.set(el.nativeId, el.planAnnotation.section);
-        }
-      }
-    } catch {
-      // Fallback to standalone section reconstruction
-    }
-  }
-  if (project) {
-    for (const el of project.elements) {
-      if (el.type === "wall" && el.structural && el.planAnnotation?.section) {
-        wallSectionOverrides.set(el.nativeId, el.planAnnotation.section);
-      }
-      if (el.type === "slab" && el.planAnnotation?.loads) {
-        slabLoadOverrides.set(el.nativeId, {
-          dead: el.planAnnotation.loads.dead,
-          live: el.planAnnotation.loads.live,
-        });
-      }
-    }
-  }
-  return transcodeIde11TrialToIde11(src, {
-    wallSectionOverrides,
-    slabLoadOverrides,
-  });
+/** Same-version native save. Conversion is rejected until native acceptance exists. */
+export function exportIde11Binary(sourceBuffer: ArrayBuffer | Uint8Array, project?: IdeProject, donorIde10Buffer?: ArrayBuffer | Uint8Array): Uint8Array {
+  if (donorIde10Buffer) throw new Error("Başka bir proje kaynak dosyanın yerine kullanılamaz.");
+  return saveNativeIdeSource(sourceBuffer, project, "ide11").bytes;
 }
-
-/**
- * Exports the active project and its binary carrier as a native .ide10 (201094, encodedFlag=0) file.
- * Uses donor surgical patching when `donorIde10Buffer` is provided, or standalone record downgrade otherwise.
- */
-export function exportIde10Binary(
-  sourceBuffer: ArrayBuffer | Uint8Array,
-  project?: IdeProject,
-  donorIde10Buffer?: ArrayBuffer | Uint8Array,
-): Ide10ExportResult {
-  return exportToIde10Binary({
-    sourceBuffer,
-    project,
-    donorIde10Buffer,
-  });
+export function exportIde10Binary(sourceBuffer: ArrayBuffer | Uint8Array, project?: IdeProject, donorIde10Buffer?: ArrayBuffer | Uint8Array): Ide10ExportResult {
+  return exportToIde10Binary({ sourceBuffer, project, donorIde10Buffer });
 }
-
+export { saveNativeIdeSource } from "./ide-native-save";
 export { synthesizeIdeFile } from "./ide-write";
-

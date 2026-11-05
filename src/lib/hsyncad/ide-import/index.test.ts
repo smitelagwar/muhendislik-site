@@ -6,9 +6,14 @@ import { basename } from "node:path";
 import { inflateSync } from "node:zlib";
 import { parseIde10, type IdeProject } from "./index";
 import { readNativeWallHeight } from "./native-plan-labels";
+import { IDE_HEADER_SIGNATURE, sealIdeCarrierHeader } from "./ide-binary-codec";
+import { encodeIdeFloat64 } from "./numeric-codec";
 
 const close = (actual: number, expected: number) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} != ${expected}`);
 const sha256 = (data: Uint8Array) => createHash("sha256").update(data).digest("hex");
+// These private test copies intentionally alter fields below the integrity
+// layer. Seal only the test copy so the field grammar can still be exercised.
+const sealTestCopy = (buffer: ArrayBuffer) => sealIdeCarrierHeader(new Uint8Array(buffer), { formatVersion: 201094, encodedFlag: 0 });
 const samples = [
   {
     path: "D:\\IDM_DOWNLOAD\\SÜHEYLA KARA PROJELER\\STATİK\\218 ada 50 parsel STATİK.ide10",
@@ -44,8 +49,117 @@ test("rejects JSON, empty input, damaged format header and missing floor data", 
     const bytes = new TextEncoder().encode(text);
     assert.throws(() => parseIde10(bytes.buffer, "broken.ide10"), /desteklenen/);
   }
-  const header = new TextEncoder().encode("IDE BUILDING DESIGNER PROJECT FILE\r\nVer 4 SubVer 00\r\nCopyright IDE YAPI\r\n" + "\0".repeat(200));
+  const header = new Uint8Array(273);
+  header.set(new TextEncoder().encode(IDE_HEADER_SIGNATURE));
+  new DataView(header.buffer).setUint32(96, 1, true);
+  sealTestCopy(header.buffer);
   assert.throws(() => parseIde10(header.buffer, "empty.ide10"), /kat kayıtları/);
+});
+
+const nativeIfcFixture = process.env.HSYNCAD_IFC_NATIVE_FIXTURE;
+test("native IFC-created trial: unformatted floor title, imported beam sections and empty slab accounting", { skip: !nativeIfcFixture, timeout: 10000 }, () => {
+  const bytes = Uint8Array.from(readFileSync(nativeIfcFixture!));
+  assert.equal(sha256(bytes), "7b50f625a9ad91f9f5e96630c5230375d9533d5bfb830e85a2db978aa9f82e63");
+  const project = parseIde10(bytes.buffer, "hsyncad-4x4-body-first-ilk-kayit.ide11trial");
+  assert.deepEqual(project.floors.map(f => [f.name, f.elevation, f.height]), [["Zemin kat", 0, 3]]);
+  assert.equal(project.elements.length, 9);
+  assert.equal(project.coverage.candidateRecords, 10);
+  assert.equal(project.coverage.unsupportedTypes["Döşeme sınır noktaları boş"], 1);
+  assert.equal(project.coverage.unsupportedRecords, 1);
+  assertAccounting(project);
+  const beams = project.elements.filter(e => e.type === "beam");
+  assert.equal(beams.length, 4);
+  for (const beam of beams) {
+    assert.equal(beam.sectionLabel, "25/50"); close(beam.bottom!, 2.5); close(beam.top!, 3);
+  }
+  const unknownBeam = bytes.slice(), beam = beams[0];
+  new DataView(unknownBeam.buffer).setUint32(beam.sourceOffset + beam.name.length + 1 + 274, 69, true);
+  sealIdeCarrierHeader(unknownBeam, { formatVersion: 211280, encodedFlag: 1 });
+  const planOnly = parseIde10(unknownBeam.buffer, "unknown-beam-style.ide11trial").elements.find(e => e.id === beam.id)!;
+  assert.equal(planOnly.planOnly, true);
+  assert.equal(planOnly.height, undefined);
+  const damaged = bytes.slice(), floor = project.floors[0];
+  const floorData = floor.sourceOffset + new DataView(damaged.buffer).getUint32(floor.sourceOffset - 4, true);
+  new DataView(damaged.buffer).setUint32(floorData + 20, 0, true);
+  sealIdeCarrierHeader(damaged, { formatVersion: 211280, encodedFlag: 1 });
+  assert.throws(() => parseIde10(damaged.buffer, "damaged-floor.ide11trial"), /kat kayıtları/);
+  assert.equal(sha256(bytes), "7b50f625a9ad91f9f5e96630c5230375d9533d5bfb830e85a2db978aa9f82e63");
+});
+
+const nativePanelsFixture = process.env.HSYNCAD_IFC_PANELS_FIXTURE;
+test("native IFC panel acceptance: eleven solids including two bounded slabs survive original application save", { skip: !nativePanelsFixture, timeout: 10000 }, () => {
+  const bytes = Uint8Array.from(readFileSync(nativePanelsFixture!));
+  assert.equal(sha256(bytes), "7b63a5b1a9d3d263fe73914ea878b597985be9e09b09ca97dd20015f8b08c254");
+  const project = parseIde10(bytes.buffer, "hsyncad-paneller-ilk-kayit.ide11trial");
+  assert.deepEqual(project.floors.map(f => [f.name, f.elevation, f.height]), [["Zemin kat", 0, 3]]);
+  assert.deepEqual(project.coverage.byType, { beam: 4, column: 4, wall: 1, slab: 2 });
+  assert.equal(project.coverage.unsupportedRecords, 0);
+  assertAccounting(project);
+  const slabs = project.elements.filter(e => e.type === "slab");
+  for (const slab of slabs) {
+    close(slab.bottom!, 2.85); close(slab.top!, 3); close(slab.thickness!, .15);
+    assert.equal(slab.points.length, 8); assert.equal(slab.holes?.length ?? 0, 0);
+    const xs = slab.points.map(p => p.x), ys = slab.points.map(p => p.y);
+    close(Math.min(...xs), .125); close(Math.max(...xs), 3.875);
+    const expected = slab.name === "D1" ? [2.1, 3.875] : [.125, 1.9];
+    close(Math.min(...ys), expected[0]); close(Math.max(...ys), expected[1]);
+  }
+  assert.equal(project.elements.find(e => e.type === "wall")!.structural, true);
+});
+
+for (const sample of [
+  { label: "first save", path: process.env.HSYNCAD_IFC_TC33_FIXTURE, sha256: "5dcf547bbc5c00aa68eb4f2362222b7d6d615a4f1e6ca96628e18ec83f9bd296" },
+  { label: "reopened and saved", path: process.env.HSYNCAD_IFC_TC33_RESAVED_FIXTURE, sha256: "c3b4c34514351577966982e4f8537ef838579e5f37935b2fa59389a5e79e3937" },
+]) test(`native IFC three-storey ${sample.label} retains unopened top floor, different heights and all thirty-three solids`, { skip: !sample.path, timeout: 10000 }, () => {
+  const bytes = Uint8Array.from(readFileSync(sample.path!));
+  assert.equal(sha256(bytes), sample.sha256);
+  const project = parseIde10(bytes.buffer, "hsyncad-tc33-ilk-kayit.ide11trial");
+  assert.deepEqual(project.floors.map(f => [f.name, f.elevation, f.height]), [["Birinci kat", 3.5, 2.8], ["Zemin", 0, 3.5], ["Bodrum", -3, 3]]);
+  assert.equal(project.elements.length, 33); assert.equal(project.coverage.ignoredTemplateRecords, 0);
+  assert.equal(project.coverage.unsupportedRecords, 0); assertAccounting(project);
+  for (const [index, floor] of project.floors.entries()) {
+    const elements = project.elements.filter(e => e.floorId === floor.id);
+    assert.equal(elements.length, 11);
+    for (const beam of elements.filter(e => e.type === "beam")) {
+      close(beam.top!, [6.3, 3.5, 0][index]); close(beam.height!, [.4, .65, .5][index]);
+    }
+    for (const slab of elements.filter(e => e.type === "slab")) {
+      close(slab.top!, [6.3, 3.5, 0][index]); close(slab.thickness!, [.18, .2, .15][index]);
+      assert.equal(slab.points.length, 8);
+    }
+  }
+  const damaged = bytes.slice(), floor = project.floors[0];
+  const data = floor.sourceOffset + new DataView(damaged.buffer).getUint32(floor.sourceOffset - 4, true);
+  // Both copies of one bound are changed equally: duplicated values alone
+  // cannot certify an unopened header; the exact sentinel must also match.
+  damaged.set(encodeIdeFloat64(2), data + 40);
+  damaged.set(encodeIdeFloat64(2), data + 48);
+  sealIdeCarrierHeader(damaged, { formatVersion: 211280, encodedFlag: 1 });
+  assert.equal(parseIde10(damaged.buffer, "damaged-unopened-floor.ide11trial").floors.length, 2);
+  assert.equal(sha256(bytes), sample.sha256);
+});
+
+const nativeOffsetFixture = process.env.HSYNCAD_IFC_TC8_FIXTURE;
+test("native IFC custom sections retain short member top offsets and analytic circle radius", { skip: !nativeOffsetFixture, timeout: 10000 }, () => {
+  const bytes = Uint8Array.from(readFileSync(nativeOffsetFixture!));
+  assert.equal(sha256(bytes), "b65c4f22d09e943066a30aa6a27539bf376e67cadc69522d6d175105e6ee1649");
+  const project = parseIde10(bytes.buffer, "hsyncad-tc8-ilk-kayit.ide11trial");
+  assert.equal(project.elements.length, 8); assertAccounting(project);
+  const short = project.elements.find(e => e.name === "S92")!, wall = project.elements.find(e => e.name === "P91")!;
+  close(short.bottom!, .2); close(short.top!, 2.5); close(short.height!, 2.3);
+  close(short.nativeTopOffset!.value, -.5); assert.equal(short.verticalSource, "native-member-offset");
+  close(wall.bottom!, .3); close(wall.top!, 1.5); close(wall.height!, 1.2); close(wall.nativeTopOffset!.value, -1.5);
+  const circle = project.elements.find(e => e.name === "S93")!;
+  close(circle.circleSection!.radius, .3); close(circle.circleSection!.center.x, 4); close(circle.circleSection!.center.y, 0);
+  assert.equal(circle.points.length, 25, "native display points remain intact");
+  assert.equal(circle.footprint!.length, 64, "viewer footprint is derived from the authenticated circle radius");
+  const changed = bytes.slice(); changed.set(encodeIdeFloat64(-.9), short.nativeTopOffset!.sourceOffset);
+  sealIdeCarrierHeader(changed, { formatVersion: 211280, encodedFlag: 1 });
+  close(parseIde10(changed.buffer, "changed-short-copy.ide11trial").elements.find(e => e.name === "S92")!.top!, 2.1);
+  const badCircle = bytes.slice(); badCircle.set(encodeIdeFloat64(.4), circle.circleSection!.sourceOffset);
+  sealIdeCarrierHeader(badCircle, { formatVersion: 211280, encodedFlag: 1 });
+  assert.equal(parseIde10(badCircle.buffer, "bad-circle-copy.ide11trial").elements.find(e => e.name === "S93")!.circleSection, undefined);
+  assert.equal(sha256(bytes), "b65c4f22d09e943066a30aa6a27539bf376e67cadc69522d6d175105e6ee1649");
 });
 
 for (const sample of samples) test(`native sample acceptance: ${basename(sample.path)}`, { skip: !existsSync(sample.path), timeout: 30000 }, () => {
@@ -149,6 +263,7 @@ for (const sample of samples) test(`native sample acceptance: ${basename(sample.
   const firstFloor = project.floors[0], floorNameBytes = new DataView(buffer).getUint32(firstFloor.sourceOffset - 4, true);
   const damagedFloor = buffer.slice(0);
   new DataView(damagedFloor).setFloat64(firstFloor.sourceOffset + floorNameBytes + 36, Number.NaN, true);
+  sealTestCopy(damagedFloor);
   assert.equal(parseIde10(damagedFloor, "damaged-floor-header.ide10").floors.length, project.floors.length - 1);
   const loadedSlab = project.elements.find(e => e.type === "slab" && !e.foundation && e.planAnnotation?.loads)!;
   assert.ok(loadedSlab);
@@ -157,8 +272,10 @@ for (const sample of samples) test(`native sample acceptance: ${basename(sample.
   close(loadFields.live, new DataView(buffer).getFloat64(attributes + 481, true));
   assert.equal(loadFields.unit, "tf/m²");
   const customLoad = buffer.slice(0); new DataView(customLoad).setFloat64(attributes + 497, 0.1234, true);
+  sealTestCopy(customLoad);
   close(parseIde10(customLoad, "changed-load-copy.ide10").elements.find(e => e.id === loadedSlab.id)!.planAnnotation!.loads!.dead, 0.1234);
   const brokenLoad = buffer.slice(0); new DataView(brokenLoad).setFloat64(attributes + 497, Number.NaN, true);
+  sealTestCopy(brokenLoad);
   assert.equal(parseIde10(brokenLoad, "broken-load-copy.ide10").elements.find(e => e.id === loadedSlab.id)!.planAnnotation?.loads, undefined);
   if (sample.stairs === 7) {
     const basement = project.floors.at(-1)!;
@@ -214,6 +331,7 @@ for (const sample of samples) test(`native sample acceptance: ${basename(sample.
     // fallback or fabricated replacement may keep the damaged member visible.
     const damaged = buffer.slice(0);
     new DataView(damaged).setFloat64(3541567 + 8, Number.NaN, true);
+    sealTestCopy(damaged);
     const partial = parseIde10(damaged, "damaged-copy.ide10");
     assert.ok(!partial.elements.some(e => e.id === beam.id));
     assert.equal(partial.coverage.unsupportedRecords, project.coverage.unsupportedRecords + 1);

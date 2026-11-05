@@ -48,6 +48,25 @@ test("snapshot mesh references cannot address absent vertices", () => {
   assert.throws(() => serializeIdeProject(project), /Geçerli/);
 });
 
+test("native circle and special top offset metadata survive snapshots and reject malformed nested fields", () => {
+  const project = fixture();
+  project.elements[1].type = "column";
+  delete project.coverage.byType.beam; project.coverage.byType.column = 1;
+  project.elements[1].nativeTopOffset = { value: -.5, sourceOffset: 20 };
+  project.elements[1].circleSection = { center: { x: 2, y: 3 }, radius: .3, sourceOffset: 30 };
+  assert.deepEqual(parseIdeProjectSnapshot(serializeIdeProject(project)), project);
+  for (const patch of [
+    { nativeTopOffset: { value: [], sourceOffset: 20 } },
+    { nativeTopOffset: { value: 101, sourceOffset: 20 } },
+    { circleSection: { center: null, radius: .3, sourceOffset: 30 } },
+    { circleSection: { center: { x: 2, y: 3 }, radius: -.3, sourceOffset: 30 } },
+    { circleSection: { center: { x: 2, y: 3 }, radius: .3, sourceOffset: -1 } },
+  ]) {
+    const copy = JSON.parse(JSON.stringify(project)); Object.assign(copy.elements[1], patch);
+    assert.throws(() => serializeIdeProject(copy), /Geçerli/);
+  }
+});
+
 test("R2010 DXF opens with an independent parser, keeps metres/holes and two endpoint labels", () => {
   const project = fixture(), before = JSON.stringify(project), dxf = exportIdeDxf(project, "floor0");
   const parsed = new DxfParser().parseSync(dxf) as { header: Record<string, unknown>; entities: { type: string; layer: string; vertices?: { x: number; y: number }[]; shape?: boolean; center?: { x: number; y: number }; text?: string; x?: number; y?: number }[] };

@@ -1,19 +1,10 @@
-import { unzlibSync } from "three/addons/libs/fflate.module.js";
 import type { IdeMesh, IdePoint } from "./index";
+import { IDE10_VERSION, IDE11_VERSION, IDE11_CURRENT_TRIAL_VERSION } from "./ide-binary-codec";
+import { inflateIdeZlib } from "./ide-zlib";
 
 const MAX_NODES = 25_000;
 const MAX_RAW_BYTES = 16 * 1024 * 1024;
 const MAX_SCAN_BYTES = 2 * 1024 * 1024;
-
-function adler32(bytes: Uint8Array) {
-  let a = 1, b = 0;
-  for (let start = 0; start < bytes.length; start += 5552) {
-    const end = Math.min(bytes.length, start + 5552);
-    for (let i = start; i < end; i++) { a += bytes[i]; b += a; }
-    a %= 65521; b %= 65521;
-  }
-  return ((b << 16) | a) >>> 0;
-}
 
 export interface IdeStairAnalysisSurface {
   mesh: IdeMesh;
@@ -49,16 +40,14 @@ export function readIdeStairAnalysisSurface(bytes: Uint8Array, view: DataView, s
     cursor += 4 + count * 8;
     if (cursor + 4 > end || view.getUint32(cursor, true) !== count) continue;
     cursor += 4 + count * 8;
+    if (cursor + 15 > end || bytes[cursor] !== 1 || bytes[cursor + 1] !== 1) continue;
     const subFlag = bytes[cursor + 2], subVersion = view.getUint32(cursor + 3, true);
-    if (cursor + 15 > end || bytes[cursor] !== 1 || bytes[cursor + 1] !== 1 || (subFlag !== 0 && subFlag !== 1) || (subVersion !== 201094 && subVersion !== 211220)) continue;
+    if ((subFlag !== 0 && subFlag !== 1) || (subVersion !== IDE10_VERSION && subVersion !== IDE11_VERSION && subVersion !== IDE11_CURRENT_TRIAL_VERSION)) continue;
     const compressedBytes = view.getUint32(cursor + 7, true), rawBytes = view.getUint32(cursor + 11, true);
     cursor += 15;
     if (compressedBytes < 6 || compressedBytes > MAX_RAW_BYTES || rawBytes < 12 || rawBytes > MAX_RAW_BYTES || cursor + compressedBytes > end || bytes[cursor] !== 0x78) continue;
     try {
-      const compressed = bytes.subarray(cursor, cursor + compressedBytes);
-      // One extra byte detects a stream which exceeds its declared raw size.
-      const raw = unzlibSync(compressed, { out: new Uint8Array(rawBytes + 1) });
-      if (raw.length !== rawBytes || adler32(raw) !== view.getUint32(cursor + compressedBytes - 4, false)) continue;
+      const raw = inflateIdeZlib(bytes.subarray(cursor, cursor + compressedBytes), rawBytes);
       const rawView = new DataView(raw.buffer, raw.byteOffset, raw.byteLength), faceCount = rawView.getUint32(0, true), facesEnd = 4 + faceCount * 20;
       if (faceCount < 1 || faceCount > 100_000 || facesEnd + 4 > rawBytes) continue;
       const resultScalarCount = rawView.getUint32(facesEnd, true);

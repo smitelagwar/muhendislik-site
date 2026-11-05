@@ -1,3 +1,5 @@
+> **5 Kasım 2026 güncellemesi:** 211280 deneme taşıyıcısı gerçek ideCAD kaydı üzerinden okundu ve yeniden açıldı. Güncel davranış ve test kapsamı için [Native IDE uyumluluk durumu](hsyncad/NATIVE_INTEROP_STATUS.md).
+
 # IDE10 görüntüleyici — 29 Ekim 2026
 
 hsynCAD'in sağ altındaki **IDE projeleri** kısayolu, dosya menüsündeki **Model aç** ve çalışma alanındaki **Ctrl+O** artık `.ide10` dosyası açabilir. JSON modelleme alanı ayrı kalır: IDE projesi salt okunur görüntüleyicide incelenir ve mevcut model/geri alma geçmişinin üzerine yazılmaz.
@@ -82,7 +84,7 @@ Görüntüleyicinin sol üstündeki **Dosya** menüsü şu gerçek çıktıları
 - **DXF / SVG**: aktif kat ve görünür katmanların metre cinsinden geometrisi, boşlukları ve etiketleri.
 - **PNG**: o anda görünen2B plan.
 
-**IDE10/IDE11 native sürüm dönüşümü tamamlanmış değildir.** Dosya uzantısını veya trial bayrağını değiştiren sahte bir dönüştürücü yoktur. Bilinmeyen native nesnelerin yeniden yazımı ve ideCAD'de tekrar açılma kabul testi yapılmadan bu seçenek sunulmaz. Bu sürüm, trial dosyasını doğrudan görüntüleme ve bağımsız dışa aktarma sağlar.
+**IDE10/IDE11 native sürüm dönüşümü tamamlanmış değildir.** Bilinmeyen native nesnelerin yeniden yazımı ve ideCAD'de tekrar açılma kabul testi yapılmadan bu seçenek sunulmaz. Güncel 11.28 deneme ve sıkıştırılmış 11.04 örnekleri [Native IDE uyumluluğu](hsyncad/NATIVE_INTEROP_STATUS.md) belgesinde kayıtlıdır.
 
 Kanıtlar: araştırma arşivindeki `trial-numeric-codec-findings-2026-10-30.md`, `trial-numeric-static-evidence.json`, `trial-common-record-static.json`, `trial-floor-header-static.json`, `trial-metadata-findings-2026-10-30.md` ve gerçek dosya kabul testleri. Geçici Frida gözlemi kapatıldı; program veya özgün proje dosyaları değiştirilmedi.
 

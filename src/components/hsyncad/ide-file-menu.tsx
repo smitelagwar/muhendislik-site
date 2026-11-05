@@ -4,13 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, FileDown } from "lucide-react";
 import type { IdeElement, IdeProject } from "@/lib/hsyncad/ide-import";
 import {
-  exportIde10Binary,
-  exportIde11Binary,
+  saveNativeIdeSource,
   exportIdeDxf,
   exportIdeSvg,
   ideExportBasename,
   serializeIdeProject,
-  synthesizeIdeFile,
 } from "@/lib/hsyncad/ide-export";
 import styles from "./ide-file-menu.module.css";
 
@@ -32,27 +30,6 @@ function download(blob: Blob, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
-function resolveDonorExampleId(base: string, project: IdeProject): string | undefined {
-  if (/MUSTAFA\s+SELV[İI]\s+1\.KISIM/i.test(base)) return "mustafa-selvi-1";
-  if (/MUSTAFA\s+SELV[İI]\s+2\.KISIM/i.test(base)) return "mustafa-selvi-2";
-  if (/S[ÜU]HEYLA\s+KARA/i.test(base)) return "suheyla-kara";
-  if (project.floors.length === 6 && project.elements.length === 1273) return "mustafa-selvi-1";
-  return undefined;
-}
-
-async function fetchOptionalDonorBuffer(base: string, project: IdeProject): Promise<ArrayBuffer | undefined> {
-  if (project.format === "ide10") return undefined;
-  const donorId = resolveDonorExampleId(base, project);
-  if (!donorId) return undefined;
-  try {
-    const resp = await fetch(`/api/hsyncad/ide-examples/${donorId}`);
-    if (resp.ok) return await resp.arrayBuffer();
-  } catch {
-    // Fallback to standalone binary transcode/downgrade
-  }
-  return undefined;
-}
-
 export default function IdeFileMenu({ project, sourceFile, floorId, elements, labels, planVisible, onOpen, onStatus, onError }: Props) {
   const [open, setOpen] = useState(false), [busy, setBusy] = useState(false);
   const root = useRef<HTMLDivElement>(null), trigger = useRef<HTMLButtonElement>(null);
@@ -63,8 +40,8 @@ export default function IdeFileMenu({ project, sourceFile, floorId, elements, la
     return () => document.removeEventListener("pointerdown", outside);
   }, [open]);
 
-  const canExportIde11 = Boolean(project);
-  const canExportIde10 = Boolean(project);
+  const canExportIde11 = Boolean(sourceFile && project?.format === "ide11");
+  const canExportIde10 = Boolean(sourceFile && project?.format === "ide10");
 
   const save = async (format: "source" | "snapshot" | "ide11" | "ide10" | "dxf" | "svg" | "png") => {
     if (!project || busy) return;
@@ -76,32 +53,16 @@ export default function IdeFileMenu({ project, sourceFile, floorId, elements, la
       let filename: string;
       if (format === "source") {
         if (!sourceFile) throw new Error("Özgün dosyayı yeniden seçerek değiştirilmemiş kopyasını kaydedebilirsiniz.");
-        filename = sourceFile.name; download(sourceFile, filename);
+        filename = sourceFile.name.toLowerCase().endsWith(`.${project.format}`)
+          ? sourceFile.name : `${ideExportBasename(sourceFile.name)}.${project.format}`;
+        download(sourceFile, filename);
       } else if (format === "snapshot") {
         filename = `${base}.hsyncad`; download(new Blob([serializeIdeProject(project)], { type: "application/json;charset=utf-8" }), filename);
-      } else if (format === "ide11") {
-        let bytes: Uint8Array;
-        if (sourceFile) {
-          const srcBuffer = await sourceFile.arrayBuffer();
-          const donorBuffer = await fetchOptionalDonorBuffer(base, project);
-          bytes = exportIde11Binary(srcBuffer, project, donorBuffer);
-        } else {
-          bytes = synthesizeIdeFile(project, "ide11");
-        }
-        filename = `${base}.ide11`;
-        download(new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: "application/octet-stream" }), filename);
-      } else if (format === "ide10") {
-        let bytes: Uint8Array;
-        if (sourceFile) {
-          const srcBuffer = await sourceFile.arrayBuffer();
-          const donorBuffer = await fetchOptionalDonorBuffer(base, project);
-          const res = exportIde10Binary(srcBuffer, project, donorBuffer);
-          bytes = res.bytes;
-        } else {
-          bytes = synthesizeIdeFile(project, "ide10");
-        }
-        filename = `${base}.ide10`;
-        download(new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: "application/octet-stream" }), filename);
+      } else if (format === "ide11" || format === "ide10") {
+        if (!sourceFile) throw new Error("Native kayıt için özgün kaynak dosyası gerekir.");
+        const saved = saveNativeIdeSource(await sourceFile.arrayBuffer(), project, format);
+        filename = `${base}.${saved.format}`;
+        download(new Blob([saved.bytes.buffer as ArrayBuffer], { type: "application/octet-stream" }), filename);
       } else if (format === "png") {
         const canvas = root.current?.closest('[data-testid="ide-viewer"]')?.querySelector<HTMLCanvasElement>('[data-testid="ide-plan-canvas"]');
         if (!canvas) throw new Error("PNG için önce 2B Plan görünümünü açın.");
@@ -137,7 +98,7 @@ export default function IdeFileMenu({ project, sourceFile, floorId, elements, la
       <button type="button" role="menuitem" data-testid="ide-export-dxf" disabled={!project || busy} onClick={() => void save("dxf")}>Aktif katı dışa aktar · DXF</button>
       <button type="button" role="menuitem" data-testid="ide-export-svg" disabled={!project || busy} onClick={() => void save("svg")}>Aktif katı dışa aktar · SVG</button>
       <button type="button" role="menuitem" data-testid="ide-export-png" disabled={!project || !planVisible || busy} onClick={() => void save("png")}>Görünen planı kaydet · PNG</button>
-      <p>.hsyncad bu görüntüleyicide yeniden açılır. .ide11 ve .ide10 seçenekleri ikili taşıyıcıyı çözümlenmiş IEEE-754 ve CRC32 mühürlü olarak dışa aktarır.</p>
+      <p>.hsyncad çözümlenen görünümü saklar. Native kayıt yalnız özgün biçimde, tüm kaynak baytları korunarak yapılır. Sürüm dönüşümü ve model değişikliği henüz doğrulanmadı.</p>
     </div>}
   </div>;
 }

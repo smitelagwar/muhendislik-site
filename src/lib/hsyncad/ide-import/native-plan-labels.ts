@@ -58,7 +58,7 @@ export function readNativeWallHeight(view: DataView, nameOffset: number, name: s
   return Number.isFinite(height) && height > 0.01 && height <= 100 ? { height, sourceOffset: p + 266 } : undefined;
 }
 
-/** Encoded 211220 beam family. Trial display labels are stored as "XX", but
+/** Encoded 211220/211280 beam families. Trial display labels are stored as "XX", but
  * the typed beam-height field remains present. Its complete tag, raw style
  * references and three unit-scale doubles match all 357 original/trial pairs.
  * Width comes from the separately authenticated common geometry record. */
@@ -66,7 +66,10 @@ export function readNativeBeamSection(view: DataView, nameOffset: number, name: 
   if (!isIde11SchemaVersion(view.buffer as ArrayBuffer) || !Number.isFinite(width) || width <= 0 || width > 100) return;
   const p = nameOffset + name.length + 1;
   if (p + 322 > Math.min(recordEnd, view.byteLength) || view.getUint32(p + 262, true) !== 1) return;
-  if ([21, 61, 25004, 10049, 1, 1].some((value, index) => view.getUint32(p + 274 + index * 4, true) !== value)) return;
+  // The installed structural template's IFC import uses a second observed
+  // style/reference tuple. Both retain the typed height and unit-scale fields.
+  const families = [[21, 61, 25004, 10049, 1, 1], [68, 70, 25048, 1, 1, 1]];
+  if (!families.some(family => family.every((value, index) => view.getUint32(p + 274 + index * 4, true) === value))) return;
   if ([298, 306, 314].some(offset => view.getFloat64(p + offset, true) !== 1)) return;
   const height = view.getFloat64(p + 266, true);
   if (!Number.isFinite(height) || height <= 0.01 || height > 100) return;
