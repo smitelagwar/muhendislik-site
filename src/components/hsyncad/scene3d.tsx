@@ -12,6 +12,8 @@ import { isSolidElement, type CadModel } from "@/lib/hsyncad/model";
 import { layerState } from "@/lib/hsyncad/definitions";
 import { resolveJunctions, type JunctionResult } from "@/lib/hsyncad/junctions";
 import { axisSegments } from "@/lib/hsyncad/axes";
+import type { IdeElement } from "@/lib/hsyncad/ide-import";
+import { ideReferenceGeometry } from "@/lib/hsyncad/ide-reference-geometry";
 
 const THREE = ThreeRuntime as unknown as typeof ThreeTypes;
 
@@ -35,6 +37,7 @@ import {
 export { getVertexDisplacement };
 
 interface Scene3DProps {
+  ideReferences?: IdeElement[];
   model: CadModel;
   light?: boolean;
   selectedId: string | null;
@@ -103,7 +106,7 @@ function computeBuildingDimension(model: CadModel): number {
 
 
 /** One model unit is one metre. Plan +Y maps to world -Z; world +Y is elevation. */
-export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, junctions, fitKey = 0, light = true, viewRequest, analysisResult, analysisViewMode = "none", diagramScale = 1.0, deformationScale = 100, activeCombination = "Zarf" }: Scene3DProps) {
+export default function Scene3D({ model, ideReferences = [], selectedId, onSelect, hiddenLayers, junctions, fitKey = 0, light = true, viewRequest, analysisResult, analysisViewMode = "none", diagramScale = 1.0, deformationScale = 100, activeCombination = "Zarf" }: Scene3DProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<SceneRuntime | null>(null);
   const selectRef = useRef(onSelect);
@@ -352,6 +355,17 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
     const floors = new Map(model.floors.map((floor) => [floor.id, floor]));
     const elementsById = new Map(model.elements.map((e) => [e.id, e]));
     let solidCount = 0;
+    let referenceCount = 0;
+    for (const reference of ideReferences) {
+      const geometry = ideReferenceGeometry(reference);
+      if (!geometry) continue;
+      geometry.computeVertexNormals();
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0x8e85ad, transparent: true, opacity: .45, side: THREE.DoubleSide }));
+      mesh.userData.baseColor = 0x8e85ad;
+      // Source references are intentionally absent from structural picking and analysis.
+      runtime.elements.add(mesh); referenceCount++;
+    }
+    viewport.dataset.referenceCount = String(referenceCount);
     for (const e of model.elements) if (e.type === "slabEdge" && layerState(model, e.layer, e.floorId).visible && !hiddenLayers.includes(e.layer)) {
       const floor = floors.get(e.floorId)!;
       const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(e.start.x, floor.elevation + floor.height + (e.topOffset ?? 0) + 0.005, -e.start.y), new THREE.Vector3(e.end.x, floor.elevation + floor.height + (e.endTopOffset ?? e.topOffset ?? 0) + 0.005, -e.end.y)]);
@@ -564,7 +578,7 @@ export default function Scene3D({ model, selectedId, onSelect, hiddenLayers, jun
       runtime.fit();
     }
     runtime.render();
-  }, [model, hiddenLayers, junctions, analysisResult, analysisViewMode, diagramScale, deformationScale]);
+  }, [model, ideReferences, hiddenLayers, junctions, analysisResult, analysisViewMode, diagramScale, deformationScale]);
 
   useEffect(() => {
     if (!fitKey) return;

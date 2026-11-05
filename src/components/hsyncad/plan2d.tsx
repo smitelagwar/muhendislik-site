@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Maximize2, Minus, Plus } from "lucide-react";
 import type { CadElement, Point } from "@/lib/hsyncad/model";
+import type { IdeElement } from "@/lib/hsyncad/ide-import";
+import { planPoints } from "@/lib/hsyncad/ide-plan-layout";
 import { elementFootprint, snapPoint } from "@/lib/hsyncad/geometry";
 import { referenceSnapCandidates, projectOnReference, type DraftingItem, type ReferenceFrame } from "@/lib/hsyncad/drafting";
 import DraftingOverlay from "./drafting-overlay";
@@ -25,6 +27,7 @@ import {
 } from "@/lib/hsyncad/diagram-geometry";
 
 type Props = {
+  ideReferences?: IdeElement[];
   elements: CadElement[]; tool: Tool; selectedId: string | null; pending: Point[];
   snapping: boolean; ortho: boolean; gridStep: number; fitKey: number;
   onPoint: (p: Point, action?: PointAction) => void; onSelect: (id: string | null) => void;
@@ -44,7 +47,7 @@ const MIN_SCALE = 1e-6;
 const SNAP_LABELS: Record<string, string> = { intersection: "Aks kesişimi", endpoint: "Uç nokta", midpoint: "Orta nokta", grid: "Izgara", none: "Serbest", reference: "Referans doğrusu" };
 
 const dash = (style: LineStyle | undefined, fallback: LineStyle = "solid") => (style ?? fallback) === "dashdot" ? "9 5 2 5" : style === "dashed" ? "6 4" : undefined;
-export default function Plan2D({ elements, tool, selectedId, pending, snapping, ortho, gridStep, fitKey, onPoint, onSelect, onCursor, onZoom, snapSettings = DEFAULT_SNAP, lockedLayers = [], layerColors = {}, preview, unit = "m", lengthLock = null, angleLock = null, fallbackAngle = 0, regionPicking = false, draftingItems = [], referenceFrame, showGrid = true, coordinateConstraint, analysisResult, analysisViewMode = "none", diagramScale = 1.0, deformationScale = 100, activeCombination = "Zarf", paftaMode = false }: Props) {
+export default function Plan2D({ elements, ideReferences = [], tool, selectedId, pending, snapping, ortho, gridStep, fitKey, onPoint, onSelect, onCursor, onZoom, snapSettings = DEFAULT_SNAP, lockedLayers = [], layerColors = {}, preview, unit = "m", lengthLock = null, angleLock = null, fallbackAngle = 0, regionPicking = false, draftingItems = [], referenceFrame, showGrid = true, coordinateConstraint, analysisResult, analysisViewMode = "none", diagramScale = 1.0, deformationScale = 100, activeCombination = "Zarf", paftaMode = false }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 600, height: 490 });
   const [camera, setCamera] = useState({ x: 2, y: 2, scale: 48 });
@@ -108,13 +111,14 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
     const points = [
       ...elements.flatMap((e) => e.type === "axis" ? [e.start, e.end] : elementFootprint(e)),
       ...draftingItems.flatMap(item => item.points),
+      ...ideReferences.flatMap(planPoints),
       ...(referenceFrame?.enabled ? [referenceFrame.origin] : []),
     ].filter(point => Number.isFinite(point.x) && Number.isFinite(point.y));
     if (!points.length) { setCamera({ x: 2, y: 2, scale: 48 }); return; }
     const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
     const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
     setCamera({ x: (minX + maxX) / 2, y: (minY + maxY) / 2, scale: Math.max(MIN_SCALE, Math.min(100, (size.width - 110) / Math.max(1, maxX - minX), (size.height - 120) / Math.max(1, maxY - minY))) });
-  }, [elements, draftingItems, referenceFrame, size]);
+  }, [elements, ideReferences, draftingItems, referenceFrame, size]);
   const fitRef = useRef(fit);
   useEffect(() => { fitRef.current = fit; }, [fit]);
   useEffect(() => { if (fitKey) { const id = requestAnimationFrame(() => fitRef.current()); return () => cancelAnimationFrame(id); } }, [fitKey]);
@@ -434,6 +438,7 @@ export default function Plan2D({ elements, tool, selectedId, pending, snapping, 
           </g>
         )}
         {snapSettings.showNodes && [...candidates.endpoint, ...candidates.intersection].map((p, i) => <circle key={`node-${i}`} cx={screen(p).x} cy={screen(p).y} r={snapSettings.nodeRadius} fill="#27bca6" pointerEvents="none" />)}
+        <g data-testid="hsyncad-ide-references" pointerEvents="none" stroke="#8e85ad" strokeWidth={1} fill="none" opacity={0.75}>{ideReferences.map(e => <g key={e.id}><title>{e.name} · Kaynak referansı</title>{(e.planPaths?.length ? e.planPaths : [e.footprint?.length ? [...e.footprint, e.footprint[0]] : e.points, ...(e.holes ?? []).map(h => [...h, h[0]])]).map((points, i) => <polyline key={i} points={path(points)} />)}</g>)}</g>
         <DraftingOverlay items={draftingItems} frame={referenceFrame} screen={screen} size={size} scale={camera.scale} tool={tool} pending={pending} cursor={cursor} unit={unit} />
         {preview && cursor && <g data-testid="hsyncad-placement-preview" data-preview-type={preview.type} pointerEvents="none">
           {preview.type === "axis" || preview.type === "slabEdge" ? <polyline points={path(preview.type === "axis" ? extendedAxisEndpoints(preview) : elementFootprint(preview))} stroke="#ed8b22" strokeWidth={2} strokeDasharray="7 4" fill="none" /> : <polygon points={path(elementFootprint(preview))} stroke={preview.type === "slab" && regionPicking ? "#ed5757" : "#ed8b22"} strokeWidth={2} fill={preview.type === "slab" && regionPicking ? "#ed575720" : "#ed8b2228"} />}

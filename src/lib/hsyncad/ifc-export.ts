@@ -2,6 +2,7 @@ import { columnOffsets, effectiveThickness } from "./definitions";
 import { distance, elementFootprint, elementVerticalRange, isSimplePolygon, polygonArea, segmentIntersection } from "./geometry";
 import { validateModel, type CadModel, type Point, type SolidElement } from "./model";
 import { ideCadSlabPanelIssues } from "./ifc-panels";
+import { ideReferenceElements } from "./ide-workspace";
 
 export type IfcExportIssue = { id: string; name: string; code: string; reason: string };
 export type IfcExportReport = {
@@ -166,6 +167,10 @@ export function exportCadModelIfc(input: CadModel, options: IfcExportOptions = {
   }
   const unsupported = report.omitted.filter(e => e.code !== "NON_SOLID");
   if (unsupported.length && options.unsupportedElements !== "omit") throw new IfcExportError(`IFC aktarımı durduruldu. ${unsupported.slice(0, 3).map(issue => `${issue.name}: ${issue.reason}`).join(" ")}${unsupported.length > 3 ? ` Ayrıca ${unsupported.length - 3} eleman daha uygun değil.` : ""}`, unsupported);
+  const references = ideReferenceElements(model);
+  report.sourceElementCount += references.length;
+  for (const e of references) report.omitted.push({ id: e.id, name: e.name, code: "IDE_SOURCE_REFERENCE", reason: "IDE kaynak referansı düzenlenebilir yapısal IFC modeline dahil edilmedi; .hsyncad çalışma dosyasında korunur." });
+  if (model.ideImport) report.notTransferred.push("IDE kaynak referansları ve çözümlenemeyen native kayıtlar; tam IDE projesi aktarımı değildir");
   report.warnings.push({ id: "project", name: model.name, code: "NATIVE_IMPORT_UNVERIFIED", reason: "Bu IFC dosyasının ideCAD'de açılması, native nesne türleri, malzeme eşleşmesi ve üst katın kaldırılması uygulamada doğrulanmalıdır." });
   const w = new StepWriter(`hsynCAD IFC2X3/${model.name}`);
   const person = w.add("IFCPERSON", "$,$,'hsynCAD',$,$,$,$,$");

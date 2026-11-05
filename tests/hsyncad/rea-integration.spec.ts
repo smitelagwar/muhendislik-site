@@ -63,7 +63,7 @@ test("column creation settings drive real section geometry, story elevations and
   await page.getByLabel("Poligon kesit köşeleri", { exact: true }).fill("0 0\n1 0\n0 1");
   await page.getByTestId("property-apply").click();
   await expect.poll(async () => (await saved(page)).elements[0].type === "column" && (await saved(page)).elements[0]).toMatchObject({ section: "polygon", sectionPoints: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 0, y: 1 }] });
-  const download = page.waitForEvent("download"); await page.getByRole("button", { name: "JSON kaydet", exact: true }).click();
+  const download = page.waitForEvent("download"); await page.getByRole("button", { name: "Çalışmayı kaydet · .hsyncad", exact: true }).click();
   const file = await download; expect(JSON.parse(await fs.readFile((await file.path())!, "utf8")).toolDefaults.column.section).toBe("circle");
 });
 

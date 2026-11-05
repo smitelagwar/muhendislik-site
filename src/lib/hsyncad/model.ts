@@ -2,6 +2,8 @@ import { distance, elementFootprint, elementVerticalRange, isSimplePolygon, line
 import { readExtras, readLayerStates, readSnap, type Appearance, type CadLayer, type LayerState, type SnapSettings, type LineStyle } from "./definitions";
 import { validateDrafting, type DraftingData } from "./drafting";
 import { validateLinkedSlabRegions } from "./regions";
+import type { IdeWorkspaceImport } from "./ide-workspace";
+import { validateIdeProjectSnapshot } from "./ide-export";
 
 /** SI model: coordinates, elevations and dimensions are always metres. */
 export type Point = { x: number; y: number };
@@ -21,7 +23,7 @@ export type SlabEdgeElement = ElementBase & { type: "slabEdge"; start: Point; en
 export type CadElement = AxisElement | ColumnElement | BeamElement | WallElement | SlabElement | SlabEdgeElement;
 export type SolidElement = ColumnElement | BeamElement | WallElement | SlabElement;
 export function isSolidElement(e: CadElement): e is SolidElement { return e.type !== "axis" && e.type !== "slabEdge"; }
-export type CadModel = { schemaVersion: 1; name: string; floors: Floor[]; materials: Material[]; elements: CadElement[]; layers?: CadLayer[]; snap?: SnapSettings; toolDefaults?: Partial<Record<SolidElement["type"], SolidElement>>; drafting?: DraftingData };
+export type CadModel = { schemaVersion: 1; name: string; floors: Floor[]; materials: Material[]; elements: CadElement[]; layers?: CadLayer[]; snap?: SnapSettings; toolDefaults?: Partial<Record<SolidElement["type"], SolidElement>>; drafting?: DraftingData; ideImport?: IdeWorkspaceImport };
 
 export function createEmptyModel(): CadModel {
   return {
@@ -106,7 +108,7 @@ export function validateModel(value: unknown): CadModel {
   uniqueIds(floors, "Katlar"); uniqueIds(materials, "Malzemeler");
   const floorIds = new Set(floors.map(f => f.id));
   const materialIds = new Set(materials.map(m => m.id));
-  const elements = list(source.elements, "Elemanlar", 1000).map((v): CadElement => {
+  const elements = list(source.elements, "Elemanlar", 10_000).map((v): CadElement => {
     const e = record(v, "Eleman");
     const base: ElementBase = { id: text(e.id, "Eleman kimliği"), name: text(e.name, "Eleman adı"), floorId: text(e.floorId, "Eleman katı"), materialId: text(e.materialId, "Eleman malzemesi"), layer: text(e.layer, "Katman"), ...readExtras(e) };
     if (!floorIds.has(base.floorId) || !materialIds.has(base.materialId)) throw new Error(`${base.name}: kat veya malzeme bulunamadı.`);
@@ -200,6 +202,19 @@ export function validateModel(value: unknown): CadModel {
     }
   }
   const model: CadModel = { schemaVersion: 1, name: text(source.name, "Model adı"), floors, materials, elements, ...(layers ? { layers } : {}), ...(source.snap === undefined ? {} : { snap: readSnap(source.snap) }), ...(toolDefaults ? { toolDefaults } : {}), ...(source.drafting === undefined ? {} : { drafting: validateDrafting(source.drafting, floorIds) }) };
+  if (source.ideImport !== undefined) {
+    const imported = record(source.ideImport, "IDE aktarımı");
+    validateIdeProjectSnapshot(imported.source);
+    const sourceIds = new Set(imported.source.elements.map(e => e.id));
+    const mappedIds = list(imported.mappedIds, "IDE düzenlenen nesneler", 10_000).map(id => text(id, "IDE kimliği"));
+    const references = list(imported.references, "IDE referansları", 200_000).map(item => {
+      const ref = record(item, "IDE referansı");
+      return { id: text(ref.id, "IDE kimliği"), reason: text(ref.reason, "IDE kapsamı") };
+    });
+    const ids = [...mappedIds, ...references.map(r => r.id)];
+    if (new Set(ids).size !== ids.length || ids.length !== sourceIds.size || ids.some(id => !sourceIds.has(id))) throw new Error("IDE aktarım kapsamı kaynakla eşleşmiyor.");
+    model.ideImport = { source: imported.source, mappedIds, references };
+  }
   validateLinkedSlabRegions(model);
   return model;
 }

@@ -66,9 +66,9 @@ test("real user builds a two-storey linked concrete model from blank, edits and 
   const net = await page.getByTestId("quantity-net").innerText();
   await page.getByTestId("hsyncad-report-open").click();
   await expect(page.getByTestId("hsyncad-report").locator("tbody tr")).toHaveCount(8);
-  const csvPromise = page.waitForEvent("download"); await page.getByRole("button", { name: "CSV metraj indir", exact: true }).click(); const csv = await csvPromise; await csv.saveAs(path.join(artifacts, "iki-kat-metraj.csv"));
+  const csvPromise = page.waitForEvent("download"); await page.getByRole("button", { name: "CSV Metraj İndir", exact: true }).click(); const csv = await csvPromise; await csv.saveAs(path.join(artifacts, "iki-kat-metraj.csv"));
   await page.getByRole("button", { name: "Ayarları kapat", exact: true }).click();
-  const downloadPromise = page.waitForEvent("download"); await page.getByRole("button", { name: "JSON kaydet", exact: true }).click(); const download = await downloadPromise; const projectPath = path.join(artifacts, "iki-kat-kullanici-projesi.json"); await download.saveAs(projectPath);
+  const downloadPromise = page.waitForEvent("download"); await page.getByRole("button", { name: "Çalışmayı kaydet · .hsyncad", exact: true }).click(); const download = await downloadPromise; const projectPath = path.join(artifacts, "iki-kat-kullanici-projesi.json"); await download.saveAs(projectPath);
   const delivered = JSON.parse(await fs.readFile(projectPath, "utf8")); expect(delivered.elements).toHaveLength(32);
   await page.getByRole("button", { name: "Dosya işlemleri", exact: true }).click(); await page.getByRole("menuitem", { name: "Yeni model", exact: true }).click();
   await expect(page.getByTestId("hsyncad-3d")).toHaveAttribute("data-solid-count", "0");

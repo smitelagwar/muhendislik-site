@@ -26,6 +26,13 @@
   font-family: var(--font-sans), Arial, sans-serif;
   outline: none;
 }
+.importBar, .importReport { flex: 0 0 auto; padding: 7px 14px; border-bottom: 1px solid var(--hc-border); background: var(--hc-raised); color: var(--hc-text); }
+.importBar { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.importBar button { cursor: pointer; padding: 5px 12px; border: 1px solid var(--hc-border); border-radius: 4px; }
+.importReport summary { cursor: pointer; overflow-wrap: anywhere; }
+.importReport > div { max-height: 24vh; overflow: auto; padding-block: 6px; }
+.importReport p { margin: 6px 0; }
+.importReport ul { margin: 8px 0; padding-left: 22px; }
 :global(.dark) .root {
   --hc-bg: #141c25;
   --hc-panel: #1b2530;

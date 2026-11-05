@@ -7,7 +7,8 @@
   block-size: 100vh;
   block-size: 100dvh;
   min-block-size: 0;
-  overflow: hidden;
+  /* Never become a scroll container when a toolbar control receives focus. */
+  overflow: clip;
   overscroll-behavior: none;
   contain: layout paint;
 }

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "suheyla-kara",
+    "filename": "suheyla-kara.hsyncad",
+    "sourceFilename": "218 ada 50 parsel STATİK.ide10",
+    "sourceSha256": "de92fa251e51912d212281f0d1cfe8ee13f7474b703a4e6c3cc91aa88aef8b2b",
+    "sha256": "bbb5aaf60aa2b85c2c8cd7881389318c6e99228e9b624ba55ece7ed176ace102",
+    "bytes": 2554927,
+    "floors": 7,
+    "editable": 1986,
+    "references": 185,
+    "decoded": 2171
+  },
+  {
+    "id": "mustafa-selvi-2",
+    "filename": "mustafa-selvi-2.hsyncad",
+    "sourceFilename": "MUSTAFA SELVİ 2.KISIM.ide10",
+    "sourceSha256": "0a4400a0a1d499d8fce98860fef3e8145c43d5925ee535bf9cb54017a5cbaf90",
+    "sha256": "d01276f84460ac172af7008f687c30207c2b7dc99bd181d698c36497eaa80542",
+    "bytes": 610494,
+    "floors": 5,
+    "editable": 532,
+    "references": 154,
+    "decoded": 686
+  },
+  {
+    "id": "mustafa-selvi-1",
+    "filename": "mustafa-selvi-1.hsyncad",
+    "sourceFilename": "MUSTAFA SELVİ 1.KISIM.ide10",
+    "sourceSha256": "0095778181794af8f4f8cfb52cabcca3dda4fc098cb3ea33a90e5c659bdaf325",
+    "sha256": "22adfc55e36c2f71582694ff7c3851c53a627bb755692b9bf5ca66ba112a3460",
+    "bytes": 1425890,
+    "floors": 6,
+    "editable": 928,
+    "references": 345,
+    "decoded": 1273
+  },
+  {
+    "id": "mustafa-selvi-1-trial",
+    "filename": "mustafa-selvi-1-trial.hsyncad",
+    "sourceFilename": "MUSTAFA SELVİ 1.KISIM.ide11trial",
+    "sourceSha256": "007812939985974036ac2ddff157b8f2bd482d4b770905afb30ceb71f442f97c",
+    "sha256": "c9f7501e9e0856f0ce1b2dc8833189b32dca59ddd2ed1920858ccbfcbd6a7233",
+    "bytes": 1434363,
+    "floors": 6,
+    "editable": 928,
+    "references": 345,
+    "decoded": 1273
+  }
+]

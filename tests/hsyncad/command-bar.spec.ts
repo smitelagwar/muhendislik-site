@@ -85,7 +85,7 @@ test("desktop native ribbon preserves the scoped tabs, dense groups and real mai
   await page.getByRole("button", { name: "Ayarları kapat", exact: true }).click();
   const context = (await page.getByTestId("hsyncad-context-bar").boundingBox())!;
   expect(context.y + context.height).toBeLessThanOrEqual(230);
-  await expect(page.getByRole("button", { name: "JSON kaydet", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Çalışmayı kaydet · .hsyncad", exact: true })).toBeVisible();
   const plan = (await page.getByTestId("hsyncad-plan").boundingBox())!;
   const scene = (await page.getByTestId("hsyncad-3d-viewport").boundingBox())!;
   expect(plan.height).toBeGreaterThan(700); expect(scene.height).toBeGreaterThan(700);
@@ -109,8 +109,8 @@ test("all primary commands fit a narrow phone and the compact file menu download
   }
   await page.getByLabel("Dosya işlemleri", { exact: true }).click();
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "JSON kaydet", exact: true }).click();
-  expect((await download).suggestedFilename()).toBe("hsyncad-model.json");
+  await page.getByRole("button", { name: "Çalışmayı kaydet · .hsyncad", exact: true }).click();
+  expect((await download).suggestedFilename()).toMatch(/\.hsyncad$/);
   await expect(page.getByRole("menu")).not.toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

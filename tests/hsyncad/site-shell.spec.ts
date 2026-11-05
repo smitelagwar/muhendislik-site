@@ -11,7 +11,7 @@ test("CAD viewport has its own chrome; regular tools retain normal site chrome",
   await expect(page.getByTestId("global-bottom-nav-spacer")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Araçlara dön" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "hsynCAD" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "JSON kaydet" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Çalışmayı kaydet · .hsyncad" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Model aç" })).toBeVisible();
   const metrics = await shell.evaluate((node) => ({
     height: node.getBoundingClientRect().height,
@@ -19,7 +19,7 @@ test("CAD viewport has its own chrome; regular tools retain normal site chrome",
     overflowY: window.getComputedStyle(node).overflowY,
   }));
   expect(Math.abs(metrics.height - metrics.viewportHeight)).toBeLessThanOrEqual(1);
-  expect(metrics.overflowY).toBe("hidden");
+  expect(metrics.overflowY).toBe("clip");
 
   await page.getByRole("link", { name: "Araçlara dön" }).click();
   await expect(page).toHaveURL(/\/kategori\/araclar\/?$/);

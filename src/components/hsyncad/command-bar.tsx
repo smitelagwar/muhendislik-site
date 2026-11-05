@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, ChevronDown, ChevronRight, Columns3, Grid2X2, Layers, Ruler, Square } from "lucide-react";
 import { type NativeRibbonCommand } from "@/lib/hsyncad/ribbon-layout";
 import { PRODUCT_RIBBON_TABS } from "@/lib/hsyncad/product-ribbon";
+import { IDE_EXAMPLES, type IdeExampleId } from "@/lib/hsyncad/ide-examples";
 import CadIcon, { type CadIconName } from "./cad-icons";
 import type { Tool } from "./editor-state";
 import styles from "./ribbon.module.css";
@@ -23,6 +24,7 @@ type Props = {
   tab: string; onTab: (tab: string) => void;
   actions: Record<number, RibbonAction>;
   onUndo: () => void; onRedo: () => void; onExport: () => void; onImport: () => void;
+  onOpenExample: (id: IdeExampleId) => void;
 };
 const toolIds: Record<number, string> = { 12590: "axis", 12820: "column", 12910: "beam", 13810: "wall", 12570: "slab", 13660: "measureDistance", 13650: "measureArea", 40221: "measureAngle" };
 const iconIds: Record<number, CadIconName> = {
@@ -118,8 +120,8 @@ export default function CommandBar(p: Props) {
     <div className={styles.titlebar}>
       <Link href="/kategori/araclar" aria-label="Araçlara dön" title="Araçlara dön"><ArrowLeft size={12} /></Link><h1>hsynCAD</h1>
       <div className={styles.quick} aria-label="Hızlı erişim">
-        <button type="button" title="IDE veya JSON modeli aç · Ctrl+O" aria-label="Model aç" onClick={p.onImport}><CadIcon name="open" size={15} /></button>
-        <button type="button" title="JSON kaydet" aria-label="JSON kaydet" onClick={p.onExport}><CadIcon name="save" size={15} /></button>
+        <button type="button" title="IDE veya hsynCAD modeli aç · Ctrl+O" aria-label="Model aç" onClick={p.onImport}><CadIcon name="open" size={15} /></button>
+        <button type="button" title="Çalışmayı kaydet · .hsyncad" aria-label="Çalışmayı kaydet · .hsyncad" onClick={p.onExport}><CadIcon name="save" size={15} /></button>
         <button type="button" aria-label="Geri al" title="Geri al · Ctrl+Z" disabled={!p.canUndo} onClick={p.onUndo}><CadIcon name="undo" size={15} /></button>
         <button type="button" aria-label="Yinele" title="Yinele · Ctrl+Shift+Z" disabled={!p.canRedo} onClick={p.onRedo}><CadIcon name="redo" size={15} /></button>
       </div><span className={styles.project}>{p.modelName} — [{p.floorName}]</span><small title={p.saveStatus}>{p.saveStatus}</small>
@@ -130,14 +132,13 @@ export default function CommandBar(p: Props) {
         {fileOpen && <div className={styles.fileMenu} role="menu">{[
           [-1, "Yeni model", "new"],
           [11300, "Model aç", "open"],
-          [11320, "JSON kaydet", "save"],
-          [11321, "ideCAD v11 İndir (.ide11)", "model"],
-          [11322, "ideCAD v10 İndir (.ide10)", "model"],
+          [11320, "Çalışmayı kaydet · .hsyncad", "save"],
+          [11323, "ideCAD için IFC ve aktarım raporu", "model"],
           [-2, "4 × 4 m örneği aç", "model"],
           [-3, "Gelişmiş örneği aç", "model"],
           [-4, "Çizim akışı örneği", "model"],
           [-5, "7 Katlı Plaza (1536 m²)", "model"],
-        ].map(([id, label, icon]) => <button type="button" role="menuitem" key={id} data-testid={id === 11321 ? "export-ide11" : id === 11322 ? "export-ide10" : id === -2 ? "load-demo" : id === -3 ? "load-feature-demo" : id === -4 ? "load-workflow-demo" : id === -5 ? "load-seven-storey-demo" : undefined} onClick={() => execute(Number(id))}><CadIcon name={icon as CadIconName} size={18} />{label}</button>)}</div>}
+        ].map(([id, label, icon]) => <button type="button" role="menuitem" key={id} data-testid={id === 11323 ? "workbench-menu-export-ifc" : id === -2 ? "load-demo" : id === -3 ? "load-feature-demo" : id === -4 ? "load-workflow-demo" : id === -5 ? "load-seven-storey-demo" : undefined} onClick={() => execute(Number(id))}><CadIcon name={icon as CadIconName} size={18} />{label}</button>)}<hr /><small>Örnek IDE projelerini aç</small>{IDE_EXAMPLES.map(sample => <button type="button" role="menuitem" key={sample.id} data-testid={`ide-sample-${sample.id}`} title={sample.detail} onClick={() => { setFileOpen(false); p.onOpenExample(sample.id); }}><CadIcon name="open" size={18} />{sample.name}</button>)}</div>}
       </div>
       <div className={styles.tabs} role="tablist" aria-label="Çizim sekmeleri" onKeyDown={event => {
         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;

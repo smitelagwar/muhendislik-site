@@ -22,7 +22,7 @@ export default defineConfig({
     channel: process.env.HSYNCAD_BROWSER_CHANNEL === "chrome" ? "chrome" : undefined,
     launchOptions: { args: ["--enable-unsafe-swiftshader"] },
   },
-  webServer: {
+  webServer: process.env.HSYNCAD_TEST_URL ? undefined : {
     command: "npm run dev -- --hostname 127.0.0.1 --port 3142",
     url: "http://127.0.0.1:3142/kategori/araclar/hsyncad",
     reuseExistingServer: true,

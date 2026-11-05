@@ -124,7 +124,7 @@ test("known 4x4 quantities, JSON roundtrip, persistence, 3D orbit and tool hub",
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: testInfo.outputPath("masaustu.png"), fullPage: true });
   const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "JSON kaydet", exact: true }).click();
+  await page.getByRole("button", { name: "Çalışmayı kaydet · .hsyncad", exact: true }).click();
   const download = await downloadPromise;
   const jsonPath = testInfo.outputPath("hsyncad-model.json"); await download.saveAs(jsonPath);
   const exported = JSON.parse(await fs.readFile(jsonPath, "utf8")); expect(exported.elements).toHaveLength(14);
