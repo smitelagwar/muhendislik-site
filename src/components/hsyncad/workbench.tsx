@@ -1,4 +1,7 @@
 "use client";
+import ProjectAnalysisSettings from "./project-analysis-settings";
+import { migrateStructuralModel } from "@/lib/hsyncad/structural/migration";
+
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent } from "react";
 import dynamic from "next/dynamic";
@@ -30,11 +33,11 @@ import QuantityReport from "./quantity-report";
 import EditDialog from "./edit-dialog";
 import { editElement, type EditOperation } from "@/lib/hsyncad/edit-commands";
 import AnalysisDialog from "./analysis-dialog";
+import LocalReportDialog, { type IdeSourceSession } from "./local-report-dialog";
 import { downloadStaticReportPdf } from "@/lib/hsyncad/reports";
 import { runStructuralAnalysis, type AnalysisResult, type AnalysisSettings } from "@/lib/hsyncad/analysis";
 import { downloadDxfFile, downloadDetailDxf } from "@/lib/hsyncad/dxf-export";
 import { addPadFootingToColumn, addStripFootingToBeam, addRaftFoundation } from "@/lib/hsyncad/foundations";
-import { addStairToModel } from "@/lib/hsyncad/stairs";
 import { generateBeamDetail, generateColumnDetail } from "@/lib/hsyncad/detailing";
 import type { ColumnElement, BeamElement, WallElement } from "@/lib/hsyncad/model";
 import DrawingToolbar from "./drawing-toolbar";
@@ -85,6 +88,8 @@ export default function HsynCadWorkbench() {
   const [analysisSnapshot, setAnalysisSnapshot] = useState<{ model: CadModel; result: AnalysisResult } | null>(null);
   const analysisResult = analysisSnapshot?.model === model ? analysisSnapshot.result : null;
   const [analysisOpen, setAnalysisOpen] = useState(false);
+  const [localReportOpen, setLocalReportOpen] = useState(false);
+  const [ideSourceSession, setIdeSourceSession] = useState<IdeSourceSession | null>(null);
   const [analysisTab, setAnalysisTab] = useState<"summary" | "storeys" | "columns" | "beams" | "joints" | "irregularities" | "settings">("summary");
   const [paftaMode, setPaftaMode] = useState(false);
   const [activeViewMode, setActiveViewMode] = useState<AnalysisViewMode>("model");
@@ -391,7 +396,20 @@ export default function HsynCadWorkbench() {
         const source = await readIdeFile(file, controller.signal, setImportProgress);
         if (controller.signal.aborted) return;
         const next = importIdeWorkspace(source);
+        const modelSnapshot = JSON.stringify(validateModel(next));
         replaceModel(next, `${source.filename} açıldı: ${next.elements.length} düzenlenebilir eleman, ${next.ideImport!.references.length} kaynak referansı. Önceki model Geri al ile döner.`);
+        setIdeSourceSession({ file, modelSnapshot, project: source });
+        // Store only hashes: a restored workspace must reselect the same file.
+        if (crypto.subtle && /\.ide10$/i.test(file.name)) void (async () => {
+          try {
+            const [fileHash, modelHash] = await Promise.all([
+              crypto.subtle.digest("SHA-256", await file.arrayBuffer()),
+              crypto.subtle.digest("SHA-256", new TextEncoder().encode(modelSnapshot)),
+            ]);
+            const hex = (bytes: ArrayBuffer) => Array.from(new Uint8Array(bytes), value => value.toString(16).padStart(2, "0")).join("");
+            localStorage.setItem(`hsyncad.ide-source.${hex(modelHash)}`, hex(fileHash));
+          } catch { /* A missing hash requires reopening the original file. */ }
+        })();
         setTool("select"); setTab("Giriş"); setDockOpen(true);
         return;
       }
@@ -406,7 +424,7 @@ export default function HsynCadWorkbench() {
         setDockOpen(true);
         return;
       }
-      replaceModel(validateModel(data), "Model açıldı. Önceki model Geri al ile geri getirilebilir.");
+      replaceModel(migrateStructuralModel(data, crypto.randomUUID()), "Model açıldı. Önceki model Geri al ile geri getirilebilir.");
       setDockOpen(true); setTool("select"); setTab("Giriş"); setPaftaMode(false);
     } catch (error) { if (!controller.signal.aborted) setMessage(`Dosya açılamadı: ${error instanceof Error ? error.message : "Geçersiz dosya"}`); }
     finally { if (importRequest.current === controller) { importRequest.current = null; setImportProgress(null); } if (fileInput.current) fileInput.current.value = ""; }
@@ -490,6 +508,7 @@ export default function HsynCadWorkbench() {
   }
   function runAnalysis(customSettings?: AnalysisSettings): AnalysisResult | null {
     try {
+      if (model.structural) throw new Error("Sürümlü proje ayarları kaydedildi; bu verileri kullanan doğrulanmış hesap motoru henüz hazır değil. Eski varsayılanlarla hesap çalıştırılmadı.");
       const res = runStructuralAnalysis(model, customSettings);
       setAnalysisSnapshot({ model, result: res });
       setAnalysisOpen(true);
@@ -592,7 +611,7 @@ export default function HsynCadWorkbench() {
     11800: { run: () => runAnalysis() },
     12030: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("summary"); setAnalysisOpen(true); setMessage("Dinamik Analiz Raporu açıldı."); } },
     12032: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("summary"); setAnalysisOpen(true); setMessage("Yapı Özet Raporu açıldı."); } },
-    12033: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("settings"); setAnalysisOpen(true); setMessage("Analiz Ayarları Raporu açıldı."); } },
+    12033: { run: () => { setAnalysisTab("settings"); setAnalysisOpen(true); setMessage("Analiz Ayarları Raporu açıldı."); } },
     12034: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("summary"); setAnalysisOpen(true); setMessage("Betonarme Tasarım Raporu açıldı."); } },
     12194: { run: () => setActiveViewMode("model"), active: activeViewMode === "model" },
     11820: { run: () => { if (!analysisResult) runAnalysis(); setActiveViewMode(m => m === "deformed" ? "model" : "deformed"); }, active: activeViewMode === "deformed" },
@@ -675,12 +694,13 @@ export default function HsynCadWorkbench() {
     11910: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("joints"); setAnalysisOpen(true); setMessage("TBDY 2018 §7.5 Kolon-Kiriş Birleşim Bölgesi Kesiti ve Güvenliği açıldı."); } },
     62791: { run: addStair, active: drawing.interactiveMode === "stair" },
     12260: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("joints"); setAnalysisOpen(true); setMessage("TBDY 2018 §7.5 Kolon-Kiriş Birleşim Güvenliği Raporu açıldı."); } },
-    12270: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("summary"); setAnalysisOpen(true); setMessage("Seçmeli Statik Raporlar açıldı."); } },
+    12270: { run: () => { setLocalReportOpen(true); } },
     11336: { run: () => {
+      if (model.ideImport) { setLocalReportOpen(true); return; }
       const res = analysisResult ?? runAnalysis();
       if (res) {
         downloadStaticReportPdf(model, res, res.designResult);
-        setMessage("TBDY 2018 Statik Rapor PDF olarak indirildi.");
+        setMessage("Taslak statik inceleme PDF olarak hazırlandı; hesap kapsamı ve mühendis incelemesi gerekli.");
       }
     } },
     12220: { run: () => { if (!analysisResult) runAnalysis(); setAnalysisTab("irregularities"); setAnalysisOpen(true); setMessage("Düzensizlikler Raporu (A1/B1/B2) açıldı."); } },
@@ -751,6 +771,7 @@ export default function HsynCadWorkbench() {
       canUndo={!!history.past.length} canRedo={!!history.future.length} hasSelection={!!selected}
       tab={ribbonTab} onTab={chooseRibbon} actions={ribbonActions} onUndo={undo} onRedo={redo}
       onExport={exportFile} onImport={() => fileInput.current?.click()} onOpenExample={id => void openExample(id)} />
+    <LocalReportDialog open={localReportOpen} onClose={() => setLocalReportOpen(false)} source={ideSourceSession} onReselect={setIdeSourceSession} model={model} activeFloorId={floor.id} activeFloorName={floor.name} selectedElementIds={selectedId ? [selectedId] : []} />
     <input ref={fileInput} type="file" accept=".ide,.ide10,.ide11,.ide11trial,.cde,.hsyncad,.json,application/json" hidden aria-label="IDE veya hsynCAD model dosyası" data-testid="hsyncad-import" onChange={(e) => void importFile(e.target.files?.[0])} />
     {importProgress !== null && <div className={styles.importBar} role="status" data-testid="hsyncad-import-progress"><span>{importProgress}</span><button type="button" onClick={() => { importRequest.current?.abort(); importRequest.current = null; setImportProgress(null); setMessage("Dosya açma iptal edildi; mevcut model korundu."); }}>İptal</button></div>}
     {model.ideImport && <details className={styles.importReport} data-testid="hsyncad-ide-import-report"><summary>{model.ideImport.source.filename} · {model.ideImport.mappedIds.length} eleman düzenlemeye aktarıldı · {ideReferences.length} kaynak referansı</summary><div><p>Kolon, kiriş, perde, boşluksuz döşeme ve aksları normal çizim araçlarıyla düzenleyin. Çalışmanızı .hsyncad olarak kaydedin. Değişikliklerin native IDE olarak yazılması henüz desteklenmiyor; ideCAD aktarımı için Dosya menüsündeki IFC çıktısını kullanın.</p><p>Kaynak referansları metraj ve analize dahil değildir. Malzemeleri ve yükleri yeniden tanımlayın; native donatı ve analiz sonuçları aktarılmadı. Okuma kapsamı: {model.ideImport.source.coverage.unsupportedRecords} çözümlenemeyen aday kayıt; bu sayı tüm dosyanın envanteri değildir.</p><label><input type="checkbox" checked={!hiddenLayers.includes(IDE_REFERENCE_LAYER)} onChange={event => setHiddenLayers(current => event.target.checked ? current.filter(l => l !== IDE_REFERENCE_LAYER) : [...current, IDE_REFERENCE_LAYER])} /> Kaynak referanslarını göster</label>{model.ideImport.source.warnings.map((warning, i) => <p key={i}>{warning}</p>)}{model.ideImport.references.length > 0 && <ul>{model.ideImport.references.map(ref => <li key={ref.id}>{model.ideImport!.source.elements.find(e => e.id === ref.id)?.name} — {ref.reason}</li>)}</ul>}</div></details>}
@@ -793,14 +814,14 @@ export default function HsynCadWorkbench() {
     </div>
     {editOperation && <SettingsDialog title="Seçili elemanı düzenle" onClose={() => setEditOperation(null)}><EditDialog operation={editOperation} onApply={(dx, dy, angle, count) => { if (!selected) return; try { if (layerState(model, selected.layer, selected.floorId).locked) throw new Error("Katman kilitli."); const changed = editElement(selected, editOperation, dx, dy, angle, count); const replace = editOperation === "rotate" || editOperation === "mirror"; if (commit({ ...model, elements: replace ? model.elements.map(e => e.id === selected.id ? changed[0] : e) : [...model.elements, ...changed] }, "Düzenleme uygulandı; geri alınabilir.")) setEditOperation(null); } catch (error) { setMessage(error instanceof Error ? error.message : "Düzenleme uygulanamadı."); } }} /></SettingsDialog>}
     {analysisOpen && <SettingsDialog title="Yapı ön hesabı ve taslak donatı" onClose={() => setAnalysisOpen(false)}>
-      <AnalysisDialog model={model} result={analysisResult} onRun={runAnalysis} onClose={() => setAnalysisOpen(false)} onSetViewMode={setAnalysisViewMode} initialTab={analysisTab} />
+      <AnalysisDialog projectSettings={<ProjectAnalysisSettings model={model} onSave={next => { if (commit(next, "Analiz ayarları projeye kaydedildi; önceki sonuç geçersiz.")) { setAnalysisSnapshot(null); setAnalysisOpen(false); } }} />} model={model} result={analysisResult} onRun={runAnalysis} onClose={() => setAnalysisOpen(false)} onSetViewMode={setAnalysisViewMode} initialTab={analysisTab} />
     </SettingsDialog>}
     {settings && <SettingsDialog title={{ element: `${creationDraft ? TYPE_NAMES[creationDraft.type] : "Eleman"} oluşturma ayarları`, snap: "Yakalama ve düğüm ayarları", layers: "Katman ayarları", materials: "Malzeme tanımları", report: "Metraj raporu" }[settings]} onClose={() => setSettings(null)}>
       {settings === "element" && creationDraft && <ElementProperties creation element={creationDraft} model={model} onDelete={() => {}} onApply={next => { if (!isSolidElement(next)) return; if (commit({ ...model, toolDefaults: { ...model.toolDefaults, [next.type]: next } }, "Eleman varsayılanları kaydedildi. Sonraki yerleştirmelerde uygulanır.")) { drawing.clearOverrides(next.type); setSettings(null); } }} />}
       {settings === "snap" && <SnapOptions model={model} onApply={commit} />}
       {settings === "layers" && <LayerOptions model={model} floor={floor} onApply={commit} />}
       {settings === "materials" && <MaterialOptions model={model} onApply={commit} />}
-      {settings === "report" && <QuantityReport model={model} junctions={junctions} analysisResult={analysisResult} onRunAnalysis={runAnalysis} />}
+      {settings === "report" && (model.ideImport ? <p>Bu IDE modelinin Hsyncad metrajı doğrulanmadı. Beton, kalıp ve donatı toplamları için ideCAD metraj önizlemesini kullanın.</p> : <QuantityReport model={model} junctions={junctions} analysisResult={analysisResult} onRunAnalysis={runAnalysis} />)}
       <p role="status" className="hcad-fine">{message}</p>
     </SettingsDialog>}
     <div className="hcad-icon-strip" aria-label="Hızlı çizim araçları"><button type="button" title="Seç" aria-label="Hızlı seç" onClick={() => selectTool("select")}><MousePointer2 size={15} /></button><button type="button" title="Kaydır" aria-label="Hızlı kaydır" onClick={() => selectTool("pan")}><Hand size={15} /></button><button type="button" title="Çizimi sığdır" aria-label="Hızlı sığdır" onClick={() => setFitKey(n => n + 1)}><Maximize2 size={15} /></button><i /><ReferenceButtons compact tool={tool} onTool={selectTool} /><i /><button type="button" title="Yakalama ayarları" aria-label="Hızlı yakalama ayarları" onClick={() => setSettings("snap")}><Move size={15} /></button><button type="button" title="Katman ayarları" aria-label="Hızlı katman ayarları" onClick={() => setSettings("layers")}><Layers size={15} /></button><button type="button" aria-label="Koordinat kutusu" title="Koordinat kutusunu aç / kapat" aria-pressed={coordinatesOpen} onClick={() => setCoordinatesOpen(v => !v)}><Move size={15} /></button>    <div className="hcad-menu-row">
@@ -873,7 +894,7 @@ export default function HsynCadWorkbench() {
       <aside ref={inspectorRef} id="hsyncad-compact-inspector" className="hcad-inspector" data-open={inspectorOpen} inert={isCompact && !inspectorOpen} role={isCompact && inspectorOpen ? "dialog" : undefined} aria-modal={isCompact && inspectorOpen ? true : undefined} aria-label={isCompact && inspectorOpen ? "Metraj ve özellikler" : undefined} onKeyDown={handleInspectorKeyDown}>
         <div className="hcad-inspector-drawer-header"><strong>Metraj / Özellikler</strong><button type="button" ref={inspectorCloseRef} data-testid="hsyncad-inspector-close" onClick={closeCompactInspector} aria-label="Paneli kapat"><X size={17} /></button></div>
         <div className="hcad-inspector-tabs"><button type="button" className={panel === "quantities" ? "active" : ""} onClick={() => setPanel("quantities")}><Ruler size={14} />Metraj</button><button type="button" className={panel === "properties" ? "active" : ""} onClick={() => setPanel("properties")}><MousePointer2 size={14} />Özellikler</button></div>
-        <div className="hcad-inspector-content"><ReferenceRecords items={references.items} unit={drawing.unit} onDelete={references.remove} onSource={id => { references.setSelectedId(id); setReferenceId(id); }} />{panel === "quantities" ? <><div className="hcad-panel-heading"><span className="hcad-section-eyebrow">ANLIK METRAJ</span><span className="hcad-live"><i />Canlı</span></div><div className="hcad-metric"><span>Beton hacmi · {quantities.netVolume === null ? "hesaplanamadı" : "net"}</span><div><strong data-testid="quantity-net">{number(quantities.netVolume)}</strong><span>m³</span></div><small>Tüm katlar · {model.elements.filter(isSolidElement).length} yapı elemanı</small></div><div className="hcad-metric hcad-metric-secondary"><span>Kalıp alanı · brüt</span><div><strong data-testid="quantity-formwork">{number(quantities.formwork, 2)}</strong><span>m²</span></div></div><table className="hcad-quantity-table"><caption>Eleman tipine göre metraj</caption><thead><tr><th>Eleman</th><th>Adet</th><th>{quantities.netVolume === null ? "— m³" : "Net m³"}</th><th>Kalıp m²</th></tr></thead><tbody>{quantities.rows.map((row) => <tr key={row.type} data-testid={`quantity-${row.type}`}><td><i style={{ background: TYPE_COLORS[row.type] }} />{TYPE_NAMES[row.type]}</td><td>{row.count}</td><td>{number(row.netVolume)}</td><td>{number(row.formwork, 2)}</td></tr>)}</tbody></table><div className="hcad-deduction"><span>Brüt hacim <b>{number(quantities.grossVolume)} m³</b></span><span>Çakışma düşümü <b data-testid="quantity-overlap">−{number(quantities.overlapVolume)} m³</b></span></div><details className="hcad-assumptions"><summary>Hesap kabulleri</summary>{quantities.assumptions.map((text, i) => <p key={i}>{text}</p>)}</details><button type="button" data-testid="hsyncad-report-open" onClick={() => setSettings("report")}>Ayrıntılı metraj raporu</button>{quantities.warnings.map((text, i) => <p className="hcad-warning" key={i}>{text}</p>)}<p className="hcad-scope-note">Geometrik modelleme ve metraj MVP’si. Statik / deprem hesabı ve mevzuata uygunluk kontrolü içermez.</p></> : <ElementProperties element={selected && !layerState(model, selected.layer, selected.floorId).locked ? selected : undefined} model={model} onApply={(next) => commit({ ...model, elements: model.elements.map((e) => e.id === next.id ? next : e) }, `${next.name} güncellendi.`)} onDelete={deleteSelected} />}
+        <div className="hcad-inspector-content"><ReferenceRecords items={references.items} unit={drawing.unit} onDelete={references.remove} onSource={id => { references.setSelectedId(id); setReferenceId(id); }} />{panel === "quantities" ? model.ideImport ? <><div className="hcad-panel-heading"><span className="hcad-section-eyebrow">METRAJ</span></div><p className="hcad-scope-note">Bu IDE modelinin Hsyncad metrajı doğrulanmadı. Beton, kalıp ve donatı toplamları için ideCAD metraj önizlemesini kullanın.</p></> : <><div className="hcad-panel-heading"><span className="hcad-section-eyebrow">ANLIK METRAJ</span><span className="hcad-live"><i />Canlı</span></div><div className="hcad-metric"><span>Beton hacmi · {quantities.netVolume === null ? "hesaplanamadı" : "net"}</span><div><strong data-testid="quantity-net">{number(quantities.netVolume)}</strong><span>m³</span></div><small>Tüm katlar · {model.elements.filter(isSolidElement).length} yapı elemanı</small></div><div className="hcad-metric hcad-metric-secondary"><span>Kalıp alanı · brüt</span><div><strong data-testid="quantity-formwork">{number(quantities.formwork, 2)}</strong><span>m²</span></div></div><table className="hcad-quantity-table"><caption>Eleman tipine göre metraj</caption><thead><tr><th>Eleman</th><th>Adet</th><th>{quantities.netVolume === null ? "— m³" : "Net m³"}</th><th>Kalıp m²</th></tr></thead><tbody>{quantities.rows.map((row) => <tr key={row.type} data-testid={`quantity-${row.type}`}><td><i style={{ background: TYPE_COLORS[row.type] }} />{TYPE_NAMES[row.type]}</td><td>{row.count}</td><td>{number(row.netVolume)}</td><td>{number(row.formwork, 2)}</td></tr>)}</tbody></table><div className="hcad-deduction"><span>Brüt hacim <b>{number(quantities.grossVolume)} m³</b></span><span>Çakışma düşümü <b data-testid="quantity-overlap">−{number(quantities.overlapVolume)} m³</b></span></div><details className="hcad-assumptions"><summary>Hesap kabulleri</summary>{quantities.assumptions.map((text, i) => <p key={i}>{text}</p>)}</details><button type="button" data-testid="hsyncad-report-open" onClick={() => setSettings("report")}>Ayrıntılı metraj raporu</button>{quantities.warnings.map((text, i) => <p className="hcad-warning" key={i}>{text}</p>)}<p className="hcad-scope-note">Geometrik modelleme ve metraj MVP’si. Statik / deprem hesabı ve mevzuata uygunluk kontrolü içermez.</p></> : <ElementProperties element={selected && !layerState(model, selected.layer, selected.floorId).locked ? selected : undefined} model={model} onApply={(next) => commit({ ...model, elements: model.elements.map((e) => e.id === next.id ? next : e) }, `${next.name} güncellendi.`)} onDelete={deleteSelected} />}
         <details className="hcad-element-list"><summary><Layers size={13} />Elemanlar ({model.elements.length})</summary>{model.elements.map((e) => <button type="button" key={e.id} data-testid={`element-${e.name}`} className={selectedId === e.id ? "active" : ""} onClick={() => { selectElement(e.id); setFloorId(e.floorId); setTool("select"); }}><i style={{ background: TYPE_COLORS[e.type] }} /><b>{e.name}</b><span>{TYPE_NAMES[e.type]}</span><small>{model.floors.find((f) => f.id === e.floorId)?.name}</small></button>)}{!model.elements.length && <p className="hcad-fine">Henüz eleman yok.</p>}</details></div>
       </aside>
       <nav className="hcad-dock-rail" aria-label="Sağ araç panelleri"><button type="button" data-testid="desktop-inspector-toggle" title="Metraj / Özellikler paneli" aria-label="Metraj panelini aç / kapat" aria-expanded={dockOpen} onClick={() => setDockOpen(!dockOpen)}><Layers size={16} /><span>Metraj / Özellikler</span></button><button type="button" title="Katmanlar" aria-label="Sağ katman ayarları" onClick={() => setSettings("layers")}><Eye size={16} /></button><button type="button" title="Metraj raporu" aria-label="Sağ metraj raporu" onClick={() => setSettings("report")}><Ruler size={16} /></button></nav>
