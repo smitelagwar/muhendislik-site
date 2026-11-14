@@ -697,6 +697,18 @@ function classifyUnifiedElementCategory(el: UnifiedElement): string | null {
   return null;
 }
 
+type CadModelWithOptionalStructural = CadModel & {
+  structural?: {
+    objects?: readonly { elementId: string; role?: string }[];
+    settings?: {
+      sds?: { value?: number | string | null };
+      sd1?: { value?: number | string | null };
+      r?: { value?: number | string | null };
+      importance?: { value?: number | string | null };
+    };
+  };
+};
+
 function collectUnifiedElements(
   source: IdeProject | null | undefined,
   model: CadModel | null | undefined,
@@ -707,7 +719,7 @@ function collectUnifiedElements(
   const sourceFloors = new Map((source?.floors ?? []).map(f => [f.id, f.name]));
   const modelFloors = new Map((model?.floors ?? []).map(f => [f.id, f.name]));
   const structuralRoleMap = new Map(
-    (model?.structural?.objects ?? []).map(obj => [obj.elementId, obj.role])
+    ((model as CadModelWithOptionalStructural | null | undefined)?.structural?.objects ?? []).map(obj => [obj.elementId, obj.role])
   );
 
   let allowedSourceFloorIds: Set<string> | null = null;
@@ -1116,6 +1128,11 @@ function computeCadModelMetraj(
     };
   });
 
+  const rebarTonnage = takeoff.rebarTonnage as typeof takeoff.rebarTonnage & {
+    knownSubtotalKg?: number;
+    missingElementIds?: readonly string[];
+  };
+
   return {
     sourceLabel: "Hsyncad CAD model geometrik/net metraj hesabı (calculateQuantities & calculateFullTakeoff; ideCAD 11.28 Deneme doğrudan metraj PDF exportu: blocked).",
     byType,
@@ -1124,9 +1141,9 @@ function computeCadModelMetraj(
     totalGrossM3: quantities.grossVolume,
     totalNetM3: takeoff.concreteVolumeM3.total,
     totalFormworkM2: quantities.formwork,
-    totalRebarKg: takeoff.rebarTonnage.totalKg,
-    knownRebarSubtotalKg: takeoff.rebarTonnage.knownSubtotalKg,
-    missingRebarCount: takeoff.rebarTonnage.missingElementIds.length,
+    totalRebarKg: rebarTonnage.totalKg,
+    knownRebarSubtotalKg: rebarTonnage.knownSubtotalKg ?? 0,
+    missingRebarCount: rebarTonnage.missingElementIds?.length ?? 0,
     warnings: takeoff.warnings,
   };
 }
@@ -1390,7 +1407,7 @@ export function createIdeSourcePdf(
   // Dinamik Analiz
   if (includeDinamik) {
     heading("Dinamik Analiz");
-    const st = cadModel?.structural?.settings;
+    const st = (cadModel as CadModelWithOptionalStructural | null | undefined)?.structural?.settings;
     if (st) {
       line(`SDS: ${st.sds?.value ?? "unknown"} | SD1: ${st.sd1?.value ?? "unknown"} | R: ${st.r?.value ?? "unknown"} | I: ${st.importance?.value ?? "unknown"}`);
     }

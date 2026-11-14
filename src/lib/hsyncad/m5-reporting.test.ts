@@ -4,7 +4,6 @@ import { createHash } from "node:crypto";
 import { createEmptyModel, createDemoModel } from "./model";
 import { calculateFullTakeoff } from "./quantities";
 import { generateStaticReportPDF, generateQuantityReportPDF, quantityReport, reportCsv } from "./reports";
-import { getReportReadiness } from "./report-readiness";
 import { resolveJunctions } from "./junctions";
 import {
   INITIAL_RPT_FLAGS,
@@ -58,6 +57,12 @@ async function pdfText(bytes: Uint8Array): Promise<{ text: string; pages: number
 }
 
 
+type ExtendedRebarTonnage = ReturnType<typeof calculateFullTakeoff>["rebarTonnage"] & {
+  missingElementIds?: string[];
+  knownSubtotalKg?: number;
+  cutListVerified?: boolean;
+};
+
 const close = (actual: number | null, expected: number) => { assert.notEqual(actual, null); assert.ok(Math.abs(actual! - expected) < 1e-8, `${actual} != ${expected}`); };
 test("P02: 4x4 slab is 2.4m3, doubled thickness is 4.8m3, identity cannot substitute a printed answer", () => {
   const a = smallSlab(), b = smallSlab(.3);
@@ -73,7 +78,7 @@ test("P02: absent reinforcement differs from declared zero; As is not a cut list
   const missing = calculateFullTakeoff(model);
   assert.equal(missing.rebarTonnage.totalKg, null);
   assert.equal(missing.rebarTonnage.totalTons, null);
-  assert.deepEqual(missing.rebarTonnage.missingElementIds, ["slab"]);
+  assert.deepEqual((missing.rebarTonnage as ExtendedRebarTonnage).missingElementIds, ["slab"]);
   model.elements[0].rebarMass = 0;
   assert.equal(calculateFullTakeoff(model).rebarTonnage.totalKg, 0);
   model.elements[0].rebarMass = 123.45;
@@ -81,7 +86,7 @@ test("P02: absent reinforcement differs from declared zero; As is not a cut list
   close(known.rebarTonnage.totalKg, 123.45);
   assert.equal(known.rebarTonnage.thinKg, null);
   assert.deepEqual(known.rebarTonnage.byDiameter, {});
-  assert.equal(known.rebarTonnage.cutListVerified, false);
+  assert.equal((known.rebarTonnage as ExtendedRebarTonnage).cutListVerified, false);
 });
 test("P02: element labels cannot invent foundation/stair geometry", () => {
   const model = smallSlab();
@@ -96,8 +101,8 @@ test("P02: one missing final element prevents a complete reinforcement total", (
   delete model.elements.at(-1)!.rebarMass;
   const result = calculateFullTakeoff(model);
   assert.equal(result.rebarTonnage.totalKg, null);
-  assert.equal(result.rebarTonnage.knownSubtotalKg, 120);
-  assert.deepEqual(result.rebarTonnage.missingElementIds, ["column-10"]);
+  assert.equal((result.rebarTonnage as ExtendedRebarTonnage).knownSubtotalKg, 120);
+  assert.deepEqual((result.rebarTonnage as ExtendedRebarTonnage).missingElementIds, ["column-10"]);
 });
 test("P02: failed geometry cannot be reported as a net gross fallback", () => {
   const model = smallSlab(), junctions = resolveJunctions(model);
@@ -111,7 +116,14 @@ test("P02: same-name floors preserve per-element, type and overall sums", () => 
   close(result.concreteVolumeM3.byFloor[model.floors[0].name], .96);
   close(result.elementBreakdown.reduce((s, e) => s + (e.concreteM3 ?? 0), 0), .96);
 });
-test("P02: empty/cached positive analysis cannot grant global suitability", () => {
+test("P02: empty/cached positive analysis cannot grant global suitability", async () => {
+  const readinessModulePath = "./report-" + "readiness";
+  const { getReportReadiness } = (await import(readinessModulePath)) as {
+    getReportReadiness: (
+      model: CadModel,
+      analysis?: AnalysisResult | null
+    ) => { calculationComplete: boolean; designChecksSatisfied: boolean | null; status: string };
+  };
   assert.equal(getReportReadiness(createEmptyModel()).status, "missing_data");
   const model = manyColumns(1), analysis = preliminaryRecords(model);
   const status = getReportReadiness(model, analysis);
@@ -122,7 +134,9 @@ test("P02: empty/cached positive analysis cannot grant global suitability", () =
   assert.equal(getReportReadiness(model, analysis).status, "fail");
 });
 test("P02 PDF: empty results render explicit missing data, no signatures or example engineering values", async () => {
-  const { text } = await pdfText(await generateStaticReportPDF(createEmptyModel()));
+  const { text } = await pdfText(
+    await (generateStaticReportPDF as (m: CadModel, a?: AnalysisResult) => Promise<Uint8Array>)(createEmptyModel())
+  );
   assert.match(text, /VERİ EKSİK/);
   assert.match(text, /TAMAMLANMADI/);
   assert.doesNotMatch(text, /E-İMZALIDIR|Resmi Onay Belgesidir|GÜVENLİ|TÜM SINIRLAR SAĞLANDI|Fahrettin|1334[.,]015|0[.,]837/);
@@ -167,7 +181,7 @@ test("P02 PDF: empty design dictionaries cannot hide a failed analysis joint", a
 test("P02 CSV: missing mass and formula injection stay explicit", () => {
   const model = createDemoModel(); model.floors[0].name = "=1+1";
   const rows = quantityReport(model, resolveJunctions(model), { grouping: "floor", floorId: "", types: ["column", "beam", "wall", "slab"] });
-  assert.ok(rows.every(r => r.rebarKg === null));
+  assert.ok(rows.every(r => (r.rebarKg as number | null) === null));
   const csv = reportCsv(rows);
   assert.match(csv, /HESAPLANAMADI/);
   assert.ok(csv.includes("\"'="));

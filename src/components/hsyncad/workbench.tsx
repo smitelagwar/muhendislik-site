@@ -1,7 +1,4 @@
 "use client";
-import ProjectAnalysisSettings from "./project-analysis-settings";
-import { migrateStructuralModel } from "@/lib/hsyncad/structural/migration";
-
 
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent } from "react";
 import dynamic from "next/dynamic";
@@ -424,7 +421,7 @@ export default function HsynCadWorkbench() {
         setDockOpen(true);
         return;
       }
-      replaceModel(migrateStructuralModel(data, crypto.randomUUID()), "Model açıldı. Önceki model Geri al ile geri getirilebilir.");
+      replaceModel(validateModel(data), "Model açıldı. Önceki model Geri al ile geri getirilebilir.");
       setDockOpen(true); setTool("select"); setTab("Giriş"); setPaftaMode(false);
     } catch (error) { if (!controller.signal.aborted) setMessage(`Dosya açılamadı: ${error instanceof Error ? error.message : "Geçersiz dosya"}`); }
     finally { if (importRequest.current === controller) { importRequest.current = null; setImportProgress(null); } if (fileInput.current) fileInput.current.value = ""; }
@@ -508,7 +505,6 @@ export default function HsynCadWorkbench() {
   }
   function runAnalysis(customSettings?: AnalysisSettings): AnalysisResult | null {
     try {
-      if (model.structural) throw new Error("Sürümlü proje ayarları kaydedildi; bu verileri kullanan doğrulanmış hesap motoru henüz hazır değil. Eski varsayılanlarla hesap çalıştırılmadı.");
       const res = runStructuralAnalysis(model, customSettings);
       setAnalysisSnapshot({ model, result: res });
       setAnalysisOpen(true);
@@ -814,7 +810,7 @@ export default function HsynCadWorkbench() {
     </div>
     {editOperation && <SettingsDialog title="Seçili elemanı düzenle" onClose={() => setEditOperation(null)}><EditDialog operation={editOperation} onApply={(dx, dy, angle, count) => { if (!selected) return; try { if (layerState(model, selected.layer, selected.floorId).locked) throw new Error("Katman kilitli."); const changed = editElement(selected, editOperation, dx, dy, angle, count); const replace = editOperation === "rotate" || editOperation === "mirror"; if (commit({ ...model, elements: replace ? model.elements.map(e => e.id === selected.id ? changed[0] : e) : [...model.elements, ...changed] }, "Düzenleme uygulandı; geri alınabilir.")) setEditOperation(null); } catch (error) { setMessage(error instanceof Error ? error.message : "Düzenleme uygulanamadı."); } }} /></SettingsDialog>}
     {analysisOpen && <SettingsDialog title="Yapı ön hesabı ve taslak donatı" onClose={() => setAnalysisOpen(false)}>
-      <AnalysisDialog projectSettings={<ProjectAnalysisSettings model={model} onSave={next => { if (commit(next, "Analiz ayarları projeye kaydedildi; önceki sonuç geçersiz.")) { setAnalysisSnapshot(null); setAnalysisOpen(false); } }} />} model={model} result={analysisResult} onRun={runAnalysis} onClose={() => setAnalysisOpen(false)} onSetViewMode={setAnalysisViewMode} initialTab={analysisTab} />
+      <AnalysisDialog model={model} result={analysisResult} onRun={runAnalysis} onClose={() => setAnalysisOpen(false)} onSetViewMode={setAnalysisViewMode} initialTab={analysisTab} />
     </SettingsDialog>}
     {settings && <SettingsDialog title={{ element: `${creationDraft ? TYPE_NAMES[creationDraft.type] : "Eleman"} oluşturma ayarları`, snap: "Yakalama ve düğüm ayarları", layers: "Katman ayarları", materials: "Malzeme tanımları", report: "Metraj raporu" }[settings]} onClose={() => setSettings(null)}>
       {settings === "element" && creationDraft && <ElementProperties creation element={creationDraft} model={model} onDelete={() => {}} onApply={next => { if (!isSolidElement(next)) return; if (commit({ ...model, toolDefaults: { ...model.toolDefaults, [next.type]: next } }, "Eleman varsayılanları kaydedildi. Sonraki yerleştirmelerde uygulanır.")) { drawing.clearOverrides(next.type); setSettings(null); } }} />}
