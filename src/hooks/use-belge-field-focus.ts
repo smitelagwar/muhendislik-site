@@ -174,11 +174,11 @@ export function useBelgeFieldFocus({
         const currentIndex = candidates.indexOf(event.target);
         if (currentIndex === -1) return;
 
-        const nextIndex = event.shiftKey ? currentIndex - 1 : currentIndex + 1;
-        if (nextIndex >= 0 && nextIndex < candidates.length) {
-          event.preventDefault();
-          candidates[nextIndex].focus();
-        }
+        const nextIndex = event.shiftKey
+          ? (currentIndex - 1 + candidates.length) % candidates.length
+          : (currentIndex + 1) % candidates.length;
+        event.preventDefault();
+        candidates[nextIndex].focus();
       }
     },
     [clearSelection]

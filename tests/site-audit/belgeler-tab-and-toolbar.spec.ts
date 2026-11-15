@@ -27,6 +27,17 @@ test.describe("Belgeler Stüdyosu — Form Tab Gezinmesi ve Üst Araç Çubuğu 
     await page.locator("#sozlesme-mahalle").focus();
     await page.keyboard.press("Tab");
     await expect(adaInput).toBeFocused();
+
+    // Son alandan (Müteahhit İmza) Tab ile ilk alana (Yapı Müteahhidi Unvanı) döngü yapılmalı
+    const firstField = page.locator("#sozlesme-muteahhit_unvan");
+    const lastField = page.locator("#sozlesme-muteahhit_imza_unvan");
+    await lastField.focus();
+    await page.keyboard.press("Tab");
+    await expect(firstField).toBeFocused();
+
+    // İlk alandan Shift+Tab ile son alana dönülmeli
+    await page.keyboard.press("Shift+Tab");
+    await expect(lastField).toBeFocused();
   });
 
   test("Üst kısımda Yeni Sekme ve PDF'ye Odaklan butonları yok; Sığdır ve Genişliğe Sığdır zoom sağında ayrı grupta", async ({ page }) => {
