@@ -220,15 +220,14 @@ describe("ASAMA_05: Belge Stüdyosu V3 — Zoom Geometrik Merkez ve Footer Form 
     assert.ok(html.includes('data-testid="belge-preview-fit-page-btn"'), "Sığdır butonu bulunmalı");
     assert.ok(html.includes('aria-pressed="true"'), "fitMode === 'page' ve zoom 100 iken Sığdır butonu aria-pressed='true' olmalı");
 
-    // Yeni Sekme görünür metin ve test id
-    assert.ok(html.includes('data-testid="belge-preview-open-external-btn"'), "Yeni Sekme test id'si bulunmalı");
-    assert.ok(html.includes("Yeni Sekme"), "Yeni Sekme açıkça görünür metin içermeli");
+    // Yeni Sekme ve PDF'ye Odaklan kaldırılmış olmalı
+    assert.ok(!html.includes('data-testid="belge-preview-open-external-btn"'), "Yeni Sekme butonu kaldırılmış olmalı");
+    assert.ok(!html.includes('data-testid="belge-pdf-focus-toggle"'), "PDF'ye Odaklan butonu kaldırılmış olmalı");
 
-    // Odaklanma butonu
-    assert.ok(html.includes('data-testid="belge-pdf-focus-toggle"'), "Odak modu butonu bulunmalı");
-    assert.ok(
-      html.includes("PDF&#x27;ye Odaklan") || html.includes("PDF'ye Odaklan"),
-      "Odak kapalıyken 'PDF'ye Odaklan' yazmalı"
-    );
+    // Sığdır ve Genişliğe Sığdır, zoom grubunun sağında ayrı grupta (belge-preview-fit) yer almalı
+    assert.ok(html.includes('belge-preview-fit'), "Ayrı sığdırma grubu (belge-preview-fit) bulunmalı");
+    const zoomIdx = html.indexOf('belge-preview-zoom');
+    const fitIdx = html.indexOf('belge-preview-fit');
+    assert.ok(zoomIdx > -1 && fitIdx > zoomIdx, "Sığdırma grubu zoom grubunun sağında yer almalı");
   });
 });

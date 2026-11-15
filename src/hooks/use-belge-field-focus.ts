@@ -145,6 +145,40 @@ export function useBelgeFieldFocus({
     (event: React.KeyboardEvent<HTMLElement>) => {
       if (event.key === "Escape") {
         clearSelection();
+        return;
+      }
+
+      if (
+        event.key === "Tab" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        event.target instanceof HTMLElement
+      ) {
+        const tagName = event.target.tagName.toUpperCase();
+        if (tagName !== "INPUT" && tagName !== "TEXTAREA" && tagName !== "SELECT") {
+          return;
+        }
+
+        const candidates = Array.from(
+          event.currentTarget.querySelectorAll<HTMLElement>(
+            'input:not([disabled]):not([type="hidden"]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"])'
+          )
+        ).filter((el) => {
+          if (el.closest("[hidden]") || el.getClientRects().length === 0) return false;
+          const style = typeof window !== "undefined" ? window.getComputedStyle(el) : null;
+          if (style && (style.display === "none" || style.visibility === "hidden")) return false;
+          return true;
+        });
+
+        const currentIndex = candidates.indexOf(event.target);
+        if (currentIndex === -1) return;
+
+        const nextIndex = event.shiftKey ? currentIndex - 1 : currentIndex + 1;
+        if (nextIndex >= 0 && nextIndex < candidates.length) {
+          event.preventDefault();
+          candidates[nextIndex].focus();
+        }
       }
     },
     [clearSelection]

@@ -13,7 +13,6 @@
 
 import React, { useId } from "react";
 import { ChevronDown, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
-import { BelgePdfFocusEnterIcon } from "@/components/belge-studio-icons";
 import type { BelgeStudioSectionDefinition } from "@/lib/belge-studio-sections";
 import type { UseBelgeStudioSectionsReturn } from "@/hooks/use-belge-studio-sections";
 import { BELGE_UX_FLAGS } from "@/lib/belge-ux-config";
@@ -119,7 +118,6 @@ export function BelgeStudioSectionMasterControls({
   onOpenAll,
   onCloseOthers,
   allOpen,
-  onTogglePdfFocus,
 }: BelgeStudioSectionMasterControlsProps) {
   if (!BELGE_UX_FLAGS.ACCORDION) return null;
 
@@ -163,21 +161,6 @@ export function BelgeStudioSectionMasterControls({
           </>
         )}
       </button>
-
-      {/* Sağ taraf: PDF'ye Odaklan — şık SVG ikon ve etiket ile formu kapatma */}
-      {onTogglePdfFocus && (
-        <button
-          type="button"
-          onClick={onTogglePdfFocus}
-          data-testid="belge-panel-collapse-btn"
-          className="hidden lg:inline-flex min-h-[30px] items-center gap-1.5 px-2.5 py-1 text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 rounded-md border border-amber-500/25 hover:border-amber-500/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 transition-all cursor-pointer shrink-0 shadow-sm"
-          title="PDF'ye Odaklan — formu kapat (Ctrl+Shift+F)"
-          aria-label="PDF'ye Odaklan — formu kapat"
-        >
-          <BelgePdfFocusEnterIcon className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-          <span className="font-medium text-xs text-foreground/80 hover:text-amber-600 dark:hover:text-amber-400">PDF&apos;ye Odaklan</span>
-        </button>
-      )}
     </div>
   );
 }

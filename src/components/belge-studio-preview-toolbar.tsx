@@ -10,16 +10,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { BELGE_ZOOM_STEP, MAX_BELGE_ZOOM, MIN_BELGE_ZOOM, clampBelgeZoom } from "@/lib/belge-studio-zoom";
 import { BELGE_STUDIO_PREVIEW_TOOLBAR_CLASS } from "@/lib/belge-studio-layout";
-import { BELGE_UX_FLAGS } from "@/lib/belge-ux-config";
 import type { BelgeStudioFormViewControls } from "@/hooks/use-belge-studio-form-view";
 import {
   BelgeFitPageIcon,
   BelgeFitWidthIcon,
   BelgeMoreIcon,
   BelgeNextPageIcon,
-  BelgeOpenExternalIcon,
-  BelgePdfFocusEnterIcon,
-  BelgePdfFocusExitIcon,
   BelgePrevPageIcon,
   BelgeZoomInIcon,
   BelgeZoomOutIcon,
@@ -45,14 +41,13 @@ type BelgeStudioPreviewToolbarProps = {
 };
 
 /**
- * Belge Stüdyosu — PDF Önizleme Araç Çubuğu (V3 Sözleşmesi)
+ * Belge Stüdyosu — PDF Önizleme Araç Çubuğu
  *
  * Kurallar:
- * 1. 3 kolonlu simetrik CSS Grid (`minmax(0, 1fr) max-content minmax(0, 1fr)`).
- * 2. Orta kolon (`.belge-preview-center`) SADECE [− % +] zoom kontrollerini barındırır.
- *    Toolbar merkezinden sapma payı: ±2 CSS px (matematiksel grid simetrisi ile 0px).
- * 3. `Sığdır`, `Genişliğe Sığdır` ve `Yeni sekme` sağ kolonda (`.belge-preview-right`) yer alır.
- * 4. Tema kontrolü ve Form Görünümü menüsü bu araç çubuğunda YER ALMAZ.
+ * 1. 3 kolonlu CSS Grid (`minmax(0, 1fr) max-content minmax(0, 1fr)`).
+ * 2. Orta kolon (`.belge-preview-center`): [− % +] zoom grubu ve onun sağında ayrı grup olarak `Sığdır` / `Genişliğe Sığdır` butonlarını barındırır.
+ * 3. `Yeni Sekme` ve `PDF'ye Odaklan` kaldırılmıştır.
+ * 4. Mobilde/dar ekranda taşma (More) menüsü sağ kolonda yer alır.
  */
 export function BelgeStudioPreviewToolbar({
   zoomLevel,
@@ -60,10 +55,8 @@ export function BelgeStudioPreviewToolbar({
   onFit,
   onFitWidth,
   fitMode,
-  pdfUrl,
   page,
   disabled = false,
-  pdfFocus,
 }: BelgeStudioPreviewToolbarProps) {
   const hasPageNavigation = page !== undefined && page.total > 1;
   const displayedZoom = Math.round(zoomLevel);
@@ -115,8 +108,8 @@ export function BelgeStudioPreviewToolbar({
         )}
       </div>
 
-      {/* Orta Kolon: Tam Geometrik Merkez — SADECE ZOOM [− % +] (Grid Track 2 - max-content) */}
-      <div className="belge-preview-center flex items-center justify-center min-w-0">
+      {/* Orta Kolon: Zoom [− % +] ve sağında ayrı grup olarak Sığdır / Genişliğe Sığdır (Grid Track 2 - max-content) */}
+      <div className="belge-preview-center flex items-center justify-center gap-2 sm:gap-3 min-w-0">
         <div
           className={`belge-preview-zoom ${hasPageNavigation ? "hidden sm:flex" : "flex"} items-center justify-center gap-[3px] sm:gap-[4px]`}
           role="group"
@@ -151,12 +144,17 @@ export function BelgeStudioPreviewToolbar({
             <BelgeZoomInIcon className="h-[17px] w-[17px]" />
           </button>
         </div>
-      </div>
 
-      {/* Sağ Kolon: Sığdır, Yeni Sekme, PDF Odak ve More Menüsü (Grid Track 3 - minmax(0, 1fr)) */}
-      <div className="belge-preview-right flex items-center justify-end gap-[3px] sm:gap-[4px] min-w-0">
-        {/* Masaüstü doğrudan görünüm araçları (PDFgear stili: SVG üstte, etiket altta) */}
-        <div className="hidden lg:flex items-center gap-[3px] sm:gap-[4px]">
+        {/* Zoom grubunun sağında ayrı Sığdır / Genişliğe Sığdır grubu (Masaüstü) */}
+        <div
+          className="hidden lg:block h-6 w-px bg-border/80 shrink-0"
+          aria-hidden="true"
+        />
+        <div
+          className="belge-preview-fit hidden lg:flex items-center gap-[3px] sm:gap-[4px]"
+          role="group"
+          aria-label="PDF sığdırma"
+        >
           <button
             type="button"
             aria-label="Sığdır"
@@ -185,45 +183,11 @@ export function BelgeStudioPreviewToolbar({
               <span className="preview-tool-label">Genişliğe Sığdır</span>
             </button>
           )}
-          <a
-            href={pdfUrl ?? undefined}
-            role="link"
-            aria-label="PDF'yi yeni sekmede aç"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="PDF'yi yeni sekmede aç"
-            className={`preview-tool-button preview-tool-button-stacked ${disabled || !pdfUrl ? "pointer-events-none opacity-45" : ""}`}
-            aria-disabled={disabled || !pdfUrl}
-            tabIndex={disabled || !pdfUrl ? -1 : undefined}
-            data-testid="belge-preview-open-external-btn"
-          >
-            <BelgeOpenExternalIcon className="preview-tool-icon h-[22px] w-[22px] shrink-0" />
-            <span className="preview-tool-label">Yeni Sekme</span>
-          </a>
-
-          {/* PDF Odak Modu (Masaüstü ve Tablet) */}
-          {pdfFocus && BELGE_UX_FLAGS.FOCUS_MODE && (
-            <button
-              type="button"
-              data-testid="belge-pdf-focus-toggle"
-              aria-pressed={pdfFocus.isPdfFocus}
-              aria-label={pdfFocus.isPdfFocus ? "Formu Göster" : "PDF'ye Odaklan"}
-              title={pdfFocus.isPdfFocus ? "Formu Göster" : "PDF'ye Odaklan"}
-              onClick={pdfFocus.onTogglePdfFocus}
-              className={`preview-tool-button preview-tool-button-stacked ${pdfFocus.isPdfFocus ? "preview-tool-button-active" : ""}`}
-            >
-              {pdfFocus.isPdfFocus ? (
-                <BelgePdfFocusExitIcon className="preview-tool-icon h-[22px] w-[22px] shrink-0" />
-              ) : (
-                <BelgePdfFocusEnterIcon className="preview-tool-icon h-[22px] w-[22px] shrink-0" />
-              )}
-              <span className="preview-tool-label">
-                {pdfFocus.isPdfFocus ? "Formu Göster" : "PDF'ye Odaklan"}
-              </span>
-            </button>
-          )}
         </div>
+      </div>
 
+      {/* Sağ Kolon: Mobilde / Dar Ekranda Taşma (More) Menüsü (Grid Track 3 - minmax(0, 1fr)) */}
+      <div className="belge-preview-right flex items-center justify-end gap-[3px] sm:gap-[4px] min-w-0">
         {/* Mobilde / Dar Ekranda Taşma (More) Menüsü */}
         <div className="belge-preview-more flex shrink-0 lg:hidden">
           <DropdownMenu>
@@ -272,41 +236,6 @@ export function BelgeStudioPreviewToolbar({
                 >
                   <BelgeFitWidthIcon className="h-4 w-4" />
                   Genişliğe Sığdır
-                </DropdownMenuItem>
-              )}
-
-              {/* Yeni Sekmede Aç */}
-              {disabled || !pdfUrl ? (
-                <DropdownMenuItem disabled className="min-h-11 gap-2 rounded-lg">
-                  <BelgeOpenExternalIcon className="h-4 w-4" />
-                  PDF&apos;yi yeni sekmede aç
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem asChild className="min-h-11 gap-2 rounded-lg cursor-pointer">
-                  <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
-                    <BelgeOpenExternalIcon className="h-4 w-4" />
-                    PDF&apos;yi yeni sekmede aç
-                  </a>
-                </DropdownMenuItem>
-              )}
-
-              {/* PDF Odak Modu (Mobilde) */}
-              {pdfFocus && BELGE_UX_FLAGS.FOCUS_MODE && (
-                <DropdownMenuItem
-                  onSelect={pdfFocus.onTogglePdfFocus}
-                  className="min-h-11 gap-2 rounded-lg cursor-pointer"
-                >
-                  {pdfFocus.isPdfFocus ? (
-                    <>
-                      <BelgePdfFocusExitIcon className="h-4 w-4" />
-                      Formu Göster
-                    </>
-                  ) : (
-                    <>
-                      <BelgePdfFocusEnterIcon className="h-4 w-4" />
-                      PDF&apos;ye Odaklan
-                    </>
-                  )}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
