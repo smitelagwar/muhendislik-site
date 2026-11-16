@@ -14,3 +14,4 @@ export * from "./modules/tahmini-insaat-alani/engine";
 export * from "./modules/tahmini-insaat-alani/types";
 export * from "./modules/yapi-denetim-ucreti";
 export * from "./modules/laboratuvar-ucreti";
+export * from "./modules/kirisli-beton-demir";

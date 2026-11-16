@@ -111,6 +111,27 @@ const CALCULATION_PAGES: CalculationPageDefinition[] = [
       "2026",
     ],
   },
+  {
+    id: "kirisli-beton-demir",
+    href: "/hesaplamalar/kirisli-beton-demir",
+    title: "Kirişli Döşeme Beton & Demir",
+    navLabel: "Beton & Demir Tahmini",
+    description:
+      "İnşaat alanı veya parsel (TAKS/KAKS) üzerinden kirişli döşemeli binada tahmini beton, demir ve laboratuvar ücretini görün.",
+    badge: "Yeni",
+    iconKey: "layers",
+    order: 7,
+    keywords: [
+      "kirişli döşeme",
+      "beton tahmini",
+      "demir tahmini",
+      "taks kaks metraj",
+      "radye temel",
+      "mütemadi temel",
+      "bodrum perdesi",
+      "laboratuvar ücreti",
+    ],
+  },
 ];
 
 export function getCalculationPages(): CalculationPageDefinition[] {
