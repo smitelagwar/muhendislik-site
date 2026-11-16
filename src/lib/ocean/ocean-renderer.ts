@@ -201,40 +201,6 @@ function renderQuadList(
   }
 }
 
-function drawBlueprintLabel(
-  ctx: CanvasRenderingContext2D,
-  pos: OceanProjectedPoint,
-  label: string,
-  palette: OceanThemePalette,
-  offsetX = 16,
-  offsetY = -20
-) {
-  if (pos.scale < 0.72) return;
-  ctx.save();
-  ctx.globalAlpha *= clamp(pos.alpha * 0.72, 0.14, 0.72);
-  ctx.strokeStyle = palette.markerText;
-  ctx.fillStyle = palette.markerText;
-  ctx.lineWidth = 0.65;
-  const s = pos.scale;
-  const r = 2.1 * s;
-  const elbowX = pos.x + offsetX * s;
-  const elbowY = pos.y + offsetY * s;
-  const dir = offsetX >= 0 ? 1 : -1;
-  const endX = elbowX + dir * 11 * s;
-
-  ctx.beginPath();
-  ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
-  ctx.moveTo(pos.x + (offsetX >= 0 ? r : -r) * 0.7, pos.y - r * 0.7);
-  ctx.lineTo(elbowX, elbowY);
-  ctx.lineTo(endX, elbowY);
-  ctx.stroke();
-
-  ctx.font = "600 8px 'IBM Plex Mono', ui-monospace, monospace";
-  ctx.textAlign = dir > 0 ? "left" : "right";
-  ctx.fillText(label, endX + dir * 4 * s, elbowY + 2.5 * s);
-  ctx.restore();
-}
-
 function renderKelpPlant(
   ctx: CanvasRenderingContext2D,
   plant: KelpPlant,
@@ -576,11 +542,6 @@ function renderArticulatedFish(
   ctx.arc(fish.eye.x - eyeR * 0.25, fish.eye.y - eyeR * 0.25, eyeR * 0.48, 0, Math.PI * 2);
   ctx.fill();
 
-  if (fish.label) {
-    const dorsalAnchor = fish.dorsalFin[1] ?? fish.nose;
-    drawBlueprintLabel(ctx, dorsalAnchor, fish.label, palette, 14, -14);
-  }
-
   ctx.restore();
 }
 
@@ -669,7 +630,6 @@ function renderMantaRay(
     ctx.fill();
   }
 
-  drawBlueprintLabel(ctx, manta.center, manta.label, palette, 22, -26);
   ctx.restore();
 }
 
@@ -730,9 +690,6 @@ function renderJellyfish(
   smoothOceanCurve(ctx, jelly.bellOutline, true);
   ctx.stroke();
 
-  if (jelly.label) {
-    drawBlueprintLabel(ctx, jelly.apex, jelly.label, palette, 16, -12);
-  }
   ctx.restore();
 }
 
@@ -802,7 +759,6 @@ function renderSeaTurtle(
   ctx.lineWidth = 1.05;
   ctx.stroke();
 
-  drawBlueprintLabel(ctx, turtle.center, turtle.label, palette, 22, -24);
   ctx.restore();
 }
 
