@@ -123,7 +123,8 @@ export default function HesaplamalarPage() {
         return (
           tool.id === "insaat-maliyeti" ||
           tool.id === "resmi-birim-maliyet-2026" ||
-          tool.id === "yapi-denetim-ucreti"
+          tool.id === "yapi-denetim-ucreti" ||
+          tool.id === "laboratuvar-ucreti"
         );
       if (activeTab === "quantity") return tool.id === "hizli-metraj";
       if (activeTab === "area") return tool.id === "tahmini-insaat-alani";
@@ -289,7 +290,7 @@ export default function HesaplamalarPage() {
             &lt; 0.1 <span className="text-sm font-semibold text-cyan-600 dark:text-cyan-400">sn</span>
           </div>
           <div className="mt-2.5 flex items-center gap-1.5 text-[11px] font-bold text-cyan-600 dark:text-cyan-300">
-            <span>5 Canlı Modül Hazır</span>
+            <span>6 Canlı Modül Hazır</span>
           </div>
         </div>
       </section>
@@ -450,6 +451,15 @@ export default function HesaplamalarPage() {
                         <span className="text-muted-foreground dark:text-slate-400">Mevzuat &amp; Veri:</span>
                         <span className="font-mono font-bold text-amber-600 dark:text-amber-300">
                           4708 s. Kanun · 2026 Cetveli
+                        </span>
+                      </div>
+                    )}
+
+                    {tool.id === "laboratuvar-ucreti" && (
+                      <div className="mt-5 rounded-2xl border border-border/80 bg-muted/50 p-3 text-xs flex items-center justify-between dark:border-white/10 dark:bg-[#070a1e]">
+                        <span className="text-muted-foreground dark:text-slate-400">Kapsam:</span>
+                        <span className="font-mono font-bold text-cyan-600 dark:text-cyan-300">
+                          Ek-9 · EBİS Çip · Demir Çekme
                         </span>
                       </div>
                     )}

@@ -13,3 +13,4 @@ export * from "./modules/hizli-metraj";
 export * from "./modules/tahmini-insaat-alani/engine";
 export * from "./modules/tahmini-insaat-alani/types";
 export * from "./modules/yapi-denetim-ucreti";
+export * from "./modules/laboratuvar-ucreti";

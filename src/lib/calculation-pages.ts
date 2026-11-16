@@ -90,6 +90,27 @@ const CALCULATION_PAGES: CalculationPageDefinition[] = [
       "hizmet bedeli oranları",
     ],
   },
+  {
+    id: "laboratuvar-ucreti",
+    href: "/hesaplamalar/laboratuvar-ucreti",
+    title: "Tahmini Laboratuvar Ücreti",
+    navLabel: "Laboratuvar Ücreti",
+    description:
+      "Beton numunesi, EBİS çip etiketi ve demir çekme deneyleri için 2026 tahmini yapı laboratuvarı maliyetini hesaplayın.",
+    badge: "Yeni",
+    iconKey: "layers",
+    order: 6,
+    keywords: [
+      "laboratuvar ücreti",
+      "beton laboratuvar",
+      "ebis çip",
+      "beton etiketi",
+      "demir çekme deneyi",
+      "ek-9",
+      "numune",
+      "2026",
+    ],
+  },
 ];
 
 export function getCalculationPages(): CalculationPageDefinition[] {
