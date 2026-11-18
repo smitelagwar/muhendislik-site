@@ -1,6 +1,6 @@
 import { decodeCp1254 } from "./cp1254";
 import { createIdeDataView, encodeIdeFloat64, hasIdeEncodedNumbers, isIde11SchemaVersion } from "./numeric-codec";
-import { encodeCp1254NulString, IDE10_VERSION, sealIdeCarrierHeader, validateIdeCarrier } from "./ide-binary-codec";
+import { encodeCp1254NulString, sealIdeCarrierHeader, validateIdeCarrier } from "./ide-binary-codec";
 import { readIdeStairTemplate } from "./stairs";
 
 export interface IdeTranscodeSplice {
@@ -683,25 +683,34 @@ export function transcodeIde11TrialToIde11(
 }
 
 /**
- * Converts a .ide11trial buffer into a native .ide10 (version 201094) binary:
- * - Transforms the v11 schema and splices to v10 binary specifications.
- * - Decodes Blowfish float64 values to unencoded standard IEEE-754 float64.
- * - Sets encodedFlag to 0 and seals the carrier header with formatVersion 201094.
+ * T-F1.1 (P1.1) açık sözleşme mesajı — kullanıcı kararı: SERT HATA.
+ * v11→v10 gövde dönüşümü F3'te (T-F3.3) tamamlanana kadar .ide10 üretimi
+ * reddedilir: eski yol yalnız taşıyıcı başlığını 201094 ile yeniden mühürleyip
+ * gövdeyi v11 şemasında bıraktığı için ideCAD çıktıyı açmıyor ve R1/R3/R4/R5
+ * öznitelik alt-akışları kayboluyordu. CLI da aynı tek satır hatayı kullanır.
+ */
+export const IDE10_BODY_CONVERSION_UNSUPPORTED =
+  "v11→v10 gövde dönüşümü F3'te tamamlanana kadar desteklenmiyor: mevcut yol gövdeyi v11 bırakıp geçersiz .ide10 üretiyordu; .ide10 üretimi reddedilir (P1.1, kullanıcı kararı: sert hata). Şimdilik --to ide11 kullanın.";
+
+/**
+ * Converts a .ide11trial buffer into a native .ide10 (version 201094) binary.
+ *
+ * T-F1.1 (P1.1), kullanıcı kararı: gövde dönüşümü tamamlanana kadar SERT HATA.
+ * Bu fonksiyon daha önce başlığı 201094/encoded=0 ile yeniden mühürleyip
+ * gövdeyi v11 şemasında bırakıyordu; ideCAD bu dosyayı açmıyor ve ~30.260
+ * `201094` öznitelik alt-akışı (R1 malzeme, R3 deprem, R4 donatı, R5 F9)
+ * üretilmiyordu. Gerçek v11→v10 gövde dönüşümü F3'te (T-F3.3) yapılana kadar
+ * .ide10 üretimi tamamıyla reddedilir; doğrulama (taşıyıcı bütünlüğü ve
+ * doğrulanmamış döşeme yükü override reddi) korunur, üretim asla gerçekleşmez.
  */
 export function transcodeIde11TrialToIde10(
   sourceBuffer: ArrayBuffer | Uint8Array,
   options: IdeTranscodeOptions = {},
 ): Uint8Array {
+  rejectUnverifiedSlabLoadOverrides(options);
   const src = sourceBuffer instanceof Uint8Array
     ? sourceBuffer
     : new Uint8Array(sourceBuffer);
-  const { work, splices } = collectIde11TrialTransformPlan(src, {
-    ...options,
-    targetVersion: IDE10_VERSION,
-  });
-  const out = applyIdeBinarySplices(work, splices);
-  return sealIdeCarrierHeader(out, {
-    formatVersion: IDE10_VERSION,
-    encodedFlag: 0,
-  });
+  validateIdeCarrier(src);
+  throw new Error(IDE10_BODY_CONVERSION_UNSUPPORTED);
 }

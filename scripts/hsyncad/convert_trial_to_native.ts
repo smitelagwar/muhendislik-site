@@ -3,6 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { parseIde10 } from "../../src/lib/hsyncad/ide-import";
 import * as ideExport from "../../src/lib/hsyncad/ide-export";
+import { IDE10_BODY_CONVERSION_UNSUPPORTED } from "../../src/lib/hsyncad/ide-import/ide11-transcoder";
 import {
   getIdeCarrierFormat,
   IDE10_VERSION,
@@ -33,7 +34,8 @@ const USAGE = [
   "  --input <path>       Input .ide11trial (or .ide10) file path (required)",
   "  --out-dir <dir>      Output directory (default: directory of input file)",
   "  --to <target>        Target format: ide11 | ide10 | all",
-  "                       (default: all for .ide11trial, ide11 for .ide10)",
+  "                       (default: ide11; .ide10 targets are rejected until",
+  "                       the v11-to-v10 body conversion is completed in F3)",
   "  --force              Allow overwriting existing output files or equal input path",
   "  --backup-dir <dir>   Optional directory for additional backup copies",
   "  -h, --help           Show this help message",
@@ -137,16 +139,26 @@ function parseCliArgs(argv: string[]): CliOptions {
 
 function resolveTargets(sourceFormat: NativeIdeFormat, to?: TargetFilter): TargetFormat[] {
   if (sourceFormat === "ide11trial") {
-    if (!to || to === "all") return ["ide11", "ide10"];
-    return [to];
+    // T-F1.1 (P1.1), kullanıcı kararı: SERT HATA. `--to ide10`, `--to all` ve
+    // varsayılan hedefin tümü .ide10 üretimi planlar; gövde dönüşümü F3'te
+    // (T-F3.3) tamamlanana kadar bu üretim reddedilir. Yalnız `--to ide11`
+    // geçerlidir.
+    if (to !== "ide11") {
+      throw new Error(IDE10_BODY_CONVERSION_UNSUPPORTED);
+    }
+    return ["ide11"];
   }
   if (sourceFormat === "ide10") {
-    if (!to || to === "all" || to === "ide11") return ["ide11"];
-    throw new Error("Input file is already .ide10; cannot convert .ide10 to .ide10.");
+    if (to === "ide10") {
+      throw new Error("Input file is already .ide10; cannot convert .ide10 to .ide10.");
+    }
+    return ["ide11"];
   }
   if (sourceFormat === "ide11") {
-    if (to === "ide10") return ["ide10"];
-    throw new Error("Input file is already commercial .ide11. Pass --to ide10 to convert to .ide10.");
+    if (to !== "ide10") {
+      throw new Error("Input file is already commercial .ide11; no other target is currently available.");
+    }
+    throw new Error(IDE10_BODY_CONVERSION_UNSUPPORTED);
   }
   throw new Error(`Unsupported source format "${sourceFormat}" for native conversion.`);
 }
