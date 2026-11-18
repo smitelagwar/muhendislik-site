@@ -392,10 +392,15 @@ export function parseIde10(buffer: ArrayBuffer, filename: string): IdeProject {
   }
   if (!floors.length) throw new Error("IDE dosyasında doğrulanabilir kat kayıtları bulunamadı. Bu sürümün kat yapısı henüz desteklenmiyor.");
   for (let i = 0; i < floors.length - 1; i++) floors[i].endOffset = floors[i + 1].sourceOffset;
-  const rawAnalytical = !compressed && !encoded;
-  const materials = rawAnalytical ? extractIdeMaterials(bytes, view) : undefined;
-  const seismicSoil = rawAnalytical ? extractIdeSeismicAndSoil(bytes, view, floors[0].sourceOffset, floors[floors.length - 1].sourceOffset) : undefined;
-  const f9Results = rawAnalytical ? extractIdePrecomputedF9(bytes, view, floors[floors.length - 1].sourceOffset) : undefined;
+  const rawAnalytical = !compressed;
+  // T-F5.1: encoded v11 (211220/211280) carriers now resolve R1-R5 through the
+  // encoded numeric view (`IdeEncodedDataView`); their record layouts differ
+  // from the v10 plain body, so the extractors receive a v11 strategy flag.
+  // Compressed 11.04 bodies still skip analytic reads.
+  const v11Encoded = rawAnalytical && encoded;
+  const materials = rawAnalytical ? extractIdeMaterials(bytes, view, v11Encoded) : undefined;
+  const seismicSoil = rawAnalytical ? extractIdeSeismicAndSoil(bytes, view, floors[0].sourceOffset, floors[floors.length - 1].sourceOffset, v11Encoded, carrier.formatVersion) : undefined;
+  const f9Results = rawAnalytical ? extractIdePrecomputedF9(bytes, view, floors[floors.length - 1].sourceOffset, v11Encoded) : undefined;
   const coverage: IdeCoverage = { candidateRecords: 0, decodedRecords: 0, unsupportedRecords: 0, ignoredTemplateRecords: 0, holeRecords: 0, rejectedCandidates: 0, byType: {}, unsupportedTypes: {}, limitations: [
     "Kayıt sayıları yalnız tanınan ad/renk/geometri gramerinin adaylarını kapsar. Desteklenmeyen kayıt sayısının sıfır olması tüm dosyanın eksiksiz okunduğunu göstermez; diğer nesne sınıflarının toplamı bilinmiyor.",
     "Plan konumları, kat kotları ve yükseklikleri, kesit genişlikleri, yanal kaçıklıklar ve döşeme boşlukları dosyadan okunur.",
@@ -476,7 +481,7 @@ export function parseIde10(buffer: ArrayBuffer, filename: string): IdeProject {
     if (rawAnalytical) {
       const materialIndex = resolveElementMaterialIndex(bytes, view, attributes, recordEnd, type, element.structural, materials);
       if (materialIndex !== undefined) element.materialIndex = materialIndex;
-      const rebarLayout = extractIdeElementRebar(bytes, view, attributes, recordEnd, type, foundation, v11Schema);
+      const rebarLayout = extractIdeElementRebar(bytes, view, attributes, recordEnd, type, foundation, v11Schema, v11Encoded);
       if (rebarLayout) element.rebarLayout = rebarLayout;
     }
     // These are explicitly derived display ranges. The floor dimensions are

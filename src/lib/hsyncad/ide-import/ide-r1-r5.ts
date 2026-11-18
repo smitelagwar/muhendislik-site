@@ -1,6 +1,58 @@
 import { decodeCp1254, encodeCp1254 } from "./cp1254";
 import { scanIde201094Streams } from "./ide-zlib";
 
+/**
+ * Encoded v11 sub-stream frame magic (T-F5.1, measured on the 2026-11-19 equivalence corpus).
+ *
+ * The v10 writer frames zlib sub-streams with the u32 marker 0x00031186
+ * (`scanIde201094Streams`); the encoded 211220 writer (X11_downloads.ide11,
+ * D0_desktop.ide11trial) frames the same `[u32 compLen][u32 rawLen][0x78 zlib]`
+ * body with u32 0x00033914 instead, so the frames are invisible to the v10
+ * scanner. Census on X11: 30259 encoded-magic streams + the single plain
+ * drawing-style stream (0x00031186, raw 813063) == A0's 30260 total.
+ */
+const IDE_V11_STREAM_MAGIC = 0x33914;
+
+export interface IdeV11SubStreamHeader {
+  offset: number;
+  endOffset: number;
+  rawLength: number;
+}
+
+/** Scan `[u32 0x33914][u32 compLen][u32 rawLen][0x78…]` frames in an encoded v11 body. */
+function scanIdeV11SubStreams(
+  bytes: Uint8Array,
+  startOffset: number,
+  endOffset: number,
+  maxStreams: number,
+): IdeV11SubStreamHeader[] {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const limit = Math.min(bytes.length, endOffset);
+  const out: IdeV11SubStreamHeader[] = [];
+  let pos = Math.max(0, startOffset);
+  while (pos + 16 <= limit && out.length < maxStreams) {
+    if (view.getUint32(pos, true) === IDE_V11_STREAM_MAGIC) {
+      const compressedLength = view.getUint32(pos + 4, true);
+      const rawLength = view.getUint32(pos + 8, true);
+      const streamEnd = pos + 12 + compressedLength;
+      if (
+        compressedLength >= 8 &&
+        compressedLength <= 64 * 1024 * 1024 &&
+        rawLength >= 1 &&
+        rawLength <= 64 * 1024 * 1024 &&
+        streamEnd <= limit &&
+        bytes[pos + 12] === 0x78
+      ) {
+        out.push({ offset: pos, endOffset: streamEnd, rawLength });
+        pos = streamEnd;
+        continue;
+      }
+    }
+    pos++;
+  }
+  return out;
+}
+
 export interface IdeMaterialRecord {
   id: number;
   name: string;
@@ -130,8 +182,15 @@ export function transformIdeF9Coord(x: number, y: number, z: number): { x: numbe
   return { x, y: -z, z: y };
 }
 
-/** R1: Extract global material dictionary anchored after `TEMEL TASARIM ZARFI\0` (+764 + 38). */
-export function extractIdeMaterials(bytes: Uint8Array, view: DataView): IdeMaterialRecord[] | undefined {
+/** R1: Extract global material dictionary anchored after `TEMEL TASARIM ZARFI\0` (+764 + 38).
+ *
+ * v10 (201094): 14 contiguous plain f64s per record (fck/fyk stored in tf/cm², E in tf/m²).
+ * Encoded v11 (211220/211280, T-F5.1, measured on X11/B0/C1/D0): the record header
+ * and the `+802` count anchor are identical, but the 13 numeric fields sit on an
+ * encoded-f64 grid with four u32 separators (104/131/131/[150], semantics unestablished)
+ * and a 128-byte stride: fck/fyk are stored already in MPa while fctk stays tf/cm² and
+ * E stays tf/m² — the decoded values equal the v10 record after its unit conversions. */
+export function extractIdeMaterials(bytes: Uint8Array, view: DataView, v11Encoded = false): IdeMaterialRecord[] | undefined {
   const zt = findAsciiBytes(bytes, "TEMEL TASARIM ZARFI\0");
   if (zt < 0) return undefined;
   const countOffset = zt + 764 + 38;
@@ -146,17 +205,37 @@ export function extractIdeMaterials(bytes: Uint8Array, view: DataView): IdeMater
     const kindRaw = view.getUint32(cursor + 4, true);
     const strFlag = bytes[cursor + 8];
     const slen = view.getUint32(cursor + 9, true);
-    if (strFlag !== 0 || slen < 2 || slen > 128 || cursor + 13 + slen + 112 > bytes.length) return undefined;
+    if (strFlag !== 0 || slen < 2 || slen > 128 || cursor + 13 + slen + (v11Encoded ? 128 : 112) > bytes.length) return undefined;
     if (bytes[cursor + 13 + slen - 1] !== 0) return undefined;
     const name = decodeCp1254(bytes.subarray(cursor + 13, cursor + 13 + slen - 1));
     const floatsOffset = cursor + 13 + slen;
-    const raw: number[] = [];
-    for (let j = 0; j < 14; j++) {
-      raw.push(view.getFloat64(floatsOffset + j * 8, true));
+    let fckMpaValue: number, fykMpaValue: number, fctkMpaValue: number;
+    let gammaS: number, gammaC: number, elasticModulusMpa: number, poisson: number, unitWeightTfM3: number;
+    if (v11Encoded) {
+      // Encoded v11 grid: [fck MPa] [u32] [fyk MPa] [u32] [fyk MPa] [u32]
+      // [fctk tf/cm²][?0.85][gammaS][gammaC][E tf/m²][poisson][weight][1e-5][0][?][u32][?].
+      fckMpaValue = view.getFloat64(floatsOffset, true);
+      fykMpaValue = view.getFloat64(floatsOffset + 12, true);
+      fctkMpaValue = view.getFloat64(floatsOffset + 36, true) * TF_CM2_TO_MPA;
+      gammaS = view.getFloat64(floatsOffset + 52, true);
+      gammaC = view.getFloat64(floatsOffset + 60, true);
+      elasticModulusMpa = view.getFloat64(floatsOffset + 68, true) * TF_M2_TO_MPA;
+      poisson = view.getFloat64(floatsOffset + 76, true);
+      unitWeightTfM3 = view.getFloat64(floatsOffset + 84, true);
+    } else {
+      const raw: number[] = [];
+      for (let j = 0; j < 14; j++) {
+        raw.push(view.getFloat64(floatsOffset + j * 8, true));
+      }
+      fckMpaValue = raw[0] * TF_CM2_TO_MPA;
+      fykMpaValue = raw[1] * TF_CM2_TO_MPA;
+      fctkMpaValue = raw[3] * TF_CM2_TO_MPA;
+      gammaS = raw[5];
+      gammaC = raw[6];
+      elasticModulusMpa = raw[7] * TF_M2_TO_MPA;
+      poisson = raw[8];
+      unitWeightTfM3 = raw[9];
     }
-    const elasticModulusMpa = raw[7] * TF_M2_TO_MPA;
-    const poisson = raw[8];
-    const unitWeightTfM3 = raw[9];
     if (!isFiniteRange(elasticModulusMpa, 100, 1_000_000) || !isFiniteRange(poisson, 0, 0.5) || !isFiniteRange(unitWeightTfM3, 0.01, 50)) {
       return undefined;
     }
@@ -166,17 +245,17 @@ export function extractIdeMaterials(bytes: Uint8Array, view: DataView): IdeMater
       id: i,
       name,
       kind,
-      fckMpa: isConcrete && isFiniteRange(raw[0] * TF_CM2_TO_MPA, 1, 200) ? raw[0] * TF_CM2_TO_MPA : null,
-      fykMpa: isConcrete && isFiniteRange(raw[1] * TF_CM2_TO_MPA, 10, 2000) ? raw[1] * TF_CM2_TO_MPA : null,
-      fctkMpa: isConcrete && isFiniteRange(raw[3] * TF_CM2_TO_MPA, 0.1, 50) ? raw[3] * TF_CM2_TO_MPA : null,
-      gammaS: isConcrete && isFiniteRange(raw[5], 0.5, 5) ? raw[5] : null,
-      gammaC: isConcrete && isFiniteRange(raw[6], 0.5, 5) ? raw[6] : null,
+      fckMpa: isConcrete && isFiniteRange(fckMpaValue, 1, 200) ? fckMpaValue : null,
+      fykMpa: isConcrete && isFiniteRange(fykMpaValue, 10, 2000) ? fykMpaValue : null,
+      fctkMpa: isConcrete && isFiniteRange(fctkMpaValue, 0.1, 50) ? fctkMpaValue : null,
+      gammaS: isConcrete && isFiniteRange(gammaS, 0.5, 5) ? gammaS : null,
+      gammaC: isConcrete && isFiniteRange(gammaC, 0.5, 5) ? gammaC : null,
       elasticModulusMpa,
       poisson,
       unitWeightTfM3,
       sourceOffset: cursor,
     });
-    cursor = floatsOffset + 112;
+    cursor = floatsOffset + (v11Encoded ? 128 : 112);
   }
   return materials.length ? materials : undefined;
 }
@@ -211,12 +290,23 @@ export function resolveElementMaterialIndex(
   return undefined;
 }
 
-/** R3: Extract pre-floor TBDY/soil params, tail `DSF1`/`RSF1` spectrum params, and `G1` lat/lon. */
+/** R3: Extract pre-floor TBDY/soil params, tail `DSF1`/`RSF1` spectrum params, and `G1` lat/lon.
+ *
+ * The pre-floor `ko` slot anchors at a version-dependent distance before the
+ * exposure-class string (measured, T-F5.1): v10 201094 → 568; encoded v11
+ * 211220 → 677 (X11/D0); encoded v11 211280 → 561 (B0/C1). Relative to `ko`
+ * the fields keep the same v10 offsets in every version family (with the
+ * (r, ratio) pair duplicated 16 bytes earlier in encoded v11 carriers). The
+ * tail `G1` latitude/longitude stay plain little-endian f64 in encoded v11
+ * bodies (they are outside the Blowfish numeric coding), unlike the pre-floor
+ * and spectrum f64 fields which decode through the encoded view. */
 export function extractIdeSeismicAndSoil(
   bytes: Uint8Array,
   view: DataView,
   firstFloorOffset: number,
   lastFloorOffset: number,
+  v11Encoded = false,
+  carrierVersion = 0,
 ): IdeSeismicAndSoilParams | undefined {
   let exposureClass: string | undefined;
   let rEntered: number | null = null;
@@ -226,13 +316,14 @@ export function extractIdeSeismicAndSoil(
   let bearingCapacityQtTfM2: number | null = null;
   let importanceI: number | null = null;
 
+  const koAnchorDistance = v11Encoded ? (carrierVersion >= 211280 ? 561 : 677) : 568;
   const preLimit = Math.min(bytes.length - 8, firstFloorOffset);
   for (let at = 24; at + 8 < preLimit; at++) {
     const slen = view.getUint32(at, true);
     if (slen < 3 || slen > 4 || at + 4 + slen > preLimit || bytes[at + 3 + slen] !== 0) continue;
     const candidate = decodeCp1254(bytes.subarray(at + 4, at + 3 + slen));
     if (!EXPOSURE_CLASSES.has(candidate)) continue;
-    const koOff = at + 4 - 568;
+    const koOff = at + 4 - koAnchorDistance;
     if (koOff < 49) continue;
     const ko = readF64OrNull(view, koOff, 1, 1_000_000);
     const nVal = readF64OrNull(view, koOff - 8, 0, 2);
@@ -276,8 +367,11 @@ export function extractIdeSeismicAndSoil(
   let longitude: number | null | undefined;
   const g1Off = findAsciiBytes(bytes, "\x03\x00\x00\x00G1\0", Math.max(0, lastFloorOffset));
   if (g1Off >= 0 && g1Off + 23 <= bytes.length) {
-    const lat = readF64OrNull(view, g1Off + 7, -90, 90);
-    const lon = readF64OrNull(view, g1Off + 15, -180, 180);
+    // Encoded v11 carriers keep the G1 latitude/longitude as plain f64 outside
+    // the Blowfish numeric coding; read them through a raw view there.
+    const rawView = v11Encoded ? new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength) : view;
+    const lat = readF64OrNull(rawView, g1Off + 7, -90, 90);
+    const lon = readF64OrNull(rawView, g1Off + 15, -180, 180);
     if (lat !== null && lon !== null && (Math.abs(lat) > 0.01 || Math.abs(lon) > 0.01)) {
       latitude = lat;
       longitude = lon;
@@ -306,6 +400,152 @@ export function extractIdeSeismicAndSoil(
   };
 }
 
+/**
+ * R4 (encoded v11, T-F5.1): rebar schedules in the 211220 encoded body.
+ *
+ * Measured on X11_downloads.ide11 (all anchors value-validated, no fitting):
+ * - Sub-streams are framed with u32 0x33914 (`scanIdeV11SubStreams`), the zlib
+ *   payloads inflate byte-identically to the v10 twin streams.
+ * - Beam tuple after the last sub-stream: `[u32 1][enc topDia m][u32 topCount][u32 1][u32 1][enc 0]…[u32 1][u32 1][enc botDia m][u32 botCount]…[enc stirrupDia m][enc sp0 m][enc sp1 m]`
+ *   at p+4/p+12/p+16/p+40/p+48/p+140/p+148/p+156 (p+140 group preceded by u32 1 at p+136).
+ * - Wall tuple: `[enc webSpacing m]` at p, then `[u32 1][enc webDia m]` at p+8/+12,
+ *   `[u32 1][enc headDia m][u32 headCount]` at p+20/+24/+32, mirrored right head at
+ *   p+36/+40/+48, `[enc headStirrupSpacing m]` p+52, `[u32 1][enc headStirrupDia m]` p+60/+64,
+ *   `[enc webStirrupSpacing m]` p+72, `[u32 1][enc webStirrupDia m]` p+80/+84.
+ * - Raft foundation: `[enc spacing m][u32 1][enc dia m]` twice (X/Y) at q/q+4/q+12
+ *   and q+20/q+24/q+32, near `attributes+975` (v10 reads the same pair at +960+shift).
+ * Diameters/spacings are encoded f64 in metres (0.014 m = Ø14, 0.2 m = 20 cm);
+ * counts stay plain u32. No encoded-column evidence exists in the corpus, so
+ * columns are left unresolved (undefined) rather than guessed.
+ */
+function extractIdeElementRebarV11(
+  bytes: Uint8Array,
+  view: DataView,
+  attributesOffset: number,
+  limit: number,
+  type: string,
+  foundation: boolean,
+): IdeElementRebar | undefined {
+  const diaMm = (f: number) => Math.round(f * 1000);
+  const spacingCm = (f: number) => Math.round(f * 100);
+  const isDiaM = (f: number) => Number.isFinite(f) && Math.abs(f * 1000 - Math.round(f * 1000)) < 1e-6 && REBAR_DIAS.has(diaMm(f));
+  const isStirrupDiaM = (f: number) => Number.isFinite(f) && Math.abs(f * 1000 - Math.round(f * 1000)) < 1e-6 && STIRRUP_DIAS.has(diaMm(f));
+  const isSpacingM = (f: number, minCm: number, maxCm: number) =>
+    Number.isFinite(f) && Math.abs(f * 100 - Math.round(f * 100)) < 1e-6 && spacingCm(f) >= minCm && spacingCm(f) <= maxCm;
+
+  if (type === "slab" && foundation) {
+    // Raft: `[enc spacing m][u32 1][enc dia m][enc spacing m][u32 1][enc dia m]`
+    // (X/Y pair) near attributes+976 — v10 reads the same pair at +960+shift.
+    const scanEnd = Math.min(limit, attributesOffset + 1100);
+    for (let q = Math.max(0, attributesOffset + 900); q + 40 <= scanEnd; q++) {
+      const s1 = view.getFloat64(q, true);
+      if (!isSpacingM(s1, 5, 50)) continue;
+      if (view.getUint32(q + 8, true) !== 1) continue;
+      const d1 = view.getFloat64(q + 12, true);
+      if (!isDiaM(d1)) continue;
+      const s2 = view.getFloat64(q + 20, true);
+      if (!isSpacingM(s2, 5, 50)) continue;
+      if (view.getUint32(q + 28, true) !== 1) continue;
+      const d2 = view.getFloat64(q + 32, true);
+      if (!isDiaM(d2)) continue;
+      return {
+        kind: "raft",
+        topX: `Ø${diaMm(d1)}/${spacingCm(s1)}`,
+        topY: `Ø${diaMm(d2)}/${spacingCm(s2)}`,
+        bottomX: `Ø${diaMm(d1)}/${spacingCm(s1)}`,
+        bottomY: `Ø${diaMm(d2)}/${spacingCm(s2)}`,
+      };
+    }
+    return undefined;
+  }
+
+  if (type !== "wall" && type !== "beam") return undefined;
+  const streams = scanIdeV11SubStreams(bytes, attributesOffset, Math.min(limit, attributesOffset + 20_000), 16);
+  if (!streams.length) return undefined;
+  const afterStreams = streams[streams.length - 1].endOffset;
+
+  if (type === "wall") {
+    // The +220 window cap mirrors the v10 reader's wall scanning discipline.
+    const scanEnd = Math.min(limit - 92, afterStreams + 220);
+    for (let p = afterStreams + 32; p <= scanEnd; p++) {
+      const webSpacing = view.getFloat64(p, true);
+      if (!isSpacingM(webSpacing, 5, 50)) continue;
+      if (view.getUint32(p + 8, true) !== 1) continue;
+      const webDia = view.getFloat64(p + 12, true);
+      if (!isDiaM(webDia)) continue;
+      if (view.getUint32(p + 20, true) !== 1) continue;
+      const headDiaL = view.getFloat64(p + 24, true);
+      if (!isDiaM(headDiaL)) continue;
+      const headCountL = view.getUint32(p + 32, true);
+      if (headCountL < 1 || headCountL > 60) continue;
+      if (view.getUint32(p + 36, true) !== 1) continue;
+      const headDiaR = view.getFloat64(p + 40, true);
+      if (!isDiaM(headDiaR) || diaMm(headDiaR) !== diaMm(headDiaL)) continue;
+      const headCountR = view.getUint32(p + 48, true);
+      if (headCountR !== headCountL) continue;
+      const headStirrupSpacing = view.getFloat64(p + 52, true);
+      if (!isSpacingM(headStirrupSpacing, 4, 40)) continue;
+      if (view.getUint32(p + 60, true) !== 1) continue;
+      const headStirrupDia = view.getFloat64(p + 64, true);
+      if (!isStirrupDiaM(headStirrupDia)) continue;
+      const webStirrupSpacing = view.getFloat64(p + 72, true);
+      if (!isSpacingM(webStirrupSpacing, 4, 40)) continue;
+      if (view.getUint32(p + 80, true) !== 1) continue;
+      const webStirrupDia = view.getFloat64(p + 84, true);
+      if (!isStirrupDiaM(webStirrupDia)) continue;
+      return {
+        kind: "wall",
+        webDiaMm: diaMm(webDia),
+        webSpacingCm: spacingCm(webSpacing),
+        headCount: headCountL,
+        headDiaMm: diaMm(headDiaL),
+        webStirrupDiaMm: diaMm(webStirrupDia),
+        webStirrupSpacingCm: spacingCm(webStirrupSpacing),
+        headStirrupDiaMm: diaMm(headStirrupDia),
+        headStirrupSpacingCm: spacingCm(headStirrupSpacing),
+      };
+    }
+    return undefined;
+  }
+
+  // Beam: p+4 topDia, p+12 topCount, p+40 bottomDia, p+48 bottomCount,
+  // p+140 stirrup dia, p+148/p+156 stirrup spacings (all encoded f64 in metres).
+  // The +700 window cap mirrors the v10 reader's scanning discipline so the
+  // encoded profile matches the A0 oracle one-to-one (T-F5.1 note: tuples do
+  // exist beyond +700 in both bodies — e.g. A0 K40 at +725 — but widening the
+  // window would change v10-established counts and belongs to a separate task).
+  const scanEnd = Math.min(limit - 164, afterStreams + 700);
+  for (let p = afterStreams + 32; p <= scanEnd; p++) {
+    if (view.getUint32(p, true) !== 1) continue;
+    const topDia = view.getFloat64(p + 4, true);
+    if (!isDiaM(topDia)) continue;
+    const topCount = view.getUint32(p + 12, true);
+    if (topCount < 1 || topCount > 24) continue;
+    if (view.getUint32(p + 16, true) !== 1) continue;
+    if (view.getUint32(p + 36, true) !== 1) continue;
+    const bottomDia = view.getFloat64(p + 40, true);
+    if (!isDiaM(bottomDia)) continue;
+    const bottomCount = view.getUint32(p + 48, true);
+    if (bottomCount < 1 || bottomCount > 24) continue;
+    const stirrupDia = view.getFloat64(p + 140, true);
+    if (!isStirrupDiaM(stirrupDia)) continue;
+    const sp0 = view.getFloat64(p + 148, true);
+    if (!isSpacingM(sp0, 4, 40)) continue;
+    const sp1 = view.getFloat64(p + 156, true);
+    if (!isSpacingM(sp1, 4, 40)) continue;
+    return {
+      kind: "beam",
+      topCount,
+      topDiaMm: diaMm(topDia),
+      bottomCount,
+      bottomDiaMm: diaMm(bottomDia),
+      stirrupDiaMm: diaMm(stirrupDia),
+      stirrupSpacingCm: [spacingCm(sp0), spacingCm(sp1)],
+    };
+  }
+  return undefined;
+}
+
 /** R4: Extract per-element rebar schedules strictly within `[attributesOffset .. recordEnd]`. */
 export function extractIdeElementRebar(
   bytes: Uint8Array,
@@ -315,8 +555,12 @@ export function extractIdeElementRebar(
   type: string,
   foundation: boolean,
   v11Schema: boolean,
+  v11Encoded = false,
 ): IdeElementRebar | undefined {
   const limit = Math.min(bytes.length, recordEnd);
+  if (v11Encoded) {
+    return extractIdeElementRebarV11(bytes, view, attributesOffset, limit, type, foundation);
+  }
   const shift = v11Schema ? 4 : 0;
 
   if (type === "slab" && foundation) {
@@ -455,13 +699,20 @@ export function extractIdeElementRebar(
   return undefined;
 }
 
-/** R5: Extract Modal tables and `201094` F9 stream counts without inflating 28k+ streams upfront. */
+/** R5: Extract Modal tables and `201094` F9 stream counts without inflating 28k+ streams upfront.
+ *
+ * Encoded v11 bodies (T-F5.1) frame their sub-streams with u32 0x33914; both
+ * magics are scanned there so the census matches the v10 reading of the same
+ * project (X11: 1057 bar + 28001 nodal + 373 shell == A0). */
 export function extractIdePrecomputedF9(
   bytes: Uint8Array,
   view: DataView,
   lastFloorOffset: number,
+  v11Encoded = false,
 ): IdePrecomputedF9 | undefined {
-  const streams = scanIde201094Streams(bytes);
+  const streams = v11Encoded
+    ? [...scanIde201094Streams(bytes), ...scanIdeV11SubStreams(bytes, 0, bytes.length, 200_000)]
+    : scanIde201094Streams(bytes);
   let barForceStreamsCount = 0;
   let nodalDisplacementStreamsCount = 0;
   let shellResultStreamsCount = 0;
