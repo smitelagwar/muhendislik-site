@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { deflateSync } from "node:zlib";
 import {
@@ -10,6 +10,8 @@ import {
   IDE_HEADER_SIGNATURE,
   IdeCarrierValidationError,
   type IdeCarrierValidationCode,
+  type IdeCarrierMetadata,
+  type NativeIdeFormat,
   validateIdeCarrier,
 } from "./ide-binary-codec";
 import { parseIde10 } from "./index";
@@ -154,8 +156,11 @@ test("getIdeCarrierFormat distinguishes converted commercial ide11 from trial/st
   const currentTrialNoMarker = carrier(211280, 1);
   assert.equal(getIdeCarrierFormat(currentTrialNoMarker, validateIdeCarrier(currentTrialNoMarker)), "ide11trial");
 
-  const currentTrialClearedMarker = carrierWithMarker(211280, 1, 0, 0);
-  assert.equal(getIdeCarrierFormat(currentTrialClearedMarker, validateIdeCarrier(currentTrialClearedMarker)), "ide11trial");
+  // T-F1.3: a 211280 carrier with cleared lock bytes is a commercial .ide11 (real evidence:
+  // HS_B0_orijinal.ide11, Hsyncad's commercial 211280 output). The version alone must not
+  // force the trial label; only the lock bytes may.
+  const currentCommercialClearedMarker = carrierWithMarker(211280, 1, 0, 0);
+  assert.equal(getIdeCarrierFormat(currentCommercialClearedMarker, validateIdeCarrier(currentCommercialClearedMarker)), "ide11");
 
   const noMarkerEncoded = carrier(211220, 1);
   assert.equal(getIdeCarrierFormat(noMarkerEncoded, validateIdeCarrier(noMarkerEncoded)), "ide11trial");
@@ -165,6 +170,66 @@ test("getIdeCarrierFormat distinguishes converted commercial ide11 from trial/st
 
   const v10 = carrier(201094, 0);
   assert.equal(getIdeCarrierFormat(v10, validateIdeCarrier(v10)), "ide10");
+});
+
+// Real-byte evidence, read on 2026-11-18 from the campaign corpus and conversion output (read-only).
+// previewEnd = 116 + nameLen(u32@96) + previewLen(u32@112+nameLen); the lock bytes live at
+// previewEnd+28 (student, [rdi+11h]) and previewEnd+29 (demo); the marker is u32@previewEnd+30 = 0x5ce.
+// - X11_downloads.ide11 (ideCAD's own commercial .ide11 save, sha256 EB2AFEAB…): u32@74=211220,
+//   byte@78=1, real bytes previewEnd+26..+33 = 68 00 00 00 ce 05 00 00 → student=0, demo=0
+// - B0_orijinal.ide11trial (trial record, sha256 43B9C306…): u32@74=211280, byte@78=1,
+//   previewEnd+26..+33 = 68 00 00 01 ce 05 00 00 → student=0, demo=1
+// - HS_B0_orijinal.ide11 (Hsyncad commercial 211280 output, cleared locks): u32@74=211280,
+//   byte@78=1, previewEnd+26..+33 = 68 00 00 00 ce 05 00 00
+const REAL_PREVIEW_TAIL = {
+  commercial: [0x68, 0x00, 0x00, 0x00, 0xce, 0x05, 0x00, 0x00],
+  trialDemo: [0x68, 0x00, 0x00, 0x01, 0xce, 0x05, 0x00, 0x00],
+} as const;
+
+function carrierWithRealPreviewTail(version: number, realTail: readonly number[]): Uint8Array<ArrayBuffer> {
+  const bytes = carrier(version, 1);
+  // projectNameByteLength = 3 → previewEnd = 119; the real slice covers the student lock (+28),
+  // the demo lock (+29) and the 0x5ce marker (+30..+33) exactly as observed in the corpus files.
+  bytes.set(realTail, 119 + 26);
+  new DataView(bytes.buffer).setUint32(83, rawCrc(bytes), true);
+  return bytes;
+}
+
+test("getIdeCarrierFormat lets the lock bytes, not the 211280 version, decide trial vs commercial", () => {
+  const formatOf = (bytes: Uint8Array) => getIdeCarrierFormat(bytes, validateIdeCarrier(bytes));
+  // Commercial carriers keep encodedFlag=1 with zero lock bytes, including version 211280.
+  assert.equal(formatOf(carrierWithRealPreviewTail(211220, REAL_PREVIEW_TAIL.commercial)), "ide11");
+  assert.equal(formatOf(carrierWithRealPreviewTail(211280, REAL_PREVIEW_TAIL.commercial)), "ide11");
+  // Trial records carry the demo lock byte (B0/C1 pattern) on both observed versions.
+  assert.equal(formatOf(carrierWithRealPreviewTail(211280, REAL_PREVIEW_TAIL.trialDemo)), "ide11trial");
+  assert.equal(formatOf(carrierWithRealPreviewTail(211220, REAL_PREVIEW_TAIL.trialDemo)), "ide11trial");
+});
+
+const realCarrierProbes: Array<[label: string, path: string, version: 211220 | 211280, expected: NativeIdeFormat]> = [
+  ["X11_downloads.ide11 (ideCAD's own commercial save)", "C:/Users/hsyn/Desktop/hsyncad/incelemeler/donusum-esdegerlik-2026-11-15/00-kaynak/X11_downloads.ide11", 211220, "ide11"],
+  ["HS_X11_downloads.ide11 (Hsyncad commercial output)", "C:/Users/hsyn/Desktop/hsyncad_idecad_uzanti_optimizasyon/evidence/hsyncad-conversions/HS_X11_downloads.ide11", 211220, "ide11"],
+  ["HS_B0_orijinal.ide11 (Hsyncad commercial 211280 output)", "C:/Users/hsyn/Desktop/hsyncad_idecad_uzanti_optimizasyon/evidence/hsyncad-conversions/HS_B0_orijinal.ide11", 211280, "ide11"],
+  ["B0_orijinal.ide11trial (trial record)", "C:/Users/hsyn/Desktop/hsyncad/incelemeler/donusum-esdegerlik-2026-11-15/00-kaynak/B0_orijinal.ide11trial", 211280, "ide11trial"],
+  ["C1_canli_kiyas.ide11trial (trial record)", "C:/Users/hsyn/Desktop/hsyncad/incelemeler/donusum-esdegerlik-2026-11-15/00-kaynak/C1_canli_kiyas.ide11trial", 211280, "ide11trial"],
+  ["D0_desktop.ide11trial (trial record)", "C:/Users/hsyn/Desktop/hsyncad/incelemeler/donusum-esdegerlik-2026-11-15/00-kaynak/D0_desktop.ide11trial", 211220, "ide11trial"],
+];
+
+for (const [label, path, version, expected] of realCarrierProbes) test(`real carrier bytes classify by lock/version: ${label}`, { skip: !existsSync(path), timeout: 15_000 }, () => {
+  // Read only the bounded header+preview prefix (~28.4 KB), never the 140 MB body.
+  const bytes = new Uint8Array(readFileSync(path).subarray(0, 30_000));
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const formatVersion = view.getUint32(74, true);
+  assert.equal(formatVersion, version, "version bytes must match the manifest");
+  assert.equal(bytes[78], 1);
+  const metadata: IdeCarrierMetadata = {
+    formatVersion: version,
+    encodedFlag: 1,
+    byteLength: statSync(path).size,
+    projectName: "",
+    projectNameByteLength: view.getUint32(96, true),
+    storedChecksum: view.getUint32(83, true),
+  };
+  assert.equal(getIdeCarrierFormat(bytes, metadata), expected);
 });
 
 const officialCde = process.env.HSYNCAD_IDE211040_FIXTURE;
