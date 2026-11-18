@@ -2,45 +2,33 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { validateIdeCarrier, verifyIdeHeaderChecksum } from "./ide-binary-codec";
+import { parseIde10 } from "./index";
 import {
-  IDE11_CURRENT_TRIAL_VERSION,
-  IDE_HEADER_SIGNATURE,
-  sealIdeCarrierHeader,
-} from "./ide-binary-codec";
-import { transcodeIde11TrialToIde10 } from "./ide11-transcoder";
+  assertIde10GrammarForProduction,
+  transcodeIde11TrialToIde10,
+  type Ide10TranscodeDiagnostics,
+} from "./ide11-transcoder";
 import { transcodeIde11TrialToIde10 as transcodeIde10ViaExport } from "../ide-export";
+import ide10GrammarSchema from "./ide10-grammar.json";
 
+// Geçmiş: T-F1.1'in ".ide10 üretimi sert hatayla reddedilir" sözleşmesi T-F3.3 ile kalktı; bu dosya artık gerçek v11→v10 dönüşüm sözleşmesini korur (T-F3.3b).
 /**
- * T-F1.1 (P1.1) — kullanıcı kararı: SERT HATA.
- * v11→v10 gövde dönüşümü F3'te (T-F3.3) tamamlanana kadar .ide10 üretimi
- * reddedilir; eski yol başlığı yeniden etiketleyip gövdeyi v11 bıraktığı için
- * geçersiz .ide10 üretiyordu.
+ * T-F3.3b — ide10-reject'in bayat reddetme sözleşmesi yerine GERÇEK dönüşüm
+ * sözleşmesinin kabul testi. Transcoder artık `.ide10` ÜRETİYOR
+ * (201094/encoded=0, CRC32 mühürlü); donörsüz koşu UYARIYLA çalışır ve
+ * dönüşüm yine tam olur; şema üretim yolunda VARSAYIM HARD-FAIL eder.
+ *
+ * Girdi: korpus M-base.ide11trial (464.850 B, 211280/encoded=1) — repo içinde
+ * gerçek fixture yok; kanıt klasöründen YOL OLARAK okunur (salt okunur).
  */
-const IDE10_REJECT_CONTRACT =
-  /v11→v10 gövde dönüşümü F3'te tamamlanana kadar desteklenmiyor/;
+const M_BASE = "C:/Users/hsyn/Desktop/hsyncad_idecad_uzanti_optimizasyon/evidence/orkestrasyon/2026-11-18-F2-T2.3/rea/M-base.ide11trial";
 
-/**
- * Geçerli (CRC32 mühürlü) 211280/encoded=1 taşıyıcı: validateIdeCarrier'dan
- * geçer ve getIdeCarrierFormat "ide11trial" döner. Gövde içeriği bu test için
- * önemsizdir; üretim talebi reddedilmelidir.
- */
-function makeMinimalValidTrialCarrier(): Uint8Array {
-  const bytes = new Uint8Array(128);
-  for (let i = 0; i < IDE_HEADER_SIGNATURE.length; i++) {
-    bytes[i] = IDE_HEADER_SIGNATURE.charCodeAt(i);
-  }
-  bytes[100] = 0x50; // "P"
-  bytes[101] = 0x00; // proje adı NUL sonlandırıcısı
-  new DataView(bytes.buffer).setUint32(96, 2, true);
-  return sealIdeCarrierHeader(bytes, {
-    formatVersion: IDE11_CURRENT_TRIAL_VERSION,
-    encodedFlag: 1,
-  });
-}
+const digest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -50,68 +38,112 @@ const cliScript = path.join(repoRoot, "scripts", "hsyncad", "convert_trial_to_na
 
 interface CliRunResult {
   status: number;
+  stdout: string;
   stderr: string;
 }
 
 /** CLI'yi alt süreçte çalıştırır; hatalı çıkışta fırlatmak yerine sonucu döndürür. */
 function runCli(args: string[], cwd: string): CliRunResult {
   try {
-    execFileSync(process.execPath, ["--import", "tsx", cliScript, ...args], {
+    const stdout = execFileSync(process.execPath, ["--import", "tsx", cliScript, ...args], {
       cwd,
-      stdio: ["ignore", "ignore", "pipe"],
+      stdio: ["ignore", "pipe", "pipe"],
       encoding: "utf8",
-      timeout: 60_000,
+      timeout: 120_000,
     });
-    return { status: 0, stderr: "" };
+    return { status: 0, stdout, stderr: "" };
   } catch (err) {
-    const failure = err as { status?: number; stderr?: string };
-    return { status: failure.status ?? 1, stderr: failure.stderr ?? "" };
+    const failure = err as { status?: number; stdout?: string; stderr?: string };
+    return {
+      status: failure.status ?? 1,
+      stdout: failure.stdout ?? "",
+      stderr: failure.stderr ?? "",
+    };
   }
 }
 
-test("transcodeIde11TrialToIde10 .ide10 üretimini sert hatayla reddeder", () => {
-  const source = makeMinimalValidTrialCarrier();
-  assert.throws(() => transcodeIde11TrialToIde10(source), IDE10_REJECT_CONTRACT);
+/** v10 taşıyıcı sözleşmesi: 201094 mührü, düz gövde, geçerli CRC32. */
+function assertIde10CarrierContract(bytes: Uint8Array): void {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  assert.equal(view.getUint32(74, true), 201094);
+  assert.equal(bytes[78], 0);
+  assert.equal(view.getUint32(79, true), bytes.byteLength);
+  const sealed = validateIdeCarrier(bytes); // CRC32 uyuşmazsa fırlatır
+  assert.equal(sealed.formatVersion, 201094);
+  assert.equal(sealed.encodedFlag, 0);
+  assert.equal(verifyIdeHeaderChecksum(bytes).valid, true, "çıktı CRC32'si geçerli olmalı.");
+}
+
+test("transcodeIde11TrialToIde10 gerçek trial girdiyle başarılı v10 dönüşümü döndürür (201094/encoded=0, CRC geçerli)", { skip: !existsSync(M_BASE), timeout: 600_000 }, () => {
+  const source = readFileSync(M_BASE);
+  const sourceDigest = digest(source);
+  const diagnostics = {} as Ide10TranscodeDiagnostics;
+  const converted = transcodeIde11TrialToIde10(source, { diagnostics });
+
+  // --- Taşıyıcı sözleşmesi: v10 mührü (201094, encoded=0, geçerli CRC). ---
+  assertIde10CarrierContract(converted);
+
+  // --- Dönüşüm tanıklama: ölçülen gerçek değerler (M-base duman koşusu). ---
+  assert.equal(diagnostics.frames.rewritten, 137, "137 kaynak-sürüm çerçevesi 201094'e yazılmalı.");
+  assert.equal(diagnostics.frames.native201094, 0);
+  assert.equal(diagnostics.frames.preludeFlagsCleared, 137);
+  assert.equal(diagnostics.outputBytes, 464_685, "çıktı boyutu ölçülen 464.685 B olmalı.");
+  assert.equal(diagnostics.donor, undefined, "donör verilmedi; kanıtsız bölgeler v11 düzeninde kalır.");
+
+  // --- Dönüşüm tamam: parse 1 kat / 11 eleman (kaynak dağılımı korunur). ---
+  const parsed = parseIde10(Uint8Array.from(converted).buffer, "M-base-donusum.ide10");
+  assert.equal(parsed.format, "ide10");
+  assert.equal(parsed.floors.length, 1);
+  assert.equal(parsed.elements.length, 11);
+  assert.deepEqual(parsed.coverage.byType, { beam: 4, column: 4, wall: 1, slab: 2 });
+
+  // --- Kaynak değişmezliği: diskteki ve bellekteki tampon dokunulmamış. ---
+  assert.equal(digest(source), sourceDigest);
+  assert.equal(digest(readFileSync(M_BASE)), sourceDigest);
 });
 
-test("ide-export yeniden ihracat yolu aynı sözleşmeyle reddeder", () => {
-  const source = makeMinimalValidTrialCarrier();
-  assert.throws(() => transcodeIde10ViaExport(source), IDE10_REJECT_CONTRACT);
+test("ide-export yeniden ihracat yolu aynı gerçek v10 dönüşümünü üretir", { skip: !existsSync(M_BASE), timeout: 600_000 }, () => {
+  const source = readFileSync(M_BASE);
+  const converted = transcodeIde10ViaExport(source);
+  assertIde10CarrierContract(converted);
 });
 
-test("reddedilen .ide10 üretimi kaynak tamponu değiştirmez", () => {
-  const source = makeMinimalValidTrialCarrier();
-  const before = createHash("sha256").update(source).digest("hex");
-  assert.throws(() => transcodeIde11TrialToIde10(source), IDE10_REJECT_CONTRACT);
-  assert.equal(createHash("sha256").update(source).digest("hex"), before);
+test("şema HARD-FAIL: üretime VARSAYIM enjekte edilirse reddedilir; saf şema temiz", () => {
+  const report = assertIde10GrammarForProduction();
+  assert.equal(report.semaSurumu, "1.0.1");
+  assert.equal(report.rejectedLines.length, 0, `üretim kuralında VARSAYIM olmamalı: ${report.rejectedLines.join(", ")}`);
+  assert.ok(report.requiredRules.length >= 20);
+  assert.ok(report.assumptionLines.length > 0, "şema VARSAYIM envanterini taşır (yalnız log; üretimde kullanılmaz)");
+
+  // HARD-FAIL gerçekliği (t33'ten bağımsız satır): gerekli bir KANIT kuralını
+  // VARSAYIM'a çevir → üretim sözleşmesi reddi (ELEMAN-GEOMETRI).
+  const mutated = JSON.parse(JSON.stringify(ide10GrammarSchema)) as Record<string, unknown>;
+  const types = mutated["kayitTipleri"] as Array<Record<string, unknown>>;
+  const geometri = types.find(t => t["id"] === "ELEMAN-GEOMETRI")!;
+  geometri["kaynak"] = "VARSAYIM";
+  assert.throws(
+    () => assertIde10GrammarForProduction(mutated as never),
+    /tuketiciSozlesme: üretim yolunda VARSAYIM kural kullanılamaz[\s\S]*kayitTipleri:ELEMAN-GEOMETRI/,
+  );
 });
 
-test("CLI --to ide10 aynı tek satır sözleşme hatasıyla reddeder (exit != 0)", () => {
-  const tmpDir = mkdtempSync(path.join(tmpdir(), "hsyncad-t11-"));
+test("donörsüz koşu uyarıyla çalışır ve dönüşüm yine tam olur (CLI --to ide10)", { skip: !existsSync(M_BASE), timeout: 600_000 }, () => {
+  const tmpDir = mkdtempSync(path.join(tmpdir(), "hsyncad-t33b-"));
   try {
-    const inputPath = path.join(tmpDir, "kirmizi-faz.ide11trial");
-    writeFileSync(inputPath, makeMinimalValidTrialCarrier());
+    const inputPath = path.join(tmpDir, "donorsuz.ide11trial");
+    copyFileSync(M_BASE, inputPath);
     const result = runCli(["--to", "ide10", inputPath], repoRoot);
-    assert.notEqual(result.status, 0, "--to ide10 isteği başarısız çıkış vermeli");
-    assert.match(result.stderr, IDE10_REJECT_CONTRACT);
-  } finally {
-    rmSync(tmpDir, { recursive: true, force: true });
-  }
-});
-
-test("CLI varsayılan 'all' hedefi de .ide10 üretimini reddeder (exit != 0)", () => {
-  const tmpDir = mkdtempSync(path.join(tmpdir(), "hsyncad-t11-"));
-  try {
-    const inputPath = path.join(tmpDir, "varsayilan.ide11trial");
-    writeFileSync(inputPath, makeMinimalValidTrialCarrier());
-    const result = runCli([inputPath], repoRoot);
-    assert.notEqual(result.status, 0, "varsayılan hedef başarısız çıkış vermeli");
-    assert.match(result.stderr, IDE10_REJECT_CONTRACT);
-    // Kırmızı üretim yolu kapalı: .ide10 dosyası yazılmamış olmalı.
-    assert.ok(
-      !existsSync(path.join(tmpDir, "varsayilan.ide10")),
-      ".ide10 dosyası üretilmemiş olmalı",
+    assert.equal(result.status, 0, `donörsüz koşu başarılı çıkış vermeli (stderr: ${result.stderr})`);
+    assert.match(
+      result.stdout,
+      /Donor: none — unestablished-layout regions keep their v11 layout/,
+      "donörsüz koşu uyarı yazmalı.",
     );
+
+    // Dönüşüm yine tam: .ide10 üretilmiş ve v10 taşıyıcı sözleşmesini taşımalı.
+    const outputPath = path.join(tmpDir, "donorsuz.ide10");
+    assert.ok(existsSync(outputPath), ".ide10 çıktısı yazılmış olmalı.");
+    assertIde10CarrierContract(new Uint8Array(readFileSync(outputPath)));
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
   }
