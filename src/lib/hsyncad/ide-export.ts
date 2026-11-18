@@ -214,3 +214,4 @@ export function exportIde10Binary(sourceBuffer: ArrayBuffer | Uint8Array, projec
 }
 export { saveNativeIdeSource } from "./ide-native-save";
 export { synthesizeIdeFile } from "./ide-write";
+export { transcodeIde11TrialToIde11, transcodeIde11TrialToIde10 } from "./ide-import/ide11-transcoder";

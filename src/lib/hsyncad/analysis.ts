@@ -15,6 +15,7 @@ import {
 
 export * from "./fem-solver";
 import { runConcreteDesignChecks, type ConcreteDesignResult } from "./design-engine";
+import { executeStructuralBridge, type StructuralBridgeResult } from "./structural/cad-model-bridge";
 export * from "./design-engine";
 
 export interface AnalysisSettings {
@@ -189,6 +190,7 @@ export interface AnalysisResult {
   floorDiaphragms: FloorDiaphragmResult[];
   femOutput?: FemAnalysisOutput;
   designResult?: ConcreteDesignResult;
+  analyticalBridge?: StructuralBridgeResult;
 }
 
 export type StructuralAnalysisResult = AnalysisResult;
@@ -1026,6 +1028,20 @@ export function runStructuralAnalysis(model: CadModel, customSettings?: Partial<
     mergedMembers[id] = check;
   }
 
+  // Execute P05-P15 analytical structural bridge (3D modal/CQC, TBDY global checks, P15 rebar schedule)
+  let analyticalBridge: StructuralBridgeResult | undefined;
+  try {
+    analyticalBridge = executeStructuralBridge(model, {
+      concreteGrade: settings.concreteGrade,
+      rebarGrade: settings.rebarGrade,
+      rx: settings.r,
+      ry: settings.r,
+      importanceFactor: settings.importance,
+    });
+  } catch {
+    analyticalBridge = undefined;
+  }
+
   return {
     ...preliminaryResult,
     members: mergedMembers,
@@ -1036,5 +1052,6 @@ export function runStructuralAnalysis(model: CadModel, customSettings?: Partial<
     maxCapacityRatio: Math.max(maxCapacityRatio, designResult.summary.maxDCR),
     summaryNotes: [...summaryNotes, ...designResult.summary.summaryNotes],
     designResult,
+    analyticalBridge,
   };
 }

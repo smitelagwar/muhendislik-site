@@ -1,3 +1,5 @@
+import { decodeCp1254 } from "./cp1254";
+
 export const IDE_HEADER_SIGNATURE = "IDE BUILDING DESIGNER PROJECT FILE\r\nVer 4 SubVer 00\r\nCopyright IDE YAPI\r\n\0";
 export const IDE10_VERSION = 201094;
 export const IDE11_040_VERSION = 211040;
@@ -63,7 +65,7 @@ export function validateIdeCarrier(bytes: Uint8Array): IdeCarrierMetadata {
     formatVersion,
     encodedFlag,
     byteLength: bytes.byteLength,
-    projectName: new TextDecoder("windows-1254").decode(bytes.subarray(100, nameEnd - 1)),
+    projectName: decodeCp1254(bytes.subarray(100, nameEnd - 1)),
     projectNameByteLength: nameLength,
     storedChecksum: checksum.stored,
   };
@@ -104,11 +106,14 @@ export function getIde11CompressedBlock(bytes: Uint8Array, metadata: IdeCarrierM
 export function getIdeCarrierFormat(bytes: Uint8Array, metadata: IdeCarrierMetadata): NativeIdeFormat {
   if (metadata.formatVersion < IDE11_040_VERSION) return "ide10";
   if (getIde11CompressedBlock(bytes, metadata)) return "cde";
-  if (metadata.encodedFlag === 1) return "ide11trial";
+  if (metadata.formatVersion === IDE11_CURRENT_TRIAL_VERSION) return "ide11trial";
   const previewEnd = getIdePreviewEnd(bytes, metadata);
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const demo = previewEnd !== undefined && previewEnd + 34 <= bytes.length && view.getUint32(previewEnd + 30, true) === 0x5ce && bytes[previewEnd + 29] !== 0;
-  return demo ? "ide11trial" : "ide11";
+  if (previewEnd !== undefined && previewEnd + 34 <= bytes.length && view.getUint32(previewEnd + 30, true) === 0x5ce) {
+    const isTrial = bytes[previewEnd + 28] !== 0 || bytes[previewEnd + 29] !== 0;
+    return isTrial ? "ide11trial" : "ide11";
+  }
+  return metadata.encodedFlag === 1 ? "ide11trial" : "ide11";
 }
 
 const CRC32_TABLE = (() => {

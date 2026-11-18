@@ -6,7 +6,23 @@
 
 ## 1. Başlangıç sırası
 
+Codex/ChatGPT CLI üzerinden görev veya istem gönderme, model/akıl yürütme düzeyi seçme ya da CLI sorun giderme işinde komuttan önce [Codex CLI kullanım kuralı](.agents/rules/codex-cli-kullanimi.md) ve bağlantı verdiği **`codex-cli/SKILL.md` zorunlu olarak okunur**. Bu okuma tüm AI ajanları için geçerlidir.
+
+Antigravity (`agy`) CLI ile konuşma, görev gönderme, model seçimi, kurulum veya sorun giderme işinde komuttan önce [Antigravity CLI kullanım kuralı](.agents/rules/antigravity-cli-kullanimi.md) ve orada belirtilen **`antigravity-cli/SKILL.md` zorunlu olarak okunur**. Bu okuma Codex, Claude, Gemini ve diğer AI ajanları için geçerlidir.
+
 Masaüstündeki ideCAD'i açma, yönetme veya native dosyayı orijinal uygulamada doğrulama görevi varsa, pencereyi kontrol etmeden önce [ideCAD masaüstü doğrulama kılavuzunu](docs/hsyncad/IDECAD_DESKTOP_WORKFLOW.md) oku. Yalnız kaynak kodu veya dosya baytlarını inceleyen işlerde bu ek okuma gerekmez.
+
+ideCAD GUI görevinde [masaüstü kontrol kuralını](.agents/rules/idecad-masaustu-kontrolu.md) da uygula. Kullanıcıdan normal navigasyon veya ekran görüntüsü istemeden önce yetkili kontrol yolunu kullan; yerleşik yakalama hatası için açık kullanıcı onayıyla doğrulanmış yerel alternatif `scripts/idecad/desktop.py` ve kabul kanıtları kılavuzdadır. Eski sohbetlerdeki HWND/PID'leri veya kullanıcıya diyalog açtıran geçici adımları güncel talimat sayma.
+
+ideCAD dosya dönüştürme işinde (.ide11trial → .ide11 veya .ide10) [.agents/rules/hsyncad-ide-donusturme.md](.agents/rules/hsyncad-ide-donusturme.md) uygulanır; dönüştürme Hsyncad motoru üzerinden `scripts/hsyncad/convert_trial_to_native.ts` ile yapılır.
+
+Konuşmalardaki kullanıcı kararları, tercihleri, projeleri ve görev sonu özetleri için [.agents/rules/obsidian-otomatik-hafiza.md](.agents/rules/obsidian-otomatik-hafiza.md) uygulanır; bilgiler doğrudan `C:\Users\hsyn\Documents\Notlar` (Obsidian İkinci Beyin Kasası) içine damıtılır.
+
+### Hsyncad kısa çalışma kayıtları
+
+Hsyncad ile ilgili göreve başlarken [ortak kayıt düzenini](../hsyncad/calisma-kayitlari/README.md) ve yalnız ilgili eski kayıtları oku. Her görev sonunda veya çalışma kesildiğinde `C:\Users\hsyn\Desktop\hsyncad\calisma-kayitlari` klasörüne kısa bir Markdown kaydı yaz; aynı göreve devam ediliyorsa mevcut kaydı güncelle. README listesine kaydı ekle, bütün yeni kısa Hsyncad kayıtlarını bu tek klasörde tut ve [şablonu](../hsyncad/calisma-kayitlari/SABLON.md) kullan.
+
+Kaydın özü: **Kullanıcı benden ne istedi? Ben ne yaptım? Nasıl kontrol ettim, hangi testleri yaptım? Sonuç ve açık kalan iş nedir?** Gerçek komut/senaryo sonuçlarını ve kanıt yollarını belirt. Yapılmayan, atlanan veya başarısız testleri açıkça yaz; geçmiş sonucu yeni test gibi gösterme. Notlar güncel kod/dosya/test ile kontrol edilir. Bu kayıt kuralı tek başına commit/push/deploy talimatı değildir.
 
 ### Sohbet kimliği verilirse zorunlu kısa yol
 

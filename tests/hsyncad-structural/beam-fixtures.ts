@@ -1,0 +1,16 @@
+import {solveLinearStructure} from "../../src/lib/hsyncad/structural/linear-structure";
+import {beamCaseFromLinear,combineBeamCases,type BeamCase} from "../../src/lib/hsyncad/structural/beam-forces";
+import type {BeamDesignInput} from "../../src/lib/hsyncad/structural/beam-design";
+import type {FrameElement,FrameNode} from "../../src/lib/hsyncad/structural/frame-element";
+export const beamTestMaterial={fck:25,fctk:1.8,reinforcementClass:"B420C" as const,fyk:420,fywk:420,Ec:30000,tensileBasis:"table_3_2" as const,elasticBasis:"table_3_2" as const,testEvidence:null,source:"synthetic cast-in-place material; not native decoded"};
+export function solvedUniformBeam(qKnM:number,id="G",fixed=false,torque=0):BeamCase{
+ const nodes:FrameNode[]=[{id:"left",position:[0,0,0],load:[0,0,0,0,0,0],prescribed:[0,0,0,0,0,fixed?0:null],springs:[0,0,0,0,0,0]},{id:"right",position:[6,0,0],load:[0,0,0,torque,0,0],prescribed:[null,0,0,torque?null:0,0,fixed?0:null],springs:[0,0,0,0,0,0]}];
+ const element:FrameElement={id:"beam",nodes:["left","right"],offsets:[[0,0,0],[0,0,0]],up:[0,1,0],rollRad:0,E:3e7,G:1.25e7,section:{area:.3*.6,Iy:.6*.3**3/12,Iz:.3*.6**3/12,J:.003,shearAreaY:.15,shearAreaZ:.15},modifiers:{axial:1,bendingY:1,bendingZ:1,torsion:1,shearY:1,shearZ:1},theory:"euler_bernoulli",releases:Array(12).fill(false),uniformLocal:[0,-qKnM,0]};
+ const r=solveLinearStructure(nodes,[element],[],null);if(r.status!=="solved")throw Error(JSON.stringify(r));
+ return beamCaseFromLinear(id,"synthetic-beam-r1","gross-EI","beam-snapshot-r1",element,nodes,r.memberForces[0].localEndForce,"actual P06 linear solve; uniform load");
+}
+export function beamDesignFixture(q=10):BeamDesignInput{
+ const G=solvedUniformBeam(q,"G"),Q=solvedUniformBeam(q/2,"Q"),ultimate=combineBeamCases("ULS",[{factor:1.4,load:G},{factor:1.6,load:Q}]),total=combineBeamCases("SLS-total",[{factor:1,load:G},{factor:1,load:Q}]),sustained=combineBeamCases("SLS-sustained",[{factor:1,load:G},{factor:.3,load:Q}]);
+ return {id:"B1",role:"beam",source:"explicit physical synthetic beam, not project-name oracle",mode:"redesign",qualityReviewed:{value:true,source:"explicit benchmark quality profile"},loadCoverage:{value:"all_required_combinations_reviewed",source:"isolated gravity benchmark G/Q cases"},geometry:{spanMm:6000,bw:300,h:600,slabThickness:150,columnWidth:400,cover:30,aggregate:16,kind:"simple",outside:false,flange:null,leftJoint:"J1",rightJoint:"J2",source:"actual fixture geometry and monolithic support faces"},material:beamTestMaterial,ultimate:[ultimate],seismic:null,
+ service:{total,sustained,live:Q,duration:"5years",environment:"indoor_normal",partition:"none_floor",source:"G+Q,G+.3Q,Q independent physical service cases"},anchors:{left:{kind:"straight",availableMm:2000,coverMm:30,clearSpacingMm:40,source:"explicit development pocket"},right:{kind:"straight",availableMm:2000,coverMm:30,clearSpacingMm:40,source:"explicit development pocket"}},support:{left:"direct",right:"direct",hangerLeftKn:0,hangerRightKn:0,source:"direct monolithic supports"},continuity:{leftBeamId:null,rightBeamId:null,source:"isolated simple benchmark"},existing:null,catalog:{diameters:[12,14,16,18,20,25],stirrupDiameters:[8,10],spacings:[50,75,100,125,150,175,200,250],maxCount:10,maxRows:2,maxCandidates:1500,stockLengthMm:12000},splices:[]};
+}

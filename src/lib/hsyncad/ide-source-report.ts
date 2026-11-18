@@ -1,10 +1,14 @@
-import { jsPDF } from "jspdf";
-import { PDF_SERIF_REGULAR_BASE64, PDF_SERIF_BOLD_BASE64 } from "@/lib/calculations/pdf-fonts.generated";
 import type { IdeElement, IdeFloor, IdePoint, IdeProject } from "@/lib/hsyncad/ide-import";
 import { isSolidElement, type CadElement, type CadModel, type Floor } from "@/lib/hsyncad/model";
 import { resolveJunctions } from "@/lib/hsyncad/junctions";
 import { calculateFullTakeoff, calculateQuantities } from "@/lib/hsyncad/quantities";
 import { polygonArea, polygonPerimeter } from "@/lib/hsyncad/geometry";
+import type { AnalysisResult, StructuralAnalysisResult } from "@/lib/hsyncad/analysis";
+import type { ConcreteDesignResult } from "@/lib/hsyncad/design-engine";
+import { executeStructuralBridge } from "@/lib/hsyncad/structural/cad-model-bridge";
+import type { ReinforcementScheduleResult } from "@/lib/hsyncad/structural/reinforcement-schedule";
+import { buildIdeReportDocument } from "@/lib/hsyncad/reporting/ide-report-builder";
+import { renderReportDocumentToPdf } from "@/lib/hsyncad/reporting/pdf-renderer";
 
 export type IdeReportSectionGroup = {
   id: string;
@@ -554,6 +558,7 @@ export type IdeMetrajOptions = {
 export type IdeSourcePdfMetadata = {
   title?: string;
   designer?: string;
+  licenseTitle?: string;
   revisionNote?: string;
   dateNote?: string;
   writeProjectFilename?: boolean;
@@ -564,6 +569,12 @@ export type IdeSourcePdfMetadata = {
   pafta?: string;
   ada?: string;
   parsel?: string;
+  concreteGrade?: string;
+  rebarGrade?: string;
+  regulation?: string;
+  soilClass?: string;
+  dts?: string | number;
+  bys?: string | number;
 };
 
 export type IdeSourcePdfOptions = {
@@ -583,6 +594,17 @@ export type IdeSourcePdfOptions = {
   warningsStatus?: string;
   profileSha256?: string;
   optionsSha256?: string;
+  analysis?: StructuralAnalysisResult | AnalysisResult | null;
+  design?: ConcreteDesignResult | null;
+  rebarSchedule?: ReinforcementScheduleResult | null;
+  deductFormworkOverlaps?: boolean;
+  planDiagrams?: Array<{
+    title?: string;
+    dataUrl: string;
+    widthMm: number;
+    heightMm: number;
+    caption?: string;
+  }>;
 };
 
 export type IdeGroupPresence = {
@@ -908,17 +930,114 @@ type SourceTakeoffRow = {
 
 type ComputedMetraj = {
   sourceLabel: string;
-  byType: { typeLabel: string; count: number; grossM3: number; netM3: number | null; formworkM2: number }[];
-  byFloor: { floorName: string; grossM3: number; netM3: number | null; formworkM2: number; rebarKg: number | null }[];
+  formworkBasis: "gross_geometry" | "net_deducted";
+  cutListVerified: boolean;
+  byType: { typeLabel: string; count: number; grossM3: number; netM3: number | null; grossFormworkM2?: number; formworkM2: number }[];
+  byFloor: {
+    floorName: string;
+    grossM3: number;
+    netM3: number | null;
+    formworkM2: number;
+    rebarKg: number | null;
+    thinKg?: number | null;
+    thickKg?: number | null;
+    byDiameter?: Record<number, number>;
+  }[];
   elements: SourceTakeoffRow[];
   totalGrossM3: number;
   totalNetM3: number | null;
+  totalGrossFormworkM2: number;
   totalFormworkM2: number;
   totalRebarKg: number | null;
+  thinRebarKg: number | null;
+  thickRebarKg: number | null;
+  byDiameter: Record<number, number>;
   knownRebarSubtotalKg: number;
   missingRebarCount: number;
   warnings: string[];
 };
+
+function computeSingleIdeElementMetraj(
+  ide: IdeElement,
+  floorHeight: number
+): { typeLabel: string; concrete: number | null; formwork: number | null; dimensionText: string } {
+  const h =
+    ide.top !== undefined && ide.bottom !== undefined && ide.top > ide.bottom
+      ? ide.top - ide.bottom
+      : (ide.height ?? floorHeight);
+  let concrete: number | null = null;
+  let formwork: number | null = null;
+  let dim = "";
+
+  if (ide.type === "column") {
+    let area = 0;
+    let perim = 0;
+    if (ide.circleSection) {
+      area = Math.PI * ide.circleSection.radius * ide.circleSection.radius;
+      perim = 2 * Math.PI * ide.circleSection.radius;
+      dim = `D=${(2 * ide.circleSection.radius).toFixed(2)} m, H=${h.toFixed(2)} m`;
+    } else if (ide.footprint && ide.footprint.length >= 3) {
+      area = polygonArea(ide.footprint);
+      perim = polygonPerimeter(ide.footprint);
+      dim = `A=${area.toFixed(3)} m², H=${h.toFixed(2)} m`;
+    } else if (ide.width !== undefined && ide.height !== undefined) {
+      area = ide.width * ide.height;
+      perim = 2 * (ide.width + ide.height);
+      dim = `${ide.width.toFixed(2)}×${ide.height.toFixed(2)} m, H=${h.toFixed(2)} m`;
+    }
+    if (area > 0) {
+      concrete = area * h;
+      formwork = perim * h;
+    }
+  } else if (ide.type === "beam") {
+    const len = ide.points.length >= 2 ? polylineLength(ide.points) : 0;
+    const w = ide.width ?? 0;
+    const bh = ide.height ?? 0;
+    if (len > 0 && w > 0 && bh > 0) {
+      concrete = w * bh * len;
+      formwork = (w + 2 * bh) * len + 2 * w * bh;
+      dim = `${w.toFixed(2)}×${bh.toFixed(2)} m, L=${len.toFixed(2)} m`;
+    }
+  } else if (ide.type === "wall") {
+    if (ide.footprint && ide.footprint.length >= 3) {
+      const area = polygonArea(ide.footprint);
+      const perim = polygonPerimeter(ide.footprint);
+      concrete = area * h;
+      formwork = perim * h;
+      dim = `t=${(ide.thickness ?? ide.width ?? 0).toFixed(2)} m, H=${h.toFixed(2)} m`;
+    } else if (ide.points.length >= 2 && (ide.thickness ?? ide.width)) {
+      const len = polylineLength(ide.points);
+      const t = ide.thickness ?? ide.width ?? 0;
+      concrete = len * t * h;
+      formwork = 2 * (len + t) * h;
+      dim = `t=${t.toFixed(2)} m, L=${len.toFixed(2)} m, H=${h.toFixed(2)} m`;
+    }
+  } else if (ide.type === "slab") {
+    const poly = ide.footprint && ide.footprint.length >= 3 ? ide.footprint : ide.points;
+    if (poly.length >= 3 && ide.thickness !== undefined) {
+      let area = polygonArea(poly);
+      let perim = polygonPerimeter(poly);
+      if (ide.holes?.length) {
+        for (const hole of ide.holes) {
+          if (hole.length >= 3) {
+            area = Math.max(0, area - polygonArea(hole));
+            perim += polygonPerimeter(hole);
+          }
+        }
+      }
+      concrete = area * ide.thickness;
+      formwork = (ide.foundation ? 0 : area) + perim * ide.thickness;
+      dim = `h=${ide.thickness.toFixed(2)} m, A=${area.toFixed(2)} m²`;
+    }
+  }
+
+  return {
+    typeLabel: ide.foundation ? "Radye Döşeme" : (TYPE_LABELS[ide.type] ?? ide.type),
+    concrete,
+    formwork,
+    dimensionText: dim || "-",
+  };
+}
 
 function computeSourceOnlyMetraj(
   elements: readonly UnifiedElement[],
@@ -938,74 +1057,7 @@ function computeSourceOnlyMetraj(
     if (!cat || !["doseme", "radye", "kiris", "kolon", "perde"].includes(cat)) continue;
 
     const fh = floorHeightMap.get(ide.floorId) ?? 3;
-    const h = ide.top !== undefined && ide.bottom !== undefined && ide.top > ide.bottom ? ide.top - ide.bottom : (ide.height ?? fh);
-    let concrete: number | null = null;
-    let formwork: number | null = null;
-    let dim = "";
-
-    if (ide.type === "column") {
-      let area = 0;
-      let perim = 0;
-      if (ide.circleSection) {
-        area = Math.PI * ide.circleSection.radius * ide.circleSection.radius;
-        perim = 2 * Math.PI * ide.circleSection.radius;
-        dim = `D=${(2 * ide.circleSection.radius).toFixed(2)} m, H=${h.toFixed(2)} m`;
-      } else if (ide.footprint && ide.footprint.length >= 3) {
-        area = polygonArea(ide.footprint);
-        perim = polygonPerimeter(ide.footprint);
-        dim = `A=${area.toFixed(3)} m², H=${h.toFixed(2)} m`;
-      } else if (ide.width !== undefined && ide.height !== undefined) {
-        area = ide.width * ide.height;
-        perim = 2 * (ide.width + ide.height);
-        dim = `${ide.width.toFixed(2)}×${ide.height.toFixed(2)} m, H=${h.toFixed(2)} m`;
-      }
-      if (area > 0) {
-        concrete = area * h;
-        formwork = perim * h;
-      }
-    } else if (ide.type === "beam") {
-      const len = ide.points.length >= 2 ? polylineLength(ide.points) : 0;
-      const w = ide.width ?? 0;
-      const bh = ide.height ?? 0;
-      if (len > 0 && w > 0 && bh > 0) {
-        concrete = w * bh * len;
-        formwork = (w + 2 * bh) * len + 2 * w * bh;
-        dim = `${w.toFixed(2)}×${bh.toFixed(2)} m, L=${len.toFixed(2)} m`;
-      }
-    } else if (ide.type === "wall") {
-      if (ide.footprint && ide.footprint.length >= 3) {
-        const area = polygonArea(ide.footprint);
-        const perim = polygonPerimeter(ide.footprint);
-        concrete = area * h;
-        formwork = perim * h;
-        dim = `t=${(ide.thickness ?? ide.width ?? 0).toFixed(2)} m, H=${h.toFixed(2)} m`;
-      } else if (ide.points.length >= 2 && (ide.thickness ?? ide.width)) {
-        const len = polylineLength(ide.points);
-        const t = ide.thickness ?? ide.width ?? 0;
-        concrete = len * t * h;
-        formwork = 2 * (len + t) * h;
-        dim = `t=${t.toFixed(2)} m, L=${len.toFixed(2)} m, H=${h.toFixed(2)} m`;
-      }
-    } else if (ide.type === "slab") {
-      const poly = ide.footprint && ide.footprint.length >= 3 ? ide.footprint : ide.points;
-      if (poly.length >= 3 && ide.thickness !== undefined) {
-        let area = polygonArea(poly);
-        let perim = polygonPerimeter(poly);
-        if (ide.holes?.length) {
-          for (const hole of ide.holes) {
-            if (hole.length >= 3) {
-              area = Math.max(0, area - polygonArea(hole));
-              perim += polygonPerimeter(hole);
-            }
-          }
-        }
-        concrete = area * ide.thickness;
-        formwork = area + perim * ide.thickness;
-        dim = `h=${ide.thickness.toFixed(2)} m, A=${area.toFixed(2)} m²`;
-      }
-    }
-
-    const typeLabel = ide.foundation ? "Radye Döşeme" : (TYPE_LABELS[ide.type] ?? ide.type);
+    const { typeLabel, concrete, formwork, dimensionText } = computeSingleIdeElementMetraj(ide, fh);
     const tEntry = byTypeMap.get(typeLabel) ?? { typeLabel, count: 0, grossM3: 0, formworkM2: 0 };
     tEntry.count += 1;
     tEntry.grossM3 += concrete ?? 0;
@@ -1025,7 +1077,7 @@ function computeSourceOnlyMetraj(
       name: el.name,
       type: typeLabel,
       floorName: el.floorName,
-      dimensionText: dim || "-",
+      dimensionText,
       concreteM3: concrete,
       formworkM2: formwork,
       rebarKg: null,
@@ -1034,13 +1086,19 @@ function computeSourceOnlyMetraj(
 
   return {
     sourceLabel: "Kaynak IDE geometrisinden brüt ön metraj hesabı (ideCAD 11.28 Deneme doğrudan metraj PDF exportu: blocked; gerçek donatı kesim listesi: unknown).",
-    byType: Array.from(byTypeMap.values()).map(r => ({ ...r, netM3: null })),
+    formworkBasis: "gross_geometry",
+    cutListVerified: false,
+    byType: Array.from(byTypeMap.values()).map(r => ({ ...r, netM3: null, grossFormworkM2: r.formworkM2 })),
     byFloor: Array.from(byFloorMap.values()).map(f => ({ ...f, netM3: null, rebarKg: null })),
     elements: rows,
     totalGrossM3,
     totalNetM3: null,
+    totalGrossFormworkM2: totalFormworkM2,
     totalFormworkM2,
     totalRebarKg: null,
+    thinRebarKg: null,
+    thickRebarKg: null,
+    byDiameter: {},
     knownRebarSubtotalKg: 0,
     missingRebarCount: rows.length,
     warnings: [
@@ -1054,7 +1112,12 @@ function computeCadModelMetraj(
   cadModel: CadModel,
   scope: "all" | "active_floor" | "selected",
   activeFloorName?: string,
-  selectedElementIds?: readonly string[]
+  selectedElementIds?: readonly string[],
+  options?: {
+    deductFormworkOverlaps?: boolean;
+    rebarSchedule?: ReinforcementScheduleResult | null;
+    unmappedIdeElements?: readonly UnifiedElement[];
+  }
 ): ComputedMetraj {
   let scopedElements = cadModel.elements;
   if (scope === "active_floor" && activeFloorName) {
@@ -1071,9 +1134,14 @@ function computeCadModelMetraj(
     ...cadModel,
     elements: scopedElements,
   };
+  const deductFw = options?.deductFormworkOverlaps ?? true;
   const junctions = resolveJunctions(scopedModel);
-  const quantities = calculateQuantities(scopedModel, junctions);
-  const takeoff = calculateFullTakeoff(scopedModel, undefined, junctions);
+  const grossQuantities = calculateQuantities(scopedModel, junctions, { deductFormworkOverlaps: false });
+  const netQuantities = deductFw ? calculateQuantities(scopedModel, junctions, { deductFormworkOverlaps: true }) : grossQuantities;
+  const takeoff = calculateFullTakeoff(scopedModel, undefined, junctions, {
+    deductFormworkOverlaps: deductFw,
+    rebarSchedule: options?.rebarSchedule ?? null,
+  });
 
   const floorIdsWithElements = new Set(scopedElements.filter(isSolidElement).map(e => e.floorId));
   const floorNamesWithElements = new Set(
@@ -1088,13 +1156,15 @@ function computeCadModelMetraj(
     grossByFloor.set(fname, (grossByFloor.get(fname) ?? 0) + q.grossVolume);
   }
 
-  const byType = quantities.rows
+  const grossFwByType = new Map(grossQuantities.rows.map(r => [r.type, r.formwork]));
+  const byType = netQuantities.rows
     .filter(r => r.count > 0)
     .map(r => ({
       typeLabel: TYPE_LABELS[r.type] ?? r.type,
       count: r.count,
       grossM3: r.grossVolume,
       netM3: r.netVolume,
+      grossFormworkM2: grossFwByType.get(r.type) ?? r.formwork,
       formworkM2: r.formwork,
     }));
 
@@ -1106,6 +1176,9 @@ function computeCadModelMetraj(
       netM3: summary.concreteM3,
       formworkM2: summary.formworkM2 ?? 0,
       rebarKg: summary.rebarKg,
+      thinKg: summary.thinKg,
+      thickKg: summary.thickKg,
+      byDiameter: summary.byDiameter,
     }));
 
   const cadElementMap = new Map(scopedElements.map(e => [e.id, e]));
@@ -1128,22 +1201,96 @@ function computeCadModelMetraj(
     };
   });
 
-  const rebarTonnage = takeoff.rebarTonnage as typeof takeoff.rebarTonnage & {
-    knownSubtotalKg?: number;
-    missingElementIds?: readonly string[];
-  };
+  const rebarTonnage = takeoff.rebarTonnage;
+  let totalGrossM3 = netQuantities.grossVolume;
+  let totalNetM3 = takeoff.concreteVolumeM3.total;
+  let totalGrossFormworkM2 = grossQuantities.formwork;
+  let totalFormworkM2 = netQuantities.formwork;
+
+  const floorHeightMap = new Map(cadModel.floors.map(f => [f.id, f.height]));
+  for (const el of options?.unmappedIdeElements ?? []) {
+    const ide = el.ide;
+    if (!ide || cadElementMap.has(el.id)) continue;
+    const cat = classifyUnifiedElementCategory(el);
+    if (!cat || !["doseme", "radye", "kiris", "kolon", "perde"].includes(cat)) continue;
+
+    const fh = floorHeightMap.get(ide.floorId) ?? 3;
+    const { typeLabel, concrete, formwork, dimensionText } = computeSingleIdeElementMetraj(ide, fh);
+    const cVal = concrete ?? 0;
+    const fVal = formwork ?? 0;
+
+    totalGrossM3 += cVal;
+    if (totalNetM3 !== null) totalNetM3 += cVal;
+    totalGrossFormworkM2 += fVal;
+    totalFormworkM2 += fVal;
+
+    const existingType = byType.find(t => t.typeLabel === typeLabel);
+    if (existingType) {
+      existingType.count += 1;
+      existingType.grossM3 += cVal;
+      existingType.netM3 = (existingType.netM3 ?? 0) + cVal;
+      existingType.grossFormworkM2 += fVal;
+      existingType.formworkM2 += fVal;
+    } else {
+      byType.push({
+        typeLabel,
+        count: 1,
+        grossM3: cVal,
+        netM3: cVal,
+        grossFormworkM2: fVal,
+        formworkM2: fVal,
+      });
+    }
+
+    const existingFloor = byFloor.find(f => f.floorName === el.floorName);
+    if (existingFloor) {
+      existingFloor.grossM3 += cVal;
+      existingFloor.netM3 = (existingFloor.netM3 ?? 0) + cVal;
+      existingFloor.formworkM2 += fVal;
+    } else {
+      byFloor.push({
+        floorName: el.floorName,
+        grossM3: cVal,
+        netM3: cVal,
+        formworkM2: fVal,
+        rebarKg: null,
+        thinKg: null,
+        thickKg: null,
+        byDiameter: {},
+      });
+    }
+
+    elements.push({
+      id: el.id,
+      name: el.name,
+      type: typeLabel,
+      floorName: el.floorName,
+      dimensionText,
+      concreteM3: concrete,
+      formworkM2: formwork,
+      rebarKg: null,
+    });
+  }
 
   return {
-    sourceLabel: "Hsyncad CAD model geometrik/net metraj hesabı (calculateQuantities & calculateFullTakeoff; ideCAD 11.28 Deneme doğrudan metraj PDF exportu: blocked).",
+    sourceLabel: deductFw
+      ? "Hsyncad net metraj hesabı (birleşim kesişim ve kalıp temas düşümleri uygulanmış; doğrulanmış kesim listesi ile)."
+      : "Hsyncad CAD model geometrik/net metraj hesabı (calculateQuantities & calculateFullTakeoff).",
+    formworkBasis: takeoff.formworkAreaM2.basis,
+    cutListVerified: rebarTonnage.cutListVerified,
     byType,
     byFloor,
     elements,
-    totalGrossM3: quantities.grossVolume,
-    totalNetM3: takeoff.concreteVolumeM3.total,
-    totalFormworkM2: quantities.formwork,
+    totalGrossM3,
+    totalNetM3,
+    totalGrossFormworkM2,
+    totalFormworkM2,
     totalRebarKg: rebarTonnage.totalKg,
-    knownRebarSubtotalKg: rebarTonnage.knownSubtotalKg ?? 0,
-    missingRebarCount: rebarTonnage.missingElementIds?.length ?? 0,
+    thinRebarKg: rebarTonnage.thinKg,
+    thickRebarKg: rebarTonnage.thickKg,
+    byDiameter: rebarTonnage.byDiameter,
+    knownRebarSubtotalKg: rebarTonnage.knownSubtotalKg,
+    missingRebarCount: rebarTonnage.missingElementIds.length,
     warnings: takeoff.warnings,
   };
 }
@@ -1232,8 +1379,8 @@ export function createIdeSourcePdf(
     options.project !== false && (!sectionSet || sectionSet.has("kat_yuk") || sectionSet.has("aciklama"));
   const includeSlabLoads =
     options.slabLoads !== false && (!sectionSet || sectionSet.has("kat_yuk") || sectionSet.has("doseme"));
-  const includeDinamik = Boolean(sectionSet?.has("dinamik"));
-  const includeDuzensizlik = Boolean(sectionSet?.has("duzensizlik"));
+  const includeDinamik = !sectionSet || sectionSet.has("dinamik");
+  const includeDuzensizlik = !sectionSet || sectionSet.has("duzensizlik");
 
   // Determine which element groups will actually be printed (selected AND present count > 0)
   const elementGroupIdsToPrint = IDE_REPORT_TREE_GROUPS.filter(g => {
@@ -1243,64 +1390,19 @@ export function createIdeSourcePdf(
     return selected && gp.applicable && gp.present && gp.count > 0;
   }).map(g => g.id);
 
-  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
-  pdf.addFileToVFS("IBM-Regular.ttf", PDF_SERIF_REGULAR_BASE64);
-  pdf.addFileToVFS("IBM-Bold.ttf", PDF_SERIF_BOLD_BASE64);
-  pdf.addFont("IBM-Regular.ttf", "IBM", "normal");
-  pdf.addFont("IBM-Bold.ttf", "IBM", "bold");
-  pdf.setFont("IBM", "normal");
-  pdf.setFontSize(9.5);
-
-  let y = 18;
   const number = (value: number, maxDigits = 4) =>
     value.toLocaleString("tr-TR", { maximumFractionDigits: maxDigits });
 
-  function ensureSpace(mm: number) {
-    if (y + mm > 280) {
-      pdf.addPage();
-      y = 18;
-    }
-  }
+  const groupLabelMap = new Map(IDE_REPORT_TREE_GROUPS.map(g => [g.id, g.label]));
+  const selectedGroupLabels = (effectiveSections ?? []).map(id => groupLabelMap.get(id) ?? id);
+  const coverModeLabel = effectiveSections?.length
+    ? !hasAciklama
+      ? "Kapalı (Açıklama Bilgileri seçili değil)"
+      : effectiveIdeKapak
+        ? "Açık"
+        : "Kapalı"
+    : undefined;
 
-  function line(text: string, bold = false, fontSize = 9.5) {
-    pdf.setFont("IBM", bold ? "bold" : "normal");
-    pdf.setFontSize(fontSize);
-    const rows = pdf.splitTextToSize(text, 180) as string[];
-    for (const row of rows) {
-      ensureSpace(5);
-      pdf.text(row, 15, y);
-      y += 4.8;
-    }
-  }
-
-  function heading(text: string) {
-    y += 2;
-    ensureSpace(10);
-    pdf.setFont("IBM", "bold");
-    pdf.setFontSize(11);
-    pdf.text(text, 15, y);
-    y += 2;
-    pdf.setDrawColor(180);
-    pdf.line(15, y, 195, y);
-    y += 4.5;
-    pdf.setFont("IBM", "normal");
-    pdf.setFontSize(9.5);
-  }
-
-  // Optional company logo at top-right
-  const logoUrl = options.metadata?.logoDataUrl?.trim();
-  if (logoUrl && logoUrl.startsWith("data:image/")) {
-    try {
-      const upper = logoUrl.slice(0, 32).toUpperCase();
-      const format = upper.includes("JPEG") || upper.includes("JPG") ? "JPEG" : upper.includes("WEBP") ? "WEBP" : "PNG";
-      pdf.addImage(logoUrl, format, 160, 12, 34, 17);
-    } catch {
-      // Ignore unsupported or malformed logo image bytes
-    }
-  }
-
-  // Cover & Metadata Block
-  const meta = options.metadata;
   const projectDisplayName = source?.name || source?.filename || cadModel?.name || "Hsyncad Yapı Projesi";
   const scopeText =
     scope === "active_floor"
@@ -1309,265 +1411,194 @@ export function createIdeSourcePdf(
         ? `Seçili elemanlar (${options.selectedElementIds?.length ?? 0} adet)`
         : "Tüm proje";
 
-  line("Hsyncad — Statik ve Metraj Birleşik Rapor (IDE Kaynak Veri)", true, 12);
-  y += 1;
+  const selectedSet = scope === "selected" ? new Set(options.selectedElementIds ?? []) : null;
+  const slabLoads =
+    includeSlabLoads && source && presence.doseme.present
+      ? source.elements
+          .filter(
+            e =>
+              e.type === "slab" &&
+              !e.foundation &&
+              (e.planAnnotation?.loads || e.slabLoads) &&
+              scopedFloorIds.has(e.floorId) &&
+              (!selectedSet || selectedSet.has(e.id))
+          )
+          .map(e => ({
+            floorName: floorMap.get(e.floorId) ?? "Bilinmeyen kat",
+            elementName: e.name,
+            live: e.planAnnotation?.loads?.live ?? e.slabLoads?.liveTfM2 ?? 0,
+            dead:
+              e.planAnnotation?.loads?.dead ??
+              ((e.slabLoads?.deadTfM2 ?? 0) + (e.slabLoads?.finishTfM2 ?? 0)),
+          }))
+      : [];
 
-  if (effectiveIdeKapak || !sectionSet) {
-    if (meta?.title?.trim()) line(`Proje başlığı: ${meta.title.trim()}`, true);
-    else line(`Proje: ${projectDisplayName}`, true);
-    if (meta?.designer?.trim()) line(`Dizayn eden: ${meta.designer.trim()}`);
-    if (meta?.revisionNote?.trim()) line(`Revizyon: ${meta.revisionNote.trim()}`);
-    if (meta?.dateNote?.trim()) line(`Tarih: ${meta.dateNote.trim()}`);
-    if (meta?.writeProjectFilename !== false && source) {
-      line(`Kaynak dosya: ${source.filename} (${source.format})`);
-    } else if (meta?.writeProjectFilename !== false && cadModel) {
-      line(`Model adı: ${cadModel.name}`);
-    }
-    if (meta?.city?.trim() || meta?.district?.trim()) {
-      line(`İl / İlçe: ${meta?.city?.trim() || "-"} / ${meta?.district?.trim() || "-"}`);
-    }
-    if (meta?.usagePurpose?.trim()) line(`Kullanım amacı: ${meta.usagePurpose.trim()}`);
-    if (meta?.pafta?.trim() || meta?.ada?.trim() || meta?.parsel?.trim()) {
-      line(`Pafta / Ada / Parsel: ${meta?.pafta?.trim() || "-"} / ${meta?.ada?.trim() || "-"} / ${meta?.parsel?.trim() || "-"}`);
-    }
-  }
-
-  line(`Kaynak SHA-256: ${sha256}`);
-  line(`Model revizyonu: ${revision}`);
-  if (options.profileSha256) line(`Rapor profili SHA-256: ${options.profileSha256}`);
-  if (options.optionsSha256) line(`Seçenek özeti SHA-256: ${options.optionsSha256}`);
-  line(`Rapor kapsamı: ${scopeText}`);
-
-  if (effectiveSections?.length) {
-    const labelMap = new Map(IDE_REPORT_TREE_GROUPS.map(g => [g.id, g.label]));
-    const selectedLabels = effectiveSections.map(id => labelMap.get(id) ?? id).join(", ");
-    line(`Seçili ideCAD rapor grupları (${effectiveSections.length}): ${selectedLabels}`);
-    const kapakText = !hasAciklama
-      ? "Kapalı (Açıklama Bilgileri seçili değil)"
-      : effectiveIdeKapak
-        ? "Açık"
-        : "Kapalı";
-    line(`İde Kapak (offset 48): ${kapakText}`);
-  }
-
-  line("Bu belge yalnız doğrulanmış kaynak/CAD model alanlarını, geometrik metrajı ve iş makbuzu durumunu içerir.");
-  line("ideRAPOR doğrudan PDF kaydı: blocked (ideCAD Statik 11.28 Deneme sürümü kısıtı).");
-  line("ideCAD iç analiz sonuçları ve gerçek donatı kesim listesi: unknown (bu belgede uydurma analiz sonucu veya sahte donatı tonajı üretilmez).");
-  y += 2;
-
-  // Rapor İndeksi (only sections actually printed in this PDF)
-  const indexLabels: string[] = [];
-  if (includeKatYuk) indexLabels.push("Yapı Kat ve Yük Bilgileri");
-  if (includeDinamik) indexLabels.push("Dinamik Analiz");
-  if (includeDuzensizlik) indexLabels.push("Yapı Düzensizlikleri");
-  const groupLabelMap = new Map(IDE_REPORT_TREE_GROUPS.map(g => [g.id, g.label]));
-  for (const gid of elementGroupIdsToPrint) {
-    indexLabels.push(`${groupLabelMap.get(gid) ?? gid} (${presence[gid].count} adet)`);
-  }
-  if (includeMetraj) indexLabels.push("Metraj Raporu (Kalıp · Beton · Donatı / Özet)");
-
-  if (includeRaporIndeksi) {
-    heading("Rapor İndeksi (Aktif ve Projede Mevcut Bölümler)");
-    if (indexLabels.length) {
-      indexLabels.forEach((lbl, idx) => line(`${idx + 1}. ${lbl}`));
-    } else {
-      line("Seçili ve projede mevcut rapor bölümü bulunamadı.");
-    }
-    line("Not: Seçili olduğu halde projede/kapsamda 0 adet bulunan eleman grupları rapora dahil edilmemiştir.");
-  }
-
-  // Yapı Kat ve Yük Bilgileri
-  if (includeKatYuk) {
-    heading("Yapı Kat ve Yük Bilgileri");
-    for (const floor of activeFloorsForDisplay) {
-      line(`${floor.name} | Kot: ${number(floor.elevation)} m | Kat yüksekliği: ${number(floor.height)} m`);
-    }
-  }
-
-  // Normal döşeme yükleri (only if normal slabs exist in scope and slabLoads + doseme/kat_yuk enabled)
-  if (includeSlabLoads && source && presence.doseme.present) {
-    heading("Normal Döşeme Yükleri (Q ve G)");
-    line("Kaynak IDE modeli; Q ve G birimi: tf/m². Radye ve diğer eleman yükleri bu kapsamda değildir.");
-    const selectedSet = scope === "selected" ? new Set(options.selectedElementIds ?? []) : null;
-    const slabs = source.elements.filter(
-      e =>
-        e.type === "slab" &&
-        !e.foundation &&
-        e.planAnnotation?.loads &&
-        scopedFloorIds.has(e.floorId) &&
-        (!selectedSet || selectedSet.has(e.id))
-    );
-    if (!slabs.length) line("Doğrulanmış yük kaydı bulunamadı.");
-    for (const e of slabs) {
-      const load = e.planAnnotation!.loads!;
-      line(`${floorMap.get(e.floorId) ?? "Bilinmeyen kat"} | ${e.name} | Q: ${number(load.live)} | G: ${number(load.dead)}`);
-    }
-  }
-
-  // Dinamik Analiz
-  if (includeDinamik) {
-    heading("Dinamik Analiz");
-    const st = (cadModel as CadModelWithOptionalStructural | null | undefined)?.structural?.settings;
-    if (st) {
-      line(`SDS: ${st.sds?.value ?? "unknown"} | SD1: ${st.sd1?.value ?? "unknown"} | R: ${st.r?.value ?? "unknown"} | I: ${st.importance?.value ?? "unknown"}`);
-    }
-    line("Modal analiz ve kütle katılım sonuçları: unknown (yerel ideCAD 11.28 Deneme önizlemesinde incelenir).");
-  }
-
-  // Yapı Düzensizlikleri
-  if (includeDuzensizlik) {
-    heading("Yapı Düzensizlikleri");
-    const totalHeight = activeFloorsForDisplay.reduce((sum, f) => sum + f.height, 0);
-    line(`Kapsamdaki kat sayısı: ${activeFloorsForDisplay.length} | Toplam yükseklik: ${number(totalHeight)} m`);
-    line("A1/B1/B2/B3 düzensizlik ve devrilme tahkikleri: unknown (yerel ideCAD 11.28 Deneme önizlemesinde incelenir).");
-  }
-
-  // Element Groups — STRICTLY skip any group with count === 0!
-  if (elementGroupIdsToPrint.length > 0 && options.elements !== false) {
-    heading("Doğrulanmış Eleman ve Kesit Envanteri");
-    const summaryParts = elementGroupIdsToPrint.map(gid => `${groupLabelMap.get(gid) ?? gid}: ${presence[gid].count}`);
-    line(summaryParts.join(" · "), true);
-
-    for (const gid of elementGroupIdsToPrint) {
-      const groupTitle = `${groupLabelMap.get(gid) ?? gid} (${presence[gid].count} adet)`;
-      y += 1.5;
-      line(groupTitle, true, 10);
-
-      if (gid === "birlesim") {
-        line("Kolon ve kiriş bulunan katlarda birleşim bölgesi adedi hesaplanmıştır; kesme tahkiki ideCAD analiz önizlemesindedir (unknown).");
-        continue;
-      }
-
-      const matchedElements = unifiedScoped.filter(el => {
-        const cat = classifyUnifiedElementCategory(el);
-        if (gid === "perde_grubu") return cat === "perde" && Boolean(el.group?.trim());
-        return cat === gid;
-      });
-
-      for (const el of matchedElements) {
-        if (el.ide) {
-          let row = `${el.floorName} | ${formatIdeElementSummary(el.ide, number)}`;
-          if (gid === "doseme" && el.ide.planAnnotation?.loads) {
-            const ld = el.ide.planAnnotation.loads;
-            row += ` | Q: ${number(ld.live)} | G: ${number(ld.dead)} tf/m²`;
+  const elementGroups =
+    elementGroupIdsToPrint.length > 0 && options.elements !== false
+      ? elementGroupIdsToPrint.map(gid => {
+          const label = groupLabelMap.get(gid) ?? gid;
+          if (gid === "birlesim") {
+            return {
+              id: gid,
+              label,
+              count: presence[gid].count,
+              summaryNote:
+                "Kolon ve kiriş bulunan katlarda birleşim bölgesi adedi hesaplanmıştır; kesme tahkiki analiz önizlemesindedir.",
+              elements: [],
+            };
           }
-          line(row);
-        } else if (el.cad) {
-          line(`${el.floorName} | ${formatCadElementSummary(el.cad, number)}`);
-        }
-      }
+          const matchedElements = unifiedScoped.filter(el => {
+            const cat = classifyUnifiedElementCategory(el);
+            if (gid === "perde_grubu") return cat === "perde" && Boolean(el.group?.trim());
+            return cat === gid;
+          });
+          return {
+            id: gid,
+            label,
+            count: presence[gid].count,
+            elements: matchedElements.map(el => {
+              if (el.ide) {
+                const sec = el.ide.sectionLabel ?? el.ide.planAnnotation?.section ?? formatIdeElementSummary(el.ide, number);
+                const dosemeLoads =
+                  el.ide.planAnnotation?.loads ??
+                  (el.ide.slabLoads
+                    ? {
+                        live: el.ide.slabLoads.liveTfM2,
+                        dead: el.ide.slabLoads.deadTfM2 + el.ide.slabLoads.finishTfM2,
+                      }
+                    : null);
+                const detail =
+                  gid === "doseme" && dosemeLoads
+                    ? `Q: ${number(dosemeLoads.live)} | G: ${number(dosemeLoads.dead)} tf/m²`
+                    : el.ide.planOnly
+                      ? "Yalnız plan"
+                      : "";
+                return {
+                  id: el.id,
+                  name: el.name,
+                  floorName: el.floorName,
+                  groupLabel: label,
+                  sectionSummary: sec,
+                  detailNote: detail,
+                };
+              }
+              return {
+                id: el.id,
+                name: el.name,
+                floorName: el.floorName,
+                groupLabel: label,
+                sectionSummary: el.cad ? formatCadElementSummary(el.cad, number) : "-",
+                detailNote: "",
+              };
+            }),
+          };
+        })
+      : [];
+
+  let analyticalBridge = options.analysis?.analyticalBridge ?? null;
+  if (!analyticalBridge && cadModel && cadModel.elements.length > 0 && cadModel.floors.length > 0) {
+    try {
+      analyticalBridge = executeStructuralBridge(cadModel, { revisionId: revision });
+    } catch {
+      analyticalBridge = null;
     }
   }
 
-  // Unified Metraj Report Section
-  if (includeMetraj) {
-    heading("METRAJ RAPORU (KALIP · BETON · DONATI / ÖZET)");
-    const metraj = cadModel
-      ? computeCadModelMetraj(cadModel, scope, targetFloorName, options.selectedElementIds)
-      : computeSourceOnlyMetraj(unifiedScoped, activeFloorsForDisplay);
+  const effectiveRebarSchedule =
+    options.rebarSchedule ??
+    (analyticalBridge?.reinforcementSchedule?.isComplete ? analyticalBridge.reinforcementSchedule : null);
 
-    line(metraj.sourceLabel);
+  const metraj = cadModel
+    ? computeCadModelMetraj(cadModel, scope, targetFloorName, options.selectedElementIds, {
+        deductFormworkOverlaps: options.deductFormworkOverlaps ?? true,
+        rebarSchedule: effectiveRebarSchedule,
+        unmappedIdeElements: unifiedScoped,
+      })
+    : computeSourceOnlyMetraj(unifiedScoped, activeFloorsForDisplay);
 
-    if (metrajKalip) {
-      y += 1;
-      line("1. Kalıp Metrajı (m²)", true, 10);
-      if (metraj.byType.length) {
-        for (const row of metraj.byType) {
-          line(`• ${row.typeLabel} (${row.count} adet): ${number(row.formworkM2, 3)} m²`);
+  const st = (cadModel as CadModelWithOptionalStructural | null | undefined)?.structural?.settings;
+  const firstConcrete = source?.materials?.find(m => m.kind === "concrete");
+  const firstSteel = source?.materials?.find(m => m.kind === "steel");
+  const hydratedMetadata = {
+    ...options.metadata,
+    concreteGrade: options.metadata?.concreteGrade ?? firstConcrete?.name ?? analyticalBridge?.material.concreteGrade,
+    rebarGrade: options.metadata?.rebarGrade ?? firstSteel?.name ?? analyticalBridge?.material.rebarGrade,
+    soilClass: options.metadata?.soilClass ?? source?.seismicSoil?.exposureClass,
+  };
+  const hydratedSettings =
+    st || source?.seismicSoil || analyticalBridge
+      ? {
+          ss: source?.seismicSoil?.ss ?? null,
+          s1: source?.seismicSoil?.s1 ?? null,
+          sds: st?.sds?.value ?? source?.seismicSoil?.sds ?? analyticalBridge?.spectrum.sds ?? null,
+          sd1: st?.sd1?.value ?? source?.seismicSoil?.sd1 ?? analyticalBridge?.spectrum.sd1 ?? null,
+          r: st?.r?.value ?? source?.seismicSoil?.rEntered ?? null,
+          importance: st?.importance?.value ?? source?.seismicSoil?.importanceI ?? null,
+          exposureClass: source?.seismicSoil?.exposureClass ?? null,
+          ko: source?.seismicSoil?.subgradeKoTfM3 ?? null,
+          qt: source?.seismicSoil?.bearingCapacityQtTfM2 ?? null,
         }
-        line(`Toplam Brüt Kalıp Alanı: ${number(metraj.totalFormworkM2, 3)} m²`, true);
-        if (metraj.byFloor.length) {
-          line("Katlara göre kalıp dağılımı:", true);
-          for (const fl of metraj.byFloor) {
-            line(`  - ${fl.floorName}: ${number(fl.formworkM2, 3)} m²`);
-          }
-        }
-      } else {
-        line("Seçili kapsamda kalıp metrajı hesaplanacak katı eleman bulunamadı.");
-      }
-    }
+      : undefined;
 
-    if (metrajBeton) {
-      y += 1;
-      line("2. Beton Metrajı (m³)", true, 10);
-      if (metraj.byType.length) {
-        for (const row of metraj.byType) {
-          const netPart = row.netM3 !== null ? ` | Net: ${number(row.netM3, 3)} m³` : "";
-          line(`• ${row.typeLabel} (${row.count} adet): Brüt ${number(row.grossM3, 3)} m³${netPart}`);
+  const warningsSection =
+    options.receiptWarnings !== undefined || options.warningsStatus || (source?.warnings.length ?? 0) > 0
+      ? {
+          statusText: options.warningsStatus ?? "unknown",
+          receiptWarnings: options.receiptWarnings,
+          sourceWarnings: source?.warnings ?? [],
+          coverageNote: source
+            ? scope === "active_floor"
+              ? `Proje geneli çözümlenen kayıt: ${source.coverage.decodedRecords} (${source.coverage.unsupportedRecords} desteklenmeyen) | Seçili aktif kattaki eleman sayısı: ${unifiedScoped.length}.`
+              : `Kaynak okuma kapsamı: ${source.coverage.decodedRecords} çözümlenen, ${source.coverage.unsupportedRecords} desteklenmeyen kayıt.`
+            : undefined,
         }
-        const totalNetText = metraj.totalNetM3 !== null ? ` | Toplam Net: ${number(metraj.totalNetM3, 3)} m³` : "";
-        line(`Toplam Brüt Beton Hacmi: ${number(metraj.totalGrossM3, 3)} m³${totalNetText}`, true);
-        if (metraj.byFloor.length) {
-          line("Katlara göre beton dağılımı:", true);
-          for (const fl of metraj.byFloor) {
-            const netPart = fl.netM3 !== null ? ` | Net: ${number(fl.netM3, 3)} m³` : "";
-            line(`  - ${fl.floorName}: Brüt ${number(fl.grossM3, 3)} m³${netPart}`);
-          }
-        }
-      } else {
-        line("Seçili kapsamda beton metrajı hesaplanacak katı eleman bulunamadı.");
-      }
-    }
+      : undefined;
 
-    if (metrajDonati) {
-      y += 1;
-      line("3. Donatı / Özet Metraj", true, 10);
-      if (metraj.totalRebarKg !== null) {
-        line(`Beyan Edilen Toplam Donatı Kütlesi: ${number(metraj.totalRebarKg, 2)} kg (${number(metraj.totalRebarKg / 1000, 3)} t) — kesim listesi doğrulanmadı.`);
-      } else {
-        line("Donatı Metrajı: VERİ EKSİK / unknown — gerçek donatı kesim listesi doğrulanmadı; tahmini donatı tonajı üretilmez.");
-        if (metraj.knownRebarSubtotalKg > 0) {
-          line(`Kısmi beyan edilen donatı alt toplamı: ${number(metraj.knownRebarSubtotalKg, 2)} kg (${metraj.missingRebarCount} elemanda eksik).`);
-        }
-      }
-      const ratioBasis = metraj.totalNetM3 && metraj.totalNetM3 > 0 ? metraj.totalNetM3 : metraj.totalGrossM3;
-      const ratio = ratioBasis > 0 ? metraj.totalFormworkM2 / ratioBasis : null;
-      line(
-        `Genel Özet: ${metraj.elements.length} eleman | Brüt Beton: ${number(metraj.totalGrossM3, 3)} m³ | Brüt Kalıp: ${number(metraj.totalFormworkM2, 3)} m²` +
-          (ratio !== null ? ` | Kalıp/Beton Oranı: ${number(ratio, 3)} m²/m³` : "")
-      );
-      for (const w of metraj.warnings) {
-        line(`• ${w}`);
-      }
-    }
+  const reportDoc = buildIdeReportDocument({
+    projectName: projectDisplayName,
+    sourceFilename: source?.filename,
+    sourceFormat: source?.format,
+    modelName: cadModel?.name,
+    sha256,
+    revisionId: revision,
+    profileSha256: options.profileSha256,
+    optionsSha256: options.optionsSha256,
+    scopeText,
+    includeCover: effectiveIdeKapak || !sectionSet,
+    coverModeLabel,
+    hasAciklama,
+    includeRaporIndeksi,
+    includeKatYuk,
+    includeSlabLoads,
+    includeDinamik,
+    includeDuzensizlik,
+    selectedGroupLabels,
+    metadata: hydratedMetadata,
+    floors: activeFloorsForDisplay.map(f => ({
+      id: f.id,
+      name: f.name,
+      elevation: f.elevation,
+      height: f.height,
+    })),
+    slabLoads,
+    structuralSettings: hydratedSettings,
+    seismicSoil: source?.seismicSoil ?? null,
+    f9Results: source?.f9Results ?? null,
+    analyticalBridge,
+    analysis: options.analysis ?? null,
+    design: options.design ?? null,
+    elementGroups,
+    metraj: {
+      enabled: includeMetraj,
+      kalip: metrajKalip,
+      beton: metrajBeton,
+      donati: metrajDonati,
+      detay: metrajDetay,
+      ...metraj,
+    },
+    planDiagrams: options.planDiagrams,
+    warningsSection,
+  });
 
-    if (metrajDetay) {
-      y += 1;
-      line("4. Kata ve Elemana Göre Detaylı Metraj", true, 10);
-      if (metraj.elements.length) {
-        for (const item of metraj.elements) {
-          const cText = item.concreteM3 !== null ? `${number(item.concreteM3, 4)} m³` : "VERİ EKSİK";
-          const fText = item.formworkM2 !== null ? `${number(item.formworkM2, 3)} m²` : "VERİ EKSİK";
-          const rText = item.rebarKg !== null ? `${number(item.rebarKg, 2)} kg` : "unknown";
-          line(`${item.floorName} | ${item.type} ${item.name} | ${item.dimensionText} | Beton: ${cText} | Kalıp: ${fText} | Donatı: ${rText}`);
-        }
-      } else {
-        line("Detaylı metraj listelenecek eleman bulunamadı.");
-      }
-    }
-  }
-
-  // Analysis status and source warnings
-  if (options.receiptWarnings !== undefined || options.warningsStatus || (source?.warnings.length ?? 0) > 0) {
-    heading("ideCAD Analiz Durumu ve Kaynak Uyarıları");
-    const statusText = options.warningsStatus ?? "unknown";
-    line(`Analiz uyarı durumu: ${statusText}`);
-    if (options.receiptWarnings?.length) {
-      for (const w of options.receiptWarnings) line(`• ${w}`);
-    } else if (statusText === "unknown" || options.receiptWarnings == null) {
-      line("• Analiz uyarı durumu: unknown (bu işte F9 çalıştırılmadı / kayıtlı sonuç kullanıldı; proje uyarıları ideCAD önizlemesindedir).");
-    } else {
-      line("• F9 analiz günlüğünde ek uyarı/tavsiye satırı raporlanmadı.");
-    }
-    if (source) {
-      if (scope === "active_floor") {
-        line(`Proje geneli çözümlenen kayıt: ${source.coverage.decodedRecords} (${source.coverage.unsupportedRecords} desteklenmeyen) | Seçili aktif kattaki eleman sayısı: ${unifiedScoped.length}.`);
-      } else {
-        line(`Kaynak okuma kapsamı: ${source.coverage.decodedRecords} çözümlenen, ${source.coverage.unsupportedRecords} desteklenmeyen kayıt.`);
-      }
-      for (const w of source.warnings) line(`• ${w}`);
-    }
-  }
-
-  return new Uint8Array(pdf.output("arraybuffer"));
+  return renderReportDocumentToPdf(reportDoc, { layoutMode: "idecad_compact" }).pdfBytes;
 }

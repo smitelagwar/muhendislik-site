@@ -11,15 +11,17 @@ const requireValue = (value: number | undefined, label: string): number => {
   return value;
 };
 
+const TF_M2_TO_KN_M2 = 9.80665;
+
 /** Only map geometry that the editor can represent without filling holes or guessing dimensions. */
-function editableElement(e: IdeElement, floor: Floor): CadElement {
+function editableElement(e: IdeElement, floor: Floor, materialId: string): CadElement {
   if (e.planOnly) throw new Error("Yalnız plan geometrisi çözümlendi.");
   if (e.mesh) throw new Error("Kayıtlı yüzey ağı; parametrik düzenleme desteklenmiyor.");
   if (e.holes?.length) throw new Error("İç boşluklar korunuyor; boşluklu eleman düzenlemesi desteklenmiyor.");
   if (!(e.type in layers)) throw new Error("Bu nesne türü kaynak referansı olarak korunuyor.");
   if (e.type === "wall" && e.structural === false) throw new Error("Mimari duvar, betonarme perdeye dönüştürülmedi.");
   const type = e.type as keyof typeof layers;
-  const base = { id: e.id, name: e.name || `IDE ${e.nativeId}`, floorId: e.floorId, materialId: "ide-unassigned", layer: layers[type] };
+  const base = { id: e.id, name: e.name || `IDE ${e.nativeId}`, floorId: e.floorId, materialId, layer: layers[type] };
   const [start, end] = [e.points[0], e.points.at(-1)];
   if (type === "axis" || type === "slabEdge") {
     if (!start || !end || e.points.length !== 2) throw new Error("Doğrusal iki uç kaydı bekleniyor.");
@@ -29,7 +31,14 @@ function editableElement(e: IdeElement, floor: Floor): CadElement {
   const topOffset = e.top! - floor.elevation - floor.height;
   if (type === "slab") {
     const points = ring(e.footprint ?? e.points);
-    return { ...base, type, points: points.map(p => ({ ...p })), thickness: requireValue(e.thickness, "Döşeme kalınlığı"), topOffset };
+    return {
+      ...base,
+      type,
+      points: points.map(p => ({ ...p })),
+      thickness: requireValue(e.thickness, "Döşeme kalınlığı"),
+      topOffset,
+      ...(e.slabLoads ? { finishLoad: e.slabLoads.finishTfM2 * TF_M2_TO_KN_M2, liveLoad: e.slabLoads.liveTfM2 * TF_M2_TO_KN_M2 } : {}),
+    };
   }
   if (type === "column") {
     const points = ring(e.footprint ?? e.points);
@@ -66,11 +75,27 @@ export function importIdeWorkspace(source: IdeProject): CadModel {
   const model = createEmptyModel();
   model.name = source.name || source.filename;
   model.floors = source.floors.map(f => ({ id: f.id, name: f.name, elevation: f.elevation, height: f.height }));
-  model.materials = [{ id: "ide-unassigned", name: "IDE malzemesi · yeniden tanımlayın" }];
+  const nativeMaterials = source.materials?.length
+    ? source.materials.map(m => ({
+        id: `ide-mat-${m.id}`,
+        name: m.name,
+        kind: m.kind,
+        fckMpa: m.fckMpa,
+        fykMpa: m.fykMpa,
+        elasticModulusMpa: m.elasticModulusMpa,
+        unitWeightTfM3: m.unitWeightTfM3,
+      }))
+    : undefined;
+  model.materials = nativeMaterials ?? [{ id: "ide-unassigned", name: "IDE malzemesi · yeniden tanımlayın" }];
+  const materialByIndex = new Map<number, string>(
+    (source.materials ?? []).map(m => [m.id, `ide-mat-${m.id}`]),
+  );
+  const defaultMaterialId = model.materials[0].id;
   const references: IdeWorkspaceImport["references"] = [];
   for (const e of source.elements) {
     try {
-      const element = editableElement(e, model.floors.find(f => f.id === e.floorId)!);
+      const materialId = (e.materialIndex !== undefined ? materialByIndex.get(e.materialIndex) : undefined) ?? defaultMaterialId;
+      const element = editableElement(e, model.floors.find(f => f.id === e.floorId)!, materialId);
       // Reuse the real editor validator so one unsupported record cannot reject the whole project.
       model.elements.push(validateModel({ ...model, elements: [element] }).elements[0]);
     } catch (error) { references.push({ id: e.id, reason: error instanceof Error ? error.message : "Geometri desteklenmiyor." }); }

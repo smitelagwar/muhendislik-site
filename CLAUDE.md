@@ -1,6 +1,12 @@
 # CLAUDE.md — Claude / AI çalışma başlangıcı
 
+**Codex/ChatGPT CLI işi varsa ZORUNLU:** Komuttan önce [.agents/rules/codex-cli-kullanimi.md](.agents/rules/codex-cli-kullanimi.md) ve bağlantı verdiği `codex-cli/SKILL.md` okunur.
+
+**Antigravity CLI (`agy`) işi varsa ZORUNLU:** Komuttan önce [.agents/rules/antigravity-cli-kullanimi.md](.agents/rules/antigravity-cli-kullanimi.md) ve orada bağlantısı verilen `antigravity-cli/SKILL.md` okunur.
+
 **ZORUNLU:** Önce `PROJECT.md`, sonra `AGENTS.md`, ardından ilgili `.agents/rules/*.md` okunur. Bu dosya farklı bir yazma veya deploy izni oluşturmaz.
+
+ideCAD masaüstü işinde [kontrol kuralı](.agents/rules/idecad-masaustu-kontrolu.md) ve [güncel kılavuz](docs/hsyncad/IDECAD_DESKTOP_WORKFLOW.md) okunur. Ekran görüntüsü ve normal GUI adımları yetkili araçla ajan tarafından yapılır; eski teşhis istemleri kullanıcıya devredilecek iş listesi değildir.
 
 CAD V1 DWG/DXF görüntüleme, OSNAP, ölçüm, inceleme araçları, markup, toolbar, pointer, katman veya export işinde **`.agents/rules/cad-dxf-engine-koruma.md`** ve **`.agents/rules/cad-v1-review-kurallari.md`** zorunludur. Bu kuralların işaret ettiği baseline, ADR ve yaşayan CAD belgelerini izle.
 

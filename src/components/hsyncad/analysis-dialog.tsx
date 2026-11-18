@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { AnalysisResult, AnalysisSettings } from "@/lib/hsyncad/analysis";
 import { DEFAULT_ANALYSIS_SETTINGS } from "@/lib/hsyncad/analysis";
 import type { CadModel } from "@/lib/hsyncad/model";
 import { downloadDxfFile } from "@/lib/hsyncad/dxf-export";
 import { downloadStaticReportPdf } from "@/lib/hsyncad/reports";
+import { getReportReadiness, reportStatusLabel } from "@/lib/hsyncad/report-readiness";
 
 interface Props {
+  projectSettings?: React.ReactNode;
   model: CadModel;
   result: AnalysisResult | null;
   onRun: (settings: AnalysisSettings) => void;
@@ -16,23 +18,21 @@ interface Props {
   initialTab?: "summary" | "storeys" | "columns" | "beams" | "joints" | "irregularities" | "settings";
 }
 
-export default function AnalysisDialog({ model, result, onRun, onClose, onSetViewMode, initialTab }: Props) {
-  const [activeTab, setActiveTab] = useState<"summary" | "storeys" | "columns" | "beams" | "joints" | "irregularities" | "settings">(initialTab ?? "summary");
+export default function AnalysisDialog({ model, result, onRun, onClose, onSetViewMode, initialTab, projectSettings }: Props) {
+  const [selection, setSelection] = useState<{ source: Props["initialTab"]; tab: NonNullable<Props["initialTab"]> }>({ source: initialTab, tab: initialTab ?? "summary" });
+  const activeTab = selection.source === initialTab ? selection.tab : initialTab ?? "summary";
+  const setActiveTab = (tab: NonNullable<Props["initialTab"]>) => setSelection({ source: initialTab, tab });
   const [settings, setSettings] = useState<AnalysisSettings>(result?.settings ?? DEFAULT_ANALYSIS_SETTINGS);
 
-  useEffect(() => {
-    if (initialTab) {
-      setActiveTab(initialTab);
-    }
-  }, [initialTab]);
+  const readiness = getReportReadiness(model, result, result?.designResult);
 
   return (
     <div className="hcad-analysis-container" data-testid="hsyncad-analysis-dialog">
       <p role="note">Yaklaşık ön hesap ve taslak donatı. Tam 3B sonlu eleman çözümü veya yönetmelik uygunluk/onay raporu değildir.</p>
       <div className="hcad-analysis-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <span className={`hcad-badge ${result?.overallPass ? "hcad-badge-success" : "hcad-badge-warning"}`}>
-            {result ? (result.overallPass ? "Ön hesap sınırları sağlandı" : "Kapasite Aşımı Var") : "Analiz Bekleniyor"}
+          <span className="hcad-badge hcad-badge-warning" data-testid="static-report-readiness">
+            {reportStatusLabel(readiness.status)}
           </span>
         </div>
         {result && (
@@ -43,7 +43,7 @@ export default function AnalysisDialog({ model, result, onRun, onClose, onSetVie
             onClick={() => downloadStaticReportPdf(model, result, result.designResult)}
             style={{ fontSize: "12px", padding: "4px 10px" }}
           >
-            📄 Statik Rapor İndir (PDF)
+            Taslak Statik İnceleme İndir (PDF)
           </button>
         )}
       </div>
@@ -138,7 +138,7 @@ export default function AnalysisDialog({ model, result, onRun, onClose, onSetVie
                     <td>%{(st.driftRatio * 100).toFixed(3)}</td>
                     <td>
                       <span className={`hcad-status-tag ${st.driftPass ? "pass" : "fail"}`}>
-                        {st.driftPass ? "UYGUN" : "AŞILDI"}
+                        {st.driftPass ? "ÖN KONTROL" : "AŞILDI"}
                       </span>
                     </td>
                   </tr>
@@ -183,7 +183,7 @@ export default function AnalysisDialog({ model, result, onRun, onClose, onSetVie
                     <td>Φ8 / {col.confinementSpacingCm} cm</td>
                     <td>
                       <span className={`hcad-status-tag ${col.pass ? "pass" : "fail"}`}>
-                        {col.pass ? "UYGUN" : "YETERSİZ"}
+                        {col.pass ? "ÖN KONTROL" : "YETERSİZ"}
                       </span>
                     </td>
                   </tr>
@@ -224,7 +224,7 @@ export default function AnalysisDialog({ model, result, onRun, onClose, onSetVie
                     <td>Φ8 / {beam.confinementSpacingCm} cm</td>
                     <td>
                       <span className={`hcad-status-tag ${beam.pass ? "pass" : "fail"}`}>
-                        {beam.pass ? "UYGUN" : "YETERSİZ"}
+                        {beam.pass ? "ÖN KONTROL" : "YETERSİZ"}
                       </span>
                     </td>
                   </tr>
@@ -279,8 +279,8 @@ export default function AnalysisDialog({ model, result, onRun, onClose, onSetVie
                         ) : "-"}
                       </td>
                       <td>
-                        <span className={`hcad-status-tag ${joint.pass && (moment?.pass ?? true) && (punch?.pass ?? true) ? "pass" : "fail"}`}>
-                          {joint.pass && (moment?.pass ?? true) && (punch?.pass ?? true) ? "UYGUN" : "KONTROL ET"}
+                          <span className={`hcad-status-tag ${joint.pass === false || moment?.pass === false || punch?.pass === false ? "fail" : "warning"}`}>
+                          {joint.pass === false || moment?.pass === false || punch?.pass === false ? "SAĞLANMADI" : !moment || !punch ? "VERİ EKSİK" : "ÖN KONTROL"}
                         </span>
                       </td>
                     </tr>
@@ -312,7 +312,7 @@ export default function AnalysisDialog({ model, result, onRun, onClose, onSetVie
                       <td>{item.hasA1 ? "A1 Düzensizliği Var (ηbi > 1.20)" : "A1 Düzensizliği Yok (Düzenli)"}</td>
                       <td>
                         <span className={`hcad-status-tag ${item.pass ? "pass" : "fail"}`}>
-                          {item.pass ? "UYGUN" : "AŞILDI"}
+                          {item.pass ? "ÖN KONTROL" : "AŞILDI"}
                         </span>
                       </td>
                     </tr>
@@ -338,7 +338,7 @@ export default function AnalysisDialog({ model, result, onRun, onClose, onSetVie
                       <td>{item.hasB2 ? "B2 Yumuşak Kat Belirlendi" : "B2 Yumuşak Kat Yok"}</td>
                       <td>
                         <span className={`hcad-status-tag ${item.pass ? "pass" : "fail"}`}>
-                          {item.pass ? "UYGUN" : "DİKKAT"}
+                          {item.pass ? "ÖN KONTROL" : "DİKKAT"}
                         </span>
                       </td>
                     </tr>
@@ -349,7 +349,8 @@ export default function AnalysisDialog({ model, result, onRun, onClose, onSetVie
           </div>
         )}
 
-        {activeTab === "settings" && (
+        {activeTab === "settings" && projectSettings}
+        {activeTab === "settings" && !projectSettings && (
           <div className="hcad-settings-form">
             <div className="hcad-form-row">
               <label>
@@ -415,12 +416,12 @@ export default function AnalysisDialog({ model, result, onRun, onClose, onSetVie
               data-testid="download-static-pdf-btn"
               onClick={() => downloadStaticReportPdf(model, result, result.designResult)}
             >
-              Statik Rapor İndir (PDF)
+              Taslak Statik İnceleme İndir (PDF)
             </button>
           )}
         </div>
         <div className="hcad-footer-right">
-          <button type="button" className="hcad-btn-primary" data-testid="run-analysis-btn" onClick={() => onRun(settings)}>
+          <button type="button" disabled={!!projectSettings} title={projectSettings ? "Sürümlü ayarları kullanan doğrulanmış motor henüz hazır değil" : undefined} className="hcad-btn-primary" data-testid="run-analysis-btn" onClick={() => onRun(settings)}>
             Analizi Başlat / Yenile
           </button>
           <button type="button" className="hcad-btn-secondary" data-testid="analysis-close-btn" onClick={onClose}>

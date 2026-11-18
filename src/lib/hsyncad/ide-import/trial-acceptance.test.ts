@@ -5,12 +5,54 @@ import { createHash } from "node:crypto";
 import { parseIde10 } from "./index";
 import { saveNativeIdeSource } from "../ide-native-save";
 import { parseIdeProjectSnapshot, serializeIdeProject, exportIdeDxf } from "../ide-export";
+import { transcodeIde11TrialToIde10, transcodeIde11TrialToIde11 } from "./ide11-transcoder";
 
 const file = "C:/Users/hsyn/Desktop/MUSTAFA SELVİ 1.KISIM.ide11trial";
 const original = "D:/IDM_DOWNLOAD/MUSTAFA SELVİ TÜM PROJELER/STATİK/1.kısım/MUSTAFA SELVİ 1.KISIM.ide10";
 const digest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 const buffer = (bytes: Uint8Array): ArrayBuffer => Uint8Array.from(bytes).buffer;
 const close = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
+
+test("unverified native slab load overrides fail before modifying output", () => {
+  const source = new Uint8Array(128);
+  const before = digest(source);
+  const options = { slabLoadOverrides: new Map([[6129657, { dead: 1.5, live: 1 }]]) };
+  for (const transcode of [transcodeIde11TrialToIde10, transcodeIde11TrialToIde11]) {
+    assert.throws(() => transcode(source, options), /Döşeme yükü değişikliklerinin native IDE dosyasına yazılması henüz doğrulanmadı/);
+    assert.equal(digest(source), before);
+  }
+});
+
+test("IDE11 trial to IDE10 preserves normal slab live loads", { skip: !existsSync(file), timeout: 30_000 }, () => {
+  const source = readFileSync(file);
+  const before = digest(source);
+  const originalProject = parseIde10(buffer(source), "source.ide11trial");
+  const converted = transcodeIde11TrialToIde10(source);
+  const project = parseIde10(buffer(converted), "converted-copy.ide10");
+  const key = (e: typeof project.elements[number]) => `${e.floorId}:${e.nativeId}`;
+  const originalSlabs = originalProject.elements.filter(e => e.type === "slab" && !e.foundation && e.planAnnotation?.loads);
+  const convertedSlabs = new Map(project.elements.filter(e => e.type === "slab" && !e.foundation).map(e => [key(e), e]));
+  assert.equal(originalSlabs.length, 158);
+  for (const slab of originalSlabs) {
+    const convertedSlab = convertedSlabs.get(key(slab));
+    assert.ok(convertedSlab?.planAnnotation?.loads, `Missing slab ${key(slab)}`);
+    close(convertedSlab.planAnnotation.loads.live, slab.planAnnotation!.loads!.live);
+  }
+  const d1 = project.elements.find(e => e.nativeId === 6129657);
+  assert.ok(d1?.planAnnotation?.loads);
+  close(d1.planAnnotation.loads.live, 1);
+  close(new DataView(converted.buffer, converted.byteOffset, converted.byteLength).getFloat64(d1.planAnnotation.loads.sourceOffset - 8, true), 1);
+  assert.equal(digest(source), before);
+  assert.equal(digest(readFileSync(file)), before);
+});
+
+test("native transcoders reject a damaged trial checksum", { skip: !existsSync(file), timeout: 30_000 }, () => {
+  const source = readFileSync(file);
+  source[source.length - 1] ^= 1;
+  for (const transcode of [transcodeIde11TrialToIde10, transcodeIde11TrialToIde11]) {
+    assert.throws(() => transcode(source), /CRC32/);
+  }
+});
 
 const KNOWN_TRIAL_DIGESTS = new Set([
   "8808af458b18f4300a28a33625db28b1f6401af596f579a2e82cd4eb410fc4d1",

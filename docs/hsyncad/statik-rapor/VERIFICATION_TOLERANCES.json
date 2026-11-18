@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "purpose": "software verification; not regulation acceptance tolerances",
+  "fixedBeforeFutureSolverBenchmarks": true,
+  "countsIdsAndDecisionBranches": "exact",
+  "analyticUnitAreaVolume": {
+    "relative": 1e-08,
+    "absoluteNearZero": 1e-10
+  },
+  "nativeGeometryMetres": {
+    "absolute": 0.001,
+    "note": "Does not authorize forced merging; domain-specific tighter limits may be required."
+  },
+  "frameForceDisplacement": {
+    "relative": 1e-06,
+    "absoluteNearZero": 1e-09
+  },
+  "eigenvalues": {
+    "relative": 0.0001,
+    "absoluteNearZero": 1e-09
+  },
+  "convergedShellBenchmark": {
+    "relativeTarget": 0.01,
+    "note": "Mesh-convergence and applicability mandatory."
+  },
+  "realProjectDiagnosticOnly": {
+    "mass": 0.01,
+    "period": 0.03,
+    "globalForceDrift": 0.05,
+    "grantsFinalPass": false
+  },
+  "printedRounding": "raw printed number +/- half of last printed place; sum raw available inputs before display",
+  "criticalLimitDecision": "unrounded value; a decision changing side cannot be hidden by total tolerance",
+  "changePolicy": "New physical benchmark may define a justified separate scale/norm before observation; never relax a failing target to fit source output."
+}

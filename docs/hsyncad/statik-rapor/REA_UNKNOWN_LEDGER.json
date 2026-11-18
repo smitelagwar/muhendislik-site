@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-06T05:52:10.081190+00:00",
+  "researchAcceptance": false,
+  "runtimeProductDependency": false,
+  "questions": [
+    {
+      "id": "R1",
+      "status": "partial",
+      "finding": "Malzeme diyalogunda dayanım/E/birim ağırlık alanları kaynak konumuyla bulundu. Native malzeme nesnesi ve elemana bağlantısı bilinmiyor.",
+      "evidenceRefs": [
+        "ev_6fe6dc7515c2714c073f4098a6e6e3c7bba19d773e370301dab15fc7a21027c5",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-01\\rea\\native-field-map.json",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-04\\rea-research\\native-field-candidate-manifest.json"
+      ],
+      "blockedFeatures": [
+        "native_material_import",
+        "reference_equivalence"
+      ],
+      "nextAction": "Diyalog2708 kontrol xref/DDX üzerinden nesne+serializer alanına git; üç kaynakta eşle.",
+      "observationClass": "derived_partial"
+    },
+    {
+      "id": "R2",
+      "status": "partial",
+      "finding": "528 G/Q alanı tekrar okundu; tek alan değişikliği/NaN/kesik taşıyıcı sınandı. Öz ağırlık dahil mi ve diğer yük tipleri çözülmedi.",
+      "evidenceRefs": [
+        "ev_6fe6dc7515c2714c073f4098a6e6e3c7bba19d773e370301dab15fc7a21027c5",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-01\\rea\\native-field-map.json",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-01\\rea\\native-engineering-probe.json",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-04\\real-imports-final\\manifest.json",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-05\\g-semantics\\findings.json"
+      ],
+      "blockedFeatures": [
+        "native_load_semantics",
+        "double_self_weight_prevention"
+      ],
+      "nextAction": "Aynı kat/ad seçili üç Q uyuşmazlığının serializer/alan anlamı/kimlik/revizyon kökenini kontrollü native kaynakla ayır; G öz ağırlık yorumunu aile bazında kanıtla.",
+      "observationClass": "derived_partial"
+    },
+    {
+      "id": "R3",
+      "status": "partial",
+      "finding": "Temel-Zemin442 diyalogunun qt/emniyet gerilmesi/etkileşim/negatif temas/Winkler kontrolleri kimliklendi. Serialize ve hesap tüketicisi bağlantısı yok.",
+      "evidenceRefs": [
+        "ev_6fe6dc7515c2714c073f4098a6e6e3c7bba19d773e370301dab15fc7a21027c5",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-01\\rea\\native-field-map.json",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-04\\rea-research\\native-field-candidate-manifest.json"
+      ],
+      "blockedFeatures": [
+        "native_settings_import",
+        "foundation_interaction_equivalence"
+      ],
+      "nextAction": "442 kaynak sınıfı DDX kontrol ID eşlemesi -> serialize -> solver tüketicisi.",
+      "observationClass": "derived_partial"
+    },
+    {
+      "id": "R4",
+      "status": "partial",
+      "finding": "Donatı346 diyalogunda sol/sağ/üst/alt ilave ve pilye grupları var. Native çap/adet/aralık/kesim boyu ve nesne bağlantısı çözülemedi.",
+      "evidenceRefs": [
+        "ev_6fe6dc7515c2714c073f4098a6e6e3c7bba19d773e370301dab15fc7a21027c5",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-01\\rea\\native-field-map.json",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-04\\rea-research\\native-field-candidate-manifest.json"
+      ],
+      "blockedFeatures": [
+        "native_reinforcement_verification",
+        "actual_takeoff_equivalence"
+      ],
+      "nextAction": "Bir küçük kiriş donatı kaydını izole et; değişiklik kopyasıyla çap/adet/kesim eşle.",
+      "observationClass": "derived_partial"
+    },
+    {
+      "id": "R5",
+      "status": "unresolved",
+      "finding": "Native kuvvet/tasarım sonucunun kat+nativeId+kombinasyon+istasyon kimlik zinciri henüz yok.",
+      "evidenceRefs": [
+        "ev_6fe6dc7515c2714c073f4098a6e6e3c7bba19d773e370301dab15fc7a21027c5",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-01\\rea\\native-field-map.json"
+      ],
+      "blockedFeatures": [
+        "native_result_correlation"
+      ],
+      "nextAction": "Kaynak rapordaki tek elemanın tek kombinasyon/istasyonunu native sonuç nesnesine bağla.",
+      "observationClass": "unknown"
+    },
+    {
+      "id": "R6",
+      "status": "partial",
+      "finding": "Statik Rapor30801 bütün proje/aktif kat/seçim kapsam kontrolleri ve metraj tür seçicileri bulundu; bölüm ekleme koşul kodu çözülmedi.",
+      "evidenceRefs": [
+        "ev_6fe6dc7515c2714c073f4098a6e6e3c7bba19d773e370301dab15fc7a21027c5",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-01\\rea\\native-field-map.json"
+      ],
+      "blockedFeatures": [
+        "native_report_section_logic"
+      ],
+      "nextAction": "Rapor oluştur düğmesi call path ve eleman ailesi ekleme koşullarını izleyip 515başlıkla karşılaştır.",
+      "observationClass": "derived_partial"
+    },
+    {
+      "id": "R7",
+      "status": "partial",
+      "finding": "334 basılı metraj satırı ve 574 aritmetik kıyas hazır; ölçüm seçenekleri resource13740 içinde. Net/brüt paylaştırma/kesim/yuvarlama native algoritması bilinmiyor.",
+      "evidenceRefs": [
+        "ev_6fe6dc7515c2714c073f4098a6e6e3c7bba19d773e370301dab15fc7a21027c5",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-01\\rea\\native-field-map.json"
+      ],
+      "blockedFeatures": [
+        "native_takeoff_equivalence"
+      ],
+      "nextAction": "Küçük geometri/donatı kopyasında ortak yüzey ve çubuk boyunu kontrollü değiştir; metraj tüketicisini izleyerek ölçüm sözleşmesini kanıtla.",
+      "observationClass": "derived_partial"
+    },
+    {
+      "id": "R8",
+      "status": "unresolved",
+      "finding": "Kayıtlı sonuçların modelin son revizyonuyla güncellik bağı çözülemedi; eski sonuç yeni hesap diye kullanılamaz.",
+      "evidenceRefs": [
+        "ev_6fe6dc7515c2714c073f4098a6e6e3c7bba19d773e370301dab15fc7a21027c5",
+        "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-01\\rea\\native-field-map.json"
+      ],
+      "blockedFeatures": [
+        "stored_result_freshness"
+      ],
+      "nextAction": "Tek alan değişikliği+analiz öncesi/sonrası ayrı test kopyalarında revision/save işaretlerini eşle.",
+      "observationClass": "unknown"
+    }
+  ],
+  "toolUnknownCountIsNotEngineeringCoverage": true,
+  "phase04": {
+    "acceptance": false,
+    "repoActuallyUsed": true,
+    "candidateManifest": "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-04\\rea-research\\native-field-candidate-manifest.json",
+    "coverageRoot": "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-04\\real-imports-final",
+    "readyCalculationObjects": 0,
+    "ghidraSearch": "timeout124_after600s",
+    "limitations": "RTTI/code candidates are not serialized field mappings; G/Q semantics and required engineering fields remain unproven."
+  },
+  "phase05LoadSemantics": {
+    "findings": "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\statik-rapor-uygulama-2026-11-05\\asama-05\\g-semantics\\findings.json",
+    "selectedGMatches": 3,
+    "selectedQDisagreements": 3,
+    "engineeringAcceptance": false,
+    "nativeLoadAutoImportAllowed": false,
+    "reason": "Own-weight-included interpretation is consistent for ordinary15cm printed slabs; field meaning, ID and revision binding remain unresolved."
+  }
+}

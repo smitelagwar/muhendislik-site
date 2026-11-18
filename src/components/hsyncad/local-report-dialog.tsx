@@ -2,6 +2,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CadModel } from "@/lib/hsyncad/model";
 import type { IdeProject } from "@/lib/hsyncad/ide-import";
+import type { AnalysisResult } from "@/lib/hsyncad/analysis";
 import {
   DEFAULT_IDE_REPORT_SECTIONS,
   IDE_REPORT_TREE_GROUPS,
@@ -166,6 +167,7 @@ export default function LocalReportDialog({
   activeFloorId,
   activeFloorName,
   selectedElementIds = [],
+  analysisResult = null,
 }: {
   open: boolean;
   onClose: () => void;
@@ -175,6 +177,7 @@ export default function LocalReportDialog({
   activeFloorId?: string;
   activeFloorName?: string;
   selectedElementIds?: string[];
+  analysisResult?: AnalysisResult | null;
 }) {
   // 146-flag .rpt tree state + 16 local steel flags + 4 metraj flags
   const [rptFlags, setRptFlags] = useState<boolean[]>(() => [...INITIAL_RPT_FLAGS]);
@@ -208,6 +211,7 @@ export default function LocalReportDialog({
   const [pafta, setPafta] = useState("");
   const [ada, setAda] = useState("");
   const [parsel, setParsel] = useState("");
+  const [soilGroup, setSoilGroup] = useState<"" | "A" | "B" | "C" | "D">("");
 
   // Local ideCAD desktop job state
   const [analysis, setAnalysis] = useState<"fresh" | "saved">("fresh");
@@ -228,9 +232,11 @@ export default function LocalReportDialog({
     }
   }, [open]);
 
+  const activeSourceProject = source?.project ?? model.ideImport?.source ?? null;
+
   const availableFloors = useMemo(
-    () => (source?.project.floors.length ? source.project.floors : model.floors),
-    [source, model.floors]
+    () => (activeSourceProject?.floors.length ? activeSourceProject.floors : model.floors),
+    [activeSourceProject, model.floors]
   );
 
   const defaultFloorName = useMemo(() => {
@@ -257,7 +263,9 @@ export default function LocalReportDialog({
     currentText.current = modelText;
   }, [modelText]);
 
-  const sameRevision = !!source && /\.ide10$/i.test(source.file.name) && source.modelSnapshot === modelText;
+  const sameModelSnapshot = !!source && source.modelSnapshot === modelText;
+  const isIde10Source = !!source && /\.ide10$/i.test(source.file.name);
+  const sameRevision = sameModelSnapshot && isIde10Source;
   const active =
     sending ||
     (!!receipt &&
@@ -268,7 +276,7 @@ export default function LocalReportDialog({
   const presence = useMemo(
     () =>
       getIdeReportGroupPresence(
-        source?.project ?? null,
+        source?.project ?? model.ideImport?.source ?? null,
         model,
         scope,
         scope === "active_floor" ? resolvedFloorName : undefined,
@@ -276,6 +284,19 @@ export default function LocalReportDialog({
       ),
     [source, model, scope, resolvedFloorName, selectedElementIds]
   );
+
+  const presenceSummary = useMemo(() => {
+    const selectedSet = new Set(derivedSections);
+    let presentGroups = 0;
+    let omittedSelected = 0;
+    for (const g of IDE_REPORT_TREE_GROUPS) {
+      const gp = presence[g.id];
+      if (!gp?.applicable) continue;
+      if (gp.present) presentGroups += 1;
+      else if (selectedSet.has(g.id)) omittedSelected += 1;
+    }
+    return { presentGroups, omittedSelected };
+  }, [presence, derivedSections]);
 
   // Tri-state status for Metraj branch
   const metrajCheckedCount = METRAJ_LEAVES.filter(m => metrajState[m.key]).length;
@@ -473,9 +494,9 @@ export default function LocalReportDialog({
     try {
       let sourceHash: string;
       let revision: string;
-      const activeSource = sameRevision && source ? source.project : null;
+      const activeSource = sameModelSnapshot && source ? source.project : model.ideImport?.source ?? null;
 
-      if (activeSource && source) {
+      if (sameModelSnapshot && source) {
         sourceHash = await sha(await source.file.arrayBuffer());
         revision = await sha(new TextEncoder().encode(source.modelSnapshot).buffer as ArrayBuffer);
         if (currentText.current !== source.modelSnapshot) {
@@ -500,6 +521,30 @@ export default function LocalReportDialog({
       const latestProfileSha = receipt?.status === "ready" && optionsMatchPreview ? receipt.profileSha256 : undefined;
       const latestOptionsSha = receipt?.status === "ready" && optionsMatchPreview ? receipt.optionsSha256 : undefined;
 
+      const structuralSettings = (
+        model as CadModel & {
+          structural?: {
+            settings?: Record<string, { value?: string | number | null }>;
+          };
+        }
+      ).structural?.settings;
+
+      const sourceConcreteMat = activeSource?.materials?.find(m => m.kind === "concrete");
+      const resolvedConcreteGrade =
+        analysisResult?.settings.concreteGrade ??
+        (typeof structuralSettings?.concreteGrade?.value === "string" ? structuralSettings.concreteGrade.value : undefined) ??
+        sourceConcreteMat?.name ??
+        model.materials[0]?.name;
+      const resolvedRebarGrade =
+        analysisResult?.settings.rebarGrade ??
+        (typeof structuralSettings?.rebarGrade?.value === "string" ? structuralSettings.rebarGrade.value : undefined) ??
+        (sourceConcreteMat?.fykMpa ? `B${Math.round(sourceConcreteMat.fykMpa)}C` : undefined);
+      const resolvedSoilClass =
+        soilGroup ||
+        (typeof structuralSettings?.soilClass?.value === "string" ? structuralSettings.soilClass.value : undefined);
+      const resolvedDts = structuralSettings?.dts?.value ?? undefined;
+      const resolvedBys = structuralSettings?.bys?.value ?? undefined;
+
       const bytes = createIdeSourcePdf(activeSource, sourceHash, revision, {
         project: true,
         slabLoads: true,
@@ -512,6 +557,9 @@ export default function LocalReportDialog({
         ideKapak: effectiveIdeKapak,
         metraj: metrajOptions,
         cadModel: model,
+        analysis: analysisResult ?? null,
+        design: analysisResult?.designResult ?? null,
+        deductFormworkOverlaps: true,
         metadata: {
           title: activeSource?.name || model.name || source?.file.name,
           designer: designer.trim() || undefined,
@@ -525,6 +573,11 @@ export default function LocalReportDialog({
           pafta: pafta.trim() || undefined,
           ada: ada.trim() || undefined,
           parsel: parsel.trim() || undefined,
+          concreteGrade: resolvedConcreteGrade || undefined,
+          rebarGrade: resolvedRebarGrade || undefined,
+          soilClass: resolvedSoilClass || undefined,
+          dts: resolvedDts ?? undefined,
+          bys: resolvedBys ?? undefined,
         },
         receiptWarnings: latestReceiptWarnings,
         warningsStatus: latestWarningsStatus,
@@ -672,6 +725,10 @@ export default function LocalReportDialog({
           <div className="ide-report-left">
             <div className="ide-report-section-label">
               <span>Rapor seçimi :</span>
+              <span className="ide-tree-badge ide-tree-badge-count">
+                Mevcut: {presenceSummary.presentGroups} grup
+                {presenceSummary.omittedSelected > 0 ? ` · ${presenceSummary.omittedSelected} boş grup atlanır` : ""}
+              </span>
             </div>
             <div className="ide-report-tree-toolbar">
               <button type="button" className="ide-win-btn-sm" onClick={applyDefaultProfile} disabled={active}>
@@ -758,10 +815,10 @@ export default function LocalReportDialog({
                                 />
                                 <span className="ide-tree-group-text">{group.label}</span>
                                 {gp?.applicable && !gp.present && (
-                                  <span className="ide-tree-badge ide-tree-badge-empty">(Projede yok — raporda atlanır)</span>
+                                  <span className="ide-tree-badge ide-tree-badge-empty">(0 eleman — raporda atlanır)</span>
                                 )}
                                 {gp?.applicable && gp.present && (
-                                  <span className="ide-tree-badge ide-tree-badge-count">({gp.count} adet)</span>
+                                  <span className="ide-tree-badge ide-tree-badge-count">({gp.count} eleman)</span>
                                 )}
                               </label>
                             </div>
@@ -1146,6 +1203,24 @@ export default function LocalReportDialog({
                     />
                   </div>
                 </div>
+
+                <div className="ide-building-row">
+                  <span>Zemin Grubu :</span>
+                  <div className="ide-scope-radios" role="radiogroup" aria-label="Zemin Grubu">
+                    {(["A", "B", "C", "D"] as const).map(grp => (
+                      <label key={grp}>
+                        <input
+                          type="radio"
+                          name="ide-soil-group"
+                          checked={soilGroup === grp}
+                          onChange={() => setSoilGroup(grp)}
+                          disabled={active}
+                        />
+                        <span>{grp}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
             </fieldset>
 
@@ -1194,9 +1269,11 @@ export default function LocalReportDialog({
               <span className="ide-desktop-title">
                 {sameRevision
                   ? "Model kaynak revizyonuyla eşleşiyor."
-                  : source
-                    ? "Model değiştiği için kaynak revizyonu eşleşmiyor."
-                    : "PDF üretimi için hazır; masaüstü ideCAD önizlemesi için .ide10 açın."}
+                  : sameModelSnapshot && !isIde10Source
+                    ? "PDF üretimi için hazır (.ide11trial/.cde); yerel ideCAD masaüstü önizlemesi yalnızca .ide10 ile çalışır."
+                    : source
+                      ? "Model değiştiği için kaynak revizyonu eşleşmiyor."
+                      : "PDF üretimi için hazır; masaüstü ideCAD önizlemesi için .ide10 açın."}
               </span>
               {!sameRevision && model.ideImport && (
                 <label className="ide-reselect-label">

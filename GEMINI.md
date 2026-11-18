@@ -1,5 +1,9 @@
 # GEMINI.md — Gemini CLI / Antigravity Çalışma Kuralları
 
+**Codex/ChatGPT CLI işi varsa ZORUNLU:** Komuttan önce [.agents/rules/codex-cli-kullanimi.md](.agents/rules/codex-cli-kullanimi.md) ve bağlantı verdiği `codex-cli/SKILL.md` okunur.
+
+**Antigravity CLI (`agy`) işi varsa ZORUNLU:** Komuttan önce [.agents/rules/antigravity-cli-kullanimi.md](.agents/rules/antigravity-cli-kullanimi.md) ve orada bağlantısı verilen `antigravity-cli/SKILL.md` okunur.
+
 > **ZORUNLU:** Bu repo üzerinde Gemini ile çalışırken önce `PROJECT.md` okunur. Bu dosya, Gemini için proje-özel ek koruma kurallarını tanımlar.
 
 ## 1. Genel başlangıç
@@ -16,6 +20,10 @@ okunur.
 
 Gemini mevcut çalışan sistemi tahmin ederek yeniden kurmaz; önce repo gerçekliğini okur.
 
+ideCAD masaüstü işinde [kontrol kuralı](.agents/rules/idecad-masaustu-kontrolu.md) ve [güncel kılavuz](docs/hsyncad/IDECAD_DESKTOP_WORKFLOW.md) okunur. Codex Desktop'ta açık kullanıcı onayıyla doğrulanan `scripts/idecad/desktop.py`, Antigravity'nin izole masaüstünde GUI erişimi sağlandığı anlamına gelmez; yardımcı masaüstü sınırını aşmaz. Eski “kullanıcı malzeme diyaloğunu açsın” istemleri güncel çözüm değildir.
+
+ideCAD dosya dönüştürme işinde (.ide11trial → .ide11 veya .ide10) [.agents/rules/hsyncad-ide-donusturme.md](.agents/rules/hsyncad-ide-donusturme.md) kuralı ve `hsyncad-ide-donusturucu` becerisi uygulanır. Dönüşüm için mühendislik portalındaki Hsyncad motoru (`scripts/hsyncad/convert_trial_to_native.ts`) kullanılır; üretilen dosyalar kaynak dosyanın yanına konur.
+
 <!-- ECC_INTEGRATION_START -->
 ### 1.1 ECC (Everything Claude Code) Entegrasyonu ve Okuma Zorunluluğu
 
@@ -26,6 +34,22 @@ Gemini mevcut çalışan sistemi tahmin ederek yeniden kurmaz; önce repo gerçe
 - Durum `AKTİF` iken: Gemini bu repodaki `ecc/` dizinini (`ecc/README.md`, `ecc/.gemini/GEMINI.md`, `ecc/agents/`, `ecc/skills/`, `ecc/rules/` vb.) okumak, buradaki mimari ve güvenlik prensiplerini uygulamak ve görevle ilgili becerileri (`ecc/skills/`) rehber almakla yükümlüdür.
 - Durum `PASİF` iken: `ecc/` deposunu okuma zorunluluğu yoktur; standart repo kurallarına göre devam edilir.
 <!-- ECC_INTEGRATION_END -->
+
+### 1.2 Hakemli Hibrit Alt Ajan Sistemi (Gemini Odaklı)
+
+Kullanıcı "hakemli alt ajan", "hakemli hybrit", "hakemli hibrit", "hakemli hybrid", "hakimli, savcılı, senaristli sistem", "mahkeme sistemi" veya benzeri bir ifade kullandığında `gemini-hakemli-hibrit` becerisi (`SKILL.md`) ve `C:\Users\hsyn\Documents\Notlar\Notlar\Hakemli Hibrit Mahkemesi.md` mimarisi devreye girer. Bu sistem:
+- Süreç yöneticisi (kod ve araştırma yapmaz; yalnızca alt ajan dağıtımı ve aşama koordinasyonunu yürütür),
+- Bağımsız araştırmacı alt ajanlar (odaklı, kanıt ve birincil kaynak zorunlu araştırma),
+- Sistem Savcısı (en sert suçlamaları yapan, zafiyet, açık ve çöküş senaryolarını ortaya koyan iddia makamı),
+- Senarist-1 (tarihsel sohbetleri ve kullanıcı profilini modelleyerek tuzak ve stres senaryoları üreten ajan),
+- Senarist-2 (senaryoları ve savcılık iddialarını canlı ortamda simüle edip kırılma noktalarını tespit eden adli test ajanı),
+- Hata arayan bağımsız denetçiler ve Çözüm Mimarı (açıkları kapatan, çözümü kodlayan ve canlıda uygulayan bilirkişi),
+- Yüksek Baş Hakem (tüm aktörlerin dürüstlüğünü, kanıt kalitesini denetleyip nihai adli ilamı açıklayan bağımsız yargıç),
+katmanlarından oluşur. Ajan sayıları sabit değildir; görevin kapsam ve karmaşıklığına göre dinamik belirlenir. Diğer hibrit sistemlerini (örn. `hybrid-agent-os`) silmez veya değiştirmez. Model ve akıl yürütme düzeyi (High/Medium/Low) seçiminde tam kimlik (`gemini-3.8-flash-high` vb.) ve CLI'da `--effort` korunur; Antigravity IDE alt ajanlarında ise tam düzeyi aktarmak için `Model: 'inherit'` kullanılır.
+
+### 1.3 Obsidian İkinci Beyin ve Otomatik Hafıza Damıtma Sistemi
+
+Yapay zeka, konuşmalardaki kullanıcı kararlarını ("bundan sonra böyle yap"), kişisel tercihlerini, projelerini/repolarını ve görev sonu özetlerini [.agents/rules/obsidian-otomatik-hafiza.md](.agents/rules/obsidian-otomatik-hafiza.md) doğrultusunda `C:\Users\hsyn\Documents\Notlar` (Obsidian Kasa) içine damıtır. Kasadaki `Kişisel Profil ve Tercihler.md`, `Çalışma Kuralları ve Kararlar.md`, `Projeler ve Repolar.md` ve `Günlük/YYYY-MM-DD.md` dosyaları güncellenir.
 
 ## 2. CAD / DXF / DWG / DWF görevi için ZORUNLU özel okuma
 

@@ -1,6 +1,6 @@
 /**
  * 3D Frame & Finite Element Analysis (FEM) Structural Solver
- * Compliant with Turkish Earthquake Code (TBDY 2018) & TS 500
+ * Preliminary implementation; full TBDY 2018 / TS 500 acceptance is pending.
  *
  * Implements:
  * 1. 12-DOF 3D Beam/Column element formulation with coordinate transformation [T].
@@ -16,6 +16,12 @@
 // ============================================================================
 // 1. Data Structures & Types
 // ============================================================================
+
+import {
+  assembleSymmetric,
+  factorSparseSpd,
+  type UpperEntry,
+} from "./structural/sparse-spd";
 
 export interface Vector3D {
   x: number;
@@ -125,8 +131,8 @@ export interface ModalResult {
   frequencyHz: number;
   omegaRadS: number;
   massParticipationX: number;
-  massParticipationY: number;
-  massParticipationRot: number;
+  massParticipationY: number | null;
+  massParticipationRot: number | null;
   modeShape: Record<string, { ux: number; uy: number; rz: number }>;
 }
 
@@ -889,8 +895,9 @@ export function solve3DStructuralMesh(input: FemMeshInput): FemAnalysisOutput {
     throw new Error("Analiz edilecek serbest düğüm noktası bulunamadı.");
   }
 
-  // 2. Global stiffness matrix assembly [K_global]
-  const KGlobal = new Float64Array(dofCount * dofCount);
+  // 2. Global stiffness matrix assembly [K_global] using sparse upper-triangle entries
+  const upperEntries: UpperEntry[] = [];
+  const diagAcc = new Float64Array(dofCount);
   const elementRMap = new Map<string, Float64Array>();
   const elementKLocalMap = new Map<string, Float64Array>();
 
@@ -911,35 +918,56 @@ export function solve3DStructuralMesh(input: FemMeshInput): FemAnalysisOutput {
 
     const elemDofs = [...nI.dofIndices, ...nJ.dofIndices];
 
-    // Assemble into KGlobal
+    // Assemble upper triangle into sparse entries
     for (let i = 0; i < 12; i++) {
       const rowDof = elemDofs[i];
       if (rowDof < 0) continue;
       for (let j = 0; j < 12; j++) {
         const colDof = elemDofs[j];
         if (colDof < 0) continue;
-        KGlobal[rowDof * dofCount + colDof] += kElemGlobal[i * 12 + j];
+        const val = kElemGlobal[i * 12 + j];
+        if (val === 0) continue;
+        if (rowDof === colDof) {
+          diagAcc[rowDof] += val;
+          upperEntries.push([rowDof, colDof, val]);
+        } else if (rowDof < colDof) {
+          upperEntries.push([rowDof, colDof, val]);
+        }
       }
     }
   }
 
   // Small diagonal regularization for unconstrained rotational DOFs
   for (let i = 0; i < dofCount; i++) {
-    if (Math.abs(KGlobal[i * dofCount + i]) < 1e-9) {
-      KGlobal[i * dofCount + i] = 1000.0;
+    if (Math.abs(diagAcc[i]) < 1e-9) {
+      upperEntries.push([i, i, 1000.0]);
     }
   }
 
-  // 3. Decompose KGlobal (Cholesky with LU fallback)
-  let choleskyL = choleskyDecomposition(KGlobal, dofCount);
+  // 3. Decompose KGlobal via Sparse Minimum-Degree Cholesky (with LU fallback for small non-SPD)
+  const sparseK = assembleSymmetric(dofCount, upperEntries);
+  const sparseFactor = factorSparseSpd(sparseK);
   let luResult: { LU: Float64Array; piv: Int32Array } | null = null;
-  if (!choleskyL) {
-    luResult = luDecomposition(KGlobal, dofCount);
+  if (sparseFactor.status !== "factored") {
+    if (dofCount <= 600) {
+      const KDense = new Float64Array(dofCount * dofCount);
+      for (const [r, c, v] of upperEntries) {
+        KDense[r * dofCount + c] += v;
+        if (r !== c) KDense[c * dofCount + r] += v;
+      }
+      luResult = luDecomposition(KDense, dofCount);
+    } else {
+      throw new Error(`Sparse stiffness matrix factorization failed: ${sparseFactor.status}`);
+    }
   }
 
   const solveSystem = (rhs: Float64Array): Float64Array => {
-    if (choleskyL) {
-      return choleskySolve(choleskyL, rhs, dofCount);
+    if (sparseFactor.status === "factored") {
+      const res = sparseFactor.solve(rhs);
+      if (res.status !== "solved") {
+        throw new Error(`Sparse solve failed: ${res.status}`);
+      }
+      return res.x;
     }
     return luSolve(luResult!.LU, luResult!.piv, rhs, dofCount);
   };
@@ -1052,7 +1080,7 @@ export function solve3DStructuralMesh(input: FemMeshInput): FemAnalysisOutput {
   const modes: ModalResult[] = [];
   let naturalPeriods: [number, number, number] = [T_empirical, T_empirical * 0.85, T_empirical * 0.70];
 
-  if (numStoreys >= 1 && numStoreys <= 20) {
+  if (numStoreys >= 1) {
     const MDiag = new Float64Array(numStoreys);
     const FFlex = new Float64Array(numStoreys * numStoreys);
 
@@ -1120,7 +1148,7 @@ export function solve3DStructuralMesh(input: FemMeshInput): FemAnalysisOutput {
       }
     }
 
-    const eigen = jacobiEigenvalue(ADyn, numStoreys);
+    const eigen = jacobiEigenvalue(ADyn, numStoreys, Math.max(200, numStoreys * numStoreys * 10));
 
     // Pair eigenvalues and vectors, then sort ascending
     const modePairs: { omega2: number; vec: Float64Array }[] = [];
@@ -1140,8 +1168,7 @@ export function solve3DStructuralMesh(input: FemMeshInput): FemAnalysisOutput {
       const omega2 = modePairs[m].omega2;
       const omega = Math.sqrt(omega2);
       const rawT = (2 * Math.PI) / omega;
-      // TBDY 2018 §4.8.4 upper bound T1 <= 1.4 * TpA
-      const T = Math.min(Math.max(rawT, 0.7 * T_empirical), 1.4 * T_empirical);
+      const T = numStoreys > 20 ? Math.min(rawT, 1.4 * T_empirical) : rawT;
       const phi = modePairs[m].vec;
 
       let sumMphi = 0.0;
@@ -1165,8 +1192,9 @@ export function solve3DStructuralMesh(input: FemMeshInput): FemAnalysisOutput {
         frequencyHz: 1.0 / T,
         omegaRadS: omega,
         massParticipationX: partRatioX,
-        massParticipationY: 0.1,
-        massParticipationRot: 0.05,
+        // X-only condensed solve does not determine Y or rotational participation.
+        massParticipationY: null,
+        massParticipationRot: null,
         modeShape: shape,
       });
     }

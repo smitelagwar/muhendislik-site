@@ -1,3 +1,4 @@
+import { readStructuralProject, type StructuralProject } from "./structural/project-schema";
 import { distance, elementFootprint, elementVerticalRange, isSimplePolygon, lineIntersection, polygonArea } from "./geometry";
 import { readExtras, readLayerStates, readSnap, type Appearance, type CadLayer, type LayerState, type SnapSettings, type LineStyle } from "./definitions";
 import { validateDrafting, type DraftingData } from "./drafting";
@@ -8,7 +9,15 @@ import { validateIdeProjectSnapshot } from "./ide-export";
 /** SI model: coordinates, elevations and dimensions are always metres. */
 export type Point = { x: number; y: number };
 export type Floor = { id: string; name: string; elevation: number; height: number; architecturalOffset?: number; layerStates?: Record<string, LayerState> };
-export type Material = { id: string; name: string };
+export type Material = {
+  id: string;
+  name: string;
+  kind?: "concrete" | "steel";
+  fckMpa?: number | null;
+  fykMpa?: number | null;
+  elasticModulusMpa?: number;
+  unitWeightTfM3?: number;
+};
 export type ElementType = "axis" | "column" | "beam" | "wall" | "slab" | "slabEdge";
 export type PointBinding = { kind: "column"; id: string } | { kind: "axes"; ids: [string, string] } | { kind: "member"; id: string; t: number };
 export type ElementConnections = { position?: PointBinding; start?: PointBinding; end?: PointBinding };
@@ -23,7 +32,7 @@ export type SlabEdgeElement = ElementBase & { type: "slabEdge"; start: Point; en
 export type CadElement = AxisElement | ColumnElement | BeamElement | WallElement | SlabElement | SlabEdgeElement;
 export type SolidElement = ColumnElement | BeamElement | WallElement | SlabElement;
 export function isSolidElement(e: CadElement): e is SolidElement { return e.type !== "axis" && e.type !== "slabEdge"; }
-export type CadModel = { schemaVersion: 1; name: string; floors: Floor[]; materials: Material[]; elements: CadElement[]; layers?: CadLayer[]; snap?: SnapSettings; toolDefaults?: Partial<Record<SolidElement["type"], SolidElement>>; drafting?: DraftingData; ideImport?: IdeWorkspaceImport };
+export type CadModel = { structural?: StructuralProject; schemaVersion: 1; name: string; floors: Floor[]; materials: Material[]; elements: CadElement[]; layers?: CadLayer[]; snap?: SnapSettings; toolDefaults?: Partial<Record<SolidElement["type"], SolidElement>>; drafting?: DraftingData; ideImport?: IdeWorkspaceImport };
 
 export function createEmptyModel(): CadModel {
   return {
@@ -102,7 +111,13 @@ export function validateModel(value: unknown): CadModel {
   });
   const materials = list(source.materials, "Malzemeler", 100).map((v): Material => {
     const m = record(v, "Malzeme");
-    return { id: text(m.id, "Malzeme kimliği"), name: text(m.name, "Malzeme adı") };
+    const mat: Material = { id: text(m.id, "Malzeme kimliği"), name: text(m.name, "Malzeme adı") };
+    if (m.kind === "concrete" || m.kind === "steel") mat.kind = m.kind;
+    if (m.fckMpa === null || typeof m.fckMpa === "number") mat.fckMpa = m.fckMpa === null ? null : number(m.fckMpa, "Beton dayanımı");
+    if (m.fykMpa === null || typeof m.fykMpa === "number") mat.fykMpa = m.fykMpa === null ? null : number(m.fykMpa, "Donatı akma dayanımı");
+    if (m.elasticModulusMpa !== undefined) mat.elasticModulusMpa = number(m.elasticModulusMpa, "Elastisite modülü", true);
+    if (m.unitWeightTfM3 !== undefined) mat.unitWeightTfM3 = number(m.unitWeightTfM3, "Birim hacim ağırlığı", true);
+    return mat;
   });
   if (!floors.length || !materials.length) throw new Error("En az bir kat ve bir malzeme gereklidir.");
   uniqueIds(floors, "Katlar"); uniqueIds(materials, "Malzemeler");
@@ -118,7 +133,21 @@ export function validateModel(value: unknown): CadModel {
       if (!isSimplePolygon(points) || polygonArea(points) < 1e-8) throw new Error(`${base.name}: döşeme en az üç köşeli, alanı pozitif ve kendisiyle kesişmeyen kapalı alan olmalıdır.`);
       let boundary: SlabElement["boundary"];
       if (e.boundary !== undefined) { const b = record(e.boundary, "Döşeme sınırı"); boundary = { elementIds: list(b.elementIds, "Döşeme sınır elemanları", 1000).map(id => text(id, "Sınır elemanı")) }; if (!boundary.elementIds.length) throw new Error("Döşeme sınırı boş olamaz."); }
-      return { ...base, type: "slab", points, thickness: number(e.thickness, "Döşeme kalınlığı", true), ...optionalNumber(e, "topOffset", "Döşeme kot farkı"), ...(boundary ? { boundary } : {}), ...(e.labelPosition === undefined ? {} : { labelPosition: point(e.labelPosition, "Döşeme yazısı") }) };
+      const finishLoad = e.finishLoad === undefined ? undefined : number(e.finishLoad, "Döşeme kaplama yükü");
+      const liveLoad = e.liveLoad === undefined ? undefined : number(e.liveLoad, "Döşeme hareketli yükü");
+      if ((finishLoad !== undefined && finishLoad < 0) || (liveLoad !== undefined && liveLoad < 0)) throw new Error(`${base.name}: döşeme yükleri negatif olamaz.`);
+      return {
+        ...base,
+        type: "slab",
+        points,
+        thickness: number(e.thickness, "Döşeme kalınlığı", true),
+        ...optionalNumber(e, "topOffset", "Döşeme kot farkı"),
+        ...(typeof e.finishName === "string" && e.finishName.trim() ? { finishName: text(e.finishName, "Döşeme kaplama adı") } : {}),
+        ...(finishLoad === undefined ? {} : { finishLoad }),
+        ...(liveLoad === undefined ? {} : { liveLoad }),
+        ...(boundary ? { boundary } : {}),
+        ...(e.labelPosition === undefined ? {} : { labelPosition: point(e.labelPosition, "Döşeme yazısı") }),
+      };
     }
     if (e.type === "axis" || e.type === "beam" || e.type === "wall" || e.type === "slabEdge") {
       const start = point(e.start, "Başlangıç"), end = point(e.end, "Bitiş");
@@ -215,6 +244,7 @@ export function validateModel(value: unknown): CadModel {
     if (new Set(ids).size !== ids.length || ids.length !== sourceIds.size || ids.some(id => !sourceIds.has(id))) throw new Error("IDE aktarım kapsamı kaynakla eşleşmiyor.");
     model.ideImport = { source: imported.source, mappedIds, references };
   }
+  if (source.structural !== undefined) model.structural = readStructuralProject(source.structural);
   validateLinkedSlabRegions(model);
   return model;
 }

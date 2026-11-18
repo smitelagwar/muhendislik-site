@@ -15,6 +15,26 @@ import { createIdeDataView, hasIdeEncodedNumbers, isIde11SchemaVersion } from ".
 import { getIde11CompressedBlock, getIdeCarrierFormat, validateIdeCarrier, type NativeIdeFormat } from "./ide-binary-codec";
 import { inflateIdeZlib } from "./ide-zlib";
 import { readNativeCircleSection, readNativeMemberTopOffset } from "./native-member-geometry";
+import { decodeCp1254 } from "./cp1254";
+import {
+  extractIdeElementRebar,
+  extractIdeMaterials,
+  extractIdePrecomputedF9,
+  extractIdeSeismicAndSoil,
+  resolveElementMaterialIndex,
+  type IdeElementRebar,
+  type IdeMaterialRecord,
+  type IdePrecomputedF9,
+  type IdeSeismicAndSoilParams,
+  type IdeSlabLoadTriplet,
+} from "./ide-r1-r5";
+export type {
+  IdeMaterialRecord,
+  IdeSlabLoadTriplet,
+  IdeSeismicAndSoilParams,
+  IdeElementRebar,
+  IdePrecomputedF9,
+} from "./ide-r1-r5";
 export type IdePoint = { x: number; y: number };
 export type IdeElementType = "column" | "beam" | "wall" | "slab" | "stair" | "band" | "section" | "axis" | "slabEdge" | "line" | "unknown";
 export interface IdeMesh {
@@ -77,6 +97,9 @@ export interface IdeElement {
   structural?: boolean;
   /** Only the native plan representation is established; do not infer a solid. */
   planOnly?: boolean;
+  materialIndex?: number;
+  rebarLayout?: IdeElementRebar;
+  slabLoads?: IdeSlabLoadTriplet;
 }
 export interface IdeCoverage {
   candidateRecords: number;
@@ -98,6 +121,9 @@ export interface IdeProject {
   elements: IdeElement[];
   coverage: IdeCoverage;
   warnings: string[];
+  materials?: IdeMaterialRecord[];
+  seismicSoil?: IdeSeismicAndSoilParams;
+  f9Results?: IdePrecomputedF9;
 }
 
 type Candidate = { nameOffset: number; name: string; bbox?: number[] };
@@ -122,12 +148,12 @@ const KNOWN_TYPES: Record<number, IdeElementType> = { 2: "wall", 4: "column", 5:
 function finiteCoordinate(n: number) { return Number.isFinite(n) && Math.abs(n) <= 1_000_000; }
 function increment(dict: Record<string, number>, key: string) { dict[key] = (dict[key] ?? 0) + 1; }
 
-function readString(bytes: Uint8Array, view: DataView, at: number, decoder: TextDecoder): string | undefined {
+function readString(bytes: Uint8Array, view: DataView, at: number): string | undefined {
   if (at < 0 || at + 4 > bytes.length) return;
   const length = view.getUint32(at, true);
   if (length < 1 || length > 161 || at + 4 + length > bytes.length || bytes[at + 3 + length] !== 0) return;
   for (let j = at + 4; j < at + 3 + length; j++) if (bytes[j] < 32 || bytes[j] === 127 || bytes[j] === 255) return;
-  return decoder.decode(bytes.subarray(at + 4, at + 3 + length));
+  return decodeCp1254(bytes.subarray(at + 4, at + 3 + length));
 }
 
 function followsFloorTemplate(bytes: Uint8Array, view: DataView, at: number): boolean {
@@ -147,7 +173,7 @@ function followsFloorTemplate(bytes: Uint8Array, view: DataView, at: number): bo
 /** The first real storey has no preceding default-object T01 template.
  * Its native viewport title and duplicated view coordinates authenticate it.
  * This also avoids mistaking later report/name strings for storey headers. */
-function hasNativeFloorHeader(bytes: Uint8Array, view: DataView, at: number, name: string, decoder: TextDecoder, v11Schema: boolean, compact: boolean): boolean {
+function hasNativeFloorHeader(bytes: Uint8Array, view: DataView, at: number, name: string, v11Schema: boolean, compact: boolean): boolean {
   const length = view.getUint32(at, true), data = at + 4 + length;
   if (data + 100 >= bytes.length) return false;
   const ordinal = view.getInt32(data + 16, true), marker = view.getUint32(data + 24, true);
@@ -159,7 +185,7 @@ function hasNativeFloorHeader(bytes: Uint8Array, view: DataView, at: number, nam
   // In the observed 11.04 compressed records the viewport label repeats the
   // storey name at this exact offset. Searching arbitrary nearby strings also
   // finds reinforcement labels in the template tables.
-  if (compact) return readString(bytes, view, data + 972, decoder) === name;
+  if (compact) return readString(bytes, view, data + 972) === name;
   // An IFC-created storey whose viewport has never been opened keeps all
   // eight bounds at 1 (including zero extent). The actual three-storey trial
   // retains its name at a fixed header offset. Do not relax general bounds
@@ -167,7 +193,7 @@ function hasNativeFloorHeader(bytes: Uint8Array, view: DataView, at: number, nam
   const matchesViewportTitle = (title: string | undefined) => title === name || Boolean(title?.startsWith(`${name} TAVANI, `) && / KOTU$/.test(title));
   if (v11Schema && marker === 0xffffffff && viewScale === 0.3 &&
       Array.from({ length: 8 }, (_, j) => view.getFloat64(viewport + 36 + j * 8, true)).every(value => value === 1) &&
-      matchesViewportTitle(readString(bytes, view, data + 1381, decoder))) return true;
+      matchesViewportTitle(readString(bytes, view, data + 1381))) return true;
   // Four consecutive viewport coordinate values are serialized twice each.
   for (let j = 0; j < 4; j++) {
     const a = view.getFloat64(viewport + 36 + j * 16, true), b = view.getFloat64(viewport + 44 + j * 16, true);
@@ -175,7 +201,7 @@ function hasNativeFloorHeader(bytes: Uint8Array, view: DataView, at: number, nam
   }
   if (view.getFloat64(viewport + 36, true) === view.getFloat64(viewport + 52, true) || view.getFloat64(viewport + 68, true) === view.getFloat64(viewport + 84, true)) return false;
   for (let p = data + 100; p < Math.min(bytes.length - 165, data + 1800); p++) {
-    const title = readString(bytes, view, p, decoder);
+    const title = readString(bytes, view, p);
     // IFC imports retain an unformatted viewport title equal to the storey
     // name. The preceding ordinal/reference and duplicated view bounds still
     // have to satisfy the complete native header checks above.
@@ -262,10 +288,10 @@ function matchesBounds(points: IdePoint[], bbox: number[]): boolean {
   return actual.every((v, i) => i < 2 ? v >= bbox[i] - Math.max(0.0001, Math.abs(v) * 3e-7) : v <= bbox[i] + Math.max(0.0001, Math.abs(v) * 3e-7));
 }
 
-function readBeamSection(bytes: Uint8Array, view: DataView, c: Candidate, geometry: NativeGeometry, decoder: TextDecoder): { sectionLabel?: string; height?: number } {
+function readBeamSection(bytes: Uint8Array, view: DataView, c: Candidate, geometry: NativeGeometry): { sectionLabel?: string; height?: number } {
   const start = c.nameOffset + c.name.length + 1, end = Math.min(bytes.length - 30, start + 1400);
   for (let p = start; p < end; p++) {
-    const label = readString(bytes, view, p, decoder);
+    const label = readString(bytes, view, p);
     if (!label || !/^\d+(?:[.,]\d+)?\/\d+(?:[.,]\d+)?$/.test(label)) continue;
     const [width, height] = label.split("/").map(v => Number(v.replace(",", ".")) / 100);
     if (Math.abs(width - geometry.width) < 0.00001 && height > 0.01 && height <= 10) return { sectionLabel: label, height };
@@ -273,16 +299,22 @@ function readBeamSection(bytes: Uint8Array, view: DataView, c: Candidate, geomet
   return {};
 }
 
-/** Native slab loading fields, authenticated by their surrounding record tags.
- * Unit and G/Q semantics are corroborated by the human-supplied D4/D5 native
- * screenshots. No screenshot constant is substituted for a missing field. */
-function readSlabPlanLoads(bytes: Uint8Array, view: DataView, c: Candidate, v11Schema: boolean): IdeElement["planAnnotation"] {
+/** Native slab and raft foundation loading triplet (`deadTfM2`, `finishTfM2`, `liveTfM2`).
+ * Both slabs and raft foundations store `dead` at `+497+shift`, `finish` at `+505+shift`,
+ * and `live` at `+513+shift`. */
+function readSlabPlanLoads(bytes: Uint8Array, view: DataView, c: Candidate, v11Schema: boolean): { annotation: IdeElement["planAnnotation"]; slabLoads: IdeSlabLoadTriplet } | undefined {
   const p = c.nameOffset + c.name.length + 1;
   const shift = v11Schema ? 4 : 0;
-  if (p + 515 + shift > bytes.length || (v11Schema && view.getUint32(p + 470, true) !== 36) || view.getUint32(p + 470 + shift, true) !== 1 || view.getUint32(p + 475 + shift, true) !== 1 || !((view.getUint32(p + 466, true) === 43 && view.getUint32(p + 489 + shift, true) === 85 && view.getUint32(p + 493 + shift, true) === 45) || (view.getUint32(p + 466, true) === 11 && view.getUint32(p + 489 + shift, true) === 1 && [81, 65].includes(view.getUint32(p + 493 + shift, true))))) return;
-  const dead = view.getFloat64(p + 497 + shift, true), live = view.getFloat64(p + 481 + shift, true);
-  if (![dead, live].every(value => Number.isFinite(value) && value >= 0 && value <= 1000)) return;
-  return { loads: { dead, live, unit: "tf/m²", sourceOffset: p + 481 + shift } };
+  const liveOffset = p + 513 + shift;
+  if (liveOffset + 8 > bytes.length || (v11Schema && view.getUint32(p + 470, true) !== 36) || view.getUint32(p + 470 + shift, true) !== 1 || view.getUint32(p + 475 + shift, true) !== 1 || !((view.getUint32(p + 466, true) === 43 && view.getUint32(p + 489 + shift, true) === 85 && view.getUint32(p + 493 + shift, true) === 45) || (view.getUint32(p + 466, true) === 11 && view.getUint32(p + 489 + shift, true) === 1 && [81, 65].includes(view.getUint32(p + 493 + shift, true))))) return;
+  const dead = view.getFloat64(p + 497 + shift, true);
+  const finish = view.getFloat64(p + 505 + shift, true);
+  const live = view.getFloat64(liveOffset, true);
+  if (![dead, finish, live].every(value => Number.isFinite(value) && value >= 0 && value <= 1000)) return;
+  return {
+    annotation: { loads: { dead, live, unit: "tf/m²", sourceOffset: liveOffset } },
+    slabLoads: { deadTfM2: dead, finishTfM2: finish, liveTfM2: live, unit: "tf/m²", sourceOffset: liveOffset },
+  };
 }
 
 /** Slab calculation axes have a native normalized line equation followed
@@ -321,7 +353,7 @@ function readSlabDesignAxes(bytes: Uint8Array, view: DataView, c: Candidate, rec
 /** Parse a local .ide10 without modifying it. Run this in a worker for large files. */
 export function parseIde10(buffer: ArrayBuffer, filename: string): IdeProject {
   if (buffer.byteLength > MAX_FILE_BYTES) throw new Error("IDE dosyası 512 MB sınırını aşıyor.");
-  const source = new Uint8Array(buffer), decoder = new TextDecoder("windows-1254");
+  const source = new Uint8Array(buffer);
   const carrier = validateIdeCarrier(source);
   const compressed = getIde11CompressedBlock(source, carrier);
   if (compressed && compressed.rawLength > MAX_FILE_BYTES) throw new Error("Açılmış IDE gövdesi 512 MB sınırını aşıyor.");
@@ -334,10 +366,10 @@ export function parseIde10(buffer: ArrayBuffer, filename: string): IdeProject {
     // Every accepted string has its full stored length and NUL terminator.
     const length = view.getUint32(i, true);
     if (length < 1 || length > 161 || i + 4 + length + 20 > bytes.length || bytes[i + 3 + length] !== 0) continue;
-    const text = readString(bytes, view, i, decoder);
+    const text = readString(bytes, view, i);
     if (text === undefined) continue;
     const at = i + 4;
-    if (text && ((!compressed && followsFloorTemplate(bytes, view, i)) || hasNativeFloorHeader(bytes, view, i, text, decoder, v11Schema, Boolean(compressed)))) {
+    if (text && ((!compressed && followsFloorTemplate(bytes, view, i)) || hasNativeFloorHeader(bytes, view, i, text, v11Schema, Boolean(compressed)))) {
       const elevation = view.getFloat64(at + length, true), height = view.getFloat64(at + length + 8, true);
       if (finiteCoordinate(elevation) && Number.isFinite(height) && height >= 0.1 && height <= 100) floors.push({ id: `ide-floor-${floors.length}`, name: text, elevation, height, sourceOffset: at, endOffset: bytes.length });
     }
@@ -360,6 +392,10 @@ export function parseIde10(buffer: ArrayBuffer, filename: string): IdeProject {
   }
   if (!floors.length) throw new Error("IDE dosyasında doğrulanabilir kat kayıtları bulunamadı. Bu sürümün kat yapısı henüz desteklenmiyor.");
   for (let i = 0; i < floors.length - 1; i++) floors[i].endOffset = floors[i + 1].sourceOffset;
+  const rawAnalytical = !compressed && !encoded;
+  const materials = rawAnalytical ? extractIdeMaterials(bytes, view) : undefined;
+  const seismicSoil = rawAnalytical ? extractIdeSeismicAndSoil(bytes, view, floors[0].sourceOffset, floors[floors.length - 1].sourceOffset) : undefined;
+  const f9Results = rawAnalytical ? extractIdePrecomputedF9(bytes, view, floors[floors.length - 1].sourceOffset) : undefined;
   const coverage: IdeCoverage = { candidateRecords: 0, decodedRecords: 0, unsupportedRecords: 0, ignoredTemplateRecords: 0, holeRecords: 0, rejectedCandidates: 0, byType: {}, unsupportedTypes: {}, limitations: [
     "Kayıt sayıları yalnız tanınan ad/renk/geometri gramerinin adaylarını kapsar. Desteklenmeyen kayıt sayısının sıfır olması tüm dosyanın eksiksiz okunduğunu göstermez; diğer nesne sınıflarının toplamı bilinmiyor.",
     "Plan konumları, kat kotları ve yükseklikleri, kesit genişlikleri, yanal kaçıklıklar ve döşeme boşlukları dosyadan okunur.",
@@ -423,21 +459,31 @@ export function parseIde10(buffer: ArrayBuffer, filename: string): IdeProject {
       sourceOffset: c.nameOffset, primitiveType: g.primitiveType, layerId: g.layerId, nativeZ: g.nativeZ, lateralOffset: g.lateralOffset, rotation: g.rotation,
       ...((type === "beam" || type === "wall" || type === "band") ? { width: g.width } : {}), ...(type === "slab" ? { thickness: g.width } : {}),
       ...((type === "band" || type === "section") ? { planOnly: true } : {}),
-      ...(type === "beam" ? (v11Schema ? (readNativeBeamSection(view, c.nameOffset, c.name, nextGeometryOffset(candidateIndex), g.width) ?? readBeamSection(bytes, view, c, g, decoder)) : readBeamSection(bytes, view, c, g, decoder)) : {}),
+      ...(type === "beam" ? (v11Schema ? (readNativeBeamSection(view, c.nameOffset, c.name, nextGeometryOffset(candidateIndex), g.width) ?? readBeamSection(bytes, view, c, g)) : readBeamSection(bytes, view, c, g)) : {}),
       ...(type === "wall" ? { structural: g.primitiveType === 17 } : {}),
       ...(circleSection ? { circleSection } : {}),
     };
 
-    const section = type === "beam" ? element.sectionLabel : type === "wall" && element.structural ? readNativeWallPlanSection(bytes, view, c.nameOffset, element.name, nextGeometryOffset(candidateIndex), g.points, g.width) : undefined;
-    const annotation = type === "slab" && !compressed ? readSlabPlanLoads(bytes, view, c, v11Schema) : undefined;
-    if (type === "slab" && annotation?.loads) annotation.designAxes = readSlabDesignAxes(bytes, view, c, nextGeometryOffset(candidateIndex), encoded, v11Schema);
+    const recordEnd = nextGeometryOffset(candidateIndex);
+    const section = type === "beam" ? element.sectionLabel : type === "wall" && element.structural ? readNativeWallPlanSection(bytes, view, c.nameOffset, element.name, recordEnd, g.points, g.width) : undefined;
+    const attributes = c.nameOffset + c.name.length + 1;
+    const foundation = type === "slab" && (view.getUint32(attributes + 8, true) & 0x00200000) !== 0;
+    const slabLoadDecoded = type === "slab" && !compressed ? readSlabPlanLoads(bytes, view, c, v11Schema) : undefined;
+    const annotation = slabLoadDecoded?.annotation;
+    if (slabLoadDecoded?.slabLoads) element.slabLoads = slabLoadDecoded.slabLoads;
+    if (type === "slab" && annotation?.loads) annotation.designAxes = readSlabDesignAxes(bytes, view, c, recordEnd, encoded, v11Schema);
     if (section || annotation) element.planAnnotation = { ...annotation, ...(section ? { section } : {}) };
+    if (rawAnalytical) {
+      const materialIndex = resolveElementMaterialIndex(bytes, view, attributes, recordEnd, type, element.structural, materials);
+      if (materialIndex !== undefined) element.materialIndex = materialIndex;
+      const rebarLayout = extractIdeElementRebar(bytes, view, attributes, recordEnd, type, foundation, v11Schema);
+      if (rebarLayout) element.rebarLayout = rebarLayout;
+    }
     // These are explicitly derived display ranges. The floor dimensions are
     // native; their zero-offset placement convention is documented by ideCAD.
     // Special offsets are read only for the authenticated member families.
-    const attributes = c.nameOffset + c.name.length + 1;
     if (type === "slab") {
-      element.foundation = (view.getUint32(attributes + 8, true) & 0x00200000) !== 0;
+      element.foundation = foundation;
       element.top = floor.elevation + g.nativeZ + (element.foundation ? 0 : floor.height);
       element.bottom = element.top - g.width;
       element.verticalSource = "storey-derived";
@@ -485,5 +531,17 @@ export function parseIde10(buffer: ArrayBuffer, filename: string): IdeProject {
   if (namedFormat && namedFormat !== detectedFormat) {
     warnings.push(`Dosya uzantısı .${namedFormat}, başlıktan okunan biçim .${detectedFormat}. Uzantı değişikliği biçim dönüşümü yapmaz.`);
   }
-  return { format: detectedFormat, filename, name: carrier.projectName, byteLength: source.length, floors, elements, coverage, warnings };
+  return {
+    format: detectedFormat,
+    filename,
+    name: carrier.projectName,
+    byteLength: source.length,
+    floors,
+    elements,
+    coverage,
+    warnings,
+    ...(materials ? { materials } : {}),
+    ...(seismicSoil ? { seismicSoil } : {}),
+    ...(f9Results ? { f9Results } : {}),
+  };
 }

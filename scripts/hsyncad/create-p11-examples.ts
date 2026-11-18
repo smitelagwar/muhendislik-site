@@ -1,0 +1,13 @@
+import {mkdirSync,writeFileSync} from "node:fs";
+import path from "node:path";
+import {wallScope,wallFixture,diagonalWallScopeFixture} from "../../tests/hsyncad-structural/wall-fixtures";
+import {wallShellSystemFixture,rebuildingWallFixture,wallSystemFixture} from "../../tests/hsyncad-structural/wall-system-fixtures";
+import {runWallSystemReview} from "../../src/lib/hsyncad/structural/wall-system-review";
+const dir=process.argv[2];if(!path.isAbsolute(dir??""))throw Error("Yeni mutlak örnek klasörü gerekli.");mkdirSync(dir);
+const ready=wallScope(),missing=wallScope(),failed=wallScope(),basement=wallScope(),twelve=wallScope(),diagonal=diagonalWallScopeFixture();missing.walls[0].detail.webLinks=[];failed.walls=[wallFixture("W1",3000,0,6000)];basement.walls[0].role="basement_perimeter";
+twelve.walls=Array.from({length:12},(_,i)=>wallFixture(`W${i+1}`,9000,i*5000));twelve.allWallIds.value=twelve.walls.map(w=>w.id);
+for(const [name,scope]of Object.entries({ready,missing,failed,basement,twelve,diagonal}))writeFileSync(path.join(dir,`${name}-input.json`),JSON.stringify({operation:"members",scope},null,2)+"\n",{flag:"wx"});
+const {input,definition}=wallShellSystemFixture(.3,128),options={maxModes:64},context=runWallSystemReview(input,options,[definition]);if(context.status!=="rebuild_required")throw Error(`Global hazırlık eksik: ${context.status}`);const designs=rebuildingWallFixture(input,definition)(context.global),system={operation:"system",globalInput:input,definitions:[definition],solverOptions:options,designs};
+writeFileSync(path.join(dir,"system-input.json"),JSON.stringify(system,null,2)+"\n",{flag:"wx"});const stale=structuredClone(system);stale.designs.wallScope.walls[0].snapshot.analysisStamp="old";writeFileSync(path.join(dir,"stale-input.json"),JSON.stringify(stale,null,2)+"\n",{flag:"wx"});const frame=wallSystemFixture();writeFileSync(path.join(dir,"connection-input.json"),JSON.stringify({operation:"system",globalInput:frame.input,definitions:[frame.definition],solverOptions:options,designs:null},null,2)+"\n",{flag:"wx"});
+writeFileSync(path.join(dir,"rebuild-required-input.json"),JSON.stringify({...system,designs:null},null,2)+"\n",{flag:"wx"});
+console.log("10 explicit physical examples; shared-face global case uses 128 bridge cells, rebuilt actual static forces, no native number oracle");

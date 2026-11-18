@@ -1,5 +1,6 @@
+import { decodeCp1254 } from "./cp1254";
 import { createIdeDataView, encodeIdeFloat64, hasIdeEncodedNumbers, isIde11SchemaVersion } from "./numeric-codec";
-import { encodeCp1254NulString, IDE11_VERSION, sealIdeCarrierHeader } from "./ide-binary-codec";
+import { encodeCp1254NulString, IDE10_VERSION, sealIdeCarrierHeader, validateIdeCarrier } from "./ide-binary-codec";
 import { readIdeStairTemplate } from "./stairs";
 
 export interface IdeTranscodeSplice {
@@ -11,8 +12,14 @@ export interface IdeTranscodeSplice {
 export interface IdeTranscodeOptions {
   /** Optional map of nativeId -> section string (e.g. from a paired .ide10 donor or edited IdeProject) */
   wallSectionOverrides?: ReadonlyMap<number, string>;
-  /** Optional map of nativeId -> { dead: number; live: number } slab load overrides */
+  /** Disabled until the native load fields are validated by an ideCAD roundtrip. */
   slabLoadOverrides?: ReadonlyMap<number, { dead: number; live: number }>;
+}
+
+function rejectUnverifiedSlabLoadOverrides(options: IdeTranscodeOptions): void {
+  if (options.slabLoadOverrides?.size) {
+    throw new Error("Döşeme yükü değişikliklerinin native IDE dosyasına yazılması henüz doğrulanmadı.");
+  }
 }
 
 const MAX_POINTS = 2048;
@@ -52,6 +59,8 @@ export function collectIde11TrialTransformPlan(
   src: Uint8Array,
   options: IdeTranscodeOptions & { targetVersion: 201094 | 211220 },
 ): { work: Uint8Array; splices: IdeTranscodeSplice[] } {
+  rejectUnverifiedSlabLoadOverrides(options);
+  validateIdeCarrier(src);
   const baseBuf = src.buffer.slice(src.byteOffset, src.byteOffset + src.byteLength) as ArrayBuffer;
   const encoded = hasIdeEncodedNumbers(baseBuf);
   const v11Schema = isIde11SchemaVersion(baseBuf);
@@ -61,7 +70,6 @@ export function collectIde11TrialTransformPlan(
   const encView = createIdeDataView(baseBuf);
   const work = new Uint8Array(baseBuf.slice(0));
   const workRawView = new DataView(work.buffer, work.byteOffset, work.byteLength);
-  const decoder = new TextDecoder("windows-1254");
 
   const f64Scales = new Map<number, number>();
   const f64Overrides = new Map<number, number>();
@@ -102,7 +110,7 @@ export function collectIde11TrialTransformPlan(
     for (let j = at + 4; j < at + 3 + length; j++) {
       if (src[j] < 32 || src[j] === 127 || src[j] === 255) return;
     }
-    return decoder.decode(src.subarray(at + 4, at + 3 + length));
+    return decodeCp1254(src.subarray(at + 4, at + 3 + length));
   };
 
   const followsFloorTemplate = (at: number): boolean => {
@@ -122,16 +130,20 @@ export function collectIde11TrialTransformPlan(
     if (data + 100 >= src.length) return false;
     const ordinal = encView.getInt32(data + 16, true), marker = encView.getUint32(data + 24, true);
     if (Math.abs(ordinal) > 1000 || encView.getUint32(data + 20, true) === 0 || (marker !== 0 && marker !== 0xffffffff)) return false;
-    const viewport = data + 4;
+    const viewport = data + (v11Schema ? 4 : 0);
     const viewScale = encView.getFloat64(viewport + 28, true);
     if (!Number.isFinite(viewScale) || viewScale <= 0 || viewScale > 1000) return false;
+    const matchesViewportTitle = (t: string | undefined) => t === name || Boolean(t?.startsWith(`${name} TAVANI, `) && / KOTU$/.test(t));
+    if (v11Schema && marker === 0xffffffff && viewScale === 0.3 &&
+        Array.from({ length: 8 }, (_, j) => encView.getFloat64(viewport + 36 + j * 8, true)).every(value => value === 1) &&
+        matchesViewportTitle(readString(data + 1381))) return true;
     for (let j = 0; j < 4; j++) {
       const a = encView.getFloat64(viewport + 36 + j * 16, true), b = encView.getFloat64(viewport + 44 + j * 16, true);
       if (!Number.isFinite(a) || Math.abs(a) > 1e6 || a !== b) return false;
     }
     for (let p = data + 100; p < Math.min(src.length - 165, data + 1800); p++) {
       const title = readString(p);
-      if (title?.startsWith(`${name} TAVANI, `) && / KOTU$/.test(title)) return true;
+      if (matchesViewportTitle(title)) return true;
     }
     return false;
   };
@@ -331,9 +343,13 @@ export function collectIde11TrialTransformPlan(
       }
     } else if (g.primitiveType === 7) {
       // Slab
-      if (p + 519 <= src.length && encView.getUint32(p + 470, true) === 36) {
+      if (p + 525 <= src.length && encView.getUint32(p + 470, true) === 36) {
         markF64(p + 485);
         markF64(p + 501);
+        // Preserve both encoded fields in the observed slab record, including
+        // foundations; their meaning for foundations is not yet established.
+        markF64(p + 509);
+        markF64(p + 517);
         const loadOverride = options.slabLoadOverrides?.get(g.nativeId);
         if (loadOverride) {
           f64Overrides.set(p + 485, loadOverride.live);
@@ -419,24 +435,26 @@ export function applyIdeBinarySplices(work: Uint8Array, splices: IdeTranscodeSpl
  *   and 400,000+ Blowfish float64 values in the post-floor 3D FEM/mesh tables remain 100% aligned in ideCAD 11.
  * - Clears any student-edition lock byte at `previewEnd + 28` (`[rdi+11h]`).
  * - Restores all redacted `"XX"` beam and structural wall plan labels inside floor records to their native section strings.
- * - Applies any slab G/Q load overrides in-place using the native v11 Blowfish float64 codec.
+ * - Rejects slab load overrides until their native ideCAD roundtrip is verified.
  */
 export function transcodeIde11TrialToIde11(
   sourceBuffer: ArrayBuffer | Uint8Array,
   options: IdeTranscodeOptions = {},
 ): Uint8Array {
+  rejectUnverifiedSlabLoadOverrides(options);
   const src = sourceBuffer instanceof Uint8Array
     ? sourceBuffer
     : new Uint8Array(sourceBuffer);
+  const carrier = validateIdeCarrier(src);
   const baseBuf = src.buffer.slice(src.byteOffset, src.byteOffset + src.byteLength) as ArrayBuffer;
   if (!isIde11SchemaVersion(baseBuf)) {
-    throw new Error("Kaynak dosya IDE11 (211220) şemasında değil.");
+    throw new Error("Kaynak dosya IDE11 şemasında değil.");
   }
+  const v11Schema = isIde11SchemaVersion(baseBuf);
   const encoded = hasIdeEncodedNumbers(baseBuf);
   const encView = createIdeDataView(baseBuf);
   const work = new Uint8Array(baseBuf.slice(0));
   const workRawView = new DataView(work.buffer, work.byteOffset, work.byteLength);
-  const decoder = new TextDecoder("windows-1254");
 
   // Clear studentFlag ([rdi+11h]) at previewEnd + 28 and demoFlag at previewEnd + 29 if present
   if (work.byteLength >= 120) {
@@ -458,7 +476,7 @@ export function transcodeIde11TrialToIde11(
     for (let j = at + 4; j < at + 3 + length; j++) {
       if (src[j] < 32 || src[j] === 127 || src[j] === 255) return;
     }
-    return decoder.decode(src.subarray(at + 4, at + 3 + length));
+    return decodeCp1254(src.subarray(at + 4, at + 3 + length));
   };
 
   const followsFloorTemplate = (at: number): boolean => {
@@ -478,16 +496,20 @@ export function transcodeIde11TrialToIde11(
     if (data + 100 >= src.length) return false;
     const ordinal = encView.getInt32(data + 16, true), marker = encView.getUint32(data + 24, true);
     if (Math.abs(ordinal) > 1000 || encView.getUint32(data + 20, true) === 0 || (marker !== 0 && marker !== 0xffffffff)) return false;
-    const viewport = data + 4;
+    const viewport = data + (v11Schema ? 4 : 0);
     const viewScale = encView.getFloat64(viewport + 28, true);
     if (!Number.isFinite(viewScale) || viewScale <= 0 || viewScale > 1000) return false;
+    const matchesViewportTitle = (t: string | undefined) => t === name || Boolean(t?.startsWith(`${name} TAVANI, `) && / KOTU$/.test(t));
+    if (v11Schema && marker === 0xffffffff && viewScale === 0.3 &&
+        Array.from({ length: 8 }, (_, j) => encView.getFloat64(viewport + 36 + j * 8, true)).every(value => value === 1) &&
+        matchesViewportTitle(readString(data + 1381))) return true;
     for (let j = 0; j < 4; j++) {
       const a = encView.getFloat64(viewport + 36 + j * 16, true), b = encView.getFloat64(viewport + 44 + j * 16, true);
       if (!Number.isFinite(a) || Math.abs(a) > 1e6 || a !== b) return false;
     }
     for (let p = data + 100; p < Math.min(src.length - 165, data + 1800); p++) {
       const title = readString(p);
-      if (title?.startsWith(`${name} TAVANI, `) && / KOTU$/.test(title)) return true;
+      if (matchesViewportTitle(title)) return true;
     }
     return false;
   };
@@ -651,8 +673,35 @@ export function transcodeIde11TrialToIde11(
   }
 
   const out = applyIdeBinarySplices(work, splices);
+  // The payload schema is unchanged, so the carrier must keep the source schema version.
+  // ideCAD 11.28 writes 211280 and rejects a 211220 carrier outright; forcing IDE11_VERSION
+  // (211220) produced files that ideCAD closed on open (verified against ideCAD Statik 11 Deneme).
   return sealIdeCarrierHeader(out, {
-    formatVersion: IDE11_VERSION,
+    formatVersion: carrier.formatVersion,
     encodedFlag: encoded ? 1 : 0,
+  });
+}
+
+/**
+ * Converts a .ide11trial buffer into a native .ide10 (version 201094) binary:
+ * - Transforms the v11 schema and splices to v10 binary specifications.
+ * - Decodes Blowfish float64 values to unencoded standard IEEE-754 float64.
+ * - Sets encodedFlag to 0 and seals the carrier header with formatVersion 201094.
+ */
+export function transcodeIde11TrialToIde10(
+  sourceBuffer: ArrayBuffer | Uint8Array,
+  options: IdeTranscodeOptions = {},
+): Uint8Array {
+  const src = sourceBuffer instanceof Uint8Array
+    ? sourceBuffer
+    : new Uint8Array(sourceBuffer);
+  const { work, splices } = collectIde11TrialTransformPlan(src, {
+    ...options,
+    targetVersion: IDE10_VERSION,
+  });
+  const out = applyIdeBinarySplices(work, splices);
+  return sealIdeCarrierHeader(out, {
+    formatVersion: IDE10_VERSION,
+    encodedFlag: 0,
   });
 }

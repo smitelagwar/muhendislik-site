@@ -5,6 +5,8 @@
 
 **Sohbet kimliğiyle devam:** Kullanıcı Codex/Antigravity konuşma kimliği veya `codex://threads/...` bağlantısı verirse, aramadan önce [AGENTS.md → Sohbet kimliği verilirse zorunlu kısa yol](AGENTS.md#sohbet-kimliği-verilirse-zorunlu-kısa-yol) bölümünü oku. Yerel transcript ve indeks konumları orada doğrulanmıştır; tüm diski tarama.
 
+**ideCAD masaüstü:** [Güncel kontrol kılavuzu](docs/hsyncad/IDECAD_DESKTOP_WORKFLOW.md) ve [özel kural](.agents/rules/idecad-masaustu-kontrolu.md) esastır. 8 Kasım 2026'da yerleşik yakalama hatasına karşı kullanıcı onayıyla yerel `scripts/idecad/desktop.py` doğrulandı: ajanın aldığı görüntü, çift/sağ tıklama, ayar kontrolleri ve ayrı ideCAD sürecinde sayısal malzeme değeri kalıcılığı geçti. Bu, bütün komutların veya mühendislik hesabının kabulü değildir. ideCAD deneme dosyalarını (`.ide11trial`) ticari `.ide11` ve `.ide10` biçimlerine dönüştürme işi portalın yerleşik Hsyncad motoru üzerinden [.agents/rules/hsyncad-ide-donusturme.md](.agents/rules/hsyncad-ide-donusturme.md) kuralıyla yürütülür.
+
 ---
 
 ## Proje Kimliği
@@ -42,6 +44,10 @@ Faz bazlı çalışma: `discuss-phase` → `plan-phase` → `execute-phase` → 
 Planlama dosyaları `.planning/` klasöründe tutulur.
 
 ### Antigravity Skills Referansı
+
+**Codex/ChatGPT CLI zorunlu okuma:** CLI üzerinden istem/görev gönderme, model/akıl yürütme düzeyi seçme veya sorun giderme öncesinde [Codex CLI kullanım kuralı](.agents/rules/codex-cli-kullanimi.md) ve bağlantı verdiği `C:\Users\hsyn\.codex\skills\codex-cli\SKILL.md` okunur. Kılavuz diğer AI ajanları tarafından da kullanılabilir.
+
+**Antigravity CLI (`agy`) zorunlu okuma:** CLI'a bağlanma, modelle konuşma, görev gönderme, model seçme, kurulum veya sorun giderme öncesinde [kullanım kuralı](.agents/rules/antigravity-cli-kullanimi.md) ve bağlantı verdiği yerel **`antigravity-cli/SKILL.md`** okunur. Beceri `C:\Users\hsyn\.codex\skills\antigravity-cli\` altında kuruludur; diğer AI ajanları da aynı kılavuzu okuyabilir.
 
 Global skill deposu: [github.com/sickn33/antigravity-awesome-skills](https://github.com/sickn33/antigravity-awesome-skills)
 Kurulum yolu: `~/.gemini/antigravity/skills/`

@@ -1,4 +1,5 @@
 import type { IdePoint } from "./index";
+import { decodeCp1254 } from "./cp1254";
 import { evaluateStairExpression } from "./stair-geometry";
 
 /**
@@ -88,7 +89,6 @@ export interface IdeStairTemplate {
 }
 
 class StairCursor {
-  readonly decoder = new TextDecoder("windows-1254");
   readonly end: number;
   constructor(readonly bytes: Uint8Array, readonly view: DataView, public at: number) {
     this.end = Math.min(bytes.length, at + 2_000_000);
@@ -107,7 +107,7 @@ class StairCursor {
     if (this.bytes[this.at + length - 1] !== 0) throw new Error("Unterminated stair string");
     const body = this.bytes.subarray(this.at, this.at + length - 1);
     if (body.some(value => value < 32 || value === 127 || value === 255)) throw new Error("Invalid stair text");
-    const value = this.decoder.decode(body); this.at += length; return value;
+    const value = decodeCp1254(body); this.at += length; return value;
   }
   expression() { if (this.u8() !== 1) throw new Error("Unsupported stair expression encoding"); return this.string(); }
   list<T>(read: () => T, max = 2048): T[] {

@@ -1,12 +1,19 @@
 import { distance, elementFootprint, elementVerticalRange, polygonArea, polygonPerimeter } from "./geometry";
 import { resolveJunctions, type JunctionResult } from "./junctions";
-import { isSolidElement, type CadModel, type SolidElement, type ColumnElement, type BeamElement, type WallElement, type SlabElement } from "./model";
+import {
+  isSolidElement,
+  type BeamElement,
+  type CadModel,
+  type ColumnElement,
+  type Floor,
+  type Point,
+  type SlabElement,
+  type SolidElement,
+  type WallElement,
+} from "./model";
 import { effectiveThickness } from "./definitions";
 import type { ConcreteDesignResult } from "./design-engine";
-
-// ============================================================================
-// 1. Legacy Quantity Types (Maintained for backwards compatibility)
-// ============================================================================
+import type { ReinforcementScheduleResult } from "./structural/reinforcement-schedule";
 
 export type QuantityRow = {
   type: SolidElement["type"];
@@ -15,7 +22,6 @@ export type QuantityRow = {
   netVolume: number | null;
   formwork: number;
 };
-
 export type QuantityResult = {
   rows: QuantityRow[];
   grossVolume: number;
@@ -25,56 +31,60 @@ export type QuantityResult = {
   assumptions: string[];
   warnings: string[];
 };
-
 const TYPES = ["column", "beam", "wall", "slab"] as const;
-
-// ============================================================================
-// 2. Comprehensive Metraj (Takeoff) Interfaces
-// ============================================================================
 
 export interface ElementTakeoffItem {
   id: string;
   name: string;
   type: string;
   floorName: string;
-  concreteM3: number;
-  formworkM2: number;
-  rebarKg: number;
+  concreteM3: number | null;
+  formworkM2: number | null;
+  rebarKg: number | null;
   rebarText: string;
 }
 
 export interface StoryTakeoffSummary {
-  concreteM3: number;
-  formworkM2: number;
-  rebarKg: number;
-  thinKg: number;
-  thickKg: number;
+  concreteM3: number | null;
+  formworkM2: number | null;
+  rebarKg: number | null;
+  thinKg: number | null;
+  thickKg: number | null;
   byDiameter: Record<number, number>;
 }
 
 export interface ComprehensiveTakeoffResult {
+  integrityVersion: 2;
+  status: "partial" | "verified" | "empty";
   concreteVolumeM3: {
-    total: number;
-    byElement: Record<string, number>;
-    byFloor: Record<string, number>;
+    total: number | null;
+    grossTotal: number;
+    byElement: Record<string, number | null>;
+    byFloor: Record<string, number | null>;
   };
   formworkAreaM2: {
-    total: number;
-    byElement: Record<string, number>;
-    byFloor: Record<string, number>;
+    total: number | null;
+    grossTotal?: number;
+    basis: "gross_geometry" | "net_deducted";
+    byElement: Record<string, number | null>;
+    byFloor: Record<string, number | null>;
   };
   rebarTonnage: {
-    totalKg: number;
-    totalTons: number;
-    thinKg: number;
-    thickKg: number;
+    totalKg: number | null;
+    totalTons: number | null;
+    thinKg: number | null;
+    thickKg: number | null;
+    knownSubtotalKg: number;
+    missingElementIds: string[];
+    source: "user_entered_mass" | "verified_schedule";
+    cutListVerified: boolean;
     byDiameter: Record<number, number>;
-    byElement: Record<string, number>;
+    byElement: Record<string, number | null>;
     byFloor: Record<string, StoryTakeoffSummary>;
   };
   summary: {
-    steelDensityKgM3: number;
-    formworkToConcreteRatio: number;
+    steelDensityKgM3: number | null;
+    formworkToConcreteRatio: number | null;
     totalElements: number;
   };
   elementBreakdown: ElementTakeoffItem[];
@@ -82,636 +92,579 @@ export interface ComprehensiveTakeoffResult {
   warnings: string[];
 }
 
-// ============================================================================
-// 3. Authoritative Reference Benchmark Data (METRAJ.pdf)
-// ============================================================================
-
-export const CERTIFIED_METRAJ_REFERENCE = {
-  projectName: "MUSTAFA SELVİ 1.KISIM",
-  engineer: "İnş. Müh. Fahrettin Cansever",
-  licenseNo: "698927828",
-  date: "17.06.2026",
-  concreteGrade: "BS25 (C25/30)",
-  rebarGrade: "B420C",
-
-  totalConcreteVolumeM3: 1334.015,
-  totalFormworkAreaM2: 6681.91,
-  totalRebarKg: 117421.93,
-  totalRebarTons: 117.42193,
-  thinRebarKg: 61412.19, // Ø8 - Ø12 (Ministry Poz 15.160.1003)
-  thickRebarKg: 56009.75, // >= Ø14 (Ministry Poz 15.160.1004)
-
-  byDiameter: {
-    8: 24415.28,
-    10: 36996.91,
-    12: 0.0,
-    14: 56009.75,
-    16: 0.0,
-    18: 0.0,
-    20: 0.0,
-    22: 0.0,
-    24: 0.0,
-    26: 0.0,
-    28: 0.0,
-    30: 0.0,
-    32: 0.0,
-  } as Record<number, number>,
-
-  byElementRebar: {
-    slab: 31748.22,
-    band: 1359.73,
-    beam: 16247.0,
-    wall: 39326.24,
-    column: 0.0,
-    raft: 27708.26,
-    stair: 1032.47,
-  } as Record<string, number>,
-
-  byElementConcrete: {
-    slab: 442.821,
-    beam: 160.939,
-    wall: 302.905,
-    column: 0.0,
-    raft: 427.352,
-    stair: 0.0,
-  } as Record<string, number>,
-
-  byElementFormwork: {
-    slab: 2950.16,
-    beam: 1263.86,
-    wall: 2396.68,
-    column: 0.0,
-    raft: 71.24,
-    stair: 0.0,
-  } as Record<string, number>,
-
-  byStory: {
-    "ASANSÖR MAK.DAİRESİ": {
-      concreteM3: 4.476,
-      formworkM2: 31.04,
-      rebarKg: 357.38,
-      thinKg: 252.25,
-      thickKg: 105.13,
-      byDiameter: { 8: 72.84, 10: 179.41, 12: 0, 14: 105.13, 16: 0, 18: 0, 20: 0, 22: 0, 24: 0, 26: 0, 28: 0, 30: 0, 32: 0 } as Record<number, number>,
-    },
-    "3. KAT": {
-      concreteM3: 173.331,
-      formworkM2: 1232.68,
-      rebarKg: 16070.09,
-      thinKg: 10694.2,
-      thickKg: 5375.89,
-      byDiameter: { 8: 3624.9, 10: 7069.3, 12: 0, 14: 5375.89, 16: 0, 18: 0, 20: 0, 22: 0, 24: 0, 26: 0, 28: 0, 30: 0, 32: 0 } as Record<number, number>,
-    },
-    "2. KAT": {
-      concreteM3: 169.205,
-      formworkM2: 1226.69,
-      rebarKg: 16498.86,
-      thinKg: 10411.51,
-      thickKg: 6087.35,
-      byDiameter: { 8: 3649.32, 10: 6762.19, 12: 0, 14: 6087.35, 16: 0, 18: 0, 20: 0, 22: 0, 24: 0, 26: 0, 28: 0, 30: 0, 32: 0 } as Record<number, number>,
-    },
-    "1. KAT": {
-      concreteM3: 169.205,
-      formworkM2: 1226.69,
-      rebarKg: 16641.64,
-      thinKg: 10560.95,
-      thickKg: 6080.69,
-      byDiameter: { 8: 3687.42, 10: 6873.53, 12: 0, 14: 6080.69, 16: 0, 18: 0, 20: 0, 22: 0, 24: 0, 26: 0, 28: 0, 30: 0, 32: 0 } as Record<number, number>,
-    },
-    "ZEMİN KAT": {
-      concreteM3: 188.75,
-      formworkM2: 1389.26,
-      rebarKg: 19238.1,
-      thinKg: 12985.18,
-      thickKg: 6252.92,
-      byDiameter: { 8: 5293.75, 10: 7691.43, 12: 0, 14: 6252.92, 16: 0, 18: 0, 20: 0, 22: 0, 24: 0, 26: 0, 28: 0, 30: 0, 32: 0 } as Record<number, number>,
-    },
-    "1. BODRUM": {
-      concreteM3: 629.049,
-      formworkM2: 1575.54,
-      rebarKg: 48615.86,
-      thinKg: 16508.09,
-      thickKg: 32107.77,
-      byDiameter: { 8: 8087.05, 10: 8421.04, 12: 0, 14: 32107.77, 16: 0, 18: 0, 20: 0, 22: 0, 24: 0, 26: 0, 28: 0, 30: 0, 32: 0 } as Record<number, number>,
-    },
-  } as Record<string, StoryTakeoffSummary>,
-};
-
-// Standard rebar unit weights in kg/m per TS 708
-export const REBAR_UNIT_WEIGHTS: Record<number, number> = {
-  8: 0.395,
-  10: 0.617,
-  12: 0.888,
-  14: 1.208,
-  16: 1.578,
-  18: 1.998,
-  20: 2.466,
-  22: 2.984,
-  24: 3.551,
-  26: 4.168,
-  28: 4.834,
-  30: 5.549,
-  32: 6.313,
-};
-
-// ============================================================================
-// 4. Helper: Check if Model Matches Certified Reference
-// ============================================================================
-
-export function isCertifiedReferenceModel(model: CadModel): boolean {
-  // 1. Mandatory requirement: Project name must explicitly match Mustafa Selvi
-  const nameMatches = Boolean(model.name && /MUSTAFA\s*SELV[Iİ]/i.test(model.name));
-  if (!nameMatches) {
-    return false;
-  }
-
-  // 2. Mandatory requirement: Must have exactly 6 storeys
-  if (model.floors.length !== 6) {
-    return false;
-  }
-
-  // 3. Mandatory requirement: Storey names must match the 6 reference storeys
-  const floorNamesUpper = model.floors.map(f => f.name.trim().toUpperCase());
-  const referenceNames = Object.keys(CERTIFIED_METRAJ_REFERENCE.byStory);
-  const matchCount = referenceNames.filter(r => floorNamesUpper.some(f => f.includes(r.split(" ")[0]))).length;
-  if (matchCount < 5) {
-    return false;
-  }
-
-  return true;
+export interface IdeTakeoffOptions {
+  deductFormworkOverlaps?: boolean;
+  rebarSchedule?: ReinforcementScheduleResult | null;
 }
 
-// ============================================================================
-// 5. Comprehensive Full Takeoff Engine (calculateFullTakeoff)
-// ============================================================================
+/** Authoritative ideCAD Metraj classification threshold (#80 Flag A): <= 12 mm (Ø8–Ø12) = İNCE, >= Ø14 = KALIN. */
+export const IDE_REBAR_THIN_MAX_DIAMETER_MM = 12;
 
-export function calculateFullTakeoff(
+/** Standard ideCAD / TS 708 diameter order for Metraj tables. */
+export const IDE_METRAJ_DIAMETERS = [8, 10, 12, 14, 16, 18, 20, 22, 24, 25, 26, 28, 30, 32] as const;
+
+/** Mevcut nominal kg/m tablosu; gerçek donatı yerleşiminin veya TS708 kabulünün kanıtı değildir. */
+export const REBAR_UNIT_WEIGHTS: Record<number, number> = {
+  8: 0.395, 10: 0.617, 12: 0.888, 14: 1.208, 16: 1.578, 18: 1.998, 20: 2.466,
+  22: 2.984, 24: 3.551, 25: 3.853, 26: 4.168, 28: 4.834, 30: 5.549, 32: 6.313,
+};
+
+/** Exact native ideCAD rebar mass formula (0x141df3b30:179): d_m * pi * d_m * count * 1962.5 * L_m (1962.5 = 7850 / 4). */
+export function computeIdeRebarMassKg(diameterMm: number, lengthM: number, count = 1): number {
+  if (!Number.isFinite(diameterMm) || diameterMm <= 0 || !Number.isFinite(lengthM) || lengthM < 0 || !Number.isFinite(count) || count < 0) {
+    return 0;
+  }
+  const dM = diameterMm / 1000;
+  return dM * Math.PI * dM * count * 1962.5 * lengthM;
+}
+
+export function isThinRebarDiameter(diameterMm: number): boolean {
+  return diameterMm <= IDE_REBAR_THIN_MAX_DIAMETER_MM;
+}
+
+const add = (a: number | null, b: number | null): number | null => (a === null || b === null ? null : a + b);
+
+function verticalOverlap(a: [number, number], b: [number, number]): number {
+  return Math.max(0, Math.min(a[1], b[1]) - Math.max(a[0], b[0]));
+}
+
+function pointInPolygon(p: Point, poly: readonly Point[]): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].x;
+    const yi = poly[i].y;
+    const xj = poly[j].x;
+    const yj = poly[j].y;
+    if ((yi > p.y) !== (yj > p.y) && p.x < ((xj - xi) * (p.y - yi)) / (yj - yi + 1e-30) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function pointNearPolygon(p: Point, poly: readonly Point[], tol: number): boolean {
+  if (pointInPolygon(p, poly)) return true;
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i];
+    const b = poly[(i + 1) % poly.length];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const lenSq = dx * dx + dy * dy;
+    const t = lenSq > 1e-12 ? Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq)) : 0;
+    const px = a.x + t * dx;
+    const py = a.y + t * dy;
+    if (Math.hypot(p.x - px, p.y - py) <= tol) return true;
+  }
+  return false;
+}
+
+function sampleSegmentCoverageFraction(
+  start: Point,
+  end: Point,
+  check: (p: Point) => boolean,
+  samples = 24
+): number {
+  let hits = 0;
+  for (let i = 0; i < samples; i++) {
+    const t = (i + 0.5) / samples;
+    const p = { x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t };
+    if (check(p)) hits++;
+  }
+  return hits / samples;
+}
+
+function grossElementFormwork(element: SolidElement, bottom: number, top: number): number {
+  const footprint = elementFootprint(element);
+  if (element.type === "column" && ((element.leanX ?? 0) !== 0 || (element.leanY ?? 0) !== 0)) {
+    return footprint.reduce((sum, p, i) => {
+      const q = footprint[(i + 1) % footprint.length];
+      const dx = q.x - p.x;
+      const dy = q.y - p.y;
+      return sum + Math.hypot((top - bottom) * Math.hypot(dx, dy), dx * (element.leanY ?? 0) - dy * (element.leanX ?? 0));
+    }, 0);
+  }
+  if (element.type === "column" || element.type === "wall") {
+    return polygonPerimeter(footprint) * (top - bottom);
+  }
+  if (element.type === "beam") {
+    return (
+      polygonArea(footprint) *
+        Math.hypot(1, ((element.endTopOffset ?? element.topOffset ?? 0) - (element.topOffset ?? 0)) / distance(element.start, element.end)) +
+      polygonPerimeter(footprint) * element.height
+    );
+  }
+  return (
+    polygonArea(footprint) * Math.hypot(1, (element.slopeX ?? 0) / 100, (element.slopeY ?? 0) / 100) +
+    polygonPerimeter(footprint) * effectiveThickness(element)
+  );
+}
+
+/**
+ * Compute ideCAD Metraj net formwork areas per element with joint overlap deductions:
+ * - Columns (0x140b30b40 + 0x140b34950): deduct beam/wall intersection contact area (b * h_overlap).
+ * - Beams (0x140b30b40 + 0x140b364c0): clear span net length L_net inside columns/walls, no end-cap
+ *   formwork inside supports, and deduct attached slab thickness along left/right side faces.
+ * - Walls (0x140b30b40): clear length L_net minus column overlaps, plus attached slab thickness deduction.
+ * - Slabs (0x140b30b40): net soffit area from resolved non-overlapping junction parts + free unframed edges * t.
+ */
+export function calculateIdeNetFormworkByElement(
   model: CadModel,
-  designResult?: ConcreteDesignResult,
   junctions: JunctionResult = resolveJunctions(model)
-): ComprehensiveTakeoffResult {
-  // --------------------------------------------------------------------------
-  // Track A: Certified Reference Benchmark (0.000% Delta against METRAJ.pdf)
-  // --------------------------------------------------------------------------
-  if (isCertifiedReferenceModel(model)) {
-    const floorsMap = new Map(model.floors.map(f => [f.id, f.name]));
-    const floorConcrete: Record<string, number> = {};
-    const floorFormwork: Record<string, number> = {};
-    const floorStorySummaries: Record<string, StoryTakeoffSummary> = {};
-
-    for (const floor of model.floors) {
-      const normName = floor.name.trim().toUpperCase();
-      const refEntry =
-        CERTIFIED_METRAJ_REFERENCE.byStory[normName] ??
-        Object.entries(CERTIFIED_METRAJ_REFERENCE.byStory).find(([k]) => normName.includes(k.split(" ")[0]))?.[1] ??
-        {
-          concreteM3: 0,
-          formworkM2: 0,
-          rebarKg: 0,
-          thinKg: 0,
-          thickKg: 0,
-          byDiameter: { 8: 0, 10: 0, 12: 0, 14: 0, 16: 0, 18: 0, 20: 0, 22: 0, 24: 0, 26: 0, 28: 0, 30: 0, 32: 0 },
-        };
-
-      floorConcrete[floor.name] = refEntry.concreteM3;
-      floorFormwork[floor.name] = refEntry.formworkM2;
-      floorStorySummaries[floor.name] = { ...refEntry };
-    }
-
-    // Generate individual element breakdown for the model
-    const elementBreakdown: ElementTakeoffItem[] = [];
-    const totalElems = model.elements.filter(isSolidElement).length || 1;
-
-    for (const elem of model.elements) {
-      if (!isSolidElement(elem)) continue;
-      const floorName = floorsMap.get(elem.floorId) || "Zemin";
-      let elemTypeStr: string = elem.type;
-      if (elem.type === "slab" && (elem.layer === "Temeller" || elem.name.startsWith("RAD"))) {
-        elemTypeStr = "raft";
-      } else if (elem.type === "slab" && (elem.layer === "Merdivenler" || elem.name.startsWith("M"))) {
-        elemTypeStr = "stair";
-      } else if (elem.type === "beam" && (elem.layer === "Bant Kirişler" || elem.name.startsWith("BK-"))) {
-        elemTypeStr = "band";
-      }
-
-      const refElemConcreteTotal = CERTIFIED_METRAJ_REFERENCE.byElementConcrete[elemTypeStr] ?? 50;
-      const refElemFormworkTotal = CERTIFIED_METRAJ_REFERENCE.byElementFormwork[elemTypeStr] ?? 200;
-      const refElemRebarTotal = CERTIFIED_METRAJ_REFERENCE.byElementRebar[elemTypeStr] ?? 4000;
-
-      const sameTypeCount = model.elements.filter(e => isSolidElement(e) && e.type === elem.type).length || 1;
-      const itemConcrete = refElemConcreteTotal / sameTypeCount;
-      const itemFormwork = refElemFormworkTotal / sameTypeCount;
-      const itemRebar = refElemRebarTotal / sameTypeCount;
-
-      elementBreakdown.push({
-        id: elem.id,
-        name: elem.name,
-        type: elemTypeStr,
-        floorName,
-        concreteM3: itemConcrete,
-        formworkM2: itemFormwork,
-        rebarKg: itemRebar,
-        rebarText: elemTypeStr === "slab" ? "Ø10/20 Hasır" : elemTypeStr === "raft" ? "Ø14/15 Çift Hasır" : "Ø14 Boyuna + Ø8 Etriye",
-      });
-    }
-
+): Record<string, number> {
+  const floors = new Map<string, Floor>(model.floors.map((f) => [f.id, f]));
+  const solids = model.elements.filter(isSolidElement);
+  const prepared = solids.map((el) => {
+    const floor = floors.get(el.floorId);
+    if (!floor) throw new Error(`${el.name}: net kalıp hesabı için kat bulunamadı.`);
     return {
-      concreteVolumeM3: {
-        total: CERTIFIED_METRAJ_REFERENCE.totalConcreteVolumeM3,
-        byElement: { ...CERTIFIED_METRAJ_REFERENCE.byElementConcrete },
-        byFloor: floorConcrete,
-      },
-      formworkAreaM2: {
-        total: CERTIFIED_METRAJ_REFERENCE.totalFormworkAreaM2,
-        byElement: { ...CERTIFIED_METRAJ_REFERENCE.byElementFormwork },
-        byFloor: floorFormwork,
-      },
-      rebarTonnage: {
-        totalKg: CERTIFIED_METRAJ_REFERENCE.totalRebarKg,
-        totalTons: CERTIFIED_METRAJ_REFERENCE.totalRebarTons,
-        thinKg: CERTIFIED_METRAJ_REFERENCE.thinRebarKg,
-        thickKg: CERTIFIED_METRAJ_REFERENCE.thickRebarKg,
-        byDiameter: { ...CERTIFIED_METRAJ_REFERENCE.byDiameter },
-        byElement: { ...CERTIFIED_METRAJ_REFERENCE.byElementRebar },
-        byFloor: floorStorySummaries,
-      },
-      summary: {
-        steelDensityKgM3: CERTIFIED_METRAJ_REFERENCE.totalRebarKg / CERTIFIED_METRAJ_REFERENCE.totalConcreteVolumeM3,
-        formworkToConcreteRatio: CERTIFIED_METRAJ_REFERENCE.totalFormworkAreaM2 / CERTIFIED_METRAJ_REFERENCE.totalConcreteVolumeM3,
-        totalElements: model.elements.length,
-      },
-      elementBreakdown,
-      assumptions: [
-        "Onaylı ideCAD 10 statik proje referans metrajı (METRAJ.pdf — İnş. Müh. Fahrettin Cansever, Lisans: 698927828).",
-        "Betonarme donatıları TS 708 ve Çevre, Şehircilik ve İklim Değişikliği Bakanlığı Rayiçlerine göre İnce (Ø8-Ø12) ve Kalın (>=Ø14) olarak ayrılmıştır.",
-        "Kalıp metrajı TS 500 net temas yüzeylerini esas alır: döşeme alt yüzeyi, kiriş tabanı + sarkan yan yüzler, kolon/perde çevre temas yüzeyleri ve radye dış çevre kalıbı.",
-      ],
-      warnings: [],
+      el,
+      footprint: elementFootprint(el),
+      z: elementVerticalRange(el, floor),
+      grossFw: grossElementFormwork(el, ...elementVerticalRange(el, floor)),
     };
-  }
+  });
 
-  // --------------------------------------------------------------------------
-  // Track B: Analytical Takeoff for Arbitrary User Models
-  // --------------------------------------------------------------------------
-  const floorsMap = new Map(model.floors.map(f => [f.id, f]));
-  const concreteByElement: Record<string, number> = { column: 0, beam: 0, wall: 0, slab: 0, raft: 0, stair: 0, band: 0 };
-  const concreteByFloor: Record<string, number> = {};
-  const formworkByElement: Record<string, number> = { column: 0, beam: 0, wall: 0, slab: 0, raft: 0, stair: 0, band: 0 };
-  const formworkByFloor: Record<string, number> = {};
-  const rebarByElement: Record<string, number> = { column: 0, beam: 0, wall: 0, slab: 0, raft: 0, stair: 0, band: 0 };
-  const rebarByDiameter: Record<number, number> = { 8: 0, 10: 0, 12: 0, 14: 0, 16: 0, 18: 0, 20: 0, 22: 0, 24: 0, 26: 0, 28: 0, 30: 0, 32: 0 };
-  const storySummaries: Record<string, StoryTakeoffSummary> = {};
+  const columns = prepared.filter((p) => p.el.type === "column") as Array<{
+    el: ColumnElement;
+    footprint: Point[];
+    z: [number, number];
+    grossFw: number;
+  }>;
+  const walls = prepared.filter((p) => p.el.type === "wall") as Array<{
+    el: WallElement;
+    footprint: Point[];
+    z: [number, number];
+    grossFw: number;
+  }>;
+  const beams = prepared.filter((p) => p.el.type === "beam") as Array<{
+    el: BeamElement;
+    footprint: Point[];
+    z: [number, number];
+    grossFw: number;
+  }>;
+  const slabs = prepared.filter((p) => p.el.type === "slab") as Array<{
+    el: SlabElement;
+    footprint: Point[];
+    z: [number, number];
+    grossFw: number;
+  }>;
 
-  for (const floor of model.floors) {
-    concreteByFloor[floor.name] = 0;
-    formworkByFloor[floor.name] = 0;
-    storySummaries[floor.name] = {
-      concreteM3: 0,
-      formworkM2: 0,
-      rebarKg: 0,
-      thinKg: 0,
-      thickKg: 0,
-      byDiameter: { 8: 0, 10: 0, 12: 0, 14: 0, 16: 0, 18: 0, 20: 0, 22: 0, 24: 0, 26: 0, 28: 0, 30: 0, 32: 0 },
-    };
-  }
-
-  const elementBreakdown: ElementTakeoffItem[] = [];
-
-  for (const elem of model.elements) {
-    if (!isSolidElement(elem)) continue;
-    const floor = floorsMap.get(elem.floorId);
-    if (!floor) continue;
-
-    // Defensive check: malformed slab with no points or fewer than 3 points
-    if (elem.type === "slab") {
-      const slabElem = elem as SlabElement;
-      if (!slabElem.points || !Array.isArray(slabElem.points) || slabElem.points.length < 3) {
-        continue;
+  const netSlabSoffitMap = new Map<string, number>();
+  if (junctions.status === "resolved") {
+    for (const part of junctions.parts) {
+      if (part.type === "slab") {
+        const h = Math.max(part.top - part.bottom, 1e-6);
+        netSlabSoffitMap.set(part.elementId, (netSlabSoffitMap.get(part.elementId) ?? 0) + part.volume / h);
       }
     }
+  }
 
-    const floorName = floor.name;
-    const footprint = elementFootprint(elem) ?? [];
-    const area = footprint.length >= 3 ? polygonArea(footprint) : 0;
-    const perimeter = footprint.length >= 3 ? polygonPerimeter(footprint) : 0;
+  const out: Record<string, number> = {};
 
-    // Skip degenerate 0-area slabs or foundations
-    if (area <= 0 && elem.type === "slab") {
+  for (const col of columns) {
+    let deduction = 0;
+    for (const b of beams) {
+      const zOv = verticalOverlap(col.z, b.z);
+      if (zOv <= 1e-6) continue;
+      // Check if beam footprint intersects/touches column footprint (0x140b34950)
+      const beamHitsCol =
+        sampleSegmentCoverageFraction(b.el.start, b.el.end, (pt) => pointNearPolygon(pt, col.footprint, b.el.width * 0.5 + 0.01), 40) > 0;
+      if (beamHitsCol) {
+        // Each beam meeting a column removes b_beam * zOv from the column vertical formwork
+        // (up to 2 faces if passing cleanly through)
+        const endsInCol =
+          (pointNearPolygon(b.el.start, col.footprint, 0.02) ? 1 : 0) +
+          (pointNearPolygon(b.el.end, col.footprint, 0.02) ? 1 : 0);
+        const passThrough = endsInCol === 0 ? 2 : endsInCol;
+        deduction += passThrough * b.el.width * zOv;
+      }
+    }
+    for (const w of walls) {
+      const zOv = verticalOverlap(col.z, w.z);
+      if (zOv <= 1e-6) continue;
+      const hits =
+        sampleSegmentCoverageFraction(w.el.start, w.el.end, (pt) => pointNearPolygon(pt, col.footprint, w.el.thickness * 0.5 + 0.01), 40) > 0;
+      if (hits) {
+        const endsInCol =
+          (pointNearPolygon(w.el.start, col.footprint, 0.02) ? 1 : 0) +
+          (pointNearPolygon(w.el.end, col.footprint, 0.02) ? 1 : 0);
+        const faces = endsInCol === 0 ? 2 : endsInCol;
+        deduction += faces * w.el.thickness * zOv;
+      }
+    }
+    out[col.el.id] = Math.max(0, Math.min(col.grossFw, col.grossFw - deduction));
+  }
+
+  for (const b of beams) {
+    const len = distance(b.el.start, b.el.end);
+    if (len <= 1e-9) {
+      out[b.el.id] = 0;
       continue;
     }
+    // Clear span net length outside columns and walls (0x140b364c0)
+    const blockedFrac = sampleSegmentCoverageFraction(
+      b.el.start,
+      b.el.end,
+      (pt) =>
+        columns.some((c) => verticalOverlap(c.z, b.z) > 1e-6 && pointNearPolygon(pt, c.footprint, 0.005)) ||
+        walls.some((w) => verticalOverlap(w.z, b.z) > 1e-6 && pointNearPolygon(pt, w.footprint, 0.005)),
+      48
+    );
+    const netLen = len * Math.max(0, 1 - blockedFrac);
+    const dx = (b.el.end.x - b.el.start.x) / len;
+    const dy = (b.el.end.y - b.el.start.y) / len;
+    const nx = -dy;
+    const ny = dx;
+    const probeOffset = b.el.width * 0.5 + 0.04;
 
-    const [bottom, top] = elementVerticalRange(elem, floor);
-    const netHeight = Math.max(0.1, top - bottom);
-
-    let elemType: "column" | "beam" | "wall" | "slab" | "raft" | "stair" | "band" = elem.type;
-    let concreteVol = 0;
-    let formwork = 0;
-    let rebarKg = 0;
-    let rebarText = "";
-    const elemDiameters: Record<number, number> = {};
-
-    // 1. Raft Foundation
-    if (elem.type === "slab" && (elem.layer === "Temeller" || elem.name.startsWith("RAD") || elem.name.startsWith("raft"))) {
-      elemType = "raft";
-      const thickness = effectiveThickness(elem as SlabElement);
-      concreteVol = area * thickness;
-      // Raft formwork is strictly vertical exterior perimeter shuttering (soil bottom has no formwork)
-      formwork = perimeter * thickness;
-
-      // Raft reinforcement: Ø14/15 top & bottom meshes + chairs
-      const barDia = 14;
-      const unitW = REBAR_UNIT_WEIGHTS[barDia] ?? 1.208;
-      // ~2.5 kg rebar per m2 of raft per direction for double layer
-      const totalRaftBarLenM = area * (1 / 0.15) * 2 * 2; // two-way top and bottom
-      rebarKg = totalRaftBarLenM * unitW;
-      elemDiameters[14] = rebarKg;
-      rebarText = `2x(T+B) Ø${barDia}/15`;
+    let attachedSlabThicknessSum = 0;
+    for (const side of [-1, 1] as const) {
+      let sideMaxSlabFrac = 0;
+      for (const s of slabs) {
+        const zOv = verticalOverlap(b.z, s.z);
+        if (zOv <= 1e-6) continue;
+        const tSlab = effectiveThickness(s.el);
+        const sideFrac = sampleSegmentCoverageFraction(
+          { x: b.el.start.x + nx * side * probeOffset, y: b.el.start.y + ny * side * probeOffset },
+          { x: b.el.end.x + nx * side * probeOffset, y: b.el.end.y + ny * side * probeOffset },
+          (pt) => pointInPolygon(pt, s.footprint),
+          24
+        );
+        const effDeduct = Math.min(b.el.height, Math.min(zOv, tSlab)) * sideFrac;
+        if (effDeduct > sideMaxSlabFrac) sideMaxSlabFrac = effDeduct;
+      }
+      attachedSlabThicknessSum += sideMaxSlabFrac;
     }
-    // 2. Stair
-    else if (elem.type === "slab" && (elem.layer === "Merdivenler" || elem.name.startsWith("M") || elem.name.startsWith("stair"))) {
-      elemType = "stair";
-      const thickness = effectiveThickness(elem as SlabElement);
-      // Inclined waist slab + steps
-      concreteVol = area * (thickness + 0.08);
-      // Formwork: soffit + sides + risers
-      formwork = area * 1.5;
-      const barDia = 10;
-      const unitW = REBAR_UNIT_WEIGHTS[barDia] ?? 0.617;
-      rebarKg = area * 14 * unitW;
-      elemDiameters[10] = rebarKg;
-      rebarText = `Ø${barDia}/15 Donatı`;
-    }
-    // 3. Regular Floor Slab
-    else if (elem.type === "slab") {
-      elemType = "slab";
-      const thickness = effectiveThickness(elem as SlabElement);
-      concreteVol = area * thickness;
-      // Slab formwork is bottom horizontal soffit contact area
-      formwork = area;
 
-      // Slab reinforcement: two-way Ø10 mesh
-      const barDia = 10;
-      const unitW = REBAR_UNIT_WEIGHTS[barDia] ?? 0.617;
-      // ~8 kg rebar per m2 of floor slab
-      rebarKg = area * 11 * unitW;
-      elemDiameters[10] = rebarKg;
-      rebarText = `Ø${barDia}/20 Çift Yön Hasır`;
-    }
-    // 4. Band Beam
-    else if (elem.type === "beam" && (elem.layer === "Bant Kirişler" || elem.name.startsWith("BK-"))) {
-      elemType = "band";
-      const beamElem = elem as BeamElement;
-      const length = distance(beamElem.start, beamElem.end);
-      concreteVol = beamElem.width * beamElem.height * length;
-      formwork = (beamElem.width + 2 * beamElem.height) * length;
+    const slopeFactor = Math.hypot(
+      1,
+      ((b.el.endTopOffset ?? b.el.topOffset ?? 0) - (b.el.topOffset ?? 0)) / len
+    );
+    // 0x140b30b40:422: netLen * (b + 2*h - sum(attached_slab_t))
+    const soffit = b.el.width * netLen * slopeFactor;
+    const sides = Math.max(0, 2 * b.el.height - attachedSlabThicknessSum) * netLen;
+    out[b.el.id] = Math.max(0, Math.min(b.grossFw, soffit + sides));
+  }
 
-      // Band beam rebar: 6Ø14 longitudinal + Ø8 ties
-      const longWeight = length * 6 * (REBAR_UNIT_WEIGHTS[14] ?? 1.208);
-      const tieCount = Math.ceil(length / 0.15);
-      const tieLen = 2 * (beamElem.width + beamElem.height) + 0.2;
-      const tieWeight = tieCount * tieLen * (REBAR_UNIT_WEIGHTS[8] ?? 0.395);
-      rebarKg = longWeight + tieWeight;
-      elemDiameters[14] = longWeight;
-      elemDiameters[8] = tieWeight;
-      rebarText = "6Ø14 + Ø8/15";
+  for (const w of walls) {
+    const len = distance(w.el.start, w.el.end);
+    if (len <= 1e-9) {
+      out[w.el.id] = 0;
+      continue;
     }
-    // 5. Regular Beam
-    else if (elem.type === "beam") {
-      elemType = "beam";
-      const beamElem = elem as BeamElement;
-      const length = distance(beamElem.start, beamElem.end);
-      // Net beam web below 15cm slab
-      const slabThick = 0.15;
-      const webH = Math.max(0.1, beamElem.height - slabThick);
-      concreteVol = beamElem.width * webH * length;
-      // Formwork: soffit + two exposed side faces
-      formwork = (beamElem.width + 2 * webH) * length;
+    const blockedFrac = sampleSegmentCoverageFraction(
+      w.el.start,
+      w.el.end,
+      (pt) => columns.some((c) => verticalOverlap(c.z, w.z) > 1e-6 && pointNearPolygon(pt, c.footprint, 0.005)),
+      48
+    );
+    const netLen = len * Math.max(0, 1 - blockedFrac);
+    const wallH = w.z[1] - w.z[0];
+    const dx = (w.el.end.x - w.el.start.x) / len;
+    const dy = (w.el.end.y - w.el.start.y) / len;
+    const nx = -dy;
+    const ny = dx;
+    const probeOffset = w.el.thickness * 0.5 + 0.04;
 
-      // Detailing from designResult or analytical standard
-      const sched = designResult?.rebarSchedule[elem.id];
-      if (sched) {
-        const longWeight = (sched.longitudinal.totalAsMm2 / 1000000) * length * 7850;
-        const tieDia = sched.transverse.tieDiameterMm || 8;
-        const tieSpacingM = (sched.transverse.midspanSpacingCm || 15) / 100;
-        const tieCount = Math.ceil(length / tieSpacingM);
-        const tieLen = 2 * (beamElem.width + beamElem.height) + 0.25;
-        const tieWeight = tieCount * tieLen * (REBAR_UNIT_WEIGHTS[tieDia] ?? 0.395);
-        rebarKg = longWeight + tieWeight;
-        elemDiameters[14] = (elemDiameters[14] ?? 0) + longWeight;
-        elemDiameters[tieDia] = (elemDiameters[tieDia] ?? 0) + tieWeight;
-        rebarText = `${sched.longitudinal.text} / ${sched.transverse.text}`;
+    let slabDeductH = 0;
+    for (const side of [-1, 1] as const) {
+      let sideDeduct = 0;
+      for (const s of slabs) {
+        const zOv = verticalOverlap(w.z, s.z);
+        if (zOv <= 1e-6) continue;
+        const sideFrac = sampleSegmentCoverageFraction(
+          { x: w.el.start.x + nx * side * probeOffset, y: w.el.start.y + ny * side * probeOffset },
+          { x: w.el.end.x + nx * side * probeOffset, y: w.el.end.y + ny * side * probeOffset },
+          (pt) => pointInPolygon(pt, s.footprint),
+          24
+        );
+        sideDeduct = Math.max(sideDeduct, Math.min(zOv, effectiveThickness(s.el)) * sideFrac);
+      }
+      slabDeductH += sideDeduct;
+    }
+    const faceFw = Math.max(0, 2 * wallH - slabDeductH) * netLen;
+    const exposedEnds =
+      (columns.some((c) => verticalOverlap(c.z, w.z) > 1e-6 && pointNearPolygon(w.el.start, c.footprint, 0.02)) ? 0 : 1) +
+      (columns.some((c) => verticalOverlap(c.z, w.z) > 1e-6 && pointNearPolygon(w.el.end, c.footprint, 0.02)) ? 0 : 1);
+    const endFw = exposedEnds * w.el.thickness * wallH;
+    out[w.el.id] = Math.max(0, Math.min(w.grossFw, faceFw + endFw));
+  }
+
+  for (const s of slabs) {
+    const slopeFactor = Math.hypot(1, (s.el.slopeX ?? 0) / 100, (s.el.slopeY ?? 0) / 100);
+    const rawSoffit = netSlabSoffitMap.get(s.el.id) ?? polygonArea(s.footprint);
+    const soffit = rawSoffit * slopeFactor;
+    const slabT = effectiveThickness(s.el);
+
+    // Free perimeter edges NOT bounded by a beam, wall, or column
+    let freeEdgeLen = 0;
+    const pts = s.footprint;
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i];
+      const b = pts[(i + 1) % pts.length];
+      const edgeLen = distance(a, b);
+      if (edgeLen <= 1e-9) continue;
+      const framedFrac = sampleSegmentCoverageFraction(
+        a,
+        b,
+        (pt) =>
+          beams.some((bm) => verticalOverlap(bm.z, s.z) > 1e-6 && pointNearPolygon(pt, bm.footprint, 0.03)) ||
+          walls.some((wl) => verticalOverlap(wl.z, s.z) > 1e-6 && pointNearPolygon(pt, wl.footprint, 0.03)) ||
+          columns.some((cl) => verticalOverlap(cl.z, s.z) > 1e-6 && pointNearPolygon(pt, cl.footprint, 0.03)),
+        24
+      );
+      freeEdgeLen += edgeLen * Math.max(0, 1 - framedFrac);
+    }
+    out[s.el.id] = Math.max(0, Math.min(s.grossFw, soffit + freeEdgeLen * slabT));
+  }
+
+  return out;
+}
+
+/** Proje adından bağımsız geometri metrajı. Donatı As değerinden kesim boyu uydurulmaz. */
+export function calculateFullTakeoff(
+  model: CadModel,
+  _designResult?: ConcreteDesignResult,
+  junctions: JunctionResult = resolveJunctions(model),
+  options?: IdeTakeoffOptions
+): ComprehensiveTakeoffResult {
+  const deductFormwork = Boolean(options?.deductFormworkOverlaps);
+  const netFormworkMap = deductFormwork ? calculateIdeNetFormworkByElement(model, junctions) : null;
+  const rebarSchedule = options?.rebarSchedule ?? null;
+  const hasVerifiedSchedule = Boolean(
+    rebarSchedule && rebarSchedule.isComplete && rebarSchedule.totalMassKg !== null
+  );
+
+  // Build verified schedule lookups per element & floor
+  const verifiedMassByElement = new Map<string, number>();
+  const verifiedByDiameter: Record<number, number> = {};
+  const verifiedFloorDiameters = new Map<string, Record<number, number>>();
+  const verifiedFloorThin = new Map<string, number>();
+  const verifiedFloorThick = new Map<string, number>();
+  const verifiedFloorTotal = new Map<string, number>();
+  const floorIdToName = new Map(model.floors.map((f) => [f.id, f.name]));
+
+  if (hasVerifiedSchedule && rebarSchedule) {
+    for (const dSub of rebarSchedule.subtotalsByDiameter) {
+      verifiedByDiameter[dSub.diameterMm] = (verifiedByDiameter[dSub.diameterMm] ?? 0) + dSub.totalMassKg;
+    }
+    for (const bar of rebarSchedule.uniqueBars) {
+      verifiedMassByElement.set(bar.elementId, (verifiedMassByElement.get(bar.elementId) ?? 0) + bar.totalMassKg);
+      const flName = floorIdToName.get(bar.floorId) ?? bar.floorId;
+      const dMap = verifiedFloorDiameters.get(flName) ?? {};
+      dMap[bar.diameterMm] = (dMap[bar.diameterMm] ?? 0) + bar.totalMassKg;
+      verifiedFloorDiameters.set(flName, dMap);
+      verifiedFloorTotal.set(flName, (verifiedFloorTotal.get(flName) ?? 0) + bar.totalMassKg);
+      if (isThinRebarDiameter(bar.diameterMm)) {
+        verifiedFloorThin.set(flName, (verifiedFloorThin.get(flName) ?? 0) + bar.totalMassKg);
       } else {
-        const longWeight = length * 5 * (REBAR_UNIT_WEIGHTS[14] ?? 1.208);
-        const tieCount = Math.ceil(length / 0.15);
-        const tieLen = 2 * (beamElem.width + beamElem.height) + 0.2;
-        const tieWeight = tieCount * tieLen * (REBAR_UNIT_WEIGHTS[8] ?? 0.395);
-        rebarKg = longWeight + tieWeight;
-        elemDiameters[14] = longWeight;
-        elemDiameters[8] = tieWeight;
-        rebarText = "4Ø14 + Ø8/15";
+        verifiedFloorThick.set(flName, (verifiedFloorThick.get(flName) ?? 0) + bar.totalMassKg);
       }
     }
-    // 6. Column
-    else if (elem.type === "column") {
-      elemType = "column";
-      const colElem = elem as ColumnElement;
-      concreteVol = colElem.width * colElem.depth * netHeight;
-      formwork = 2 * (colElem.width + colElem.depth) * netHeight;
+  }
 
-      const sched = designResult?.rebarSchedule[elem.id];
-      if (sched) {
-        const longWeight = (sched.longitudinal.totalAsMm2 / 1000000) * (netHeight * 1.3) * 7850;
-        const tieDia = sched.transverse.tieDiameterMm || 8;
-        const tieSpacingM = (sched.transverse.confinementSpacingCm || 10) / 100;
-        const tieCount = Math.ceil(netHeight / tieSpacingM);
-        const tieLen = 2 * (colElem.width + colElem.depth) + 0.3;
-        const tieWeight = tieCount * tieLen * (REBAR_UNIT_WEIGHTS[tieDia] ?? 0.395);
-        rebarKg = longWeight + tieWeight;
-        elemDiameters[14] = (elemDiameters[14] ?? 0) + longWeight;
-        elemDiameters[tieDia] = (elemDiameters[tieDia] ?? 0) + tieWeight;
-        rebarText = `${sched.longitudinal.text} / ${sched.transverse.text}`;
-      } else {
-        const longWeight = (netHeight * 1.35) * 8 * (REBAR_UNIT_WEIGHTS[14] ?? 1.208);
-        const tieCount = Math.ceil(netHeight / 0.1);
-        const tieLen = 2 * (colElem.width + colElem.depth) + 0.3;
-        const tieWeight = tieCount * tieLen * (REBAR_UNIT_WEIGHTS[8] ?? 0.395);
-        rebarKg = longWeight + tieWeight;
-        elemDiameters[14] = longWeight;
-        elemDiameters[8] = tieWeight;
-        rebarText = "8Ø14 + Ø8/10";
-      }
-    }
-    // 7. Shear Wall
-    else if (elem.type === "wall") {
-      elemType = "wall";
-      const wallElem = elem as WallElement;
-      const length = distance(wallElem.start, wallElem.end);
-      concreteVol = wallElem.thickness * length * netHeight;
-      formwork = 2 * (length + wallElem.thickness) * netHeight;
+  const concreteByElement: Record<string, number | null> = {};
+  const concreteByFloor: Record<string, number | null> = {};
+  const formworkByElement: Record<string, number | null> = {};
+  const formworkByFloor: Record<string, number | null> = {};
+  const rebarByElement: Record<string, number | null> = {};
+  const stories: Record<string, StoryTakeoffSummary> = {};
+  const elements = model.elements.filter(isSolidElement);
+  const missingElementIds: string[] = [];
+  const warnings = [...junctions.warnings];
+  let knownSubtotalKg = 0;
+  let grossFormworkTotal = 0;
 
-      const sched = designResult?.rebarSchedule[elem.id];
-      if (sched && sched.wallDetails) {
-        const boundaryWeight = 2 * 4 * (netHeight * 1.3) * (REBAR_UNIT_WEIGHTS[14] ?? 1.208);
-        const webHorizLen = (netHeight / 0.2) * length * 2;
-        const webHorizWeight = webHorizLen * (REBAR_UNIT_WEIGHTS[10] ?? 0.617);
-        const webVertLen = (length / 0.2) * netHeight * 2;
-        const webVertWeight = webVertLen * (REBAR_UNIT_WEIGHTS[10] ?? 0.617);
-        const tieWeight = (netHeight / 0.1) * 2 * (REBAR_UNIT_WEIGHTS[8] ?? 0.395);
-        rebarKg = boundaryWeight + webHorizWeight + webVertWeight + tieWeight;
-        elemDiameters[14] = boundaryWeight;
-        elemDiameters[10] = webHorizWeight + webVertWeight;
-        elemDiameters[8] = tieWeight;
-        rebarText = `${sched.wallDetails.boundaryRebarText} + ${sched.wallDetails.webHorizontalText}`;
-      } else {
-        const boundaryWeight = 2 * 4 * (netHeight * 1.3) * (REBAR_UNIT_WEIGHTS[14] ?? 1.208);
-        const webWeight = length * netHeight * 2 * 2 * (REBAR_UNIT_WEIGHTS[10] ?? 0.617);
-        const tieWeight = (netHeight / 0.1) * 1.5 * (REBAR_UNIT_WEIGHTS[8] ?? 0.395);
-        rebarKg = boundaryWeight + webWeight + tieWeight;
-        elemDiameters[14] = boundaryWeight;
-        elemDiameters[10] = webWeight;
-        elemDiameters[8] = tieWeight;
-        rebarText = "Uç 8Ø14 + Gövde Çift Hasır Ø10/20";
-      }
+  for (const floor of model.floors) {
+    // Görünür ad kimlik değildir; aynı adlı katlar bir sunum grubunda toplanır.
+    concreteByFloor[floor.name] ??= 0;
+    formworkByFloor[floor.name] ??= 0;
+    stories[floor.name] ??= {
+      concreteM3: 0,
+      formworkM2: 0,
+      rebarKg: hasVerifiedSchedule ? (verifiedFloorTotal.get(floor.name) ?? 0) : 0,
+      thinKg: hasVerifiedSchedule ? (verifiedFloorThin.get(floor.name) ?? 0) : null,
+      thickKg: hasVerifiedSchedule ? (verifiedFloorThick.get(floor.name) ?? 0) : null,
+      byDiameter: hasVerifiedSchedule ? { ...(verifiedFloorDiameters.get(floor.name) ?? {}) } : {},
+    };
+  }
+
+  const elementBreakdown: ElementTakeoffItem[] = elements.map((element) => {
+    const floor = model.floors.find((f) => f.id === element.floorId);
+    const floorName = floor?.name ?? `Kat bulunamadı: ${element.floorId}`;
+    if (!stories[floorName]) {
+      stories[floorName] = {
+        concreteM3: 0,
+        formworkM2: 0,
+        rebarKg: hasVerifiedSchedule ? (verifiedFloorTotal.get(floorName) ?? 0) : 0,
+        thinKg: hasVerifiedSchedule ? (verifiedFloorThin.get(floorName) ?? 0) : null,
+        thickKg: hasVerifiedSchedule ? (verifiedFloorThick.get(floorName) ?? 0) : null,
+        byDiameter: hasVerifiedSchedule ? { ...(verifiedFloorDiameters.get(floorName) ?? {}) } : {},
+      };
+      concreteByFloor[floorName] = 0;
+      formworkByFloor[floorName] = 0;
     }
 
-    // Accumulate element breakdown item
-    elementBreakdown.push({
-      id: elem.id,
-      name: elem.name,
-      type: elemType,
+    const candidateNet = junctions.status === "resolved" ? junctions.byElement[element.id]?.netVolume : null;
+    const net = typeof candidateNet === "number" && Number.isFinite(candidateNet) && candidateNet >= 0 ? candidateNet : null;
+    const grossFormwork = floor ? calculateQuantities({ ...model, elements: [element] }, junctions).formwork : null;
+    if (grossFormwork !== null && Number.isFinite(grossFormwork)) grossFormworkTotal += grossFormwork;
+    const candidateFw = netFormworkMap ? (netFormworkMap[element.id] ?? grossFormwork) : grossFormwork;
+    const formwork = candidateFw !== null && Number.isFinite(candidateFw) ? candidateFw : null;
+
+    let rebarKg: number | null;
+    let rebarText: string;
+    if (hasVerifiedSchedule) {
+      rebarKg = verifiedMassByElement.get(element.id) ?? 0;
+      knownSubtotalKg += rebarKg;
+      rebarText = "Doğrulanmış donatı kesim listesi";
+    } else {
+      const declared = element.rebarMass;
+      rebarKg = typeof declared === "number" && Number.isFinite(declared) && declared >= 0 ? declared : null;
+      if (rebarKg === null) missingElementIds.push(element.id);
+      else knownSubtotalKg += rebarKg;
+      rebarText =
+        rebarKg === null
+          ? "Bilinmiyor - kesim listesi yok"
+          : "Kullanıcının beyan ettiği kütle; kesim listesi doğrulanmadı";
+    }
+
+    for (const [map, value] of [
+      [concreteByElement, net],
+      [formworkByElement, formwork],
+      [rebarByElement, rebarKg],
+    ] as const) {
+      map[element.type] = add(map[element.type] === undefined ? 0 : map[element.type], value);
+    }
+    concreteByFloor[floorName] = add(concreteByFloor[floorName], net);
+    formworkByFloor[floorName] = add(formworkByFloor[floorName], formwork);
+    const story = stories[floorName];
+    story.concreteM3 = add(story.concreteM3, net);
+    story.formworkM2 = add(story.formworkM2, formwork);
+    if (!hasVerifiedSchedule) {
+      story.rebarKg = add(story.rebarKg, rebarKg);
+    }
+    if (!floor) warnings.push(`${element.id}: kat bulunamadı; metraj eksik.`);
+    return {
+      id: element.id,
+      name: element.name,
+      type: element.type,
       floorName,
-      concreteM3: concreteVol,
+      concreteM3: net,
       formworkM2: formwork,
       rebarKg,
       rebarText,
-    });
+    };
+  });
 
-    // Accumulate totals
-    concreteByElement[elemType] = (concreteByElement[elemType] ?? 0) + concreteVol;
-    concreteByFloor[floorName] = (concreteByFloor[floorName] ?? 0) + concreteVol;
-    formworkByElement[elemType] = (formworkByElement[elemType] ?? 0) + formwork;
-    formworkByFloor[floorName] = (formworkByFloor[floorName] ?? 0) + formwork;
-    rebarByElement[elemType] = (rebarByElement[elemType] ?? 0) + rebarKg;
+  const sum = (values: (number | null)[]) => values.reduce<number | null>(add, 0);
+  const concrete = sum(Object.values(concreteByElement));
+  const formwork = sum(Object.values(formworkByElement));
 
-    const story = storySummaries[floorName];
-    if (story) {
-      story.concreteM3 += concreteVol;
-      story.formworkM2 += formwork;
-      story.rebarKg += rebarKg;
-      for (const [diaStr, wt] of Object.entries(elemDiameters)) {
-        const dia = Number(diaStr);
-        rebarByDiameter[dia] = (rebarByDiameter[dia] ?? 0) + wt;
-        story.byDiameter[dia] = (story.byDiameter[dia] ?? 0) + wt;
-        if (dia <= 12) {
-          story.thinKg += wt;
-        } else {
-          story.thickKg += wt;
-        }
-      }
+  const totalKg = hasVerifiedSchedule
+    ? rebarSchedule!.totalMassKg!
+    : missingElementIds.length
+      ? null
+      : knownSubtotalKg;
+
+  // Enforce #80 Flag A: thinKg = <= 12 mm (Ø8–Ø12), thickKg = >= 14 mm (Ø14+)
+  let thinKg: number | null = elements.length ? null : 0;
+  let thickKg: number | null = elements.length ? null : 0;
+  if (hasVerifiedSchedule) {
+    let thinSum = 0;
+    let thickSum = 0;
+    for (const [diamStr, kg] of Object.entries(verifiedByDiameter)) {
+      const diam = Number(diamStr);
+      if (isThinRebarDiameter(diam)) thinSum += kg;
+      else thickSum += kg;
     }
+    thinKg = thinSum;
+    thickKg = thickSum;
   }
 
-  const totalConcrete = Object.values(concreteByElement).reduce((s, v) => s + v, 0);
-  const totalFormwork = Object.values(formworkByElement).reduce((s, v) => s + v, 0);
-  const totalRebar = Object.values(rebarByElement).reduce((s, v) => s + v, 0);
-  let thinKg = 0;
-  let thickKg = 0;
-
-  for (const [diaStr, wt] of Object.entries(rebarByDiameter)) {
-    const dia = Number(diaStr);
-    if (dia <= 12) {
-      thinKg += wt;
-    } else {
-      thickKg += wt;
-    }
+  if (!hasVerifiedSchedule && missingElementIds.length) {
+    warnings.push(`${missingElementIds.length} elemanda donatı kütlesi bilinmiyor; toplam verilmedi.`);
   }
+  if (model.ideImport?.references.length) {
+    warnings.push(`${model.ideImport.references.length} native referans hesap modelinde yok; proje metrajı tam değildir.`);
+  }
+  if (!hasVerifiedSchedule || !deductFormwork) {
+    warnings.push("Gerçek donatı kesim listesi ve net kalıp temas profili henüz doğrulanmadı.");
+  }
+
+  const basis: "gross_geometry" | "net_deducted" = deductFormwork ? "net_deducted" : "gross_geometry";
+  const status: ComprehensiveTakeoffResult["status"] =
+    elements.length === 0 ? "empty" : hasVerifiedSchedule && deductFormwork && concrete !== null ? "verified" : "partial";
 
   return {
-    concreteVolumeM3: {
-      total: totalConcrete,
-      byElement: concreteByElement,
-      byFloor: concreteByFloor,
-    },
-    formworkAreaM2: {
-      total: totalFormwork,
-      byElement: formworkByElement,
-      byFloor: formworkByFloor,
-    },
+    integrityVersion: 2,
+    status,
+    concreteVolumeM3: { total: concrete, grossTotal: junctions.grossVolume, byElement: concreteByElement, byFloor: concreteByFloor },
+    formworkAreaM2: { total: formwork, grossTotal: grossFormworkTotal, basis, byElement: formworkByElement, byFloor: formworkByFloor },
     rebarTonnage: {
-      totalKg: totalRebar,
-      totalTons: totalRebar / 1000,
+      totalKg,
+      totalTons: totalKg === null ? null : totalKg / 1000,
       thinKg,
       thickKg,
-      byDiameter: rebarByDiameter,
+      knownSubtotalKg: hasVerifiedSchedule ? totalKg! : knownSubtotalKg,
+      missingElementIds: hasVerifiedSchedule ? [] : missingElementIds,
+      source: hasVerifiedSchedule ? "verified_schedule" : "user_entered_mass",
+      cutListVerified: hasVerifiedSchedule,
+      byDiameter: hasVerifiedSchedule ? verifiedByDiameter : {},
       byElement: rebarByElement,
-      byFloor: storySummaries,
+      byFloor: stories,
     },
     summary: {
-      steelDensityKgM3: totalConcrete > 0 ? totalRebar / totalConcrete : 0,
-      formworkToConcreteRatio: totalConcrete > 0 ? totalFormwork / totalConcrete : 0,
-      totalElements: model.elements.length,
+      steelDensityKgM3: concrete !== null && concrete > 0 && totalKg !== null ? totalKg / concrete : null,
+      formworkToConcreteRatio: concrete !== null && concrete > 0 && formwork !== null ? formwork / concrete : null,
+      totalElements: elements.length,
     },
     elementBreakdown,
     assumptions: [
-      "TS 500 ve TBDY 2018 standartlarına göre analitik betonarme metrajı.",
-      "Kalıp yüzeyleri net temas alanlarını esas alır.",
-      "Donatı tonajı yapı elemanlarının boyutları, donatı oranları ve sarılma bölgesi etriye detaylarından hesaplanmıştır.",
+      "Beton: mevcut net geometri motoru; başarısız net hesap brütle doldurulmaz.",
+      deductFormwork
+        ? "Kalıp net alan hesabı: kolon-kiriş/perde birleşim yüzeyleri, kiriş net açıklığı ve kiriş/perde yan yüzlerindeki döşeme kalınlığı temas düşümleri uygulanır."
+        : "Kalıp brüt geometrik alandır; ortak temas yüzleri düşülmedi. TS500 ölçüm kuralı iddia edilmez.",
+      hasVerifiedSchedule
+        ? "Donatı: doğrulanmış kesim listesi üzerinden çap ve boy hesabı yapılır; Ø8–Ø12 (<=12 mm) İnce, >=Ø14 Kalın sınıfındadır."
+        : "Donatı yalnız açık kullanıcı kütlesinden alınır. Alan/donatı oranı/isim/standart çap varsayımıyla tonaj üretilmez.",
+      "Beyan edilen sıfır ile eksik değer ayrıdır. Çap ve ince/kalın dağılımı kütleden çıkarılamaz.",
     ],
-    warnings: junctions.warnings,
+    warnings,
   };
 }
 
-// ============================================================================
-// 6. Legacy calculateQuantities Function (Preserved for Backwards Compatibility)
-// ============================================================================
-
 export function calculateQuantities(
   model: CadModel,
-  junctions: JunctionResult = resolveJunctions(model)
+  junctions: JunctionResult = resolveJunctions(model),
+  options?: { deductFormworkOverlaps?: boolean }
 ): QuantityResult {
-  const rows: QuantityRow[] = TYPES.map(type => ({
+  const rows: QuantityRow[] = TYPES.map((type) => ({
     type,
     count: 0,
     grossVolume: 0,
     netVolume: junctions.status === "resolved" ? 0 : null,
     formwork: 0,
   }));
-  const byType = Object.fromEntries(rows.map(row => [row.type, row])) as Record<SolidElement["type"], QuantityRow>;
-  const floors = new Map(model.floors.map(f => [f.id, f]));
+  const byType = Object.fromEntries(rows.map((row) => [row.type, row])) as Record<SolidElement["type"], QuantityRow>;
+  const floors = new Map(model.floors.map((f) => [f.id, f]));
+  const netFormworkMap = options?.deductFormworkOverlaps ? calculateIdeNetFormworkByElement(model, junctions) : null;
 
   for (const element of model.elements) {
     if (!isSolidElement(element)) continue;
     const floor = floors.get(element.floorId);
     if (!floor) throw new Error(`${element.name}: metraj için kat bulunamadı.`);
-    const row = byType[element.type],
-      footprint = elementFootprint(element);
+    const row = byType[element.type];
+    const footprint = elementFootprint(element);
     const [bottom, top] = elementVerticalRange(element, floor);
     row.count++;
     row.grossVolume +=
       polygonArea(footprint) *
       (element.type === "slab" ? effectiveThickness(element) : element.type === "beam" ? element.height : top - bottom);
     if (row.netVolume !== null) row.netVolume += junctions.byElement[element.id]?.netVolume ?? 0;
-    if (element.type === "column" && ((element.leanX ?? 0) !== 0 || (element.leanY ?? 0) !== 0))
-      row.formwork += footprint.reduce((sum, p, i) => {
-        const q = footprint[(i + 1) % footprint.length],
-          dx = q.x - p.x,
-          dy = q.y - p.y;
-        return (
-          sum +
-          Math.hypot((top - bottom) * Math.hypot(dx, dy), dx * (element.leanY ?? 0) - dy * (element.leanX ?? 0))
-        );
-      }, 0);
-    else if (element.type === "column" || element.type === "wall")
-      row.formwork += polygonPerimeter(footprint) * (top - bottom);
-    else if (element.type === "beam")
-      row.formwork +=
-        polygonArea(footprint) *
-          Math.hypot(1, ((element.endTopOffset ?? element.topOffset ?? 0) - (element.topOffset ?? 0)) / distance(element.start, element.end)) +
-        polygonPerimeter(footprint) * element.height;
-    else
-      row.formwork +=
-        polygonArea(footprint) * Math.hypot(1, (element.slopeX ?? 0) / 100, (element.slopeY ?? 0) / 100) +
-        polygonPerimeter(footprint) * effectiveThickness(element);
+    row.formwork += netFormworkMap
+      ? netFormworkMap[element.id] ?? grossElementFormwork(element, bottom, top)
+      : grossElementFormwork(element, bottom, top);
   }
 
   return {
@@ -727,7 +680,9 @@ export function calculateQuantities(
       "Beton hacmi ve 3B görünüm aynı kesişmeyen katı parçalardan üretilir. Eğik elemanlar ve konkav döşemeler desteklenir. Ortak hacim kolon → perde → kiriş → döşeme, aynı tipte kimlik sırasıyla tek elemana atanır.",
       "Nokta bağları plan koordinatlarını ilişkilendirir. Bağlı iki elemanın kotları arasında kesin düşey açıklık varsa ayrıca uyarı gösterilir; geometrik net hacim yine hesaplanır. Bu denetim mühendislik bağlantısı veya taşıma gücü doğrulaması değildir.",
       "Birleşim toleransı 0,00000001 m. İşlem/parça sınırı veya geometri hatasında net metraj verilmez ve katı parçalar üretilmez; brüt değer net yerine kullanılmaz.",
-      "Kalıp brüttür; birleşimlerdeki temas yüzeyleri düşülmez. Kolon/perde: çevre × gerçek yükseklik. Kiriş: (b + 2h) × boy + 2bh (iki uç dahil). Döşeme: alt alan + çevre × kalınlık.",
+      options?.deductFormworkOverlaps
+        ? "Kalıp net alan hesabı: birleşim temas düşümleri uygulanır (kolon-kiriş/perde teması, kiriş/perde döşeme kalınlığı ve döşeme boş kenar kontrolü)."
+        : "Kalıp brüttür; birleşimlerdeki temas yüzeyleri düşülmez. Kolon/perde: çevre × gerçek yükseklik. Kiriş: (b + 2h) × boy + 2bh (iki uç dahil). Döşeme: alt alan + çevre × kalınlık.",
       "Daireler seçilen kenar sayısıyla, eğrisel perdeler seçilen yay parçasıyla çokgenleştirilir; hacim ve 3B aynı yaklaşımı kullanır. Eğimli döşemelerde kalınlık düşeydir; kot ilk köşede, X/Y eğimleri yüzde cinsindedir. Katmanlı döşeme kalınlığı tanımlı beton katmanlarının toplamıdır. Kaplama yükü ve hareketli yük ayrıca saklanır; taşıma gücü hesabı yapılmaz.",
       "Boşluklar, donatı, fire, çalışma payları ve yapım sırası yoktur. Bu geometrik ön metraj; taşıma gücü, deprem veya TBDY uygunluk hesabı değildir.",
     ],

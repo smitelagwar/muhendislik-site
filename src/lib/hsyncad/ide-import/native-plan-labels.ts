@@ -1,5 +1,6 @@
 import type { IdePoint } from "./index";
 import { isIde11SchemaVersion } from "./numeric-codec";
+import { decodeCp1254 } from "./cp1254";
 
 function nativeString(bytes: Uint8Array, view: DataView, at: number, end: number): string | undefined {
   if (at < 0 || at + 4 > end) return;
@@ -7,7 +8,7 @@ function nativeString(bytes: Uint8Array, view: DataView, at: number, end: number
   if (length < 2 || length > 161 || at + 4 + length > end || bytes[at + 3 + length] !== 0) return;
   const text = bytes.subarray(at + 4, at + 3 + length);
   if (text.some(value => value < 32 || value === 127 || value === 255)) return;
-  return new TextDecoder("windows-1254").decode(text);
+  return decodeCp1254(text);
 }
 
 /** Stored section dimensions include native joined ends, which line span does

@@ -1,3 +1,5 @@
+const format = (value: number | null, digits: number) => value === null ? "Bilinmiyor" : value.toFixed(digits);
+
 import { calculateFullTakeoff } from "../src/lib/hsyncad/quantities";
 import { resolveJunctions } from "../src/lib/hsyncad/junctions";
 import type { CadModel } from "../src/lib/hsyncad/model";
@@ -8,14 +10,14 @@ const customModel: CadModel = {
   schemaVersion: 1,
   name: "Ahmet Bey Apartmanı (Örnek Özel Çizim)",
   materials: [
-    { id: "concrete", name: "C30/37", unitWeight: 25, elasticity: 32000, color: "#94a3b8" }
+    { id: "concrete", name: "C30/37" }
   ],
   floors: [
     { id: "fl-0", name: "Zemin Kat", elevation: 0, height: 3.0 },
     { id: "fl-1", name: "1. Normal Kat", elevation: 3.0, height: 3.0 },
     { id: "fl-2", name: "2. Normal Kat", elevation: 6.0, height: 3.0 }
   ],
-  toolDefaults: {} as any,
+  toolDefaults: {},
   elements: [
     // Raft on ground
     {
@@ -51,7 +53,7 @@ for (const fl of customModel.floors) {
       heightMode: "story",
       rotation: 0,
       anchorMode: "center"
-    } as any);
+    });
   });
 
   // 4 beams (0.25 x 0.50 m)
@@ -73,7 +75,7 @@ for (const fl of customModel.floors) {
       end: b.e,
       width: 0.25,
       height: 0.50
-    } as any);
+    });
   });
 
   // 1 slab (15cm)
@@ -87,7 +89,7 @@ for (const fl of customModel.floors) {
     points: [{ x: 0.2, y: 0.2 }, { x: 4.8, y: 0.2 }, { x: 4.8, y: 4.8 }, { x: 0.2, y: 4.8 }],
     thickness: 0.15,
     topOffset: 0
-  } as any);
+  });
 }
 
 const junctions = resolveJunctions(customModel);
@@ -97,22 +99,22 @@ console.log("=== CUSTOM USER DRAWING TEST ===");
 console.log(`Project: ${customModel.name}`);
 console.log(`Floors: ${customModel.floors.length}`);
 console.log(`Elements: ${customModel.elements.length}`);
-console.log(`Total Concrete: ${takeoff.concreteVolumeM3.total.toFixed(3)} m³`);
-console.log(`Total Formwork: ${takeoff.formworkAreaM2.total.toFixed(2)} m²`);
-console.log(`Total Rebar: ${takeoff.rebarTonnage.totalKg.toFixed(2)} kg (${takeoff.rebarTonnage.totalTons.toFixed(3)} ton)`);
-console.log(`Steel Density: ${takeoff.summary.steelDensityKgM3.toFixed(2)} kg/m³`);
+console.log(`Total Concrete: ${format(takeoff.concreteVolumeM3.total, 3)} m³`);
+console.log(`Total Formwork: ${format(takeoff.formworkAreaM2.total, 2)} m²`);
+console.log(`Total Rebar: ${format(takeoff.rebarTonnage.totalKg, 2)} kg (${format(takeoff.rebarTonnage.totalTons, 3)} ton)`);
+console.log(`Steel Density: ${format(takeoff.summary.steelDensityKgM3, 2)} kg/m³`);
 
 console.log("\nConcrete By Element:");
 for (const [k, v] of Object.entries(takeoff.concreteVolumeM3.byElement)) {
-  if (v > 0) console.log(`  ${k}: ${v.toFixed(3)} m³`);
+  if (v !== null && v > 0) console.log(`  ${k}: ${format(v, 3)} m³`);
 }
 
 console.log("\nFormwork By Element:");
 for (const [k, v] of Object.entries(takeoff.formworkAreaM2.byElement)) {
-  if (v > 0) console.log(`  ${k}: ${v.toFixed(2)} m²`);
+  if (v !== null && v > 0) console.log(`  ${k}: ${format(v, 2)} m²`);
 }
 
 console.log("\nBy Floor:");
 for (const [fl, st] of Object.entries(takeoff.rebarTonnage.byFloor)) {
-  console.log(`  ${fl}: Concrete=${st.concreteM3.toFixed(3)} m³, Formwork=${st.formworkM2.toFixed(2)} m², Rebar=${st.rebarKg.toFixed(2)} kg`);
+  console.log(`  ${fl}: Concrete=${format(st.concreteM3, 3)} m³, Formwork=${format(st.formworkM2, 2)} m², Rebar=${format(st.rebarKg, 2)} kg`);
 }

@@ -269,8 +269,19 @@ for (const sample of samples) test(`native sample acceptance: ${basename(sample.
   assert.ok(loadedSlab);
   const loadFields = loadedSlab.planAnnotation!.loads!, attributes = loadedSlab.sourceOffset + loadedSlab.name.length + 1;
   close(loadFields.dead, new DataView(buffer).getFloat64(attributes + 497, true));
-  close(loadFields.live, new DataView(buffer).getFloat64(attributes + 481, true));
+  close(loadFields.live, new DataView(buffer).getFloat64(attributes + 513, true));
   assert.equal(loadFields.unit, "tf/m²");
+  const liveProbe = buffer.slice(0);
+  new DataView(liveProbe).setFloat64(attributes + 481, 0.1234, true);
+  new DataView(liveProbe).setFloat64(attributes + 513, 0.8765, true);
+  sealTestCopy(liveProbe);
+  close(parseIde10(liveProbe, "changed-live-copy.ide10").elements.find(e => e.id === loadedSlab.id)!.planAnnotation!.loads!.live, 0.8765);
+  if (sample.sha256 === "0095778181794af8f4f8cfb52cabcca3dda4fc098cb3ea33a90e5c659bdaf325") {
+    const elevatorSlab = project.elements.find(e => e.nativeId === 6129657)!;
+    close(elevatorSlab.planAnnotation!.loads!.live, 1);
+    const thirdFloorSlab = project.elements.find(e => e.nativeId === 6129445)!;
+    close(thirdFloorSlab.planAnnotation!.loads!.live, 0.2);
+  }
   const customLoad = buffer.slice(0); new DataView(customLoad).setFloat64(attributes + 497, 0.1234, true);
   sealTestCopy(customLoad);
   close(parseIde10(customLoad, "changed-load-copy.ide10").elements.find(e => e.id === loadedSlab.id)!.planAnnotation!.loads!.dead, 0.1234);

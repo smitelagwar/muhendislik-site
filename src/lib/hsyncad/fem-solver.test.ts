@@ -515,6 +515,11 @@ test("7.1 3D Frame solver solves complete portal frame with 11 stations and natu
 
   assert.equal(output.success, true);
   assert.ok(output.totalWeightKn > 150);
+  assert.ok(output.modes.length > 0, "Fixture must exercise the legacy condensed modal branch");
+  for (const mode of output.modes) {
+    assert.equal(mode.massParticipationY, null, "Unsolved Y participation must remain unknown");
+    assert.equal(mode.massParticipationRot, null, "Unsolved rotational participation must remain unknown");
+  }
   assert.ok(output.naturalPeriods[0] > 0.05 && output.naturalPeriods[0] < 1.5, `T1 must be realistic, got ${output.naturalPeriods[0]}`);
   assert.ok(output.baseShears.Vtx > 0);
   assert.ok(output.baseShears.Vty > 0);

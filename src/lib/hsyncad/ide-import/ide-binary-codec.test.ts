@@ -130,6 +130,43 @@ test("11.04 compressed archives require a bounded, complete body and valid Adler
   assert.throws(() => getIde11CompressedBlock(bytes, metadata), /uzunluğu/);
 });
 
+function carrierWithMarker(version: number, encoded: 0 | 1, studentFlag = 0, demoFlag = 0): Uint8Array<ArrayBuffer> {
+  const bytes = carrier(version, encoded);
+  const view = new DataView(bytes.buffer);
+  // projectNameByteLength = 3 -> previewLengthOffset = 115, previewLen = 0 -> previewEnd = 119
+  bytes[119 + 28] = studentFlag;
+  bytes[119 + 29] = demoFlag;
+  view.setUint32(119 + 30, 0x5ce, true);
+  view.setUint32(83, rawCrc(bytes), true);
+  return bytes;
+}
+
+test("getIdeCarrierFormat distinguishes converted commercial ide11 from trial/student/211280 carriers", () => {
+  const commercialEncoded = carrierWithMarker(211220, 1, 0, 0);
+  assert.equal(getIdeCarrierFormat(commercialEncoded, validateIdeCarrier(commercialEncoded)), "ide11");
+
+  const demoTrial = carrierWithMarker(211220, 1, 0, 1);
+  assert.equal(getIdeCarrierFormat(demoTrial, validateIdeCarrier(demoTrial)), "ide11trial");
+
+  const studentTrial = carrierWithMarker(211220, 1, 1, 0);
+  assert.equal(getIdeCarrierFormat(studentTrial, validateIdeCarrier(studentTrial)), "ide11trial");
+
+  const currentTrialNoMarker = carrier(211280, 1);
+  assert.equal(getIdeCarrierFormat(currentTrialNoMarker, validateIdeCarrier(currentTrialNoMarker)), "ide11trial");
+
+  const currentTrialClearedMarker = carrierWithMarker(211280, 1, 0, 0);
+  assert.equal(getIdeCarrierFormat(currentTrialClearedMarker, validateIdeCarrier(currentTrialClearedMarker)), "ide11trial");
+
+  const noMarkerEncoded = carrier(211220, 1);
+  assert.equal(getIdeCarrierFormat(noMarkerEncoded, validateIdeCarrier(noMarkerEncoded)), "ide11trial");
+
+  const noMarkerRaw = carrier(211220, 0);
+  assert.equal(getIdeCarrierFormat(noMarkerRaw, validateIdeCarrier(noMarkerRaw)), "ide11");
+
+  const v10 = carrier(201094, 0);
+  assert.equal(getIdeCarrierFormat(v10, validateIdeCarrier(v10)), "ide10");
+});
+
 const officialCde = process.env.HSYNCAD_IDE211040_FIXTURE;
 test("ideYAPI 11.04 sample reads the two native storeys and keeps its original compressed format", { skip: !officialCde, timeout: 30_000 }, () => {
   assert.ok(officialCde);
