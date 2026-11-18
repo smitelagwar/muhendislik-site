@@ -3,7 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { parseIde10 } from "../../src/lib/hsyncad/ide-import";
 import * as ideExport from "../../src/lib/hsyncad/ide-export";
-import { IDE10_BODY_CONVERSION_UNSUPPORTED } from "../../src/lib/hsyncad/ide-import/ide11-transcoder";
+import { transcodeIde11TrialToIde10, type Ide10TranscodeDiagnostics } from "../../src/lib/hsyncad/ide-import/ide11-transcoder";
 import {
   getIdeCarrierFormat,
   IDE10_VERSION,
@@ -21,6 +21,7 @@ interface CliOptions {
   inputPath?: string;
   outDir?: string;
   to?: TargetFilter;
+  donorPath?: string;
   force: boolean;
   backupDir?: string;
 }
@@ -34,8 +35,10 @@ const USAGE = [
   "  --input <path>       Input .ide11trial (or .ide10) file path (required)",
   "  --out-dir <dir>      Output directory (default: directory of input file)",
   "  --to <target>        Target format: ide11 | ide10 | all",
-  "                       (default: ide11; .ide10 targets are rejected until",
-  "                       the v11-to-v10 body conversion is completed in F3)",
+  "                       (trial input default: ide11; --to ide10 and --to all now",
+  "                       perform the real v11->v10 body conversion — T-F3.3)",
+  "  --donor <path>       Optional paired native .ide10 of the SAME project",
+  "                       (fills unestablished-layout regions; recommended)",
   "  --force              Allow overwriting existing output files or equal input path",
   "  --backup-dir <dir>   Optional directory for additional backup copies",
   "  -h, --help           Show this help message",
@@ -122,6 +125,13 @@ function parseCliArgs(argv: string[]): CliOptions {
       i = nextIndex;
       continue;
     }
+    if (!positionalOnly && (arg === "--donor" || arg.startsWith("--donor="))) {
+      const inline = arg.startsWith("--donor=") ? arg.slice("--donor=".length) : undefined;
+      const { value, nextIndex } = takeValue("--donor", inline, i);
+      options.donorPath = value;
+      i = nextIndex;
+      continue;
+    }
     if (!positionalOnly && arg.startsWith("-")) {
       throw new Error(`Unknown option: ${arg}`);
     }
@@ -139,13 +149,10 @@ function parseCliArgs(argv: string[]): CliOptions {
 
 function resolveTargets(sourceFormat: NativeIdeFormat, to?: TargetFilter): TargetFormat[] {
   if (sourceFormat === "ide11trial") {
-    // T-F1.1 (P1.1), kullanıcı kararı: SERT HATA. `--to ide10`, `--to all` ve
-    // varsayılan hedefin tümü .ide10 üretimi planlar; gövde dönüşümü F3'te
-    // (T-F3.3) tamamlanana kadar bu üretim reddedilir. Yalnız `--to ide11`
-    // geçerlidir.
-    if (to !== "ide11") {
-      throw new Error(IDE10_BODY_CONVERSION_UNSUPPORTED);
-    }
+    // T-F3.3: v11→v10 gerçek gövde dönüşümü artık destekli. Trial girdide
+    // varsayılan hedef --to ide11; --to ide10 ve --to all gerçek dönüşümü üretir.
+    if (to === "ide10") return ["ide10"];
+    if (to === "all") return ["ide11", "ide10"];
     return ["ide11"];
   }
   if (sourceFormat === "ide10") {
@@ -158,7 +165,7 @@ function resolveTargets(sourceFormat: NativeIdeFormat, to?: TargetFilter): Targe
     if (to !== "ide10") {
       throw new Error("Input file is already commercial .ide11; no other target is currently available.");
     }
-    throw new Error(IDE10_BODY_CONVERSION_UNSUPPORTED);
+    return ["ide10"];
   }
   throw new Error(`Unsupported source format "${sourceFormat}" for native conversion.`);
 }
@@ -203,6 +210,25 @@ async function main() {
   const sourceCarrier = validateIdeCarrier(sourceBytes);
   const sourceFormat = getIdeCarrierFormat(sourceBytes, sourceCarrier);
   const targets = resolveTargets(sourceFormat, options.to);
+
+  // T-F3.3: --donor ile eş proje .ide10 donörü (yalnız .ide10 hedefi için anlamlı).
+  let donorBytes: Uint8Array | undefined;
+  if (options.donorPath) {
+    if (!targets.includes("ide10")) {
+      throw new Error("--donor yalnız .ide10 hedefiyle anlamlıdır; --to ide10 veya --to all kullanın.");
+    }
+    const donorPath = path.resolve(options.donorPath);
+    if (!fs.existsSync(donorPath) || !fs.statSync(donorPath).isFile()) {
+      throw new Error(`Donör dosyası bulunamadı: ${donorPath}`);
+    }
+    donorBytes = new Uint8Array(fs.readFileSync(donorPath));
+    const donorCarrier = validateIdeCarrier(donorBytes);
+    if (donorCarrier.formatVersion !== IDE10_VERSION || donorCarrier.encodedFlag !== 0) {
+      throw new Error(`Donör v10 (201094, encoded=0) olmalı: sürüm ${donorCarrier.formatVersion}, encoded ${donorCarrier.encodedFlag}.`);
+    }
+    console.log(`[1] Donor: ${donorPath}`);
+    console.log(`    Size: ${donorBytes.length.toLocaleString()} bytes, SHA-256: ${sha256(donorBytes)}`);
+  }
 
   const transcodeIde10ToIde11 = (ideExport as { transcodeIde10ToIde11?: TranscodeFn }).transcodeIde10ToIde11;
   if (sourceFormat === "ide10" && typeof transcodeIde10ToIde11 !== "function") {
@@ -261,7 +287,25 @@ async function main() {
         ? transcodeIde10ToIde11!(sourceBytes)
         : ideExport.transcodeIde11TrialToIde11(sourceBytes);
     } else {
-      outBytes = ideExport.transcodeIde11TrialToIde10(sourceBytes);
+      const diagnostics = {} as Ide10TranscodeDiagnostics;
+      outBytes = transcodeIde11TrialToIde10(
+        sourceBytes,
+        donorBytes ? { ide10Donor: donorBytes, diagnostics } : { diagnostics },
+      );
+      // Dönüşüm tanıklama özeti (T-F3.3): gerçek ölçülen değerler.
+      console.log(`    Frames rewritten: ${diagnostics.frames?.rewritten ?? "?"} (native 201094 kept: ${diagnostics.frames?.native201094 ?? "?"}, prelude flags cleared: ${diagnostics.frames?.preludeFlagsCleared ?? "?"})`);
+      console.log(`    Label splices (beam + wall sections): ${diagnostics.labelSplices?.beam ?? "?"}`);
+      if (diagnostics.donor) {
+        const dn = diagnostics.donor;
+        console.log(`    Donor regions: pre-floor [${dn.preFloorSplice.workFrom}..${dn.preFloorSplice.workTo}) <- donor [${dn.preFloorSplice.donorFrom}..${dn.preFloorSplice.donorTo})`);
+        console.log(`    R1: ${dn.r1.records} records, ${dn.r1.slotsBitExact} slots bit-exact, ${dn.r1.slotsDonorFallback} donor slots${dn.r1.donorSlots.length ? ` (${dn.r1.donorSlots.join(",")})` : ""}`);
+        console.log(`    R3: ${dn.r3.patches} patches, changed bytes ${dn.r3.patchesChangedBytes}, fields bit-exact: ${dn.r3.fieldsBitExact}`);
+        console.log(`    R4: wall ${dn.r4.wall}, beam ${dn.r4.beam}, raft ${dn.r4.raft}; blocks verified ${dn.r4.blocksVerified}, mismatches ${dn.r4.blockMismatches}, tuple unresolved ${dn.r4.tupleUnresolved}`);
+        console.log(`    R5: ${dn.r5.tables} modal tables, region byte-equal to donor: ${dn.r5.regionBytesEqual}`);
+        console.log(`    Spectrum fields bit-exact: ${dn.spectrum.fieldsBitExact}`);
+      } else {
+        console.log(`    Donor: none — unestablished-layout regions keep their v11 layout (analytic reads may be partial).`);
+      }
     }
 
     const chk = verifyIdeHeaderChecksum(outBytes);

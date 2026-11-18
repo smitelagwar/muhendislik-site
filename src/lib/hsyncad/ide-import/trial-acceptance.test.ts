@@ -24,18 +24,48 @@ test("unverified native slab load overrides fail before modifying output", () =>
   }
 });
 
-// Not: F3'te (T-F3.3) gerçek v11→v10 gövde dönüşümü gelince bu test, dönüşümün
-// döşeme yüklerini koruduğunu doğrulamak üzere T-F3.3 sahibince yeniden yazılacaktır.
-test("IDE11 trial to IDE10 is rejected as unsupported until F3 body conversion lands", { skip: !existsSync(file), timeout: 30_000 }, () => {
+// T-F1.1b açık işi kapatıldı (T-F3.3): bu test artık GERÇEK v11→v10 gövde
+// dönüşümünü doğrular — taşıyıcı v10 mührü, model eşitliği ve döşeme yüklerinin
+// korunması. Donör: kullanıcının kendi native .ide10 kaydı (`original`).
+test("IDE11 trial to IDE10 performs the real body conversion and preserves slab live loads", { skip: !existsSync(file) || !existsSync(original), timeout: 300_000 }, () => {
   const source = readFileSync(file);
   const before = digest(source);
-  const siblingIde10 = file.replace(/\.ide11trial$/, ".ide10");
-  const siblingExisted = existsSync(siblingIde10);
-  assert.throws(
-    () => transcodeIde11TrialToIde10(source),
-    /v11→v10 gövde dönüşümü F3'te tamamlanana kadar desteklenmiyor[\s\S]*\.ide10 üretimi reddedilir[\s\S]*--to ide11 kullanın/,
+  const donor = readFileSync(original);
+  const converted = transcodeIde11TrialToIde10(source, { ide10Donor: donor });
+  const outView = new DataView(converted.buffer, converted.byteOffset, converted.byteLength);
+  assert.equal(outView.getUint32(74, true), 201094);
+  assert.equal(converted[78], 0);
+  const sealed = validateIdeCarrier(converted);
+  assert.equal(sealed.formatVersion, 201094);
+  assert.equal(sealed.encodedFlag, 0);
+  const trial = parseIde10(buffer(source), "source.ide11trial");
+  const parsed = parseIde10(buffer(converted), "converted.ide10");
+  const prior = parseIde10(buffer(donor), "donor.ide10");
+  assert.equal(parsed.format, "ide10");
+  assert.equal(parsed.floors.length, trial.floors.length);
+  assert.deepEqual(
+    parsed.floors.map(f => [f.name, f.elevation, f.height]),
+    trial.floors.map(f => [f.name, f.elevation, f.height]),
   );
-  assert.equal(existsSync(siblingIde10), siblingExisted, "Reddedilen üretim hiçbir .ide10 çıktısı yazmamalı.");
+  assert.equal(parsed.elements.length, trial.elements.length);
+  assert.deepEqual(parsed.coverage.byType, trial.coverage.byType);
+  // Döşeme yükleri dönüşümde korunur (T-F1.1b notunun asıl talebi).
+  const key = (e: typeof parsed.elements[number]) => `${e.floorId}:${e.nativeId}`;
+  const trialLoads = new Map(
+    trial.elements.filter(e => e.planAnnotation?.loads).map(e => [key(e), e.planAnnotation!.loads!]),
+  );
+  assert.ok(trialLoads.size >= 150, `kaynakta en az 150 döşeme yükü beklenirdi; ${trialLoads.size}.`);
+  for (const e of parsed.elements) {
+    const t = trialLoads.get(key(e));
+    if (!t) continue;
+    assert.ok(e.planAnnotation?.loads, `${key(e)} döşeme yükleri dönüşümde kaybolmamalı.`);
+    close(e.planAnnotation!.loads!.dead, t.dead);
+    close(e.planAnnotation!.loads!.live, t.live);
+  }
+  // Donör parite tanıklığı: eleman kimlikleri ve katlar donörle hizalı.
+  assert.equal(parsed.floors.length, prior.floors.length);
+  assert.equal(parsed.elements.length, prior.elements.length);
+  // Kaynak dosya değişmedi.
   assert.equal(digest(source), before);
   assert.equal(digest(readFileSync(file)), before);
 });
