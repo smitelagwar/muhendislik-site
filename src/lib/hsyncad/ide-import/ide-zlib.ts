@@ -105,9 +105,16 @@ export interface Ide201094FrameOptions {
   level?: number;
 }
 
+/**
+ * fflate `zlibSync` only accepts the literal 0-9 level union, but the public writer option stays
+ * `number` (T-F3.1's level test iterates a plain `number[]`), so narrow at the call boundary
+ * with a type-only assertion — zero runtime change (T-F3.1b).
+ */
+type FflateZlibLevel = NonNullable<NonNullable<Parameters<typeof zlibSync>[1]>["level"]>;
+
 /** Build a complete `[u32 201094][u32 compLen][u32 rawLen][zlib 0x78...]` frame from raw bytes. */
 export function buildIde201094Frame(raw: Uint8Array, options?: Ide201094FrameOptions): Uint8Array {
-  const compressed = zlibSync(raw, { level: options?.level });
+  const compressed = zlibSync(raw, { level: options?.level as FflateZlibLevel });
   if (compressed[0] !== 0x78 || compressed.length < 8) {
     throw new Error("IDE zlib yazıcısı tarayıcıyla uyumlu 0x78 başlığı üretmedi.");
   }
