@@ -6,6 +6,7 @@ import { parseIde10 } from "./index";
 import { saveNativeIdeSource } from "../ide-native-save";
 import { parseIdeProjectSnapshot, serializeIdeProject, exportIdeDxf } from "../ide-export";
 import { transcodeIde11TrialToIde10, transcodeIde11TrialToIde11 } from "./ide11-transcoder";
+import { validateIdeCarrier } from "./ide-binary-codec";
 
 const file = "C:/Users/hsyn/Desktop/MUSTAFA SELVİ 1.KISIM.ide11trial";
 const original = "D:/IDM_DOWNLOAD/MUSTAFA SELVİ TÜM PROJELER/STATİK/1.kısım/MUSTAFA SELVİ 1.KISIM.ide10";
@@ -146,4 +147,38 @@ test("ideCAD 11.28 trial save retains the observed model and stair mesh", { skip
   const saved = saveNativeIdeSource(source, native, "ide11trial");
   assert.equal(digest(saved.bytes), before);
   assert.equal(digest(source), before);
+});
+
+/**
+ * ideCAD 11.28'in açtığı taşıyıcı sürüm kabul ailesi: 201091 (yapı şablonu),
+ * 201094 (native .ide10), 211220 (ideCAD 11.20 şeması) ve 211280 (ideCAD 11.28 şeması).
+ */
+const IDECAD_1128_ACCEPTANCE_FAMILY = new Set([211220, 211280, 201091, 201094]);
+const conversionEvidence = (name: string) =>
+  `C:/Users/hsyn/Desktop/hsyncad_idecad_uzanti_optimizasyon/evidence/hsyncad-conversions/${name}`;
+const nativeIde11Carriers = ["HS_B0_orijinal.ide11", "HS_X11_downloads.ide11"].map(conversionEvidence);
+
+test("native ide11 output keeps the source carrier version inside the ideCAD 11.28 acceptance family", { skip: !nativeIde11Carriers.every(existsSync), timeout: 120_000 }, () => {
+  for (const carrierPath of nativeIde11Carriers) {
+    const source = readFileSync(carrierPath);
+    const before = digest(source);
+    const sourceVersion = source.readUInt32LE(74);
+    assert.ok(IDECAD_1128_ACCEPTANCE_FAMILY.has(sourceVersion), `${carrierPath}: kaynak taşıyıcı ${sourceVersion} kabul ailesi dışında.`);
+    const converted = transcodeIde11TrialToIde11(source);
+    const outView = new DataView(converted.buffer, converted.byteOffset, converted.byteLength);
+    const outputVersion = outView.getUint32(74, true);
+    // P0 regresyon koruması: gövde şeması değişmediği için çıktı taşıyıcısı kaynak
+    // şema sürümünü taşımalıdır. 211280 gövdeyi sabit 211220 taşıyıcıyla mühürlemek
+    // (eski davranış) ideCAD 11.28'in açışta kapattığı dosyalar üretiyordu.
+    assert.equal(outputVersion, sourceVersion, `${carrierPath}: çıktı taşıyıcı ${outputVersion} kaynak sürüm ${sourceVersion} ile eşit olmalı.`);
+    if (sourceVersion === 211280) {
+      assert.notEqual(outputVersion, 211220, "211280 kaynağı için eski sabit-211220 mühürleme geri dönmemeli.");
+    }
+    assert.ok(IDECAD_1128_ACCEPTANCE_FAMILY.has(outputVersion), `${carrierPath}: çıktı taşıyıcı ${outputVersion} ideCAD 11.28 kabul ailesi dışında.`);
+    assert.equal(converted[78], source[78], `${carrierPath}: encodedFlag dönüşümde korunmalı.`);
+    assert.equal(outView.getUint32(79, true), converted.length, `${carrierPath}: mühürlü boyut çıktı ile eşit olmalı.`);
+    const sealed = validateIdeCarrier(converted);
+    assert.equal(sealed.formatVersion, sourceVersion);
+    assert.equal(digest(source), before);
+  }
 });
