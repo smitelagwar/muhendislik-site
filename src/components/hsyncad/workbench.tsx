@@ -43,7 +43,7 @@ import NativeCoordinateBox from "./coordinate-box";
 import { useDrawingSession, type DrawingType, type Dimensions } from "./use-drawing-session";
 import PaftaViewer from "./pafta-viewer";
 import { readIdeFile, MAX_IDE_BYTES } from "@/lib/hsyncad/ide-reader-client";
-import { importIdeWorkspace, ideReferenceElements, IDE_REFERENCE_LAYER } from "@/lib/hsyncad/ide-workspace";
+import { importIdeWorkspace, ideProjectAnalytics, ideReferenceElements, IDE_REFERENCE_LAYER } from "@/lib/hsyncad/ide-workspace";
 import { ideExampleUrl, type IdeExampleId } from "@/lib/hsyncad/ide-examples";
 import {
   AnalysisControlsBar,
@@ -165,6 +165,18 @@ export default function HsynCadWorkbench() {
   const junctions = useMemo(() => resolveJunctions(model), [model]);
   const quantities = useMemo(() => calculateQuantities(model, junctions), [model, junctions]);
   const ideReferences = useMemo(() => ideReferenceElements(model), [model]);
+  const ideR15Summary = useMemo(() => {
+    const analytics = ideProjectAnalytics(model.ideImport?.source);
+    if (!analytics || (!analytics.materialCount && !analytics.rebarCount && !analytics.modalTableCount && !analytics.seismic)) return null;
+    const value = (n: number | null | undefined) => (n === null || n === undefined || !Number.isFinite(n) ? "?" : String(n));
+    const parts = [
+      ...(analytics.materialCount ? [`${analytics.materialCount} malzeme`] : []),
+      ...(analytics.seismic ? [`deprem/zemin ${analytics.seismic.exposureClass ?? "?"}${analytics.seismic.spectrumId ? `/${analytics.seismic.spectrumId}` : ""}: r=${value(analytics.seismic.rEntered)}, n=${value(analytics.seismic.liveLoadFactorN)}, ko=${value(analytics.seismic.subgradeKoTfM3)} tf/m³, qt=${value(analytics.seismic.bearingCapacityQtTfM2)} tf/m²`] : []),
+      ...(analytics.rebarCount ? [`${analytics.rebarCount} donatı düzeni`] : []),
+      ...(analytics.modalTableCount ? [`${analytics.modalTableCount} F9/modal tablosu`] : []),
+    ];
+    return `Kaynak verileri: ${parts.join(" · ")}.`;
+  }, [model]);
   const visibleIdeReferences = useMemo(() => ideReferences.filter(e => !hiddenLayers.includes(IDE_REFERENCE_LAYER) && layerState(model, IDE_REFERENCE_LAYER, e.floorId).visible), [ideReferences, hiddenLayers, model]);
   const activeType = TOOLS.some((t) => t.id === tool) ? tool as DrawingType : null;
     const layerOptions = [...new Set([...LAYERS, ...(ideReferences.length ? [IDE_REFERENCE_LAYER] : []), ...(model.layers?.map(l => l.name) ?? []), ...model.elements.map((e) => e.layer)])];
@@ -771,7 +783,7 @@ export default function HsynCadWorkbench() {
     <LocalReportDialog open={localReportOpen} onClose={() => setLocalReportOpen(false)} source={ideSourceSession} onReselect={setIdeSourceSession} model={model} analysisResult={analysisResult} activeFloorId={floor.id} activeFloorName={floor.name} selectedElementIds={selectedId ? [selectedId] : []} />
     <input ref={fileInput} type="file" accept=".ide,.ide10,.ide11,.ide11trial,.cde,.hsyncad,.json,application/json" hidden aria-label="IDE veya hsynCAD model dosyası" data-testid="hsyncad-import" onChange={(e) => void importFile(e.target.files?.[0])} />
     {importProgress !== null && <div className={styles.importBar} role="status" data-testid="hsyncad-import-progress"><span>{importProgress}</span><button type="button" onClick={() => { importRequest.current?.abort(); importRequest.current = null; setImportProgress(null); setMessage("Dosya açma iptal edildi; mevcut model korundu."); }}>İptal</button></div>}
-    {model.ideImport && <details className={styles.importReport} data-testid="hsyncad-ide-import-report"><summary>{model.ideImport.source.filename} · {model.ideImport.mappedIds.length} eleman düzenlemeye aktarıldı · {ideReferences.length} kaynak referansı</summary><div><p>Kolon, kiriş, perde, boşluksuz döşeme ve aksları normal çizim araçlarıyla düzenleyin. Çalışmanızı .hsyncad olarak kaydedin. Değişikliklerin native IDE olarak yazılması henüz desteklenmiyor; ideCAD aktarımı için Dosya menüsündeki IFC çıktısını kullanın.</p><p>Kaynak referansları metraj ve analize dahil değildir. Malzemeleri ve yükleri yeniden tanımlayın; native donatı ve analiz sonuçları aktarılmadı. Okuma kapsamı: {model.ideImport.source.coverage.unsupportedRecords} çözümlenemeyen aday kayıt; bu sayı tüm dosyanın envanteri değildir.</p><label><input type="checkbox" checked={!hiddenLayers.includes(IDE_REFERENCE_LAYER)} onChange={event => setHiddenLayers(current => event.target.checked ? current.filter(l => l !== IDE_REFERENCE_LAYER) : [...current, IDE_REFERENCE_LAYER])} /> Kaynak referanslarını göster</label>{model.ideImport.source.warnings.map((warning, i) => <p key={i}>{warning}</p>)}{model.ideImport.references.length > 0 && <ul>{model.ideImport.references.map(ref => <li key={ref.id}>{model.ideImport!.source.elements.find(e => e.id === ref.id)?.name} — {ref.reason}</li>)}</ul>}</div></details>}
+    {model.ideImport && <details className={styles.importReport} data-testid="hsyncad-ide-import-report"><summary>{model.ideImport.source.filename} · {model.ideImport.mappedIds.length} eleman düzenlemeye aktarıldı · {ideReferences.length} kaynak referansı</summary><div><p>Kolon, kiriş, perde, boşluksuz döşeme ve aksları normal çizim araçlarıyla düzenleyin. Çalışmanızı .hsyncad olarak kaydedin. Değişikliklerin native IDE olarak yazılması henüz desteklenmiyor; ideCAD aktarımı için Dosya menüsündeki IFC çıktısını kullanın.</p>{ideR15Summary && <p data-testid="hsyncad-ide-r15-summary">{ideR15Summary}</p>}<p>Kaynak referansları metraj ve analize dahil değildir. {ideR15Summary ? "Kaynak R1–R5 verileri (malzeme, deprem/zemin, donatı, F9/modal) yukarıda sayılandırıldı; düzenlemede malzeme atamalarını gözden geçirin." : "Malzemeleri ve yükleri yeniden tanımlayın; native donatı ve analiz sonuçları aktarılmadı."} Okuma kapsamı: {model.ideImport.source.coverage.unsupportedRecords} çözümlenemeyen aday kayıt; bu sayı tüm dosyanın envanteri değildir.</p><label><input type="checkbox" checked={!hiddenLayers.includes(IDE_REFERENCE_LAYER)} onChange={event => setHiddenLayers(current => event.target.checked ? current.filter(l => l !== IDE_REFERENCE_LAYER) : [...current, IDE_REFERENCE_LAYER])} /> Kaynak referanslarını göster</label>{model.ideImport.source.warnings.map((warning, i) => <p key={i}>{warning}</p>)}{model.ideImport.references.length > 0 && <ul>{model.ideImport.references.map(ref => <li key={ref.id}>{model.ideImport!.source.elements.find(e => e.id === ref.id)?.name} — {ref.reason}</li>)}</ul>}</div></details>}
     <div className={`hcad-ribbon ${tab === "Giriş" && tool === "axis" ? "hcad-ribbon-axis" : tab === "Giriş" && !activeType ? "hcad-ribbon-passive" : ""}`} data-testid="hsyncad-context-bar" aria-label="Etkin araç seçenekleri">
       {tab === "Giriş" && tool !== "axis" && <>
         <div className="hcad-context-title"><span>{activeType ? "Yeni " + TYPE_NAMES[activeType] : tool === "move" ? "Taşı" : tool === "pan" ? "Görünümü kaydır" : "Seçim"}</span><small>{instruction}</small></div>

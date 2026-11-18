@@ -104,6 +104,27 @@ export function importIdeWorkspace(source: IdeProject): CadModel {
   return validateModel(model);
 }
 
+/** R1–R5 counts shown by the workbench/report summary labels.
+ *  Fields absent from the source stay at 0/undefined — nothing is fabricated. */
+export type IdeProjectAnalytics = {
+  materialCount: number;
+  rebarCount: number;
+  modalTableCount: number;
+  seismic?: IdeProject["seismicSoil"];
+};
+
+export function ideProjectAnalytics(source: IdeProject | null | undefined): IdeProjectAnalytics | null {
+  if (!source) return null;
+  let rebarCount = 0;
+  for (const element of source.elements) if (element.rebarLayout) rebarCount += 1;
+  return {
+    materialCount: source.materials?.length ?? 0,
+    rebarCount,
+    modalTableCount: source.f9Results?.modalTables.length ?? 0,
+    ...(source.seismicSoil ? { seismic: source.seismicSoil } : {}),
+  };
+}
+
 export function ideReferenceElements(model: CadModel): IdeElement[] {
   if (!model.ideImport) return [];
   const ids = new Set(model.ideImport.references.map(r => r.id)), floors = new Set(model.floors.map(f => f.id));
