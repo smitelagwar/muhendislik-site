@@ -1,7 +1,7 @@
 # IDE10 Gövde Grameri — v10 (.ide10) Kayıt/Alt-Akış Haritası
 
-**Görev:** F2/T-F2.6 (gramer-mimarı sentezi, 19 Kasım 2026) · **Makine-okunur ikiz:** [`src/lib/hsyncad/ide-import/ide10-grammar.json`](../../src/lib/hsyncad/ide-import/ide10-grammar.json)
-**Tüketici:** T-F3.3 gövde transcoder'ı, T-F4.1 ters yükseltici, T-F5.1 encoded v11 okuma. Şemadaki her kural **KANIT** ya da **VARSAYIM** etiketlidir; **F3 üretim girdisinde VARSAYIM kullanımı yasaktır** (T-F2.7 savcı turu denetler).
+**Görev:** F2/T-F2.6 (gramer-mimarı sentezi, 19 Kasım 2026) · **Makine-okunur ikiz:** [`src/lib/hsyncad/ide-import/ide10-grammar.json`](../../src/lib/hsyncad/ide-import/ide10-grammar.json) (şema sürümü **1.0.1** — T-F2.7b savcı/critic keskinlik düzeltmeleri)
+**Tüketici:** T-F3.3 gövde transcoder'ı, T-F4.1 ters yükseltici, T-F5.1 encoded v11 okuma. Şemadaki her kural **KANIT** ya da **VARSAYIM** etiketlidir; **F3 üretim girdisinde VARSAYIM kullanımı yasaktır** (T-F2.7 savcı turu denetler). v1.0.1'den itibaren mekanik yaptırım: T-F3.3 üretim yükleyicisi `assumption:true` satırında **üretim yolunda hard-fail eder ve reddedilenleri loglar**; test/analitik yolda yalnız warning verir (şema `meta.tuketiciSozlesme`).
 
 Bu doküman dört F2 kulvarının sentezidir: M0 diferansiyel deneyi (T-F2.2), M1–M6 tek değişkenli mutasyonlar (T-F2.3/T-F2.3b), 140 MB korpus byte-map (T-F2.4) ve decompile çaprazları (T-F2.5). Kanıt kökü: `C:\Users\hsyn\Desktop\hsyncad_idecad_uzanti_optimizasyon\evidence\orkestrasyon\` (bölüm §18'de tam dizin).
 
@@ -139,7 +139,7 @@ f64 rotasyon
 f64 yanal ofset  ← cursor+8 == kayıt sonu
 ```
 
-**KANIT** — `ide-import/index.ts L225-263` (1.266/1.266 geometri parmak izi oracle'ı; 05-REA §2.5); ölçek çarpanları §4 L33-34 ile aynı kural.
+**KANIT** — `ide-import/index.ts L225-263` (1.266/1.266 geometri parmak izi oracle'ı; 05-REA §2.5); ölçek çarpanları §4 L33-34 ile aynı kural. *v1.0.1 not:* şema bu tail-göreli ofsetleri artık açıkça taşır — ELEMAN-GEOMETRI `sira≥4` satırlarında `offsetTabani:"tail"` (0/4/12/20/24 ofsetleri p-göreli değil tail-görelidir).
 
 ---
 
@@ -158,7 +158,7 @@ Koordinat sistemi: **M-base** (464.850 B `.ide11trial`, SHA `BD32651E…`, 21128
 
 | Alan | Konum (M-base) | Değişim | Kaynak |
 |---|---|---|---|
-| **Zemin taşıma gücü qt** | **@112899, 8B kodlanmış** | 42→45 tf/m²: `8f7f17a268cd40a0 → 426b53f4f19c961d`; düz f64/f32/i32 **yok** (kodlu f64, §6) | **KANIT** — M2-diff |
+| **Zemin taşıma gücü qt** | **@112899, 8B kodlanmış** | 42→45 tf/m²: `8f7f17a268cd40a0 → 426b53f4f19c961d`; düz f64/f32/i32 **yok** | **KANIT** — M2-diff (kimlik + konum + 8B kodlu kayıt ampirik gerçektir). *Kodlu f64 temsili + FUN_14098d270→FUN_140437e60 üye eşleşmesi ise VARSAYIM'dır* — şema v1.0.1'de satır ikiye ayrıldı (ampirik=KANIT, yapısal=VARSAYIM; G2 savcı B1/T1) |
 | qt-sayaç ailesi | @147265-147269 (5B), @243159, @245802, @396536 (+1) | qt tetiklediği yeniden hesap/sayaç baytları (mod-periyot gap bölgesi); M3'te taban değerinde | **KANIT** — M2-diff + M3 çaprazı |
 | **Döşeme Q (yük tanımı)** | **@28843, 8B kodlanmış** + **@28859, 6B ikincil** | "Kullanıcı Tanımlı 0.15"→"Düşük Döşeme 0.532" tf/m²: `19b1bbe8443bf11a → 6c833fbf0c10f3c1`; `0100ffffffff → 000003000000`; qt bölgesinden **ayrık** (M2 @112899'a dokunulmadı) | **KANIT** — t23b M3-diff |
 | **Rapor "Öde Kapak"** | **@113429, 1B bayrak** | 01→00 tek bayt; akışlar/boyut değişmez | **KANIT** — M6-diff |
@@ -209,6 +209,7 @@ Yapısal bağlam: qt/döşeme-Q/kapak gibi **salt kontrol/rapor ayarları** yaln
 | **0x338ce / 211150** | **story reference B +4 (§11)** | REA findings + eski okuyucu `b8e645` |
 | 0x33928 / 211240 | u32 ek alanı (<); okuyucu @+0x8cc==2 bayrağı | `140989c30.c L135-138`; okuyucu L382-384 |
 | 0x33950 / 211280 | güncel yazıcının varsayılan sürümü | `140989c30.c L40` |
+| **encodedFlag = 1** (format bayrağı, sürüm eşiği değil) | ELEMAN-GEOMETRI sira-9 OPAK 16B (4×u32) ilk referans listesinden sonra yazılır (liste boş olsa bile); bayrak=0 (v10 201094) ise yazılmaz — şema v1.0.1'de sözlüğe `V-ENCODED` olarak bağlandı | `index.ts L240-244` |
 
 ---
 
@@ -294,6 +295,8 @@ Kat: 6/6 (ASANSÖR MAK.DAİRESİ dahil). Parser 1.273 kayıt çözdü; parmak iz
 | — f32-tablo (FRAME_SIZES) | 1.659 | `rawLen=4+4N ∧ ilkU32=N ∧ N%6==0` (kiriş 1.071 + perde 588) | KANIT |
 | — boş yuva | 212 | `rawLen∈{4,16} ∧ payload sıfır` (döşeme 152×16B + döşeme kenarı 60×4B) | KANIT |
 | — tamsayı-kayıt | 14 | kalan (döşeme FEM ağı 7 + merdiven analiz ağı 7); iç gramer açık iş | bölge KANIT |
+
+*Alt-tip çözümleme önceliği (v1.0.1):* rawLen=4'te boş yuva ↔ f32-tablo (N=0) koşulları çakışır — **"boş yuva önce"** kuralı uygulanır (rawLen=4 ∧ payload tam sıfır → boş yuva; aksi halde f32-tablo); 1659/212/14 dağılımı ancak bu öncelikle çıkar (şema `altTipCozumOnceligi`).
 | CIZIM-BICEM-TABLOSU (#1885) | 1 | ARA bölge + `rawLen=813.063`; ilk u32 1461; `Arial\0` + `CONTINUOUS\0` dizeleri | içerik KANIT; üretici dalı VARSAYIM |
 | R5-F9-DUGUM-YERDEGISTIRME | 28.001 | F9 düğüm bloğu + `rawLen=13.564` | KANIT |
 | R5-F9-KABUK-SONUC | 373 | F9 kabuk bloğu + `rawLen≥45 ∧ (rawLen−17)%28==0` | KANIT |
