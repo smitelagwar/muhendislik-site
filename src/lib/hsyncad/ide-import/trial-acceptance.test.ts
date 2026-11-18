@@ -24,25 +24,18 @@ test("unverified native slab load overrides fail before modifying output", () =>
   }
 });
 
-test("IDE11 trial to IDE10 preserves normal slab live loads", { skip: !existsSync(file), timeout: 30_000 }, () => {
+// Not: F3'te (T-F3.3) gerçek v11→v10 gövde dönüşümü gelince bu test, dönüşümün
+// döşeme yüklerini koruduğunu doğrulamak üzere T-F3.3 sahibince yeniden yazılacaktır.
+test("IDE11 trial to IDE10 is rejected as unsupported until F3 body conversion lands", { skip: !existsSync(file), timeout: 30_000 }, () => {
   const source = readFileSync(file);
   const before = digest(source);
-  const originalProject = parseIde10(buffer(source), "source.ide11trial");
-  const converted = transcodeIde11TrialToIde10(source);
-  const project = parseIde10(buffer(converted), "converted-copy.ide10");
-  const key = (e: typeof project.elements[number]) => `${e.floorId}:${e.nativeId}`;
-  const originalSlabs = originalProject.elements.filter(e => e.type === "slab" && !e.foundation && e.planAnnotation?.loads);
-  const convertedSlabs = new Map(project.elements.filter(e => e.type === "slab" && !e.foundation).map(e => [key(e), e]));
-  assert.equal(originalSlabs.length, 158);
-  for (const slab of originalSlabs) {
-    const convertedSlab = convertedSlabs.get(key(slab));
-    assert.ok(convertedSlab?.planAnnotation?.loads, `Missing slab ${key(slab)}`);
-    close(convertedSlab.planAnnotation.loads.live, slab.planAnnotation!.loads!.live);
-  }
-  const d1 = project.elements.find(e => e.nativeId === 6129657);
-  assert.ok(d1?.planAnnotation?.loads);
-  close(d1.planAnnotation.loads.live, 1);
-  close(new DataView(converted.buffer, converted.byteOffset, converted.byteLength).getFloat64(d1.planAnnotation.loads.sourceOffset - 8, true), 1);
+  const siblingIde10 = file.replace(/\.ide11trial$/, ".ide10");
+  const siblingExisted = existsSync(siblingIde10);
+  assert.throws(
+    () => transcodeIde11TrialToIde10(source),
+    /v11→v10 gövde dönüşümü F3'te tamamlanana kadar desteklenmiyor[\s\S]*\.ide10 üretimi reddedilir[\s\S]*--to ide11 kullanın/,
+  );
+  assert.equal(existsSync(siblingIde10), siblingExisted, "Reddedilen üretim hiçbir .ide10 çıktısı yazmamalı.");
   assert.equal(digest(source), before);
   assert.equal(digest(readFileSync(file)), before);
 });
