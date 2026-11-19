@@ -1,5 +1,10 @@
 import type { IdeProject } from "./ide-import";
-import { transcodeIde11TrialToIde10, transcodeIde11TrialToIde11 } from "./ide-import/ide11-transcoder";
+import {
+  transcodeIde10ToIde11,
+  transcodeIde11TrialToIde10,
+  transcodeIde11TrialToIde11,
+} from "./ide-import/ide11-transcoder";
+import type { NativeIdeFormat } from "./ide-import/ide-binary-codec";
 
 /** "Dönüştür + indir" hedefi; "kaydet" akışı (`ide-native-save.ts`) değildir. */
 export type NativeIdeDownloadTarget = "ide11" | "ide10";
@@ -52,46 +57,149 @@ export function convertIdeSourceToNative(
 /** Açık projeyi "farklı kaydet" hedefleri. */
 export type NativeIdeSaveTarget = NativeIdeDownloadTarget;
 
+/** Dosya adından native kaynak biçimini çıkarır (`.ide11trial` → ide11trial). */
+export function ideSourceFormatOf(fileName: string): NativeIdeFormat | null {
+  const match = /\.(ide11trial|ide11|ide10|cde)$/i.exec(fileName);
+  return match ? (match[1].toLowerCase() as NativeIdeFormat) : null;
+}
+
 export interface NativeIdeSaveOption {
+  /** Biçim her zaman seçilebilir; eksik dosya diyalog içinde istenir. */
   enabled: boolean;
-  /** `.ide10` hedefi için eşleşen ticari donör zorunlu mu? */
+  /** Kaynak ideCAD dosyası henüz seçilmedi mi? */
+  needsSource: boolean;
+  /** Eşleşen ticari donör zorunlu mu? */
   donorRequired: boolean;
-  /** Açıklama ya da kapalıysa dürüst gerekçe. */
+  /** İstenen donör türü: v10 hedefi için `.ide10`, v10→v11 için `.ide11`. */
+  donorFormat: "ide10" | "ide11" | null;
+  /** Ne olacağını ya da neyin istendiğini açıklayan metin. */
   reason: string;
 }
 
+/** Hedef + kaynak biçimine göre kaydetme gereksinimleri (saf, tek kaynak). */
+export function nativeSaveRequirement(
+  target: NativeIdeSaveTarget,
+  sourceFormat: NativeIdeFormat | null,
+): Pick<NativeIdeSaveOption, "needsSource" | "donorRequired" | "donorFormat" | "reason"> {
+  if (!sourceFormat) {
+    return {
+      needsSource: true,
+      donorRequired: false,
+      donorFormat: null,
+      reason: "Kaynak ideCAD dosyası seçilmedi; kaydetmek için .ide11trial/.ide11/.ide10 dosyasını seçin.",
+    };
+  }
+  if (sourceFormat === "cde") {
+    return {
+      needsSource: false,
+      donorRequired: false,
+      donorFormat: null,
+      reason: "Sıkıştırılmış .cde gövdesi açılmıyor; kaynak olarak .ide11trial/.ide11/.ide10 dosyası seçin.",
+    };
+  }
+  if (sourceFormat === target) {
+    return {
+      needsSource: false,
+      donorRequired: false,
+      donorFormat: null,
+      reason: `Aynı biçim (.${sourceFormat} → .${target}): kaynak baytlar kopyalanır; varsa kanıtlanmış yamalar yazılır.`,
+    };
+  }
+  if (target === "ide10") {
+    return {
+      needsSource: false,
+      donorRequired: true,
+      donorFormat: "ide10",
+      reason: "Eşleşen ticari .ide10 dosyası donör olarak gerekir; donörsüz üretim ideCAD'de çöker.",
+    };
+  }
+  if (sourceFormat === "ide10") {
+    return {
+      needsSource: false,
+      donorRequired: true,
+      donorFormat: "ide11",
+      reason: "Ters yükseltme: eşleşen ticari .ide11 dosyası donör gerekir; donörsüz çıktı ideCAD'de çöküyor.",
+    };
+  }
+  return {
+    needsSource: false,
+    donorRequired: false,
+    donorFormat: null,
+    reason: "Donörsüz sürüm dönüşümü; kaynak dosya değişmez.",
+  };
+}
+
 /**
- * Açık ideCAD kaynağının hangi native biçimlere kaydedilebileceğini belirler.
+ * Açık ideCAD kaynağının native kayıt yetenekleri.
  *
- * Kanıtlanmış kapsam (K2/S1):
- * - `.ide11trial` / `.ide11` kaynağı → `.ide11` donörsüz, `.ide10` donörlü.
- * - `.ide10` kaynağı → yalnız yerinde yamalı `.ide10`; `.ide11` dönüşümü kanıtlanmadı.
- * - `.cde` veya kaynak dosya yok → native kayıt kapalı (yanlış dosya üretilmez).
+ * Hiçbir biçim kapatılmaz: kaynak dosya yoksa `needsSource` ile diyalog içinde
+ * tek seferlik kaynak seçimi istenir. `.ide10` hedefi eşleşen ticari donör
+ * ister; `.ide10` kaynağı aynı biçimde bayt kopyası olarak yazılır ve
+ * `.ide10 → .ide11` ters yükseltici (`transcodeIde10ToIde11`) kullanılır.
  */
 export function nativeSaveOptions(
   project: IdeProject | null,
   sourceFile: File | undefined,
   patchCount = 0,
 ): Record<NativeIdeSaveTarget, NativeIdeSaveOption> {
-  const closed = (reason: string): NativeIdeSaveOption => ({ enabled: false, donorRequired: false, reason });
-  if (!sourceFile || !project) {
-    const reason = "Özgün ideCAD dosyası açık değil; native kayıt için .ide11trial/.ide11 dosyasını Model aç ile yükleyin.";
-    return { ide11: closed(reason), ide10: closed(reason) };
+  const format = sourceFile ? ideSourceFormatOf(sourceFile.name) : null;
+  const option = (target: NativeIdeSaveTarget): NativeIdeSaveOption => {
+    const requirement = nativeSaveRequirement(target, format);
+    if (target === "ide10" && requirement.donorRequired && patchCount > 0) {
+      return {
+        enabled: true,
+        ...requirement,
+        reason: `${patchCount} native yama uygulanır; ${requirement.reason}`,
+      };
+    }
+    const name = project?.filename;
+    if (requirement.needsSource && name) {
+      return { enabled: true, ...requirement, reason: `${requirement.reason} Proje kaynağı: ${name}.` };
+    }
+    return { enabled: true, ...requirement };
+  };
+  return { ide11: option("ide11"), ide10: option("ide10") };
+}
+
+/**
+ * Kaynak baytları seçilen native biçime çevirir ("farklı kaydet").
+ *
+ * Matris:
+ * - `.ide11trial` → `.ide11` sürüm dönüşümü, `.ide10` donörlü dönüşüm.
+ * - `.ide11` → `.ide11` bayt kopyası, `.ide10` donörlü dönüşüm.
+ * - `.ide10` → `.ide10` bayt kopyası, `.ide11` ters yükseltme (eşleşen .ide11 donörüyle).
+ * - `.cde` → kapalı (gövde açılmıyor).
+ *
+ * Kopya yolları kaynağı asla değiştirmez; dönüşüm yolları transcoder'ın
+ * doğrulama hatalarını aynen fırlatır (yanlış dosya üretilmez).
+ */
+export function convertNativeSave(
+  bytes: ArrayBuffer | Uint8Array,
+  sourceFormat: NativeIdeFormat,
+  target: NativeIdeSaveTarget,
+  donor?: ArrayBuffer | Uint8Array,
+): Uint8Array {
+  const source = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  if (sourceFormat === "cde") {
+    throw new Error("Sıkıştırılmış .cde gövdesi native kayda açılmaz; kaynak olarak .ide11trial/.ide11/.ide10 seçin.");
   }
-  if (project.format === "ide11trial" || project.format === "ide11") {
-    return {
-      ide11: { enabled: true, donorRequired: false, reason: "Donörsüz sürüm dönüşümü; kaynak dosya değişmez." },
-      ide10: { enabled: true, donorRequired: true, reason: "Eşleşen ticari .ide10 dosyası donör olarak gerekir." },
-    };
+  if (target === "ide10") {
+    if (sourceFormat === "ide10") return Uint8Array.from(source);
+    if (!donor) {
+      throw new Error("Native .ide10 üretimi eşleşen ticari .ide10 dosyasını (donör) gerektirir; donör seçilmeden dönüştürme yapılmaz.");
+    }
+    return transcodeIde11TrialToIde10(source, {
+      ide10Donor: donor instanceof Uint8Array ? donor : new Uint8Array(donor),
+    });
   }
-  if (project.format === "ide10") {
-    return {
-      ide11: closed(".ide10 kaynağından .ide11 dönüşümü kanıtlanmadı; dürüst red."),
-      ide10: patchCount > 0
-        ? { enabled: true, donorRequired: false, reason: `${patchCount} native yama mevcut .ide10 dosyasına yazılır.` }
-        : closed("Değişiklik yok; aynı biçimde kaydetmek için en az bir native yazılabilir düzenleme gerekir."),
-    };
+  if (sourceFormat === "ide11") return Uint8Array.from(source);
+  if (sourceFormat === "ide11trial") return transcodeIde11TrialToIde11(source);
+  // .ide10 → .ide11: donörsüz v1 çıktısı ideCAD'de çöküyor (T-F4.1b, 3/3).
+  // Güvenli v2, eşleşen ticari .ide11 dosyasının yerleşim nakliyle üretilir.
+  if (!donor) {
+    throw new Error("Ters yükseltme (.ide10 → .ide11) eşleşen ticari .ide11 dosyasını (donör) gerektirir; donörsüz çıktı ideCAD'de çöküyor.");
   }
-  const reason = "Sıkıştırılmış .cde kaynağı native kayda açılmaz.";
-  return { ide11: closed(reason), ide10: closed(reason) };
+  return transcodeIde10ToIde11(source, {
+    ide11Donor: donor instanceof Uint8Array ? donor : new Uint8Array(donor),
+  });
 }

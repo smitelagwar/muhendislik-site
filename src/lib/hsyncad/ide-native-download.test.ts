@@ -1,19 +1,18 @@
 /**
- * S1 — "Dönüştür + indir" saf mantık birim testleri.
+ * S1/S2 — "Dönüştür + indir" ve "farklı kaydet" saf mantık birim testleri.
  *
- * Sözleşme: `nativeIdeDownloadTargets` görünürlük koşulu tek kaynaktan türetilir
- * (IDE11 şeması + kaynak dosya); `.ide10`/`.cde` kaynakları için dönüşüm
- * kanıtlanmadığından dürüst red olarak kapalı kalır. `convertIdeSourceToNative`
- * geçersiz girdide transcoder hatası fırlatır; yanlış dosya üretilmez ve
- * kaynak arabellek değişmez. `saveNativeIdeSource` guard'ları bu akışa dahil
- * değildir ("kaydet" değil "indir").
+ * Sözleşme: hiçbir kayıt biçimi kapatılmaz; eksik kaynak/donör diyalog içinde
+ * istenir. `nativeIdeDownloadTargets` S1 indirme düğmelerinin koşuludur.
+ * `convertNativeSave` matrisi: aynı biçim bayt kopyası, v11 → v10 donörlü,
+ * v10 → v11 ters yükseltme, `.cde` dürüst red. Geçersiz girdide hata fırlar;
+ * yanlış dosya üretilmez ve kaynak arabellek değişmez.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import type { IdeProject } from "./ide-import";
 import type { NativeIdeFormat } from "./ide-import/ide-binary-codec";
-import { convertIdeSourceToNative, nativeIdeDownloadTargets, nativeSaveOptions } from "./ide-native-download";
+import { convertIdeSourceToNative, convertNativeSave, ideSourceFormatOf, nativeIdeDownloadTargets, nativeSaveOptions } from "./ide-native-download";
 
 const digest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
@@ -80,38 +79,78 @@ test("convertIdeSourceToNative: geçersiz/boş girdi transcoder hatası fırlat�
   }
 });
 
-test("nativeSaveOptions: açık kaynak yokken iki native hedef de dürüst reddedilir", () => {
-  for (const [project, source] of [[null, undefined], [projectOf("ide11trial"), undefined], [null, file()]] as const) {
-    const options = nativeSaveOptions(project, source, 0);
-    assert.equal(options.ide11.enabled, false);
-    assert.equal(options.ide10.enabled, false);
-    assert.match(options.ide11.reason, /Özgün ideCAD dosyası açık değil/);
-  }
+test("ideSourceFormatOf: uzantıdan kaynak biçimi", () => {
+  assert.equal(ideSourceFormatOf("Proje.ide11trial"), "ide11trial");
+  assert.equal(ideSourceFormatOf("Proje.IDE11"), "ide11");
+  assert.equal(ideSourceFormatOf("Proje.ide10"), "ide10");
+  assert.equal(ideSourceFormatOf("Proje.cde"), "cde");
+  assert.equal(ideSourceFormatOf("Proje.hsyncad"), null);
 });
 
-test("nativeSaveOptions: ide11trial/ide11 iki hedefi açar; .ide10 donör ister", () => {
+test("nativeSaveOptions: hiçbir biçim kapatılmaz; kaynak yoksa istenir", () => {
+  for (const [project, source] of [[null, undefined], [projectOf("ide11trial"), undefined], [null, file()]] as const) {
+    const options = nativeSaveOptions(project, source, 0);
+    assert.equal(options.ide11.enabled, true, ".ide11 her zaman seçilebilir");
+    assert.equal(options.ide10.enabled, true, ".ide10 her zaman seçilebilir");
+  }
+  const missing = nativeSaveOptions(null, undefined, 0);
+  assert.equal(missing.ide11.needsSource, true);
+  assert.equal(missing.ide10.needsSource, true);
+  assert.match(missing.ide11.reason, /Kaynak ideCAD dosyası seçilmedi/);
+});
+
+test("nativeSaveOptions: .ide10 hedefi yalnız v11 kaynakta donör ister", () => {
   for (const format of ["ide11trial", "ide11"] as const) {
     const options = nativeSaveOptions(projectOf(format), file(), 0);
     assert.equal(options.ide11.enabled, true, `${format}: .ide11 açık`);
     assert.equal(options.ide11.donorRequired, false);
+    assert.equal(options.ide11.needsSource, false);
     assert.equal(options.ide10.enabled, true, `${format}: .ide10 açık`);
     assert.equal(options.ide10.donorRequired, true);
   }
+  const ide10 = nativeSaveOptions(projectOf("ide10"), new File([new Uint8Array([1])], "proje.ide10"), 0);
+  assert.equal(ide10.ide10.enabled, true);
+  assert.equal(ide10.ide10.donorRequired, false, ".ide10 → .ide10 donör istemez");
+  assert.equal(ide10.ide11.enabled, true, ".ide10 → .ide11 seçilebilir");
+  assert.equal(ide10.ide11.donorRequired, true, "ters yükseltme .ide11 donörü ister");
+  assert.equal(ide10.ide11.donorFormat, "ide11");
 });
 
-test("nativeSaveOptions: .ide10 kaynağı yalnız yamalı aynı-biçim kaydına açılır", () => {
-  const empty = nativeSaveOptions(projectOf("ide10"), file(), 0);
-  assert.equal(empty.ide10.enabled, false, "yama yokken aynı-biçim kayıt reddedilir");
-  assert.equal(empty.ide11.enabled, false, ".ide10 → .ide11 kanıtlanmadı");
-  const patched = nativeSaveOptions(projectOf("ide10"), file(), 2);
-  assert.equal(patched.ide10.enabled, true);
-  assert.equal(patched.ide10.donorRequired, false);
-  assert.equal(patched.ide11.enabled, false);
-});
-
-test("nativeSaveOptions: .cde kaynağı native kayda kapalıdır", () => {
-  const options = nativeSaveOptions(projectOf("cde"), file(), 3);
-  assert.equal(options.ide11.enabled, false);
-  assert.equal(options.ide10.enabled, false);
+test("nativeSaveOptions: .cde seçilebilir ama kayıt dürüstçe reddedilir", () => {
+  const options = nativeSaveOptions(projectOf("cde"), new File([new Uint8Array([1])], "proje.cde"), 3);
+  assert.equal(options.ide11.enabled, true);
+  assert.equal(options.ide10.enabled, true);
   assert.match(options.ide11.reason, /\.cde/);
+  assert.throws(() => convertNativeSave(new Uint8Array([1, 2, 3]), "cde", "ide11"), /\.cde/);
+});
+
+test("convertNativeSave: aynı biçim bayt kopyası, kaynak değişmez", () => {
+  const source = new Uint8Array([7, 8, 9, 10]);
+  const before = digest(source);
+  const out11 = convertNativeSave(source, "ide11", "ide11");
+  const out10 = convertNativeSave(source, "ide10", "ide10");
+  assert.deepEqual([...out11], [...source]);
+  assert.deepEqual([...out10], [...source]);
+  assert.equal(digest(source), before, "kaynak arabellek değişmemeli");
+  assert.notEqual(out11, source, "çıktı yeni tampon olmalı");
+});
+
+test("convertNativeSave: .ide10 hedefi donörsüz reddedilir", () => {
+  assert.throws(() => convertNativeSave(new Uint8Array([1, 2, 3]), "ide11trial", "ide10"), /donör/);
+  // Donör verilince hata donör eksikliği değil taşıyıcı doğrulamasıdır.
+  assert.throws(
+    () => convertNativeSave(new Uint8Array([1, 2, 3]), "ide11", "ide10", new Uint8Array(128)),
+    (error: Error) => !/donör/.test(error.message),
+  );
+});
+
+test("convertNativeSave: dönüşüm yolları transcoder doğrulamasına gider", () => {
+  // Geçersiz taşıyıcı: yanlış dosya üretilmez, açık hata fırlar.
+  assert.throws(() => convertNativeSave(new Uint8Array(64), "ide11trial", "ide11"), Error);
+  // .ide10 → .ide11 donörsüz reddedilir; donör verilince taşıyıcı doğrulamasına geçer.
+  assert.throws(() => convertNativeSave(new Uint8Array(64), "ide10", "ide11"), /donör/);
+  assert.throws(
+    () => convertNativeSave(new Uint8Array(64), "ide10", "ide11", new Uint8Array(64)),
+    (error: Error) => !/donör seçilmeden/.test(error.message),
+  );
 });

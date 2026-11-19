@@ -48,7 +48,8 @@ import { readIdeFile, MAX_IDE_BYTES } from "@/lib/hsyncad/ide-reader-client";
 import { collectIdeNativePatches, importIdeWorkspace, ideProjectAnalytics, ideReferenceElements, IDE_REFERENCE_LAYER } from "@/lib/hsyncad/ide-workspace";
 import { saveNativeIdeOutput } from "@/lib/hsyncad/ide-native-save";
 import { ideExportBasename } from "@/lib/hsyncad/ide-export";
-import { convertIdeSourceToNative, nativeIdeDownloadTargets, nativeSaveOptions, type NativeIdeSaveTarget } from "@/lib/hsyncad/ide-native-download";
+import { convertIdeSourceToNative, convertNativeSave, ideSourceFormatOf, nativeIdeDownloadTargets, nativeSaveRequirement, type NativeIdeSaveTarget } from "@/lib/hsyncad/ide-native-download";
+import { cacheIdeSource, ideSourceCacheKey, readCachedIdeSource } from "@/lib/hsyncad/ide-source-cache";
 import { ideExampleUrl, type IdeExampleId } from "@/lib/hsyncad/ide-examples";
 import {
   AnalysisControlsBar,
@@ -93,6 +94,10 @@ export default function HsynCadWorkbench() {
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [localReportOpen, setLocalReportOpen] = useState(false);
   const [ideSourceSession, setIdeSourceSession] = useState<IdeSourceSession | null>(null);
+  // Diyalogda bir kez seçilen kaynak; sayfa yenilense bile IndexedDB'den geri gelir.
+  const [idePickedSource, setIdePickedSource] = useState<File | null>(null);
+  const sourceRestoreId = useRef(0);
+  const saveSourceFile = idePickedSource ?? ideSourceSession?.file ?? undefined;
   const [analysisTab, setAnalysisTab] = useState<"summary" | "storeys" | "columns" | "beams" | "joints" | "irregularities" | "settings">("summary");
   const [paftaMode, setPaftaMode] = useState(false);
   const [activeViewMode, setActiveViewMode] = useState<AnalysisViewMode>("model");
@@ -175,12 +180,11 @@ export default function HsynCadWorkbench() {
   const ideNativePatches = useMemo(() => collectIdeNativePatches(model.ideImport?.source, model.elements), [model]);
   // S1b — Dosya menüsünden bağımsız trial→native dönüştürücü (proje açmadan çalışır).
   const [ideConvertOpen, setIdeConvertOpen] = useState(false);
-  // S2 — açık projeyi farklı kaydet: kaynak yeniden seçilmez, açık modelin
-  // ideCAD kaynağı (varsa) hedef biçime yazılır.
+  // S2 — açık projeyi farklı kaydet: kaynak diyalogda bir kez seçilir,
+  // ardından oturumda/IndexedDB'de hatırlanır; hiçbir biçim kapatılmaz.
   const [ideSaveOpen, setIdeSaveOpen] = useState(false);
-  const nativeIdeSave = useMemo(() => nativeSaveOptions(model.ideImport?.source ?? null, ideSourceSession?.file, ideNativePatches.length), [model, ideSourceSession, ideNativePatches]);
   // S1 — sürüm dönüşümü (trial→native) indirme hedefleri; tek kaynak: yardımcı.
-  const nativeIdeDownload = nativeIdeDownloadTargets(model.ideImport?.source ?? null, ideSourceSession?.file);
+  const nativeIdeDownload = nativeIdeDownloadTargets(model.ideImport?.source ?? null, saveSourceFile);
   const ideR15Summary = useMemo(() => {
     const analytics = ideProjectAnalytics(model.ideImport?.source);
     if (!analytics || (!analytics.materialCount && !analytics.rebarCount && !analytics.modalTableCount && !analytics.seismic)) return null;
@@ -346,6 +350,12 @@ export default function HsynCadWorkbench() {
           dispatch({ type: "restore", model: restored }); setDockOpen(!!restored.elements.length || !!restored.drafting?.items.length);
           setFloorId(startingFloorId(restored)); setFitKey((n) => n + 1);
           setMessage("Son yerel model geri yüklendi."); setSaveStatus("Tarayıcıda kayıtlı");
+          // Native kayıt için özgün kaynağı sessizce geri getir.
+          const source = restored.ideImport?.source;
+          if (source) void readCachedIdeSource(ideSourceCacheKey(source)).then(file => {
+            if (!live || !file) return;
+            setIdeSourceSession(current => current ?? { file, modelSnapshot: JSON.stringify(restored), project: source });
+          });
         }
       } catch { setMessage("Yerel kayıt okunamadı. Boş çalışma açıldı; yeni bir değişiklik yapana kadar kayıt korunur."); setSaveStatus("Kayıt okunamadı"); }
       setHydrated(true);
@@ -411,6 +421,22 @@ export default function HsynCadWorkbench() {
   function replaceModel(next: CadModel, success: string) {
     if (commit(next, success, false)) { drawing.resetModel(); setCoordinateLocks({ x: false, y: false }); setDefaults(DEFAULTS); setSelectedId(null); drawing.clearDraft(); references.clear(); setFloorId(startingFloorId(next)); setHiddenLayers([]); setFitKey((n) => n + 1); }
   }
+  /**
+   * Yeni proje açıldığında kaynak oturumunu o projeye bağlar.
+   * Önceki projenin kaynağı asla yeni projeye taşınmaz; önbellekte bu projenin
+   * kaynağı varsa sessizce geri getirilir, yoksa diyalog dosya ister.
+   */
+  function restoreCachedSource(next: CadModel) {
+    const source = next.ideImport?.source;
+    setIdePickedSource(null);
+    setIdeSourceSession(null);
+    const id = ++sourceRestoreId.current;
+    if (!source) return;
+    void readCachedIdeSource(ideSourceCacheKey(source)).then(file => {
+      if (!file || id !== sourceRestoreId.current) return;
+      setIdeSourceSession({ file, modelSnapshot: JSON.stringify(next), project: source });
+    });
+  }
   async function importFile(file: File | undefined, providedController?: AbortController) {
     if (!file) return;
     if (!providedController) importRequest.current?.abort();
@@ -425,6 +451,11 @@ export default function HsynCadWorkbench() {
         const modelSnapshot = JSON.stringify(validateModel(next));
         replaceModel(next, `${source.filename} açıldı: ${next.elements.length} düzenlenebilir eleman, ${next.ideImport!.references.length} kaynak referansı. Önceki model Geri al ile döner.`);
         setIdeSourceSession({ file, modelSnapshot, project: source });
+        sourceRestoreId.current++;
+        setIdePickedSource(null);
+        // Özgün baytlar IndexedDB'de tutulur: sayfa yenilense de native kayıt
+        // aynı dosyayı yeniden sormadan çalışır (kota/gizli modda sessiz geçer).
+        void cacheIdeSource(ideSourceCacheKey({ filename: source.filename, byteLength: source.byteLength }), file);
         // Store only hashes: a restored workspace must reselect the same file.
         if (crypto.subtle && /\.ide10$/i.test(file.name)) void (async () => {
           try {
@@ -447,10 +478,13 @@ export default function HsynCadWorkbench() {
         if (controller.signal.aborted) return;
         const next = importIdeWorkspace(parseIdeProjectSnapshot(JSON.stringify(data)));
         replaceModel(next, `Eski IDE çalışma dosyası ana düzenleyicide açıldı: ${next.elements.length} düzenlenebilir eleman.`);
+        restoreCachedSource(next);
         setDockOpen(true);
         return;
       }
-      replaceModel(validateModel(data), "Model açıldı. Önceki model Geri al ile geri getirilebilir.");
+      const nextModel = validateModel(data);
+      replaceModel(nextModel, "Model açıldı. Önceki model Geri al ile geri getirilebilir.");
+      restoreCachedSource(nextModel);
       setDockOpen(true); setTool("select"); setTab("Giriş"); setPaftaMode(false);
     } catch (error) { if (!controller.signal.aborted) setMessage(`Dosya açılamadı: ${error instanceof Error ? error.message : "Geçersiz dosya"}`); }
     finally { if (importRequest.current === controller) { importRequest.current = null; setImportProgress(null); } if (fileInput.current) fileInput.current.value = ""; }
@@ -481,10 +515,10 @@ export default function HsynCadWorkbench() {
   // native kaydetme reddi) bu fonksiyondan bağımsızdır; kaynak dosyaya yazılmaz.
   // .ide10 hedefi eşleşen ticari .ide10 donörü ister (donörsüz dosya ideCAD'de çöker).
   async function downloadIdeNativeConverted(target: "ide11" | "ide10", donorBytes?: ArrayBuffer) {
-    if (!model.ideImport || !ideSourceSession?.file) { setMessage("Dönüştürmeye uygun IDE kaynağı açık değil."); return; }
+    if (!model.ideImport || !saveSourceFile) { setMessage("Dönüştürmeye uygun IDE kaynağı açık değil."); return; }
     setMessage(`Native .${target} dönüşümü hazırlanıyor…`);
     try {
-      const bytes = convertIdeSourceToNative(await ideSourceSession.file.arrayBuffer(), target, donorBytes);
+      const bytes = convertIdeSourceToNative(await saveSourceFile.arrayBuffer(), target, donorBytes);
       const filename = `${ideExportBasename(model.ideImport.source.filename)}.${target}`;
       downloadBytes(bytes, filename);
       setMessage(`${filename} indirildi: kaynak dosya değişmedi; dönüşüm yeni dosya olarak indirildi.`);
@@ -499,31 +533,47 @@ export default function HsynCadWorkbench() {
     const link = document.createElement("a"); link.href = url; link.download = `${(model.name || "hsyncad-model").replace(/[<>:"/\\|?*\x00-\x1f]/g, "-")}.hsyncad`; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000); setMessage("Düzenlenebilir .hsyncad çalışma dosyası indirildi.");
   }
+  /** Diyalogda seçilen kaynağı oturuma + tarayıcı önbelleğine alır. */
+  function onSaveSourcePicked(file: File) {
+    setIdePickedSource(file);
+    void cacheIdeSource(ideSourceCacheKey({ filename: file.name, byteLength: file.size }), file);
+    setMessage(`${file.name} kaynak olarak seçildi; sonraki kayıtlarda yeniden sorulmaz.`);
+  }
   /**
-   * S2 — açık projeyi seçilen native biçimde kaydet ("farklı kaydet").
-   * Kaynak yeniden seçilmez; açık ideCAD kaynağının baytları kullanılır.
-   * Kanıtlanmış yamalar (kiriş kesit yüksekliği) önce kaynağa yazılır, sonra
-   * hedef biçime dönüştürülür. Kanıtlanmamış hedefler `nativeSaveOptions`
-   * tarafından kapalıdır; burada da açık hata verilir (yanlış dosya üretilmez).
+   * Açık projeyi seçilen native biçimde kaydet ("farklı kaydet").
+   *
+   * Kaynak sırası: diyalogda seçilen dosya → açık oturum dosyası. Kaynak yoksa
+   * diyalog tek seferlik seçim ister. Matris `convertNativeSave` içindedir:
+   * `.ide10 → .ide10` bayt kopyası, `.ide10 → .ide11` ters yükseltme,
+   * `.ide11trial/.ide11 → .ide11` sürüm dönüşümü, `.ide10` hedefi donör ister.
+   * Kanıtlanmış yamalar önce kaynağa yazılır. Yanlış dosya üretilmez.
    */
-  async function saveNativeAs(target: NativeIdeSaveTarget, donor?: File): Promise<string> {
-    if (!model.ideImport || !ideSourceSession?.file) throw new Error("Özgün ideCAD dosyası açık değil; native kayıt yapılamaz.");
-    const option = nativeIdeSave[target];
-    if (!option.enabled) throw new Error(option.reason);
-    if (option.donorRequired && !donor) throw new Error("Native .ide10 için eşleşen ticari .ide10 dosyasını (donör) seçin.");
-    let bytes: Uint8Array = new Uint8Array(await ideSourceSession.file.arrayBuffer());
+  async function saveNativeAs(target: NativeIdeSaveTarget, donor?: File, pickedSource?: File): Promise<string> {
+    const file = pickedSource ?? saveSourceFile;
+    if (!file) throw new Error("Kaynak ideCAD dosyası seçilmedi; .ide11trial/.ide11/.ide10 dosyasını seçin.");
+    const sourceFormat = ideSourceFormatOf(file.name);
+    if (!sourceFormat) throw new Error("Kaynak dosya uzantısı tanınmadı; .ide11trial/.ide11/.ide10 seçin.");
+    if (sourceFormat === "cde") throw new Error("Sıkıştırılmış .cde gövdesi native kayda açılmaz; .ide11trial/.ide11/.ide10 seçin.");
+    const requirement = nativeSaveRequirement(target, sourceFormat);
+    if (requirement.donorRequired && !donor) {
+      throw new Error(requirement.donorFormat === "ide11"
+        ? "Ters yükseltme için eşleşen ticari .ide11 dosyasını (donör) seçin."
+        : "Native .ide10 için eşleşen ticari .ide10 dosyasını (donör) seçin.");
+    }
+    let bytes: Uint8Array = new Uint8Array(await file.arrayBuffer());
     let changedByteCount = 0;
     if (ideNativePatches.length) {
-      const patched = saveNativeIdeOutput(bytes, ideNativePatches);
-      bytes = patched.bytes;
-      changedByteCount = patched.changedByteCount;
+      try {
+        const patched = saveNativeIdeOutput(bytes, ideNativePatches);
+        bytes = patched.bytes;
+        changedByteCount = patched.changedByteCount;
+      } catch (error) {
+        throw new Error(`Yamalar bu kaynağa uygulanamadı: ${error instanceof Error ? error.message : "bilinmeyen hata"} Düzenlemeleri .hsyncad olarak saklayın.`);
+      }
     }
-    if (model.ideImport.source.format !== "ide10") {
-      bytes = convertIdeSourceToNative(bytes, target, donor ? await donor.arrayBuffer() : undefined);
-    } else if (!changedByteCount) {
-      throw new Error("Değişiklik yok; .ide10 kaynağını aynı biçimde kaydetmek için en az bir native yazılabilir düzenleme gerekir.");
-    }
-    const filename = `${ideExportBasename(model.ideImport.source.filename)}.${target}`;
+    bytes = convertNativeSave(bytes, sourceFormat, target, donor ? new Uint8Array(await donor.arrayBuffer()) : undefined);
+    const baseName = model.ideImport?.source.filename ?? file.name;
+    const filename = `${ideExportBasename(baseName)}.${target}`;
     downloadBytes(bytes, filename);
     return `${filename} indirildi${changedByteCount ? ` (${changedByteCount} bayt yama uygulandı)` : ""}; kaynak dosya değişmedi.`;
   }
@@ -867,10 +917,10 @@ export default function HsynCadWorkbench() {
       onImport={() => fileInput.current?.click()} onOpenExample={id => void openExample(id)} onOpenIdeConvert={() => setIdeConvertOpen(true)} onSaveAs={() => setIdeSaveOpen(true)} />
     <LocalReportDialog open={localReportOpen} onClose={() => setLocalReportOpen(false)} source={ideSourceSession} onReselect={setIdeSourceSession} model={model} analysisResult={analysisResult} activeFloorId={floor.id} activeFloorName={floor.name} selectedElementIds={selectedId ? [selectedId] : []} />
     <IdeConvertDialog open={ideConvertOpen} onClose={() => setIdeConvertOpen(false)} onMessage={setMessage} />
-    {ideSaveOpen && <IdeSaveDialog projectName={model.name} sourceName={model.ideImport?.source.filename} patchCount={ideNativePatches.length} options={nativeIdeSave} onClose={() => setIdeSaveOpen(false)} onSaveHsyncad={exportFile} onSaveNative={saveNativeAs} onMessage={setMessage} />}
+    {ideSaveOpen && <IdeSaveDialog projectName={model.name} sourceName={saveSourceFile?.name ?? model.ideImport?.source.filename} hasSource={Boolean(saveSourceFile)} sourceFormat={saveSourceFile ? ideSourceFormatOf(saveSourceFile.name) : model.ideImport?.source.format ?? null} patchCount={ideNativePatches.length} onClose={() => setIdeSaveOpen(false)} onSaveHsyncad={exportFile} onSaveNative={saveNativeAs} onSourcePicked={onSaveSourcePicked} onMessage={setMessage} />}
     <input ref={fileInput} type="file" accept=".ide,.ide10,.ide11,.ide11trial,.cde,.hsyncad,.json,application/json" hidden aria-label="IDE veya hsynCAD model dosyası" data-testid="hsyncad-import" onChange={(e) => void importFile(e.target.files?.[0])} />
     {importProgress !== null && <div className={styles.importBar} role="status" data-testid="hsyncad-import-progress"><span>{importProgress}</span><button type="button" onClick={() => { importRequest.current?.abort(); importRequest.current = null; setImportProgress(null); setMessage("Dosya açma iptal edildi; mevcut model korundu."); }}>İptal</button></div>}
-    {model.ideImport && ideSourceSession && <div className={styles.importReport} data-testid="ide-native-save-row">
+    {model.ideImport && saveSourceFile && <div className={styles.importReport} data-testid="ide-native-save-row">
       <button type="button" data-testid="ide-native-save" onClick={() => void saveIdeNativePatches()}>Native kaydet · {ideNativePatches.length} yama</button>
       {nativeIdeDownload.ide11 && <button type="button" data-testid="ide-download-native-ide11" onClick={() => void downloadIdeNativeConverted("ide11")}>Native .ide11 indir</button>}
       {nativeIdeDownload.ide10 && <button type="button" data-testid="ide-download-native-ide10" onClick={() => donorInput.current?.click()}>Native .ide10 indir · donör seç</button>}
