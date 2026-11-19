@@ -25,6 +25,7 @@ import { ElementProperties, FloorProperties } from "./properties";
 import Plan2D from "./plan2d";
 import styles from "./workbench.module.css";
 import SettingsDialog from "./settings-dialog";
+import IdeConvertDialog from "./ide-convert-dialog";
 import { LayerOptions, MaterialOptions, SnapOptions } from "./project-settings";
 import QuantityReport from "./quantity-report";
 import EditDialog from "./edit-dialog";
@@ -171,6 +172,8 @@ export default function HsynCadWorkbench() {
   const quantities = useMemo(() => calculateQuantities(model, junctions), [model, junctions]);
   const ideReferences = useMemo(() => ideReferenceElements(model), [model]);
   const ideNativePatches = useMemo(() => collectIdeNativePatches(model.ideImport?.source, model.elements), [model]);
+  // S1b — Dosya menüsünden bağımsız trial→native dönüştürücü (proje açmadan çalışır).
+  const [ideConvertOpen, setIdeConvertOpen] = useState(false);
   // S1 — sürüm dönüşümü (trial→native) indirme hedefleri; tek kaynak: yardımcı.
   const nativeIdeDownload = nativeIdeDownloadTargets(model.ideImport?.source ?? null, ideSourceSession?.file);
   const ideR15Summary = useMemo(() => {
@@ -825,8 +828,9 @@ export default function HsynCadWorkbench() {
     <CommandBar tool={tool} modelName={model.name} floorName={`${floor.name} tavanı, ${number(floor.elevation + floor.height, 2)} m`} saveStatus={saveStatus}
       canUndo={!!history.past.length} canRedo={!!history.future.length} hasSelection={!!selected}
       tab={ribbonTab} onTab={chooseRibbon} actions={ribbonActions} onUndo={undo} onRedo={redo}
-      onExport={exportFile} onImport={() => fileInput.current?.click()} onOpenExample={id => void openExample(id)} />
+      onExport={exportFile} onImport={() => fileInput.current?.click()} onOpenExample={id => void openExample(id)} onOpenIdeConvert={() => setIdeConvertOpen(true)} />
     <LocalReportDialog open={localReportOpen} onClose={() => setLocalReportOpen(false)} source={ideSourceSession} onReselect={setIdeSourceSession} model={model} analysisResult={analysisResult} activeFloorId={floor.id} activeFloorName={floor.name} selectedElementIds={selectedId ? [selectedId] : []} />
+    <IdeConvertDialog open={ideConvertOpen} onClose={() => setIdeConvertOpen(false)} onMessage={setMessage} />
     <input ref={fileInput} type="file" accept=".ide,.ide10,.ide11,.ide11trial,.cde,.hsyncad,.json,application/json" hidden aria-label="IDE veya hsynCAD model dosyası" data-testid="hsyncad-import" onChange={(e) => void importFile(e.target.files?.[0])} />
     {importProgress !== null && <div className={styles.importBar} role="status" data-testid="hsyncad-import-progress"><span>{importProgress}</span><button type="button" onClick={() => { importRequest.current?.abort(); importRequest.current = null; setImportProgress(null); setMessage("Dosya açma iptal edildi; mevcut model korundu."); }}>İptal</button></div>}
     {model.ideImport && ideSourceSession && <div className={styles.importReport} data-testid="ide-native-save-row">

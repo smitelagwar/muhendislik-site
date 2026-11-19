@@ -25,6 +25,7 @@ type Props = {
   actions: Record<number, RibbonAction>;
   onUndo: () => void; onRedo: () => void; onExport: () => void; onImport: () => void;
   onOpenExample: (id: IdeExampleId) => void;
+  onOpenIdeConvert: () => void;
 };
 const toolIds: Record<number, string> = { 12590: "axis", 12820: "column", 12910: "beam", 13810: "wall", 12570: "slab", 13660: "measureDistance", 13650: "measureArea", 40221: "measureAngle" };
 const iconIds: Record<number, CadIconName> = {
@@ -138,7 +139,7 @@ export default function CommandBar(p: Props) {
           [-3, "Gelişmiş örneği aç", "model"],
           [-4, "Çizim akışı örneği", "model"],
           [-5, "7 Katlı Plaza (1536 m²)", "model"],
-        ].map(([id, label, icon]) => <button type="button" role="menuitem" key={id} data-testid={id === 11323 ? "workbench-menu-export-ifc" : id === -2 ? "load-demo" : id === -3 ? "load-feature-demo" : id === -4 ? "load-workflow-demo" : id === -5 ? "load-seven-storey-demo" : undefined} onClick={() => execute(Number(id))}><CadIcon name={icon as CadIconName} size={18} />{label}</button>)}<hr /><small>Örnek IDE projelerini aç</small>{IDE_EXAMPLES.map(sample => <button type="button" role="menuitem" key={sample.id} data-testid={`ide-sample-${sample.id}`} title={sample.detail} onClick={() => { setFileOpen(false); p.onOpenExample(sample.id); }}><CadIcon name="open" size={18} />{sample.name}</button>)}</div>}
+        ].map(([id, label, icon]) => <button type="button" role="menuitem" key={id} data-testid={id === 11323 ? "workbench-menu-export-ifc" : id === -2 ? "load-demo" : id === -3 ? "load-feature-demo" : id === -4 ? "load-workflow-demo" : id === -5 ? "load-seven-storey-demo" : undefined} onClick={() => execute(Number(id))}><CadIcon name={icon as CadIconName} size={18} />{label}</button>)}<hr /><button type="button" role="menuitem" data-testid="workbench-menu-ide-convert" onClick={() => { setFileOpen(false); p.onOpenIdeConvert(); }}><CadIcon name="model" size={18} />ideCAD dosyası dönüştür · .ide11trial → .ide11 / .ide10</button><hr /><small>Örnek IDE projelerini aç</small>{IDE_EXAMPLES.map(sample => <button type="button" role="menuitem" key={sample.id} data-testid={`ide-sample-${sample.id}`} title={sample.detail} onClick={() => { setFileOpen(false); p.onOpenExample(sample.id); }}><CadIcon name="open" size={18} />{sample.name}</button>)}</div>}
       </div>
       <div className={styles.tabs} role="tablist" aria-label="Çizim sekmeleri" onKeyDown={event => {
         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
