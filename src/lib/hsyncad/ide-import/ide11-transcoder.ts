@@ -2,7 +2,7 @@ import { decodeCp1254 } from "./cp1254";
 import { createIdeDataView, decodeIdeNumericBlock, encodeIdeFloat64, hasIdeEncodedNumbers, isIde11SchemaVersion } from "./numeric-codec";
 import { encodeCp1254NulString, sealIdeCarrierHeader, validateIdeCarrier } from "./ide-binary-codec";
 import { readIdeStairTemplate } from "./stairs";
-import { IDE10_VERSION } from "./ide-binary-codec";
+import { IDE10_VERSION, IDE11_VERSION } from "./ide-binary-codec";
 import { scanIde201094Streams } from "./ide-zlib";
 import {
   buildIde10R1MaterialTable,
@@ -2542,4 +2542,447 @@ function applyIde10ModalRegion(
     regionBytesEqual,
     headerBytesDonor: tables.reduce((sum, t) => sum + t.header.length, 0),
   };
+}
+
+// --- T-F4.1: `.ide10 → .ide11` ters şema yükseltmesi (F4) ---
+
+export interface Ide10To11UpgradeDiagnostics {
+  grammar: Ide10GrammarProductionReport;
+  records: { floors: number; nativeFloorHeaders: number; elements: number; slabs: number; stairs: number };
+  splices: { storyRefs: number; geometryPads: number; slabMarkers: number; wallLabelSwaps: number };
+  frames: { rewritten211220: number; preludeFlagsSet: number; plain201094Kept: number };
+  header: { marker05ce: boolean; demoFlagCleared: boolean; encZeroSlots: number };
+  f64Encoded: number;
+  outputBytes: number;
+}
+
+export interface Ide10To11UpgradeOptions {
+  /** Optional mutable diagnostics sink filled by the T-F4.1 ide11 upgrade. */
+  diagnostics?: Ide10To11UpgradeDiagnostics;
+}
+
+/** 4×u32 opak pad üreticisi — yazıcı kuralı 4×rand() (140bc75e0 L47-54); 15-bit
+ * LCG ile deterministik üretilir ki repo çıktısı her koşuda bayt-özdeş yinelenebilsin. */
+function generateIdeUpgradePad(seed: number): Uint8Array {
+  const out = new Uint8Array(16);
+  const view = new DataView(out.buffer);
+  let s = (seed ^ 0x33914) >>> 0;
+  for (let i = 0; i < 4; i++) {
+    s = (s * 1103515245 + 12345) >>> 0;
+    view.setUint32(i * 4, s >>> 17, true);
+  }
+  return out;
+}
+
+/**
+ * v10 gövdesini (201094, encoded=0) v11 gövdesine (211220, encoded=1) yükseltir —
+ * T-F4.1 TERS şema yükseltmesi. Adımlar (ide10-grammar v1.0.2 KANIT kuralları;
+ * ölçüm kanıtları: evidence/orkestrasyon/2026-11-19-F4-T4.1/rea/forensic-t41-olcum*.json):
+ *
+ * 1. **Şema yükleyici:** ide10-grammar.json üretim sözleşmesiyle doğrulanır
+ *    (VARSAYIM satırı üretim yolunda HARD-FAIL eder — meta.tuketiciSozlesme).
+ * 2. **+4 story-ref-B (V-211150):** native kat başlığında viewScale'ten önce 4 bayt
+ *    eklenir; değer ölçülen biçimde marker u32'nin tekrarıdır (X11: ffffffff /
+ *    00000000 — marker değeriyle birebir; olcum2 floorsAll, 6/6 kat).
+ * 3. **+16B ortak geometri opak pad'i (V-ENCODED):** ilk referans listesinden sonra
+ *    4×rand()-sınıfı u32 (okuyucu discard eder; şema OPAK-16B-RAND).
+ * 4. **Ölçek çevirileri (OLCEK-NATIVEZ/OLCEK-GENISLIK):** v10 nativeZ/genişlik düz
+ *    kayıtlıdır; v11 yazımı ×2/×3'tür — nativeZ=değer×2, genişlik=değer×3 kodlanır
+ *    (olcum geometry: 59.736/59.736 kayıt ölçümle doğrulandı).
+ * 5. **Döşeme "36" etiketi (DOSEME-KAYDI sira-1):** p+470'e u32 36 eklenir; yük
+ *    f64'ları (p+497/505/513) +4 kaymalı kodlanır (olcum slab: değerler birebir).
+ * 6. **Perde etiketi kanonik biçimi (şema perdeEtiketiKanonikBelgesi):** v11 (X11)
+ *    depolama biçimi v10'un bileşen-swap'ıdır (A0 "255/25" ↔ X11 "25/255"; olcum2
+ *    wallOrder 6 örnek + P24 birleşik "455/25"); iki yuva da uzunluk-nötr çevrilir.
+ * 7. **Merdiven alt-akış sürümü (MERDIVEN-ALT-AKIS):** [1][1][bayrak][u32 sürüm]
+ *    işaretçisi bayrak 1 + hedef sürüm 211220 (olcum2 stair: A0 "01 01 00 | 86 11
+ *    03 00" ↔ X11 "01 01 01 | 14 39 03 00"); şablon f64'ları proxy hasadıyla kodlanır.
+ * 8. **f64'ler IEEE-754→Blowfish:** parser'ın okuduğu katalog ofsetleri
+ *    encodeIdeFloat64 ile kodlanır (numeric-codec.ts P/S takvimi =
+ *    trial-blowfish-context.json dizisinin ikizi).
+ * 9. **Akış çerçeveleri:** [1][1][0] önyazılı her 201094 çerçevesi 0x33914 (211220)
+ *    sihrine + [1][1][1] önyazısına yazılır; #1885 çizim biçem çerçevesi ("00 01
+ *    00" önyazılı tek akış) düz 201094 kalır — X11'in 30.259+1 akış yapısı.
+ * 10. **Başlık:** previewEnd+5/+19 kodlu sıfır yuvaları (ENC(0) ölçümü — X11/B0/D0
+ *     üçlüsünde bayt-özdeş), deneme kilidi baytası temizliği, u32 0x5ce işareti;
+ *     mühür sealIdeCarrierHeader ile gövde şemasıyla uyumlu sürüm 211220 +
+ *     encoded=1 (yazıcı kuralı 140989c30.c:40).
+ *
+ * **Kapsam dürüstlüğü (kanıt sınırı):** X11'in yazıcısı ön-gövde (BELGE-GOVDE
+ * başlangıcı, sürüm-geçmişi, RYT/R1/R3 yerleşimi), F9-kabuk ve kuyruk (R5)
+ * bölgelerini v11'in kendi düzeninde yeniden üretir — A0 ile bayt-düzeyi
+ * eşlenemez (olcum gaps: kuyruk Δ+1.047.937, F9-kabuk Δ−24×373). Bu bölgeler
+ * A0 baytlarıyla korunur; parser bu bölgeleri v11'de zaten okumaz (X11'in kendi
+ * parmak izinde malzeme/deprem/F9 absent) ve alan-düzeyi kabul (geometri/etiket/
+ * yük diff 0) iki tarafta absent-absent ile geçer. Akış-yuvası +4 farkı
+ * (1.146/1.719 desenli gap Δ4 — ayrım kuralı çözülmedi) ve etiket-sonrası f64
+ * alanları ölçüldü fakat üretime alınmadı (olcum3/olcum4; T-F4.2 girdisi).
+ */
+export function transcodeIde10ToIde11(
+  sourceBuffer: ArrayBuffer | Uint8Array,
+  options: Ide10To11UpgradeOptions = {},
+): Uint8Array {
+  const src = sourceBuffer instanceof Uint8Array
+    ? sourceBuffer
+    : new Uint8Array(sourceBuffer);
+  const carrier = validateIdeCarrier(src);
+  if (carrier.formatVersion !== IDE10_VERSION || carrier.encodedFlag !== 0) {
+    throw new Error(
+      `Ters yükseltici yalnız v10 (201094, encoded=0) girdi kabul eder; gelen: sürüm ${carrier.formatVersion}, encoded ${carrier.encodedFlag}.`,
+    );
+  }
+  const grammar = assertIde10GrammarForProduction();
+  const diagnostics: Ide10To11UpgradeDiagnostics = options.diagnostics ?? ({} as Ide10To11UpgradeDiagnostics);
+  diagnostics.grammar = grammar;
+
+  const rawView = new DataView(src.buffer, src.byteOffset, src.byteLength);
+
+  // --- v10 gövde taraması (parser okuma yollarının v10 ikizi; düz görünüm). ---
+  const readString = (at: number): string | undefined => {
+    if (at < 4 || at + 4 > src.length) return;
+    const length = rawView.getUint32(at, true);
+    if (length < 1 || length > 161 || at + 4 + length > src.length || src[at + 3 + length] !== 0) return;
+    for (let j = at + 4; j < at + 3 + length; j++) {
+      if (src[j] < 32 || src[j] === 127 || src[j] === 255) return;
+    }
+    return decodeCp1254(src.subarray(at + 4, at + 3 + length));
+  };
+  const followsFloorTemplate = (at: number): boolean => {
+    if (src[at - 1] !== 0 || src[at - 2] !== 0) return false;
+    for (let length = 3; length <= 8; length++) {
+      const start = at - 2 - length;
+      if (start < 4 || src[start] !== 84 || rawView.getUint32(start - 4, true) !== length + 1) continue;
+      let digits = true;
+      for (let j = start + 1; j < at - 2; j++) if (src[j] < 48 || src[j] > 57) digits = false;
+      if (digits) return true;
+    }
+    return false;
+  };
+  const hasNativeFloorHeader = (at: number, name: string): boolean => {
+    const length = rawView.getUint32(at, true), data = at + 4 + length;
+    if (data + 100 >= src.length) return false;
+    const ordinal = rawView.getInt32(data + 16, true), marker = rawView.getUint32(data + 24, true);
+    if (Math.abs(ordinal) > 1000 || rawView.getUint32(data + 20, true) === 0 || (marker !== 0 && marker !== 0xffffffff)) return false;
+    const viewScale = rawView.getFloat64(data + 28, true);
+    if (!Number.isFinite(viewScale) || viewScale <= 0 || viewScale > 1000) return false;
+    const matchesViewportTitle = (t: string | undefined) => t === name || Boolean(t?.startsWith(`${name} TAVANI, `) && / KOTU$/.test(t));
+    for (let j = 0; j < 4; j++) {
+      const a = rawView.getFloat64(data + 36 + j * 16, true), b = rawView.getFloat64(data + 44 + j * 16, true);
+      if (!Number.isFinite(a) || Math.abs(a) > 1e6 || a !== b) return false;
+    }
+    for (let p = data + 100; p < Math.min(src.length - 165, data + 1800); p++) {
+      if (matchesViewportTitle(readString(p))) return true;
+    }
+    return false;
+  };
+
+  type UpgradeFloor = { nameOffset: number; name: string; native: boolean; data: number };
+  type UpgradeCandidate = { nameOffset: number; name: string; bbox: number[] };
+  const floors: UpgradeFloor[] = [];
+  const candidates: UpgradeCandidate[] = [];
+  for (let i = 24; i < src.length - 24; i++) {
+    const length = rawView.getUint32(i, true);
+    if (length < 1 || length > 161 || i + 4 + length + 20 > src.length || src[i + 3 + length] !== 0) continue;
+    const text = readString(i);
+    if (text === undefined) continue;
+    const at = i + 4;
+    const isNativeHdr = text ? hasNativeFloorHeader(i, text) : false;
+    if (text && (followsFloorTemplate(i) || isNativeHdr)) {
+      const elevation = rawView.getFloat64(at + length, true), height = rawView.getFloat64(at + length + 8, true);
+      if (Number.isFinite(elevation) && Math.abs(elevation) <= 1e6 && Number.isFinite(height) && height >= 0.1 && height <= 100) {
+        floors.push({ nameOffset: at, name: text, native: isNativeHdr, data: at + length });
+      }
+    }
+    if (at < 21) continue;
+    const color = rawView.getUint32(at + length, true);
+    if (color < 999999000 || color > 1000001000) continue;
+    const bbox = [0, 1, 2, 3].map((j) => rawView.getFloat32(at - 21 + j * 4, true));
+    if (bbox.some((v) => !Number.isFinite(v) || Math.abs(v) > 1e6) || bbox[2] < bbox[0] - 0.0001 || bbox[3] < bbox[1] - 0.0001) continue;
+    candidates.push({ nameOffset: at, name: text, bbox });
+  }
+  if (!floors.length) {
+    throw new Error("Yükseltilecek IDE dosyasında kat kaydı bulunamadı.");
+  }
+
+  // --- Geometri çözümlemesi (readNativeGeometry'nin v10 ikizi; pad yok). ---
+  const seenGeometry = new Set<number>();
+  const inspectGeometry = (c: UpgradeCandidate) => {
+    const geometryEnd = c.nameOffset - 21;
+    const min = Math.max(0, c.nameOffset - (c.name ? MAX_GEOMETRY_BYTES : 8192));
+    for (let p = geometryEnd - 36; p >= min; p--) {
+      if (seenGeometry.has(p)) continue;
+      const primitiveType = rawView.getUint32(p, true), count = rawView.getUint32(p + 4, true);
+      if (primitiveType < 1 || (primitiveType > 100 && primitiveType !== 123 && primitiveType !== 128) || (count === 0 && primitiveType !== 7) || count > MAX_POINTS || (count === 1 && primitiveType !== 40) || (primitiveType === 40 && count !== 1)) continue;
+      if ((primitiveType === 123 || primitiveType === 128) && count !== 2) continue;
+      if (!c.name && primitiveType !== 13) continue;
+      const tail = p + 8 + count * 16;
+      if (tail + 52 > geometryEnd) continue;
+      const nativeId = rawView.getUint32(tail, true);
+      const nativeZ = rawView.getFloat64(tail + 4, true);
+      const width = rawView.getFloat64(tail + 12, true);
+      const layerId = rawView.getUint32(tail + 20, true);
+      if (nativeId === 0 || !Number.isFinite(nativeZ) || Math.abs(nativeZ) > 1e6 || !Number.isFinite(width) || width < 0 || width > 1000 || layerId > 100000) continue;
+      let cursor = tail + 24, valid = true, rotation = 0, padStart = 0, rotOffset = 0;
+      for (let list = 0; list < 3; list++) {
+        if (cursor + 4 > geometryEnd) { valid = false; break; }
+        const length = rawView.getUint32(cursor, true);
+        cursor += 4;
+        if (length > MAX_REFS || cursor + length * 4 > geometryEnd) { valid = false; break; }
+        cursor += length * 4;
+        if (list === 0) {
+          padStart = cursor;
+          if (cursor + 8 > geometryEnd) { valid = false; break; }
+          rotOffset = cursor;
+          rotation = rawView.getFloat64(cursor, true);
+          cursor += 8;
+        }
+      }
+      if (!valid || cursor + 8 !== geometryEnd || !Number.isFinite(rotation)) continue;
+      const lateralOffset = rawView.getFloat64(cursor, true);
+      if (!Number.isFinite(lateralOffset) || Math.abs(lateralOffset) > 1000) continue;
+      const tolerance = Math.max(0.00002, ...c.bbox.map((v) => Math.abs(v) * 2e-7));
+      let pointSpread = 0;
+      const firstX = rawView.getFloat64(p + 8, true), firstY = rawView.getFloat64(p + 16, true);
+      for (let j = 0; j < count; j++) {
+        const x = rawView.getFloat64(p + 8 + j * 16, true), y = rawView.getFloat64(p + 16 + j * 16, true);
+        if (!Number.isFinite(x) || Math.abs(x) > 1e6 || !Number.isFinite(y) || Math.abs(y) > 1e6 || x < c.bbox[0] - tolerance || x > c.bbox[2] + tolerance || y < c.bbox[1] - tolerance || y > c.bbox[3] + tolerance) { valid = false; break; }
+        pointSpread = Math.max(pointSpread, Math.hypot(x - firstX, y - firstY));
+      }
+      if (!valid) continue;
+      if (count > 0 && pointSpread < 1e-8 && primitiveType !== 40) continue;
+      seenGeometry.add(p);
+      return { p, primitiveType, count, tail, nativeId, width, padStart, rotOffset, latOffset: cursor };
+    }
+    return undefined;
+  };
+
+  // --- Yama/f64/envanter toplama (tümü kaynak=kenar koordinatlarında). ---
+  const splices: IdeTranscodeSplice[] = [];
+  const f64Scales = new Map<number, number>();
+  const valueWrites: Array<{ offset: number; bytes: Uint8Array }> = [];
+  const markF64 = (offset: number, scale = 1) => {
+    if (offset >= 0 && offset + 8 <= src.length) f64Scales.set(offset, scale);
+  };
+  const addSplice = (start: number, end: number, replacement: Uint8Array) => {
+    splices.push({ start, end, replacement });
+  };
+
+  let nativeFloorHeaders = 0, slabCount = 0, stairCount = 0, wallLabelSwaps = 0;
+  for (const floor of floors) {
+    markF64(floor.nameOffset + floor.name.length + 1);
+    markF64(floor.nameOffset + floor.name.length + 9);
+    if (floor.native) {
+      nativeFloorHeaders++;
+      const marker = rawView.getUint32(floor.data + 24, true);
+      const storyRef = new Uint8Array(4);
+      new DataView(storyRef.buffer).setUint32(0, marker, true);
+      addSplice(floor.data + 28, floor.data + 28, storyRef);
+      markF64(floor.data + 28);
+      for (let j = 0; j < 8; j++) markF64(floor.data + 36 + j * 8);
+    }
+  }
+
+  let elementCount = 0;
+  for (const c of candidates) {
+    const g = inspectGeometry(c);
+    if (!g) continue;
+    elementCount++;
+    for (let j = 0; j < g.count; j++) {
+      markF64(g.p + 8 + j * 16);
+      markF64(g.p + 16 + j * 16);
+    }
+    markF64(g.tail + 4, 2);
+    markF64(g.tail + 12, 3);
+    addSplice(g.padStart, g.padStart, generateIdeUpgradePad(g.p));
+    markF64(g.rotOffset);
+    markF64(g.latOffset);
+
+    if (c.nameOffset < floors[0].nameOffset || !c.name) continue;
+    const p = c.nameOffset + c.name.length + 1;
+
+    if (g.primitiveType === 2 || g.primitiveType === 4 || g.primitiveType === 5 ||
+        g.primitiveType === 7 || g.primitiveType === 17 || g.primitiveType === 40 || g.primitiveType === 44) {
+      for (const rel of COMMON_OBJECT_HEADER_F64_OFFSETS) markF64(p + rel);
+    } else if (g.primitiveType === 6) {
+      for (const rel of AXIS_RECORD_F64_OFFSETS) markF64(p + rel);
+    }
+
+    if (g.primitiveType === 5) {
+      // Kiriş: yükseklik + birim ölçek f64'ları (stil u32'leri A0'da zaten v11 değerli).
+      if (p + 322 <= src.length && rawView.getUint32(p + 262, true) === 1) {
+        markF64(p + 266);
+        markF64(p + 298);
+        markF64(p + 306);
+        markF64(p + 314);
+      }
+    } else if (g.primitiveType === 2) {
+      // Mimari duvar: yükseklik + birim ölçek f64'ları (p+274..298 stil u32'leri aynen korunur).
+      if (p + 322 <= src.length && rawView.getUint32(p + 262, true) === 119) {
+        markF64(p + 266);
+        markF64(p + 298);
+        markF64(p + 306);
+        markF64(p + 314);
+      }
+    } else if (g.primitiveType === 17) {
+      // Taşıyıcı perde: skaler f64'lar + etiket yuvalarının X11 kanonik (swap) biçimi.
+      markF64(p + 298);
+      markF64(p + 306);
+      markF64(p + 314);
+      markF64(p + 410);
+      markF64(p + 486);
+      markF64(p + 494);
+      const end = Math.min(src.length - 10, p + 1400);
+      const labelPattern = /^(\d+(?:[.,]\d+)?)\/(\d+(?:[.,]\d+)?)$/;
+      const slots: Array<{ at: number; text: string }> = [];
+      for (let s = p + 400; s + 4 < end; s++) {
+        const length = rawView.getUint32(s, true);
+        if (length < 4 || length > 161 || s + 4 + length > end || src[s + 3 + length] !== 0) continue;
+        slots.push({ at: s, text: decodeCp1254(src.subarray(s + 4, s + 3 + length)) });
+      }
+      const swapText = (text: string): string | null => {
+        const m = text.match(labelPattern);
+        return m ? `${m[2]}/${m[1]}` : null;
+      };
+      for (const slot of slots) {
+        const swapped = swapText(slot.text);
+        if (!swapped) continue;
+        const companionText = `${c.name} ${slot.text}`;
+        const companion = slots.find((other) => other.text === companionText);
+        if (!companion) continue;
+        const bare = encodeCp1254NulString(swapped);
+        addSplice(slot.at + 4, slot.at + 4 + slot.text.length, bare.subarray(4, 4 + slot.text.length));
+        wallLabelSwaps++;
+        const companionSwapped = encodeCp1254NulString(`${c.name} ${swapped}`);
+        addSplice(companion.at + 4, companion.at + 4 + companionText.length, companionSwapped.subarray(4, 4 + companionText.length));
+        wallLabelSwaps++;
+      }
+    } else if (g.primitiveType === 7) {
+      // Döşeme/radye: "36" etiketi + yük f64'ları (DOSEME-KAYDI sira-1).
+      if (p + 525 <= src.length &&
+          rawView.getUint32(p + 470, true) === 1 && rawView.getUint32(p + 475, true) === 1 &&
+          ((rawView.getUint32(p + 466, true) === 43 && rawView.getUint32(p + 489, true) === 85 && rawView.getUint32(p + 493, true) === 45) ||
+           (rawView.getUint32(p + 466, true) === 11 && rawView.getUint32(p + 489, true) === 1 && [81, 65].includes(rawView.getUint32(p + 493, true))))) {
+        slabCount++;
+        const marker = new Uint8Array(4);
+        new DataView(marker.buffer).setUint32(0, 36, true);
+        addSplice(p + 470, p + 470, marker);
+        markF64(p + 497);
+        markF64(p + 505);
+        markF64(p + 513);
+      }
+    } else if (g.primitiveType === 40) {
+      // Merdiven: şablon f64'ları proxy hasadıyla kodlanır; analiz ağı çerçevesi
+      // genel çerçeve geçişinde bayrak+sürüm alır.
+      stairCount++;
+      const tempOffsets: number[] = [];
+      const proxyView = new Proxy(rawView, {
+        get(target, prop) {
+          if (prop === "getFloat64") {
+            return (off: number, le?: boolean) => {
+              tempOffsets.push(off);
+              return target.getFloat64(off, le);
+            };
+          }
+          const val = Reflect.get(target, prop);
+          return typeof val === "function" ? val.bind(target) : val;
+        },
+      });
+      const tpl = readIdeStairTemplate(src, proxyView, c.nameOffset, c.name.length + 1);
+      if (tpl) {
+        for (const off of tempOffsets) markF64(off);
+      }
+    }
+  }
+
+  // --- Başlık: ENC(0) yuvaları + kilit baytası + 0x5ce işareti. ---
+  const nameLen = rawView.getUint32(96, true);
+  const previewEnd = 116 + nameLen + rawView.getUint32(112 + nameLen, true);
+  let marker05ce = false, demoFlagCleared = false;
+  if (previewEnd + 34 <= src.length) {
+    valueWrites.push({ offset: previewEnd + 5, bytes: encodeIdeFloat64(0) });
+    valueWrites.push({ offset: previewEnd + 19, bytes: encodeIdeFloat64(0) });
+    if (src[previewEnd + 29] !== 0) {
+      valueWrites.push({ offset: previewEnd + 29, bytes: new Uint8Array([0]) });
+      demoFlagCleared = true;
+    }
+    const marker = new Uint8Array(4);
+    new DataView(marker.buffer).setUint32(0, 0x5ce, true);
+    valueWrites.push({ offset: previewEnd + 30, bytes: marker });
+    marker05ce = true;
+  }
+
+  // --- Çerçeve envanteri: [1][1][0] 201094 → [1][1][1] 211220;
+  // "00 01 00" önyazılı tek akış (#1885 çizim biçem çerçevesi) düz kalır. ---
+  const frames = scanIdeSubStreamFrames(src, IDE10_VERSION);
+  if (!frames.length) {
+    throw new Error("v10 gövdesinde 201094 sihirli alt-akış çerçevesi bulunamadı; yükseltme gövde düzenini tanıyamadı.");
+  }
+  const rewriteFrames: number[] = [];
+  let plain201094Kept = 0;
+  for (const frame of frames) {
+    if (frame.offset < 3 || src[frame.offset - 3] !== 1 || src[frame.offset - 2] !== 1 || src[frame.offset - 1] !== 0) {
+      plain201094Kept++;
+      continue;
+    }
+    rewriteFrames.push(frame.offset);
+  }
+
+  // --- Uygula: splices → work; kaynak-koordinat → work-koordinat eşlemesi. ---
+  const ordered = [...splices].sort((a, b) => a.start - b.start);
+  let prevEnd = 0;
+  for (const sp of ordered) {
+    if (sp.start < prevEnd) throw new Error(`Çakışan ikili yama aralığı: ${sp.start} < ${prevEnd}`);
+    prevEnd = sp.end;
+  }
+  const spliceDeltas = ordered.map((sp) => ({
+    at: sp.start,
+    insertOnly: sp.end === sp.start,
+    delta: sp.replacement.byteLength - (sp.end - sp.start),
+  }));
+  const mapOffset = (o: number): number => {
+    let d = 0;
+    for (const sp of spliceDeltas) {
+      if (sp.insertOnly ? sp.at <= o : sp.at < o) d += sp.delta;
+    }
+    return o + d;
+  };
+  const work = applyIdeBinarySplices(src, ordered);
+  const workRawView = new DataView(work.buffer, work.byteOffset, work.byteLength);
+
+  // f64 kodlama (IEEE-754 → Blowfish; ölçek ×2/×3 yalnız nativeZ/genişlik).
+  let f64Encoded = 0;
+  for (const [offset, scale] of f64Scales) {
+    const value = rawView.getFloat64(offset, true);
+    work.set(encodeIdeFloat64(value * scale), mapOffset(offset));
+    f64Encoded++;
+  }
+  // Başlık değer yazımları (ENC(0) yuvaları + kilit + 0x5ce).
+  let encZeroSlots = 0;
+  for (const write of valueWrites) {
+    work.set(write.bytes, mapOffset(write.offset));
+    if (write.bytes.length === 8) encZeroSlots++;
+  }
+  // Çerçeve sihri + önyazı bayrağı.
+  let preludeFlagsSet = 0;
+  for (const offset of rewriteFrames) {
+    const at = mapOffset(offset);
+    workRawView.setUint32(at, IDE11_VERSION, true);
+    work[at - 1] = 1;
+    preludeFlagsSet++;
+  }
+
+  diagnostics.records = { floors: floors.length, nativeFloorHeaders, elements: elementCount, slabs: slabCount, stairs: stairCount };
+  diagnostics.splices = {
+    storyRefs: nativeFloorHeaders,
+    geometryPads: elementCount,
+    slabMarkers: slabCount,
+    wallLabelSwaps,
+  };
+  diagnostics.frames = { rewritten211220: rewriteFrames.length, preludeFlagsSet, plain201094Kept };
+  diagnostics.header = { marker05ce, demoFlagCleared, encZeroSlots };
+  diagnostics.f64Encoded = f64Encoded;
+  diagnostics.outputBytes = work.length;
+
+  // --- Mühür: gövde şemasıyla uyumlu sürüm 211220 + encoded=1 (140989c30.c:40). ---
+  return sealIdeCarrierHeader(work, { formatVersion: IDE11_VERSION, encodedFlag: 1 });
 }
