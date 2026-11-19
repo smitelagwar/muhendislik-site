@@ -49,6 +49,17 @@
  *        KORUNDU (yalnız .ide10 stored-CRC bozulur); yama ayağı negatif ve
  *        --skip-desktop profillerinde de koşar (makine ölçümleri masaüstünden
  *        bağımsızdır; yama girdisi sağlamsa F satırları izolasyonla yeşildir).
+ *   v4 — 2026-11-19 (K2 onarım turu; KARAR-001 hükmü (B)): isteğe bağlı
+ *        `--oracle-json <profil>` bayrağı. MS1'e donuk sabitler (sayımlar, boyut
+ *        bantları, masaüstü başlık/kat, F6 yama hedefi) eşli ticari donörden
+ *        ölçülen profil dosyasıyla doğrulamalı birleşir (yalnız bilinen
+ *        anahtarlar; bilinmeyen anahtar/yanlış tip/eksik anahtar → sert hata).
+ *        Profil `x11: null` → B14–B16 "X11-YOK (ölçülemez)" sınıfı (SAPMA-A:
+ *        KIRMIZI da GEÇTİ de sayılmaz; X11 varlık kontrolü atlanır; özet dürüst
+ *        not taşır). Profil üretimi: scripts/hsyncad/ide-oracle-profile.ts
+ *        (YFS-1: değerler donörden ölçülür, elle sayı uydurma yasak).
+ *        Varsayılan davranış (bayrak yok) bayt bayt aynı; gömülü K1 profili
+ *        ve 29-ölçüt sözleşmesi DEĞİŞMEDİ.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -99,7 +110,141 @@ export const SEISMIC_ORACLE_FIELDS = [
   "bearingCapacityQtTfM2", "importanceI", "ss", "s1", "sds", "sd1",
 ] as const;
 
-export type CriterionStatus = "GECTI" | "KIRMIZI" | "SKIPPED";
+// ─────────────────────────────────────────────────────────────────────────────
+// ORACLE PROFİL KATMANI (v4; KARAR-001 hükmü (B) — K2 onarım turu).
+// 11-KABUL §6: "sabit sayılar proje özine göre yeniden okunur". --oracle-json
+// verilirse MS1'e donuk ölçüm sabitleri profil değerleriyle birleşir; bayrak
+// yoksa davranış bayt bayt aynı kalır (K1 profili bozulmaz).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Gömülü ORACLE tablosunun genişletilmiş tipi (profil birleşmesine izin verir). */
+export type OracleConstants = {
+  [K in keyof typeof ORACLE]:
+    typeof ORACLE[K] extends string ? string :
+    typeof ORACLE[K] extends boolean ? boolean : number;
+};
+
+/** Profilde birleştirilebilen (proje-kilitli) oracle anahtarları. */
+export const ORACLE_PROFILE_MERGE_KEYS = [
+  "attributeStreams", "streamCompressedBytes", "streamRawBytes",
+  "rebarBlocks", "materials", "f9ModalTables",
+  "elementsCore", "elementsStairs", "elements",
+  "floors", "labels", "slabLoads",
+  "desktopProjectTitle", "desktopFloors",
+  "patchBeamName", "patchFromHeight", "patchToHeight",
+] as const;
+
+export type OracleMergeKey = typeof ORACLE_PROFILE_MERGE_KEYS[number];
+
+/** Profil dosyasının ham biçimi (ide-oracle-profile.ts üretir; gate doğrular). */
+export interface OracleProfileFile {
+  profileVersion: number;
+  projectId: string;
+  /** Ticari referans .ide11 yolu; null → B14–B16 X11-YOK sınıfı (SAPMA-A). */
+  x11: string | null;
+  /** Türetim kaynak belgeleri (YFS-1: her sayı nereden ölçüldü). */
+  derivedFrom: { donorIde10: string; donorSha256: string } & Record<string, unknown>;
+  oracle: Partial<Record<OracleMergeKey, number | string>>;
+}
+
+export interface OracleContext {
+  /** Birleşmiş oracle sabitleri (profil yoksa gömülü ORACLE). */
+  constants: OracleConstants;
+  /** null → X11 ticari referans yok: B14–B16 X11-YOK (ölçülemez) sınıfı. */
+  x11: string | null;
+  projectId?: string;
+  profilePath?: string;
+  derivedFrom?: OracleProfileFile["derivedFrom"];
+}
+
+/** Varsayılan bağlam: gömülü K1 ORACLE'ı; X11 bekleniyor (preflight zorunlu). */
+export const DEFAULT_ORACLE_CONTEXT: OracleContext = { constants: ORACLE, x11: "" };
+
+const PROFILE_INTEGER_KEYS: readonly OracleMergeKey[] = [
+  "attributeStreams", "streamCompressedBytes", "streamRawBytes",
+  "rebarBlocks", "materials", "f9ModalTables",
+  "elementsCore", "elementsStairs", "elements",
+  "floors", "labels", "slabLoads", "desktopFloors",
+];
+const PROFILE_STRING_KEYS: readonly OracleMergeKey[] = ["desktopProjectTitle", "patchBeamName"];
+const PROFILE_HEIGHT_KEYS: readonly OracleMergeKey[] = ["patchFromHeight", "patchToHeight"];
+
+/**
+ * Profil nesnesini sert doğrulamayla OracleContext'e çevirir.
+ * Bilinmeyen anahtar / eksik anahtar / yanlış tip / tutarsız çapraz değer → hata.
+ */
+export function buildOracleContextFromRaw(raw: unknown, source: string): OracleContext {
+  const fail = (why: string): never => {
+    throw new Error(`oracle profili geçersiz (${source}): ${why}`);
+  };
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) fail("kök nesne değil");
+  const obj = raw as Record<string, unknown>;
+  const knownTop = ["profileVersion", "projectId", "x11", "derivedFrom", "oracle"] as const;
+  for (const key of Object.keys(obj)) {
+    if (!(knownTop as readonly string[]).includes(key)) fail(`bilinmeyen üst anahtar: '${key}'`);
+  }
+  if (obj.profileVersion !== 1) fail(`profileVersion 1 olmalı (bulunan: ${String(obj.profileVersion)})`);
+  if (typeof obj.projectId !== "string" || obj.projectId.trim() === "") fail("projectId boş/dizgi değil");
+  if (obj.x11 !== null && (typeof obj.x11 !== "string" || obj.x11.trim() === "")) {
+    fail("x11 ya geçerli yol dizgisi ya da null olmalı");
+  }
+  const derived = obj.derivedFrom;
+  if (derived === null || typeof derived !== "object" || Array.isArray(derived)) fail("derivedFrom nesne değil");
+  if (typeof (derived as Record<string, unknown>).donorIde10 !== "string" || !((derived as Record<string, unknown>).donorIde10 as string).trim()) {
+    fail("derivedFrom.donorIde10 boş/dizgi değil");
+  }
+  if (typeof (derived as Record<string, unknown>).donorSha256 !== "string" || !/^[0-9a-f]{64}$/.test((derived as Record<string, unknown>).donorSha256 as string)) {
+    fail("derivedFrom.donorSha256 64 haneli hex değil");
+  }
+  const oracleRaw = obj.oracle;
+  if (oracleRaw === null || typeof oracleRaw !== "object" || Array.isArray(oracleRaw)) fail("oracle nesnesi değil");
+  const oracleObj = oracleRaw as Record<string, unknown>;
+  for (const key of Object.keys(oracleObj)) {
+    if (!(ORACLE_PROFILE_MERGE_KEYS as readonly string[]).includes(key)) {
+      fail(`bilinmeyen oracle anahtarı: '${key}' (yalnız ${ORACLE_PROFILE_MERGE_KEYS.join(", ")} birleştirilebilir)`);
+    }
+  }
+  for (const key of ORACLE_PROFILE_MERGE_KEYS) {
+    if (!(key in oracleObj)) fail(`eksik oracle anahtarı: '${key}' (profil tam olmalı)`);
+  }
+  for (const key of PROFILE_INTEGER_KEYS) {
+    const v = oracleObj[key];
+    if (typeof v !== "number" || !Number.isSafeInteger(v) || v < 0) {
+      fail(`'${key}' negatif-olmayan tam sayı olmalı (bulunan: ${typeof v === "number" ? v : typeof v})`);
+    }
+  }
+  for (const key of PROFILE_STRING_KEYS) {
+    const v = oracleObj[key];
+    if (typeof v !== "string" || v.trim() === "") fail(`'${key}' boş-olmayan dizgi olmalı`);
+  }
+  for (const key of PROFILE_HEIGHT_KEYS) {
+    const v = oracleObj[key];
+    if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) fail(`'${key}' pozitif sonlu sayı olmalı`);
+  }
+  if ((oracleObj.elements as number) !== (oracleObj.elementsCore as number) + (oracleObj.elementsStairs as number)) {
+    fail("elements ≠ elementsCore + elementsStairs");
+  }
+  if ((oracleObj.patchToHeight as number) <= (oracleObj.patchFromHeight as number)) {
+    fail("patchToHeight, patchFromHeight'ten büyük olmalı (yama değeri değişiklik olmalı)");
+  }
+  const constants: OracleConstants = { ...ORACLE, ...oracleObj } as OracleConstants;
+  return {
+    constants,
+    x11: obj.x11 as string | null,
+    projectId: obj.projectId as string,
+    profilePath: source,
+    derivedFrom: derived as OracleProfileFile["derivedFrom"],
+  };
+}
+
+/** Profil dosyasını okuyup doğrular (sert hata → main().catch → FATAL). */
+export function loadOracleContext(profilePath: string): OracleContext {
+  if (!fs.existsSync(profilePath)) throw new Error(`oracle profil dosyası yok: ${profilePath}`);
+  const raw: unknown = JSON.parse(fs.readFileSync(profilePath, "utf8"));
+  return buildOracleContextFromRaw(raw, profilePath);
+}
+
+export type CriterionStatus = "GECTI" | "KIRMIZI" | "SKIPPED" | "X11-YOK";
 
 export interface CriterionResult {
   stage: "A" | "B" | "F" | "C" | "D";
@@ -205,92 +350,108 @@ export function withinPct(measured: number, target: number, pct: number): boolea
 }
 
 /** HS(.ide10)↔A0 + HS(.ide11)↔X11 çift farkları + sayım → B aşaması ölçütleri. */
-export function evaluateStageB(bundle: MeasurementBundle): CriterionResult[] {
+export function evaluateStageB(
+  bundle: MeasurementBundle, ctx: OracleContext = DEFAULT_ORACLE_CONTEXT,
+): CriterionResult[] {
+  const o = ctx.constants;
   const out: CriterionResult[] = [];
   const c10 = bundle.census.ide10;
 
   out.push(c10
-    ? crit("B", "B1", "201094 alt-akış sayısı (.ide10)", tr(ORACLE.attributeStreams),
-      tr(c10.attributeStreams), c10.attributeStreams === ORACLE.attributeStreams ? "GECTI" : "KIRMIZI")
-    : RED_MISSING("B", "B1", "201094 alt-akış sayısı (.ide10)", tr(ORACLE.attributeStreams), "probe census yok"));
+    ? crit("B", "B1", "201094 alt-akış sayısı (.ide10)", tr(o.attributeStreams),
+      tr(c10.attributeStreams), c10.attributeStreams === o.attributeStreams ? "GECTI" : "KIRMIZI")
+    : RED_MISSING("B", "B1", "201094 alt-akış sayısı (.ide10)", tr(o.attributeStreams), "probe census yok"));
 
   out.push(c10
-    ? crit("B", "B2", "alt-akış sıkışmış boyut bandı (±%1)", `~${(ORACLE.streamCompressedBytes / 1e6).toFixed(1)} MB`,
-      `${(c10.compressedBytes / 1e6).toFixed(1)} MB`, withinPct(c10.compressedBytes, ORACLE.streamCompressedBytes, ORACLE.streamSizeTolerancePct) ? "GECTI" : "KIRMIZI")
-    : RED_MISSING("B", "B2", "alt-akış sıkışmış boyut bandı (±%1)", `~${(ORACLE.streamCompressedBytes / 1e6).toFixed(1)} MB`, "probe census yok"));
+    ? crit("B", "B2", "alt-akış sıkışmış boyut bandı (±%1)", `~${(o.streamCompressedBytes / 1e6).toFixed(1)} MB`,
+      `${(c10.compressedBytes / 1e6).toFixed(1)} MB`, withinPct(c10.compressedBytes, o.streamCompressedBytes, o.streamSizeTolerancePct) ? "GECTI" : "KIRMIZI")
+    : RED_MISSING("B", "B2", "alt-akış sıkışmış boyut bandı (±%1)", `~${(o.streamCompressedBytes / 1e6).toFixed(1)} MB`, "probe census yok"));
 
   out.push(c10
-    ? crit("B", "B3", "alt-akış açılmış boyut bandı (±%1)", `~${(ORACLE.streamRawBytes / 1e6).toFixed(1)} MB`,
-      `${(c10.rawBytes / 1e6).toFixed(1)} MB`, withinPct(c10.rawBytes, ORACLE.streamRawBytes, ORACLE.streamSizeTolerancePct) ? "GECTI" : "KIRMIZI")
-    : RED_MISSING("B", "B3", "alt-akış açılmış boyut bandı (±%1)", `~${(ORACLE.streamRawBytes / 1e6).toFixed(1)} MB`, "probe census yok"));
+    ? crit("B", "B3", "alt-akış açılmış boyut bandı (±%1)", `~${(o.streamRawBytes / 1e6).toFixed(1)} MB`,
+      `${(c10.rawBytes / 1e6).toFixed(1)} MB`, withinPct(c10.rawBytes, o.streamRawBytes, o.streamSizeTolerancePct) ? "GECTI" : "KIRMIZI")
+    : RED_MISSING("B", "B3", "alt-akış açılmış boyut bandı (±%1)", `~${(o.streamRawBytes / 1e6).toFixed(1)} MB`, "probe census yok"));
 
   const d = bundle.pairHs10VsA0;
   if (!d) {
-    out.push(RED_MISSING("B", "B4", "R4 donatı 468/468", `${ORACLE.rebarBlocks}/0 uyumsuz`, "HS↔A0 diff yok"));
-    out.push(RED_MISSING("B", "B5", "R1 malzeme 2/2", "2/2 (diff 0)", "HS↔A0 diff yok"));
+    out.push(RED_MISSING("B", "B4", `R4 donatı ${tr(o.rebarBlocks)}/${tr(o.rebarBlocks)}`, `${o.rebarBlocks}/0 uyumsuz`, "HS↔A0 diff yok"));
+    out.push(RED_MISSING("B", "B5", `R1 malzeme ${tr(o.materials)}/${tr(o.materials)}`, `${o.materials}/${o.materials} (diff 0)`, "HS↔A0 diff yok"));
     out.push(RED_MISSING("B", "B6", "R3 deprem/zemin 10/10 alan", "10/10 (diff 0)", "HS↔A0 diff yok"));
-    out.push(RED_MISSING("B", "B7", "R5 F9/modal tablo 10", "10/10", "HS↔A0 diff yok"));
+    out.push(RED_MISSING("B", "B7", `R5 F9/modal tablo ${tr(o.f9ModalTables)}`, `${o.f9ModalTables}/${o.f9ModalTables} (tablo diff 0)`, "HS↔A0 diff yok"));
     out.push(RED_MISSING("B", "B8", "F9 frekans sapması ≤1e-9", "≤ 1e-9", "HS↔A0 diff yok"));
-    out.push(RED_MISSING("B", "B9", "geometri 1.266+7 (1 µm)", "1.273/1.273 (diff 0)", "HS↔A0 diff yok"));
-    out.push(RED_MISSING("B", "B10", "kat 6/6", "6/6", "HS↔A0 diff yok"));
-    out.push(RED_MISSING("B", "B11", "kesit etiketi 1.266+7", "1.273/1.273", "HS↔A0 diff yok"));
+    out.push(RED_MISSING("B", "B9", `geometri ${tr(o.elementsCore)}+${o.elementsStairs} (1 µm)`, `${tr(o.elements)}/${tr(o.elements)} (diff 0)`, "HS↔A0 diff yok"));
+    out.push(RED_MISSING("B", "B10", `kat ${o.floors}/${o.floors}`, `${o.floors}/${o.floors}`, "HS↔A0 diff yok"));
+    out.push(RED_MISSING("B", "B11", `kesit etiketi ${tr(o.elementsCore)}+${o.elementsStairs}`, `${tr(o.labels)}/${tr(o.labels)}`, "HS↔A0 diff yok"));
     out.push(RED_MISSING("B", "B12", "XX uydurma etiket 0", "0", "HS↔A0 diff yok"));
-    out.push(RED_MISSING("B", "B13", "döşeme yükü 159/159", "159/159 (diff 0)", "HS↔A0 diff yok"));
+    out.push(RED_MISSING("B", "B13", `döşeme yükü ${o.slabLoads}/${o.slabLoads}`, `${o.slabLoads}/${o.slabLoads} (diff 0)`, "HS↔A0 diff yok"));
     return out;
   }
   const e = d.elements;
-  out.push(crit("B", "B4", "R4 donatı 468/468", `${ORACLE.rebarBlocks}/0 uyumsuz`,
+  out.push(crit("B", "B4", `R4 donatı ${tr(o.rebarBlocks)}/${tr(o.rebarBlocks)}`, `${o.rebarBlocks}/0 uyumsuz`,
     `${tr(e.rebarBoth)}/${tr(e.rebarMismatch)}`,
-    e.rebarBoth === ORACLE.rebarBlocks && e.rebarMismatch === 0 ? "GECTI" : "KIRMIZI"));
+    e.rebarBoth === o.rebarBlocks && e.rebarMismatch === 0 ? "GECTI" : "KIRMIZI"));
 
-  out.push(crit("B", "B5", "R1 malzeme 2/2", `${ORACLE.materials}/2 (diff 0)`,
+  out.push(crit("B", "B5", `R1 malzeme ${tr(o.materials)}/${tr(o.materials)}`, `${o.materials}/${o.materials} (diff 0)`,
     `${d.materials.countA}/${d.materials.countB} (diff ${d.materials.diff.length})`,
-    d.materials.countA === ORACLE.materials && d.materials.countB === ORACLE.materials && d.materials.diff.length === 0 ? "GECTI" : "KIRMIZI"));
+    d.materials.countA === o.materials && d.materials.countB === o.materials && d.materials.diff.length === 0 ? "GECTI" : "KIRMIZI"));
 
   const seismicOracleDiff = d.seismic.diff.filter(x => (SEISMIC_ORACLE_FIELDS as readonly string[]).includes(x.field));
   out.push(crit("B", "B6", "R3 deprem/zemin 10/10 alan", "10/10 (diff 0)",
     d.seismic.presentA && d.seismic.presentB ? `10/10 (diff ${seismicOracleDiff.length})` : `okunamadı (A:${d.seismic.presentA} B:${d.seismic.presentB})`,
     d.seismic.presentA && d.seismic.presentB && seismicOracleDiff.length === 0 ? "GECTI" : "KIRMIZI"));
 
-  out.push(crit("B", "B7", "R5 F9/modal tablo 10", `${ORACLE.f9ModalTables}/10 (tablo diff 0)`,
+  out.push(crit("B", "B7", `R5 F9/modal tablo ${tr(o.f9ModalTables)}`, `${o.f9ModalTables}/${o.f9ModalTables} (tablo diff 0)`,
     `${d.f9.tablesA}/${d.f9.tablesB} (tablo diff ${d.f9.tableDiff.length})`,
-    d.f9.tablesA === ORACLE.f9ModalTables && d.f9.tablesB === ORACLE.f9ModalTables && d.f9.tableDiff.length === 0 ? "GECTI" : "KIRMIZI"));
+    d.f9.tablesA === o.f9ModalTables && d.f9.tablesB === o.f9ModalTables && d.f9.tableDiff.length === 0 ? "GECTI" : "KIRMIZI"));
 
   const dev = d.f9.maxFrequencyDeviation;
   out.push(crit("B", "B8", "F9 frekans sapması ≤1e-9", "≤ 1e-9",
     dev === null ? "ölçülemedi (tablo yok)" : dev.toExponential(3),
-    dev !== null && dev <= ORACLE.f9MaxFrequencyDeviation ? "GECTI" : "KIRMIZI"));
+    dev !== null && dev <= o.f9MaxFrequencyDeviation ? "GECTI" : "KIRMIZI"));
 
-  out.push(crit("B", "B9", "geometri 1.266+7 (1 µm)", "1.273/1.273 (diff 0)",
+  out.push(crit("B", "B9", `geometri ${tr(o.elementsCore)}+${o.elementsStairs} (1 µm)`, `${tr(o.elements)}/${tr(o.elements)} (diff 0)`,
     `${tr(e.matched)}/${tr(e.geometryEqual)} (diff ${tr(e.geometryDiff)}, eksik ${e.missingInB}/${e.extraInB})`,
-    e.matched === ORACLE.elements && e.geometryEqual === ORACLE.elements && e.geometryDiff === 0 && e.missingInB === 0 && e.extraInB === 0 ? "GECTI" : "KIRMIZI",
-    `1.266 çekirdek + ${ORACLE.elementsStairs} merdiven = ${ORACLE.elements} (v2 sürüm notu)`));
+    e.matched === o.elements && e.geometryEqual === o.elements && e.geometryDiff === 0 && e.missingInB === 0 && e.extraInB === 0 ? "GECTI" : "KIRMIZI",
+    `${tr(o.elementsCore)} çekirdek + ${o.elementsStairs} merdiven = ${o.elements} (v2 sürüm notu)`));
 
-  out.push(crit("B", "B10", "kat 6/6", "6/6 (Asansör Mak. Dairesi dahil)",
-    `${d.floors.matched}/6 (fark ${d.floors.geometryDiff}, tek taraf ${d.floors.onlyInA.length + d.floors.onlyInB.length})`,
-    d.floors.matched === ORACLE.floors && d.floors.geometryDiff === 0 && d.floors.onlyInA.length === 0 && d.floors.onlyInB.length === 0 ? "GECTI" : "KIRMIZI"));
+  out.push(crit("B", "B10", `kat ${o.floors}/${o.floors}`, `${o.floors}/${o.floors} (Asansör Mak. Dairesi dahil)`,
+    `${d.floors.matched}/${o.floors} (fark ${d.floors.geometryDiff}, tek taraf ${d.floors.onlyInA.length + d.floors.onlyInB.length})`,
+    d.floors.matched === o.floors && d.floors.geometryDiff === 0 && d.floors.onlyInA.length === 0 && d.floors.onlyInB.length === 0 ? "GECTI" : "KIRMIZI"));
 
-  out.push(crit("B", "B11", "kesit etiketi 1.266+7", "1.273/1.273",
+  out.push(crit("B", "B11", `kesit etiketi ${tr(o.elementsCore)}+${o.elementsStairs}`, `${tr(o.labels)}/${tr(o.labels)}`,
     `${tr(e.labelEqual)}/${tr(e.labelDiff)}`,
-    e.labelEqual === ORACLE.labels && e.labelDiff === 0 ? "GECTI" : "KIRMIZI"));
+    e.labelEqual === o.labels && e.labelDiff === 0 ? "GECTI" : "KIRMIZI"));
 
   out.push(crit("B", "B12", "XX uydurma etiket 0", "0",
     `${e.labelDiff}`,
-    e.labelDiff === ORACLE.xxFabricatedLabels ? "GECTI" : "KIRMIZI",
+    e.labelDiff === o.xxFabricatedLabels ? "GECTI" : "KIRMIZI",
     "ölçüm: donör kaynaklı birebirlik — HS↔A0 labelDiff (donör A0 etiketlerinden sapma = uydurma)"));
 
   const sl = bundle.slabLoadCount;
   out.push(sl
-    ? crit("B", "B13", "döşeme yükü 159/159", "159/159 (diff 0)",
+    ? crit("B", "B13", `döşeme yükü ${o.slabLoads}/${o.slabLoads}`, `${o.slabLoads}/${o.slabLoads} (diff 0)`,
       `${tr(sl.hs10)}/${tr(sl.a0)} (fark ${tr(e.loadsMismatch)}, tek taraf ${e.loadsOnlyA}/${e.loadsOnlyB})`,
-      sl.hs10 === ORACLE.slabLoads && sl.a0 === ORACLE.slabLoads && e.loadsMismatch === 0 && e.loadsOnlyA === 0 && e.loadsOnlyB === 0 ? "GECTI" : "KIRMIZI",
+      sl.hs10 === o.slabLoads && sl.a0 === o.slabLoads && e.loadsMismatch === 0 && e.loadsOnlyA === 0 && e.loadsOnlyB === 0 ? "GECTI" : "KIRMIZI",
       "ölçüm: parmak izlerinde slabLoads taşıyan eleman sayısı + HS↔A0 yük farkı")
-    : RED_MISSING("B", "B13", "döşeme yükü 159/159", "159/159 (diff 0)", "parmak izi sayımı yok"));
+    : RED_MISSING("B", "B13", `döşeme yükü ${o.slabLoads}/${o.slabLoads}`, `${o.slabLoads}/${o.slabLoads} (diff 0)`, "parmak izi sayımı yok"));
 
   return out;
 }
 
-export function evaluateStageB11(bundle: MeasurementBundle): CriterionResult[] {
+export function evaluateStageB11(
+  bundle: MeasurementBundle, ctx: OracleContext = DEFAULT_ORACLE_CONTEXT,
+): CriterionResult[] {
+  // Profil x11:null → ticari .ide11 eşi yok (SAPMA-A; KARAR-001 hükmü (B)):
+  // ölçülemez dürüst-limit sınıfı — KIRMIZI da GEÇTİ de sayılmaz.
+  if (ctx.x11 === null) {
+    const note = "SAPMA-A (KARAR-001): tam kabul profili X11 eşi olmadığından .ide11-yönlü çift ölçümü yok — X11-YOK (ölçülemez) sınıfı";
+    return [
+      crit("B", "B14", "HS↔X11 geometri farkı 0", "0", "X11-YOK (ölçülemez)", "X11-YOK", note),
+      crit("B", "B15", "HS↔X11 etiket farkı 0", "0", "X11-YOK (ölçülemez)", "X11-YOK", note),
+      crit("B", "B16", "HS↔X11 yük farkı 0", "0", "X11-YOK (ölçülemez)", "X11-YOK", note),
+    ];
+  }
+  const o = ctx.constants;
   const d = bundle.pairHs11VsX11;
   if (!d) {
     return [
@@ -303,63 +464,70 @@ export function evaluateStageB11(bundle: MeasurementBundle): CriterionResult[] {
   return [
     crit("B", "B14", "HS↔X11 geometri farkı 0", "0",
       `${tr(e.geometryDiff)} (eş ${tr(e.geometryEqual)}/${tr(e.matched)})`,
-      e.geometryDiff === ORACLE.ide11GeometryLabelLoadDiff ? "GECTI" : "KIRMIZI"),
+      e.geometryDiff === o.ide11GeometryLabelLoadDiff ? "GECTI" : "KIRMIZI"),
     crit("B", "B15", "HS↔X11 etiket farkı 0", "0",
-      `${tr(e.labelDiff)}`, e.labelDiff === ORACLE.ide11GeometryLabelLoadDiff ? "GECTI" : "KIRMIZI"),
+      `${tr(e.labelDiff)}`, e.labelDiff === o.ide11GeometryLabelLoadDiff ? "GECTI" : "KIRMIZI"),
     crit("B", "B16", "HS↔X11 yük farkı 0", "0",
       `${tr(e.loadsMismatch)} (tek taraf ${e.loadsOnlyA}/${e.loadsOnlyB})`,
-      e.loadsMismatch === ORACLE.ide11GeometryLabelLoadDiff && e.loadsOnlyA === 0 && e.loadsOnlyB === 0 ? "GECTI" : "KIRMIZI"),
+      e.loadsMismatch === o.ide11GeometryLabelLoadDiff && e.loadsOnlyA === 0 && e.loadsOnlyB === 0 ? "GECTI" : "KIRMIZI"),
   ];
 }
 
-/** F6 yama ayağı: kapının kendi .ide11 çıktısında K34 test yaması (F1-F3). */
-export function evaluateStageF(bundle: MeasurementBundle): CriterionResult[] {
+/** F6 yama ayağı: kapının kendi .ide11 çıktısında test yaması (F1-F3; hedef profil gelir). */
+export function evaluateStageF(
+  bundle: MeasurementBundle, ctx: OracleContext = DEFAULT_ORACLE_CONTEXT,
+): CriterionResult[] {
+  const o = ctx.constants;
+  const fmt2 = (n: number): string => n.toFixed(2);
   const p = bundle.patch;
   const why = p && p.failNote ? p.failNote : "yama ayağı koşulmadı";
   if (!p || !p.ok) {
     return [
       RED_MISSING("F", "F1", "F6 yama bayt kapsamı (8B alan + 4B CRC = 12; kapsam dışı 0)", "12 bayt", why),
-      RED_MISSING("F", "F2", "yamalı parse: K34=0.55, diğer kat K34'leri değişmez", "K34 0.55; diğerleri 0.50", why),
+      RED_MISSING("F", "F2", `yamalı parse: ${o.patchBeamName}=${fmt2(o.patchToHeight)}, diğer kat ${o.patchBeamName}'leri değişmez`, `${o.patchBeamName} ${fmt2(o.patchToHeight)}; diğerleri ${fmt2(o.patchFromHeight)}`, why),
       RED_MISSING("F", "F3", "yamalı çıktı CRC mührü geçerli", "geçerli", why),
     ];
   }
-  const f1 = p.changedBytes === ORACLE.patchChangedBytes
-    && p.fieldBytes === ORACLE.patchFieldBytes
-    && p.crcBytes === ORACLE.patchCrcBytes
+  const f1 = p.changedBytes === o.patchChangedBytes
+    && p.fieldBytes === o.patchFieldBytes
+    && p.crcBytes === o.patchCrcBytes
     && p.outOfScopeBytes === 0;
-  const f2 = p.patchedHeight === ORACLE.patchToHeight
-    && p.originalHeight === ORACLE.patchFromHeight
+  const f2 = p.patchedHeight === o.patchToHeight
+    && p.originalHeight === o.patchFromHeight
     && p.otherK34Changed === 0
     && (p.otherK34Count ?? 0) >= 1;
-  const f3 = p.crcValid === ORACLE.carrierChecksumValid;
+  const f3 = p.crcValid === o.carrierChecksumValid;
   return [
     crit("F", "F1", "F6 yama bayt kapsamı (8B alan + 4B CRC = 12; kapsam dışı 0)", "12 bayt",
       `${p.changedBytes} bayt (alan ${p.fieldBytes} + CRC ${p.crcBytes}; kapsam dışı ${p.outOfScopeBytes})`,
       f1 ? "GECTI" : "KIRMIZI",
-      `hedef: ilk ${ORACLE.patchBeamName} kirişi ${p.targetId} (${p.targetFloor}); beamSectionHeight ${ORACLE.patchFromHeight}→${ORACLE.patchToHeight}; T-F6.1 deseni`),
-    crit("F", "F2", "yamalı parse: K34=0.55, diğer kat K34'leri değişmez", "K34 0.55; diğerleri 0.50",
-      `K34=${p.patchedHeight} (kaynak ${p.originalHeight}); diğer K34 ${p.otherK34Count ?? 0} adet, değişen ${p.otherK34Changed ?? "?"}`,
+      `hedef: ilk ${o.patchBeamName} kirişi ${p.targetId} (${p.targetFloor}); beamSectionHeight ${o.patchFromHeight}→${o.patchToHeight}; T-F6.1 deseni`),
+    crit("F", "F2", `yamalı parse: ${o.patchBeamName}=${fmt2(o.patchToHeight)}, diğer kat ${o.patchBeamName}'leri değişmez`, `${o.patchBeamName} ${fmt2(o.patchToHeight)}; diğerleri ${fmt2(o.patchFromHeight)}`,
+      `${o.patchBeamName}=${p.patchedHeight} (kaynak ${p.originalHeight}); diğer ${o.patchBeamName} ${p.otherK34Count ?? 0} adet, değişen ${p.otherK34Changed ?? "?"}`,
       f2 ? "GECTI" : "KIRMIZI",
-      "yamalı tampon yeniden parse edilir; yama dışı K34 kirişleri 0.50 kalmalı"),
+      `yamalı tampon yeniden parse edilir; yama dışı ${o.patchBeamName} kirişleri ${fmt2(o.patchFromHeight)} kalmalı`),
     crit("F", "F3", "yamalı çıktı CRC mührü geçerli", "geçerli",
       p.crcValid ? "geçerli" : "GEÇERSİZ", f3 ? "GECTI" : "KIRMIZI",
       p.patchedFile ? `yamalı çıktı: ${p.patchedFile} (SHA ${p.patchedSha?.slice(0, 16)}…)` : undefined),
   ];
 }
 
-export function evaluateStageC(bundle: MeasurementBundle): CriterionResult[] {
+export function evaluateStageC(
+  bundle: MeasurementBundle, ctx: OracleContext = DEFAULT_ORACLE_CONTEXT,
+): CriterionResult[] {
+  const o = ctx.constants;
   const dt = bundle.desktop;
   if (dt.skipped) {
     const note = "CI/hızlı profil — tam kabul profili DEĞİLDİR";
     return [
       crit("C", "C1", "ideCAD açılış (başlık: dosya+proje+aktif kat)", "başlık tam", "SKIPPED", "SKIPPED", note),
-      crit("C", "C2", "kat ağacı tam 6/6", "6/6", "SKIPPED", "SKIPPED", note),
+      crit("C", "C2", `kat ağacı tam ${o.desktopFloors}/${o.desktopFloors}`, `${o.desktopFloors}/${o.desktopFloors}`, "SKIPPED", "SKIPPED", note),
       crit("C", "C3", "masaüstü tur sonunda süreç kapanışı", "kapalı, süreç 0", "SKIPPED", "SKIPPED", note),
     ];
   }
   const titleOk = Boolean(dt.mainTitle)
     && /\[[^\]]+\]/.test(dt.mainTitle!)
-    && (dt.titleMustContain ?? [ORACLE.desktopProjectTitle]).every(part => dt.mainTitle!.includes(part));
+    && (dt.titleMustContain ?? [o.desktopProjectTitle]).every(part => dt.mainTitle!.includes(part));
   const out: CriterionResult[] = [];
   out.push(crit("C", "C1", "ideCAD açılış (başlık: dosya+proje+aktif kat)", "başlık tam",
     dt.failNote && !dt.mainTitle ? dt.failNote : (dt.mainTitle ?? "başlık okunamadı"),
@@ -367,9 +535,9 @@ export function evaluateStageC(bundle: MeasurementBundle): CriterionResult[] {
     "pencere başlığında dosya adı + proje adı + aktif kat bulunmalı"));
   const expected = dt.floorsExpected ?? [];
   const found = dt.floorsFound ?? [];
-  const floorsOk = expected.length === ORACLE.desktopFloors && expected.every(f => found.includes(f));
-  out.push(crit("C", "C2", "kat ağacı tam 6/6", "6/6",
-    found.length ? `${found.length}/${ORACLE.desktopFloors} (${found.join(", ")})` : (dt.failNote ?? "kat ağacı okunamadı"),
+  const floorsOk = expected.length === o.desktopFloors && expected.every(f => found.includes(f));
+  out.push(crit("C", "C2", `kat ağacı tam ${o.desktopFloors}/${o.desktopFloors}`, `${o.desktopFloors}/${o.desktopFloors}`,
+    found.length ? `${found.length}/${o.desktopFloors} (${found.join(", ")})` : (dt.failNote ?? "kat ağacı okunamadı"),
     floorsOk ? "GECTI" : "KIRMIZI",
     "salt-okunur TVM dökümü (girdi gönderilmez)"));
   out.push(crit("C", "C3", "masaüstü tur sonunda süreç kapanışı", "kapalı, süreç 0",
@@ -379,29 +547,32 @@ export function evaluateStageC(bundle: MeasurementBundle): CriterionResult[] {
 }
 
 /** İkinci masaüstü açılışı (yamalı .ide11; F6/F4 bacakları) ölçütleri (C5-C7). */
-export function evaluateStageC11(bundle: MeasurementBundle): CriterionResult[] {
+export function evaluateStageC11(
+  bundle: MeasurementBundle, ctx: OracleContext = DEFAULT_ORACLE_CONTEXT,
+): CriterionResult[] {
+  const o = ctx.constants;
   const dt = bundle.desktop11;
   if (dt.skipped) {
     const note = "CI/hızlı profil — tam kabul profili DEĞİLDİR";
     return [
       crit("C", "C5", "yamalı .ide11 açılışı (başlık: dosya+proje+aktif kat)", "başlık tam", "SKIPPED", "SKIPPED", note),
-      crit("C", "C6", "yamalı .ide11 kat ağacı tam 6/6", "6/6", "SKIPPED", "SKIPPED", note),
+      crit("C", "C6", `yamalı .ide11 kat ağacı tam ${o.desktopFloors}/${o.desktopFloors}`, `${o.desktopFloors}/${o.desktopFloors}`, "SKIPPED", "SKIPPED", note),
       crit("C", "C7", "yamalı .ide11 masaüstü tur sonunda süreç kapanışı", "kapalı, süreç 0", "SKIPPED", "SKIPPED", note),
     ];
   }
   const titleOk = Boolean(dt.mainTitle)
     && /\[[^\]]+\]/.test(dt.mainTitle!)
-    && (dt.titleMustContain ?? [ORACLE.desktopProjectTitle]).every(part => dt.mainTitle!.includes(part));
+    && (dt.titleMustContain ?? [o.desktopProjectTitle]).every(part => dt.mainTitle!.includes(part));
   const expected = dt.floorsExpected ?? [];
   const found = dt.floorsFound ?? [];
-  const floorsOk = expected.length === ORACLE.desktopFloors && expected.every(f => found.includes(f));
+  const floorsOk = expected.length === o.desktopFloors && expected.every(f => found.includes(f));
   return [
     crit("C", "C5", "yamalı .ide11 açılışı (başlık: dosya+proje+aktif kat)", "başlık tam",
       dt.failNote && !dt.mainTitle ? dt.failNote : (dt.mainTitle ?? "başlık okunamadı"),
       titleOk ? "GECTI" : "KIRMIZI",
       "F6/F4 bacağı: yamalı dosya gerçek ideCAD'de açılmalı (T-F6.3 deseni)"),
-    crit("C", "C6", "yamalı .ide11 kat ağacı tam 6/6", "6/6",
-      found.length ? `${found.length}/${ORACLE.desktopFloors} (${found.join(", ")})` : (dt.failNote ?? "kat ağacı okunamadı"),
+    crit("C", "C6", `yamalı .ide11 kat ağacı tam ${o.desktopFloors}/${o.desktopFloors}`, `${o.desktopFloors}/${o.desktopFloors}`,
+      found.length ? `${found.length}/${o.desktopFloors} (${found.join(", ")})` : (dt.failNote ?? "kat ağacı okunamadı"),
       floorsOk ? "GECTI" : "KIRMIZI",
       "salt-okunur TVM dökümü (girdi gönderilmez)"),
     crit("C", "C7", "yamalı .ide11 masaüstü tur sonunda süreç kapanışı", "kapalı, süreç 0",
@@ -410,20 +581,25 @@ export function evaluateStageC11(bundle: MeasurementBundle): CriterionResult[] {
   ];
 }
 
-export function evaluateGate(bundle: MeasurementBundle, opts: { skipDesktop: boolean }): CriterionResult[] {
+export function evaluateGate(
+  bundle: MeasurementBundle,
+  opts: { skipDesktop: boolean },
+  ctx: OracleContext = DEFAULT_ORACLE_CONTEXT,
+): CriterionResult[] {
+  const o = ctx.constants;
   const out: CriterionResult[] = [];
   out.push(crit("A", "A1", "dönüşüm üretimi (.ide10 + .ide11, donör A0)", "iki çıktı üretildi",
     bundle.conversionOk ? (bundle.conversionDetail ?? "üretildi") : (bundle.conversionError ?? "üretilemedi"),
     bundle.conversionOk ? "GECTI" : "KIRMIZI"));
-  const crcOk = bundle.crcValid.ide10 === ORACLE.carrierChecksumValid && bundle.crcValid.ide11 === ORACLE.carrierChecksumValid;
+  const crcOk = bundle.crcValid.ide10 === o.carrierChecksumValid && bundle.crcValid.ide11 === o.carrierChecksumValid;
   out.push(crit("A", "A2", "çıktı taşıyıcı CRC'si geçerli", "ikisi de geçerli",
     `ide10=${bundle.crcValid.ide10}, ide11=${bundle.crcValid.ide11}`, crcOk ? "GECTI" : "KIRMIZI"));
 
-  out.push(...evaluateStageB(bundle));
-  out.push(...evaluateStageB11(bundle));
-  out.push(...evaluateStageF(bundle));
-  out.push(...evaluateStageC(bundle));
-  out.push(...evaluateStageC11(bundle));
+  out.push(...evaluateStageB(bundle, ctx));
+  out.push(...evaluateStageB11(bundle, ctx));
+  out.push(...evaluateStageF(bundle, ctx));
+  out.push(...evaluateStageC(bundle, ctx));
+  out.push(...evaluateStageC11(bundle, ctx));
 
   const i10 = bundle.desktop.integrityOk;
   const i11 = bundle.desktop11.integrityOk;
@@ -435,7 +611,8 @@ export function evaluateGate(bundle: MeasurementBundle, opts: { skipDesktop: boo
 
   out.push(crit("D", "D1", "kaynak korpus bayt-sabit (B0/A0/X11 yalnız OKU)", "SHA değişmedi",
     bundle.corpusIntegrityOk ? "SHA değişmedi" : (bundle.corpusIntegrityNote ?? "DEĞİŞTİ"),
-    bundle.corpusIntegrityOk ? "GECTI" : "KIRMIZI"));
+    bundle.corpusIntegrityOk ? "GECTI" : "KIRMIZI",
+    ctx.x11 === null ? "X11-YOK profili (SAPMA-A): bütünlük yalnız B0/A0 üzerinde ölçüldü" : undefined));
   return out;
 }
 
@@ -448,13 +625,14 @@ export function isFullAcceptanceProfile(results: CriterionResult[]): boolean {
   return results.every(r => r.status === "GECTI");
 }
 
-export function formatSummary(results: CriterionResult[], meta: { negatifTest: boolean; skipDesktop: boolean; runDir: string }): string {
+export function formatSummary(results: CriterionResult[], meta: { negatifTest: boolean; skipDesktop: boolean; runDir: string; oracleProfile?: string }): string {
   const lines: string[] = [];
   lines.push("=".repeat(100));
   lines.push("IDE KABUL KAPISI (T-F7.1 / G7) — ÖZET RAPOR");
   if (meta.negatifTest) lines.push("PROFİL: NEGATİF TEST (bilerek bozulan çıktıyla KIRMIZI beklenir)");
   else if (meta.skipDesktop) lines.push("PROFİL: CI/HIZLI (--skip-desktop — tam kabul profili DEĞİLDİR)");
   else lines.push("PROFİL: TAM KABUL (masaüstü dahil)");
+  if (meta.oracleProfile) lines.push(`ORACLE PROFİLİ: ${meta.oracleProfile} (KARAR-001; gömülü K1 tablosu değişmedi)`);
   lines.push("Kanıt klasörü: " + meta.runDir);
   lines.push("-".repeat(100));
   lines.push(`${"AŞAMA".padEnd(7)}${"ÖLÇÜT".padEnd(48)}${"HEDEF".padEnd(24)}ÖLÇÜLEN → SONUÇ`);
@@ -464,10 +642,19 @@ export function formatSummary(results: CriterionResult[], meta: { negatifTest: b
   }
   const gecti = results.filter(r => r.status === "GECTI").length;
   const kirmizi = results.filter(r => r.status === "KIRMIZI").length;
+  const x11yok = results.filter(r => r.status === "X11-YOK").length;
   const skipped = results.filter(r => r.status === "SKIPPED").length;
   lines.push("-".repeat(100));
-  lines.push(`SONUÇ: ${gecti} GEÇTİ, ${kirmizi} KIRMIZI, ${skipped} SKIPPED`);
+  let sonuc = `SONUÇ: ${gecti} GEÇTİ, ${kirmizi} KIRMIZI`;
+  if (x11yok > 0) sonuc += `, ${x11yok} X11-YOK`;
+  sonuc += `, ${skipped} SKIPPED`;
+  lines.push(sonuc);
+  if (x11yok > 0) {
+    lines.push("X11-YOK (SAPMA-A; KARAR-001): tam kabul profili X11 eşi olmadığından .ide11-yönlü çift ölçümü yok");
+  }
   if (kirmizi > 0) lines.push("KAPI: KIRMIZI — exit ≠ 0");
+  else if (x11yok > 0 && skipped > 0) lines.push("KAPI: yeşil (SKIPPED + X11-YOK profili) — tam kabul profili DEĞİLDİR");
+  else if (x11yok > 0) lines.push("KAPI: yeşil (X11-YOK profili) — tam kabul profili DEĞİLDİR");
   else if (skipped > 0) lines.push("KAPI: yeşil (SKIPPED profili) — tam kabul profili DEĞİLDİR");
   else lines.push("KAPI: TAM KABUL YEŞİL — exit 0");
   lines.push("=".repeat(100));
@@ -511,6 +698,15 @@ const USAGE = [
   "  --out-root <dir>       Kanıt kökü [varsayılan: <campaign>\\evidence\\orkestrasyon]",
   "  --skip-desktop         CI/hızlı profil: masaüstü aşaması atlanır (SKIPPED, KIRMIZI sayılmaz;",
   "                         özette 'tam kabul profili DEĞİLDİR' notu)",
+  "  --oracle-json <yol>    Proje-özel oracle profili (KARAR-001 onarımı; üretici:",
+  "                         scripts/hsyncad/ide-oracle-profile.ts — değerler eşli ticari",
+  "                         donör .ide10'dan ölçülür, YFS-1). MS1'e donuk sabitler profil",
+  "                         değerleriyle doğrulamalı birleşir: yalnız bilinen anahtarlar;",
+  "                         bilinmeyen anahtar / eksik anahtar / yanlış tip → sert hata.",
+  "                         Profil x11:null → X11 varlık kontrolü atlanır ve B14–B16",
+  "                         'X11-YOK (ölçülemez)' sınıfına düşer (KIRMIZI sayılmaz, GEÇTİ",
+  "                         de sayılmaz; SAPMA-A dürüst notu özette listelenir). Bayrak",
+  "                         yoksa davranış K1 profiliyle bayt bayt aynıdır.",
   "  --negatif-test         Kasıtlı bozuk senaryo: üretilen .ide10 stored-CRC'si bozulur",
   "                         (mevcut sözleşme KORUNUR); KIRMIZI + exit ≠ 0 beklenir (doğrulama",
   "                         profili; masaüstü atlanır; yama ayağı yine koşar — sağlam .ide11",
@@ -540,6 +736,8 @@ interface GateOptions {
   skipDesktop: boolean;
   negatifTest: boolean;
   stageTimeoutMs: number;
+  /** KARAR-001 onarımı: proje-özel oracle profili (verilirse doğrulamalı birleşir). */
+  oracleJsonPath?: string;
 }
 
 function parseCliArgs(argvRaw: string[]): GateOptions {
@@ -592,6 +790,7 @@ function parseCliArgs(argvRaw: string[]): GateOptions {
     if (arg === "--input") { options.inputPath = path.resolve(needValue(arg)); continue; }
     if (arg === "--donor") { options.donorPath = path.resolve(needValue(arg)); continue; }
     if (arg === "--x11") { options.x11Path = path.resolve(needValue(arg)); continue; }
+    if (arg === "--oracle-json") { options.oracleJsonPath = path.resolve(needValue(arg)); continue; }
     if (arg === "--desktop-exe") { options.desktopExe = needValue(arg); continue; }
     if (arg === "--out-root") { options.outRoot = path.resolve(needValue(arg)); continue; }
     if (arg === "--stage-timeout-ms") { options.stageTimeoutMs = Number(needValue(arg)); continue; }
@@ -783,9 +982,25 @@ async function main(): Promise<void> {
     return;
   }
 
+  // KARAR-001 onarımı (v4): isteğe bağlı proje-özel oracle profili. Bayrak yoksa
+  // DEFAULT_ORACLE_CONTEXT (gömülü K1 ORACLE'ı) → davranış bayt bayt aynı.
+  let oracleCtx: OracleContext = DEFAULT_ORACLE_CONTEXT;
+  if (options.oracleJsonPath) {
+    oracleCtx = loadOracleContext(options.oracleJsonPath);
+    console.log(`[ORACLE PROFİLİ] ${oracleCtx.projectId} ← ${options.oracleJsonPath}${oracleCtx.x11 === null ? " (x11: null → B14–B16 X11-YOK sınıfı, SAPMA-A)" : ""}`);
+  }
+
   const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
   const toolsDir = path.join(options.campaignDir, "tools");
-  for (const [label, p] of [["kampanya", options.campaignDir], ["tools", toolsDir], ["girdi", options.inputPath], ["donör", options.donorPath], ["X11", options.x11Path]] as const) {
+  const preflight: Array<[string, string]> = [
+    ["kampanya", options.campaignDir],
+    ["tools", toolsDir],
+    ["girdi", options.inputPath],
+    ["donör", options.donorPath],
+  ];
+  // Profil x11:null → X11 eşi yok (SAPMA-A): varlık kontrolü atlanır.
+  if (oracleCtx.x11 !== null) preflight.push(["X11", options.x11Path]);
+  for (const [label, p] of preflight) {
     if (!fs.existsSync(p)) {
       console.error(`FATAL: ${label} yolu yok: ${p}`);
       process.exit(1);
@@ -803,10 +1018,10 @@ async function main(): Promise<void> {
   const kabulDir = path.join(runDir, "kabul");
   for (const d of [uretimDir, olcumDir, kabulDir]) fs.mkdirSync(d, { recursive: true });
 
-  const corpusBefore = {
+  const corpusBefore: { b0: string; a0: string; x11?: string } = {
     b0: sha256(options.inputPath),
     a0: sha256(options.donorPath),
-    x11: sha256(options.x11Path),
+    ...(oracleCtx.x11 !== null ? { x11: sha256(options.x11Path) } : {}),
   };
 
   const baseName = `HS_B0_gate_${dateStamp}-${runId}`;
@@ -886,7 +1101,10 @@ async function main(): Promise<void> {
 
     console.log("[B ÖLÇ] ide-fidelity-audit fingerprint (her çıktı + A0 + X11) ...");
     const auditLog = path.join(olcumDir, "audit-cikti.log");
-    const fingerprintTargets = [ide10Path, ide11Path, options.donorPath, options.x11Path];
+    // Profil x11:null → X11 eşi yok: X11 parmak izi alınmaz, HS↔X11 çifti koşulmaz.
+    const fingerprintTargets = oracleCtx.x11 !== null
+      ? [ide10Path, ide11Path, options.donorPath, options.x11Path]
+      : [ide10Path, ide11Path, options.donorPath];
     const fpLabel = (p: string) => path.basename(p).replace(/\.[^.]+$/, "") + "__" + path.extname(p).replace(/^\./, "");
     const fingerprintOk = new Map<string, boolean>();
     for (const target of fingerprintTargets) {
@@ -898,8 +1116,10 @@ async function main(): Promise<void> {
 
     const comparePairs: Array<[string, string, keyof MeasurementBundle]> = [
       [fpLabel(ide10Path), fpLabel(options.donorPath), "pairHs10VsA0"],
-      [fpLabel(ide11Path), fpLabel(options.x11Path), "pairHs11VsX11"],
     ];
+    if (oracleCtx.x11 !== null) {
+      comparePairs.push([fpLabel(ide11Path), fpLabel(options.x11Path), "pairHs11VsX11"]);
+    }
     const compareLog = path.join(olcumDir, "compare-cikti.log");
     for (const [labelA, labelB, key] of comparePairs) {
       const diffPath = path.join(olcumDir, `${labelA}__vs__${labelB}.diff.json`);
@@ -915,7 +1135,7 @@ async function main(): Promise<void> {
 
   // ── masaüstü beklenen başlık/kat ölçütleri + döşeme yükü sayımı (parmak izleri) ──
   let expectedFloors: string[] = [];
-  let expectedProjectName = ORACLE.desktopProjectTitle;
+  let expectedProjectName = oracleCtx.constants.desktopProjectTitle;
   const hs10FpPath = path.join(olcumDir, `${baseName}__ide10.fingerprint.json`);
   const a0FpPath = path.join(olcumDir, `A0_orijinal__ide10.fingerprint.json`);
   if (fs.existsSync(hs10FpPath)) {
@@ -943,20 +1163,21 @@ async function main(): Promise<void> {
   if (!conversionOk) {
     patch.failNote = "dönüşüm çıktısı yok — yama ayağı koşulamadı";
   } else {
-    console.log(`[B2 YAMA] F6 senaryosu: ${baseName}.ide11 → ilk ${ORACLE.patchBeamName} beamSectionHeight ${ORACLE.patchFromHeight}→${ORACLE.patchToHeight} ...`);
+    const oc = oracleCtx.constants;
+    console.log(`[B2 YAMA] F6 senaryosu: ${baseName}.ide11 → ilk ${oc.patchBeamName} beamSectionHeight ${oc.patchFromHeight}→${oc.patchToHeight} ...`);
     const patchStarted = Date.now();
     try {
       const srcBytes = Uint8Array.from(fs.readFileSync(ide11Path));
       const srcBuf = srcBytes.buffer.slice(0, srcBytes.byteLength) as ArrayBuffer;
       const project = parseIde10(srcBuf, `${baseName}.ide11`);
       const floorName = (id: string) => project.floors.find(f => f.id === id)?.name ?? "?";
-      const k34s = project.elements.filter(e => e.type === "beam" && e.name === ORACLE.patchBeamName);
+      const k34s = project.elements.filter(e => e.type === "beam" && e.name === oc.patchBeamName);
       const target = k34s[0];
       if (!target || typeof target.sourceOffset !== "number") {
-        throw new Error(`yama hedefi bulunamadı: '${ORACLE.patchBeamName}' tipli kiriş kaydı yok`);
+        throw new Error(`yama hedefi bulunamadı: '${oc.patchBeamName}' tipli kiriş kaydı yok`);
       }
-      if (target.height !== ORACLE.patchFromHeight) {
-        throw new Error(`yama hedefi kesit yüksekliği ${target.height} — beklenen ${ORACLE.patchFromHeight} (T-F6.1 senaryosu)`);
+      if (target.height !== oc.patchFromHeight) {
+        throw new Error(`yama hedefi kesit yüksekliği ${target.height} — beklenen ${oc.patchFromHeight} (profil/F6 senaryosu)`);
       }
       patch.targetId = target.id;
       patch.targetName = target.name;
@@ -964,7 +1185,7 @@ async function main(): Promise<void> {
       patch.originalHeight = target.height;
       const result = saveNativeIdeOutput(srcBytes, [{
         id: target.id, sourceOffset: target.sourceOffset,
-        field: "beamSectionHeight", value: ORACLE.patchToHeight,
+        field: "beamSectionHeight", value: oc.patchToHeight,
       }]);
       // bağımsız bayt sınıflandırması: her değişen bayt ya yama alanında ya da
       // yeniden mühürlenen CRC başlığında olmalı; kapsam dışı tek bayt kırmızıdır.
@@ -988,14 +1209,14 @@ async function main(): Promise<void> {
       const patchedBuf = result.bytes.buffer.slice(0, result.bytes.byteLength) as ArrayBuffer;
       const patchedProject = parseIde10(patchedBuf, patchedIde11Name);
       const targetAfter = patchedProject.elements.find(e => e.id === target.id);
-      const otherK34 = patchedProject.elements.filter(e => e.type === "beam" && e.name === ORACLE.patchBeamName && e.id !== target.id);
+      const otherK34 = patchedProject.elements.filter(e => e.type === "beam" && e.name === oc.patchBeamName && e.id !== target.id);
       patch.patchedHeight = targetAfter?.height;
       patch.otherK34Count = otherK34.length;
-      patch.otherK34Changed = otherK34.filter(e => e.height !== ORACLE.patchFromHeight).length;
+      patch.otherK34Changed = otherK34.filter(e => e.height !== oc.patchFromHeight).length;
       patch.elapsedMs = Date.now() - patchStarted;
       patch.ok = true;
       delete patch.failNote;
-      commandsLog.push(`saveNativeIdeOutput(${baseName}.ide11; ${target.id} '${target.name}' beamSectionHeight ${ORACLE.patchFromHeight}→${ORACLE.patchToHeight}) [süreç içi kitaplık çağrısı]`);
+      commandsLog.push(`saveNativeIdeOutput(${baseName}.ide11; ${target.id} '${target.name}' beamSectionHeight ${oc.patchFromHeight}→${oc.patchToHeight}) [süreç içi kitaplık çağrısı]`);
       console.log(`[B2 YAMA] ${target.id} (${patch.targetFloor}) → ${patchedIde11Name}: ${patch.changedBytes} bayt (alan ${fieldBytes} + CRC ${crcBytes}; kapsam dışı ${outOfScopeBytes}); parse K34=${patch.patchedHeight}, diğer K34 ${otherK34.length} adet (değişen ${patch.otherK34Changed}); CRC=${patch.crcValid}`);
     } catch (err) {
       patch.failNote = `yama ayağı hatası: ${err instanceof Error ? err.message : String(err)}`;
@@ -1180,32 +1401,39 @@ async function main(): Promise<void> {
   }
 
   // ── D kaynak korpus bütünlüğü ─────────────────────────────────────────────
-  const corpusAfter = {
+  // Profil x11:null → X11 diskte yok (SAPMA-A): bütünlük yalnız B0/A0 üzerinden.
+  const corpusAfter: { b0: string; a0: string; x11?: string } = {
     b0: sha256(options.inputPath),
     a0: sha256(options.donorPath),
-    x11: sha256(options.x11Path),
+    ...(oracleCtx.x11 !== null ? { x11: sha256(options.x11Path) } : {}),
   };
-  const corpusOk = corpusBefore.b0 === corpusAfter.b0 && corpusBefore.a0 === corpusAfter.a0 && corpusBefore.x11 === corpusAfter.x11;
+  const corpusOk = corpusBefore.b0 === corpusAfter.b0
+    && corpusBefore.a0 === corpusAfter.a0
+    && (oracleCtx.x11 === null || corpusBefore.x11 === corpusAfter.x11);
   bundle.corpusIntegrityOk = corpusOk;
   if (!corpusOk) {
     const parts: string[] = [];
     if (corpusBefore.b0 !== corpusAfter.b0) parts.push("B0");
     if (corpusBefore.a0 !== corpusAfter.a0) parts.push("A0");
-    if (corpusBefore.x11 !== corpusAfter.x11) parts.push("X11");
+    if (oracleCtx.x11 !== null && corpusBefore.x11 !== corpusAfter.x11) parts.push("X11");
     bundle.corpusIntegrityNote = `SHA değişti: ${parts.join(", ")}`;
   }
 
   // ── E ÖZET + kanıt yazımı ──────────────────────────────────────────────────
-  const results = evaluateGate(bundle, { skipDesktop: options.skipDesktop });
+  const results = evaluateGate(bundle, { skipDesktop: options.skipDesktop }, oracleCtx);
   const summary = formatSummary(results, {
     negatifTest: options.negatifTest,
     skipDesktop: options.skipDesktop,
     runDir,
+    ...(oracleCtx.profilePath
+      ? { oracleProfile: `${oracleCtx.projectId} (${path.basename(oracleCtx.profilePath)})` }
+      : {}),
   });
   console.log("\n" + summary);
 
   const exitCode = computeExitCode(results);
   const fullProfile = isFullAcceptanceProfile(results);
+  const x11yokCount = results.filter(r => r.status === "X11-YOK").length;
 
   // ozet.md
   const ozetLines = [
@@ -1221,21 +1449,23 @@ async function main(): Promise<void> {
     `- Ölçüm: \`${olcumDir}\` (census + parmak izleri + çift diff JSON'ları + yama-olcum.json)`,
     `- Masaüstü: \`${kabulDir}\` (JSON+PNG, storytree, kat-ozeti, closed.json) + \`${path.join(kabulDir, "ide11-yamali")}\` (yamalı .ide11 açılışı)`,
     "",
-    `**Kapı:** ${exitCode === 0 ? (fullProfile ? "TAM KABUL YEŞİL" : "yeşil (SKIPPED profili — tam kabul DEĞİLDİR)") : "KIRMIZI"} — exit ${exitCode}`,
+    `**Kapı:** ${exitCode === 0
+      ? (fullProfile ? "TAM KABUL YEŞİL" : x11yokCount > 0 ? "yeşil (X11-YOK profili — tam kabul DEĞİLDİR; SAPMA-A)" : "yeşil (SKIPPED profili — tam kabul DEĞİLDİR)")
+      : "KIRMIZI"} — exit ${exitCode}`,
   ];
   fs.writeFileSync(path.join(runDir, "ozet.md"), ozetLines.join("\n") + "\n", "utf8");
 
   // README.md (§4 sözleşme: komut → gerçek çıktı → yorum)
   const stageNotes: string[] = [];
   stageNotes.push(`- **A0 ÜRET:** ${conversionOk ? "üretildi" : "BAŞARISIZ"} — girdi kopyası bayt-özdeş (SHA ${inputSha.slice(0, 16)}…); donör ${path.basename(options.donorPath)} yalnız okundu; çıktılar yeni adla (${baseName}.ide10/.ide11).${options.negatifTest ? " **NEGATİF TEST profili:** .ide10 stored-CRC kasıtlı bozuldu." : ""}`);
-  stageNotes.push(`- **B ÖLÇ:** probe census → ${bundle.census.ide10 ? `${bundle.census.ide10.attributeStreams} alt-akış` : "census yok"}; parmak izleri ${bundle.pairHs10VsA0 ? "tam" : "eksik"}; HS↔A0 diff ${bundle.pairHs10VsA0 ? "üretildi" : "ÜRETİLEMEDİ"}; HS↔X11 diff ${bundle.pairHs11VsX11 ? "üretildi" : "ÜRETİLEMEDİ"}.`);
+  stageNotes.push(`- **B ÖLÇ:** probe census → ${bundle.census.ide10 ? `${bundle.census.ide10.attributeStreams} alt-akış` : "census yok"}; parmak izleri ${bundle.pairHs10VsA0 ? "tam" : "eksik"}; HS↔A0 diff ${bundle.pairHs10VsA0 ? "üretildi" : "ÜRETİLEMEDİ"}; HS↔X11 diff ${bundle.pairHs11VsX11 ? "üretildi" : oracleCtx.x11 === null ? "X11-YOK (SAPMA-A — ticari .ide11 eşi olmadığından koşulmadı)" : "ÜRETİLEMEDİ"}.`);
   stageNotes.push(`- **B2 YAMA (F6 ayağı):** ${patch.ok
-    ? `yamalı çıktı \`${patch.patchedFile}\`; ${patch.changedBytes} bayt değişti (alan ${patch.fieldBytes} + CRC ${patch.crcBytes}; kapsam dışı ${patch.outOfScopeBytes}); parse K34=${patch.patchedHeight}, diğer K34 ${patch.otherK34Count} adet (değişen ${patch.otherK34Changed}); CRC=${patch.crcValid}; hedef ${patch.targetId} (${patch.targetFloor})`
+    ? `yamalı çıktı \`${patch.patchedFile}\`; ${patch.changedBytes} bayt değişti (alan ${patch.fieldBytes} + CRC ${patch.crcBytes}; kapsam dışı ${patch.outOfScopeBytes}); parse ${patch.targetName ?? oracleCtx.constants.patchBeamName}=${patch.patchedHeight}, diğer ${patch.targetName ?? oracleCtx.constants.patchBeamName} ${patch.otherK34Count} adet (değişen ${patch.otherK34Changed}); CRC=${patch.crcValid}; hedef ${patch.targetId} (${patch.targetFloor})`
     : `KIRMIZI notu: ${patch.failNote ?? "yama ayağı kırmızı"}`}.`);
   stageNotes.push(`- **C MASAÜSTÜ:** ${options.skipDesktop
     ? "SKIPPED (--skip-desktop; tam kabul profili DEĞİLDİR)"
     : `açılış 1 (.ide10): ${bundle.desktop.failNote ? `KIRMIZI notu: ${bundle.desktop.failNote}` : `başlık: ${bundle.desktop.mainTitle ?? "?"}; kat ${bundle.desktop.floorsFound?.length ?? "?"}/${expectedFloors.length}; kapanış ${bundle.desktop.closedClean ? "temiz" : "SORUNLU"}`}; açılış 2 (yamalı .ide11): ${bundle.desktop11.failNote ? `KIRMIZI notu: ${bundle.desktop11.failNote}` : `başlık: ${bundle.desktop11.mainTitle ?? "?"}; kat ${bundle.desktop11.floorsFound?.length ?? "?"}/${expectedFloors.length}; kapanış ${bundle.desktop11.closedClean ? "temiz" : "SORUNLU"}`}`}.`);
-  stageNotes.push(`- **D BÜTÜNLÜK:** B0/A0/X11 ${corpusOk ? "bayt-sabit kaldı" : "DEĞİŞTİ (KIRMIZI)"}; üretilen .ide10 + yamalı .ide11 masaüstü sonrası ${bundle.desktop.integrityOk === false || bundle.desktop11.integrityOk === false ? "DEĞİŞTİ" : "bayt-sabit"}.`);
+  stageNotes.push(`- **D BÜTÜNLÜK:** ${oracleCtx.x11 === null ? "B0/A0 (X11-YOK profili, SAPMA-A)" : "B0/A0/X11"} ${corpusOk ? "bayt-sabit kaldı" : "DEĞİŞTİ (KIRMIZI)"}; üretilen .ide10 + yamalı .ide11 masaüstü sonrası ${bundle.desktop.integrityOk === false || bundle.desktop11.integrityOk === false ? "DEĞİŞTİ" : "bayt-sabit"}.`);
   const readme = [
     `# acceptance-gate run-${runId} (${dateStamp})`,
     "",
@@ -1256,15 +1486,18 @@ async function main(): Promise<void> {
     "",
     "## Yorum",
     exitCode === 0
-      ? (fullProfile ? "Kapı TAM KABUL profiliyle YEŞİL: 11-KABUL §2 oracle ölçütlerinin + F6 yama senaryosunun tamamı ölçüldü ve geçti (G7: F3+F4+F6 tümü)." : "Kapı yeşil ama SKIPPED profili: masaüstü aşaması koşulmadı — tam kabul DEĞİLDİR.")
+      ? (fullProfile ? "Kapı TAM KABUL profiliyle YEŞİL: 11-KABUL §2 oracle ölçütlerinin + F6 yama senaryosunun tamamı ölçüldü ve geçti (G7: F3+F4+F6 tümü)." : x11yokCount > 0 ? "Kapı yeşil ama X11-YOK profili (SAPMA-A; KARAR-001): B14–B16 ticari .ide11 eşi olmadığından ölçülemez — tam kabul DEĞİLDİR." : "Kapı yeşil ama SKIPPED profili: masaüstü aşaması koşulmadı — tam kabul DEĞİLDİR.")
       : "Kapı KIRMIZI: en az bir ölçüt ölçülen değeriyle oracle'a oturmuyor (bkz. tablo).",
-    `Oracle sabitleri script içi ORACLE tablosudur (11-KABUL §2); bu koşuda değişiklik yapılmadı.`,
+    `Oracle sabitleri ${oracleCtx.profilePath
+      ? `bu koşuda --oracle-json profiliyle birleşti: ${oracleCtx.projectId} (${path.basename(oracleCtx.profilePath)}); gömülü ORACLE tablosu (11-KABUL §2) değişmedi`
+      : "script içi ORACLE tablosudur (11-KABUL §2); bu koşuda değişiklik yapılmadı"}.`,
   ].join("\n");
   fs.writeFileSync(path.join(runDir, "README.md"), readme + "\n", "utf8");
 
   fs.writeFileSync(path.join(runDir, "gate-sonuc.json"), JSON.stringify({
     dateStamp, runId, negatifTest: options.negatifTest, skipDesktop: options.skipDesktop,
     exitCode, fullProfile,
+    ...(oracleCtx.profilePath ? { oracleProfile: { projectId: oracleCtx.projectId, path: oracleCtx.profilePath, x11: oracleCtx.x11 } } : {}),
     results,
     bundle: {
       conversionOk: bundle.conversionOk,
