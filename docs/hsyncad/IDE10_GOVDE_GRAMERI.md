@@ -1,9 +1,9 @@
 # IDE10 Gövde Grameri — v10 (.ide10) Kayıt/Alt-Akış Haritası
 
-**Görev:** F2/T-F2.6 (gramer-mimarı sentezi, 19 Kasım 2026) · **Makine-okunur ikiz:** [`src/lib/hsyncad/ide-import/ide10-grammar.json`](../../src/lib/hsyncad/ide-import/ide10-grammar.json) (şema sürümü **1.0.1** — T-F2.7b savcı/critic keskinlik düzeltmeleri)
+**Görev:** F2/T-F2.6 (gramer-mimarı sentezi, 19 Kasım 2026) · **Makine-okunur ikiz:** [`src/lib/hsyncad/ide-import/ide10-grammar.json`](../../src/lib/hsyncad/ide-import/ide10-grammar.json) (şema sürümü **1.0.2** — v1.0.1: T-F2.7b savcı/critic keskinlik düzeltmeleri · v1.0.2: T-F2.7c G3 bağlamaları)
 **Tüketici:** T-F3.3 gövde transcoder'ı, T-F4.1 ters yükseltici, T-F5.1 encoded v11 okuma. Şemadaki her kural **KANIT** ya da **VARSAYIM** etiketlidir; **F3 üretim girdisinde VARSAYIM kullanımı yasaktır** (T-F2.7 savcı turu denetler). v1.0.1'den itibaren mekanik yaptırım: T-F3.3 üretim yükleyicisi `assumption:true` satırında **üretim yolunda hard-fail eder ve reddedilenleri loglar**; test/analitik yolda yalnız warning verir (şema `meta.tuketiciSozlesme`).
 
-Bu doküman dört F2 kulvarının sentezidir: M0 diferansiyel deneyi (T-F2.2), M1–M6 tek değişkenli mutasyonlar (T-F2.3/T-F2.3b), 140 MB korpus byte-map (T-F2.4) ve decompile çaprazları (T-F2.5). Kanıt kökü: `C:\Users\hsyn\Desktop\hsyncad_idecad_uzanti_optimizasyon\evidence\orkestrasyon\` (bölüm §18'de tam dizin).
+Bu doküman dört F2 kulvarının sentezidir: M0 diferansiyel deneyi (T-F2.2), M1–M6 tek değişkenli mutasyonlar (T-F2.3/T-F2.3b), 140 MB korpus byte-map (T-F2.4) ve decompile çaprazları (T-F2.5). Kanıt kökü: `C:\Users\hsyn\Desktop\hsyncad_idecad_uzanti_optimizasyon\evidence\orkestrasyon\` (bölüm §19'da tam dizin).
 
 ---
 
@@ -320,7 +320,29 @@ Kat: 6/6 (ASANSÖR MAK.DAİRESİ dahil). Parser 1.273 kayıt çözdü; parmak iz
 
 ---
 
-## 18. Kanıt yolu dizini
+## 18. Yükcü-farazi sözleşmeler + A0-kalıntı envanteri (v1.0.2 — G3 bağlamaları)
+
+F3 çöküş zinciri (t34/t34b) ve H2 onarımı (t33d) sayesinde artık **KANIT** statüsünde olan iki üretim sözleşmesi (şema `yukcuFaraziSozlesmeler`). Bu satırlar `assumption:true` taşımaz — üretim yükleyicisinin VARSAYIM hard-fail'i bunları **tetiklemez**; t34c'de v3 gerçek ideCAD'de çökmesiz açılarak sözleşmeler gerçek yükleyicide doğrulandı.
+
+1. **YFS-1 — akış-dışı koşuların v10 yerleşimi A0-donör nakliyle üretilir.** v11 yerleşimi gerçek v10 yükleyicisinde sayım→realloc→memcpy hattında erişim ihlali üretir: 0xc0000005, VCRUNTIME140.dll ~0x1de2x memcpy bölgesi (t34: HS_B0_F3 3/3 APPCRASH; t34b: v2 3/3 APPCRASH, uzaklıklar 0x1de31/0x1de2c/0x1de23 — v1≡v2 çökme sınıfı özdeş → değer sınıfı elenir, **yerleşim** sınıfı kazanır; imza analizi). Onarım H2: A0'dan akış-indeks çapasıyla gap-düzeyi nakil (t33d; ölçüt (i) beş bölge Δlen=0, (iv) yaban-sayım 0; t34c'de açılış çökmesiz). **KANIT** — t34-rapor, t34b-rapor, fikir-t33d H2, t33d-rapor ölçüt (i)/(iv), t34c-rapor.
+2. **YFS-2 — katalog-dışı f64 alanları gövde-geni kodtablosu süpürmesiyle düzleştirilir.** v10 yükleyicisi her f64'ı FUN_140436060 düz dalıyla okur; kodlu artıklar değer konumunda zararsız, **sayım konumunda ölümcüldür**. H1'in kısmi katkısı: 477.416 artık blok yerinde çözüldü (t33c tek kök düzeltme), ama yerleşim sınıfını düzeltmez (t34b imza analizi — yerleşim YFS-1'dedir). **KANIT** — t33c-rapor, t34b-rapor, decompile 1408eb0c0.c.
+
+### A0-kalıntı envanteri (şemaya `meta.a0KalantiEnvanteri` özeti; tam liste kanıt logunda)
+
+- **612 yeniden-hesap alanı (ULP sınıfı):** geometri f64 356.190 alanın 355.578'i bit-özdeş; 612 alan |Δ|≤1e-9 (maks 1,78e-14; dağılım: nokta.x 145, nokta.y 271, genişlik 157, nativeZ 39 — v11 ×0,5/×1/3 ölçek ve ağ yeniden hesap sınıfı); **v11 kaynak kazanır** — v10 taşıyıcısında A0 değeri kalır, üzerine yazılmaz.
+- **392 perde etiketi kanonik sapması:** 196 perde etiketi × 2 yuva (wallLabel + wallLabelName); "25/255"↔"255/25" ("310/25"↔"25/310" vb.) **parse-eşit** (labelDiff=0); v10 taşıyıcısında A0'nın depolanan biçimi esastır (aşağıdaki belge).
+- **0 gerçek değer çatışması** (10,67↔11,15 sınıfı YOK).
+- **Tam liste + yol atfı:** `evidence/orkestrasyon/2026-11-19-F3-T3.3d/test-cikti/t33d-a0-kalanti-envanteri.log` (devir: fikir-t33d §2 — sessiz değil). **KANIT** — t33d-rapor + G3 savcı S2(c)/S5 + hakem §4 (bağlanan bulgu; kabul engeli değil).
+
+### Perde etiketi kanonik belgesi — taşıyıcı-özdeş esası
+
+**Kural:** perde etiketinin v10 taşıyıcısındaki kanonik biçimi **A0'nın depolanan biçimidir** ("255/25"); t33 hasadının sunduğu biçim ("25/255") yalnız v11 tarafının değer dizilimidir — v10 yazımında A0 baytları korunur; parse düzeyinde biçimler anlamsal eşittir (labelDiff=0, 392 yuva işaretli). **KANIT** — t33d-rapor B0-wins bulgusu + envanter logu §3 + G3 savcı S2(c)/hakem §4.
+
+**v11 yazım ölçüm yolu (not):** v11 yazımında (transcodeIde10ToIde11) X11 referansının **depolanan** biçimi ölçülerek eşleştirilir; bu ölçüm **T-F4.1** görevine aittir ve paralel koşmaktadır — bu bölüm İLKİYİ (taşıyıcı-özdeş esası) koyar, ölçüm sonucunu önceden yazmaz.
+
+---
+
+## 19. Kanıt yolu dizini
 
 - **T-F2.2 (M0):** `…/2026-11-18-F2-T2.2/rea/M0-diff.md` + `rea/M0-{A,B,work}.ide11trial` (SHA listesi raporda) + `test-cikiti/t22-rapor.md`, `t22-akist-tarama.log`, `t22-modal-*.log` (5 dosya)
 - **T-F2.3 (M1–M6):** `…/2026-11-18-F2-T2.3/rea/M1..M6-diff.md` + `M-{base,ctrl,1..6}.ide11trial` + `test-cikiti/t23-rapor.md`, `t23-akis-tarama-M*.log`, `t23-govde-grup-M2-M6.log`
@@ -331,5 +353,6 @@ Kat: 6/6 (ASANSÖR MAK.DAİRESİ dahil). Parser 1.273 kayıt çözdü; parmak iz
 - **Çapraz doğrulama:** `…/05-REA-CAPRAZ-DOGRULAMA.md`, `…/09-FAZ-GOREV-HARITASI.md` (T-F2.6/T-F3.3 satırları)
 - **Repo kodu (davranış kanıtı):** `src/lib/hsyncad/ide-import/index.ts`, `ide11-transcoder.ts`, `ide-binary-codec.ts`; `src/lib/hsyncad/ide-write/record-builders.ts`; `docs/hsyncad/IDECAD_BIREBIR_ESLESME_REHBERI.md`
 - **Sınama kanıtı:** `…/2026-11-18-F2-T2.6/test-cikti/t26-aciklama-orani.log` + `t26-rapor.md`
+- **F3 çöküş/onarım zinciri (v1.0.2 kaynakları):** `…/2026-11-19-F3-T3.3c/rapor/t33c-rapor.md` · `…/2026-11-19-F3-T3.3d/rapor/t33d-rapor.md` + `fikir-t33d.md` + `test-cikti/t33d-a0-kalanti-envanteri.log` · `…/2026-11-19-F3-T3.4/test-cikti/t34-rapor.md` · `…/2026-11-19-F3-T3.4b/test-cikti/t34b-rapor.md` · `…/2026-11-19-F3-T3.4c/test-cikti/t34c-rapor.md` · `…/2026-11-19-F3-G3/rapor/g3-savci-rapor.md` + `g3-hakem-rapor.md`
 
 *Bu harita kampanya F2 fazının sentez ürünüdür; canlı kanıtlarla çelişen her satır güncel kanıtla düzeltilir (yaşayan doküman).*

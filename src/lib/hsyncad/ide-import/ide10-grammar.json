@@ -1,6 +1,6 @@
 {
   "$id": "hsyncad/ide10-govde-grameri",
-  "semaSurumu": "1.0.1",
+  "semaSurumu": "1.0.2",
   "olusturanGorev": "F2/T-F2.6 (2026-11-19)",
   "meta": {
     "ad": "ideCAD v10 (.ide10) govde grameri — makine-okunur sema",
@@ -22,8 +22,27 @@
     },
     "offsetSozlesmesi": "Sayisal 'offset' degerleri dosya bayt ofsetidir. 'offsetTuru': 'dosya' = taSIyici/govde icinde mutlak bayt; 'kayit-ici' = kayit tabanindan (p) goreli bayt; 'cppUye' = decompile edilen C++ nesne uyesi (yazici alan sirasi icin kullanilir, dosya ofseti degildir). 'offsetTabani': 'tail' = ofset kayit tabanindan (p) degil, son degisken-uzunluklu alanin bitisinden (tail) goreli hesaplanir (ELEMAN-GEOMETRI sira>=4; MD §5). Degisken uzunluklu alanlardan sonra gelen alanlar 'sira' ile okunur.",
     "exeCapKurali": "Kurulu ideCAD_Statik_11_Deneme.exe 30 Ekim 2026 sonrasi GUNCELLENDI (eski SHA-256 a4dcabe8… → guncel 350d5a581417dec9cddac52b66e1a4b60ecdce227e70eb93cb909b6f660162f4). 0x14098xxxx bolgesi degismedi (5 hazir decompile taze ciktiyla bayt-ozdes); 0x140b8eXXX bolgesi KAYMISTIR (eski RVA b8e1c0/b8e9c0 guncel yapida baska koda denk gelir). Bu semadaki her adres atfi (a) 'guncel SHA + taze decompile satiri' veya (b) 'eski SHA a4dcabe8… + eski yapi' etiketiyle okunmali; ciplak RVA asla guncel yapiya tasinmaz. Yeni EXE surumlerinde adres atiflari icerik/SHA capasiyla yeniden dogrulanmadan kural uretime alinmaz.",
+    "a0KalantiEnvanteri": {
+      "kaynak": "KANIT",
+      "kanitAtifi": "T-F3.3d t33d-rapor (A0-kalanti envanteri ozeti) + TAM LISTE: evidence/orkestrasyon/2026-11-19-F3-T3.3d/test-cikti/t33d-a0-kalanti-envanteri.log (612 ULP satiri + 392 perde etiketi yuvasi; devir notu fikir-t33d 2 — sessiz degil); G3 savci S2(c)/S5 + hakem 4: baglanan bulgu, kabul engeli degil",
+      "olcum": "geometri f64 356.190 alan karsilastirmasi (v3 vs A0): 355.578 bit-ozdes + 612 yeniden hesap; gercek deger catismasi 0 (10,67<->11,15 sinifi YOK)",
+      "ulpYenidenHesapSinifi": {
+        "adet": 612,
+        "tolerans": "|Delta|<=1e-9 (oracle)",
+        "maksSapma": 1.78e-14,
+        "dagilim": { "nokta.x": 145, "nokta.y": 271, "genislik": 157, "nativeZ": 39 },
+        "kural": "v11 x0,5/x1/3 olcek ve ag yeniden hesap sinifi; v11 KAYNAK KAZANIR — v10 tasiyicisinda A0 degeri kalir, uzerine yazilmaz"
+      },
+      "perdeEtiketiKanonikSapmasi": {
+        "adet": 392,
+        "kapsam": "196 perde etiketi x 2 yuva (wallLabel + wallLabelName)",
+        "kural": "kanonik hasat bicimi ('25/255') ile A0'nin depolanan bicimi ('255/25'; '310/25'<->'25/310' vb.) parse-esittir (labelDiff=0); v10 tasiyicisinda A0'nin depolanan bicimi esas — bkz. perdeEtiketiKanonikBelgesi"
+      },
+      "gercekDegerCatisma": 0
+    },
     "degisiklikGecmisi": [
-      { "surum": "1.0.1", "tarih": "2026-11-19", "gorev": "F2/T-F2.7b", "not": "Savci/critic keskinlik duzeltmeleri: B1 qt@112899 ampirik(KANIT)/yapisal(VARSAYIM) ayrimi; B2 meta.tuketiciSozlesme uretim-yolu hard-fail yaptirimi; critic-a ELEMAN-GEOMETRI sira>=4 offsetTabani:tail; critic-b alt-tip cozumlemesinde bos-yuva-once onceligi; critic-d encoded=1 kosulunun sozluge (V-ENCODED) baglanmasi — siniflandirma davranisi degismedi (t27b tanik: 30.260/30.260; 1885/1/28001/373; 1659/212/14)" }
+      { "surum": "1.0.1", "tarih": "2026-11-19", "gorev": "F2/T-F2.7b", "not": "Savci/critic keskinlik duzeltmeleri: B1 qt@112899 ampirik(KANIT)/yapisal(VARSAYIM) ayrimi; B2 meta.tuketiciSozlesme uretim-yolu hard-fail yaptirimi; critic-a ELEMAN-GEOMETRI sira>=4 offsetTabani:tail; critic-b alt-tip cozumlemesinde bos-yuva-once onceligi; critic-d encoded=1 kosulunun sozluge (V-ENCODED) baglanmasi — siniflandirma davranisi degismedi (t27b tanik: 30.260/30.260; 1885/1/28001/373; 1659/212/14)" },
+      { "surum": "1.0.2", "tarih": "2026-11-19", "gorev": "F2/T-F2.7c", "not": "G3 baglamalari (tum yeni kalemler KANIT, assumption:true YOK — uretim yukleyicisinde hard-fail tetiklemez): yukcuFaraziSozlesmeler YFS-1 (akis-disi kosularin v10 yerlesimi A0-donor nakliyle uretilir; t34/t34b WER + fikir-t33d H2 + t33d olcut i/iv) + YFS-2 (katalog-disi f64 alanlari govde-geni kodtablosu supurmesiyle duzlestirilir; t33c + t34b imza analizi); meta.a0KalantiEnvanteri (612 ULP |Delta|<=1e-9 maks 1.78e-14 + 392 perde etiketi parse-esit + 0 gercek catisma; tam liste t33d kanit logunda); perdeEtiketiKanonikBelgesi (tasiyici-ozde esasi; v11 olcum yolu T-F4.1'e atif)" }
     ]
   },
   "koordinatSistemleri": [
@@ -344,6 +363,29 @@
     { "id": "MODAL-PERIYOT-BOLGESI", "koordinat": "M-base", "konum": "akis-arsi gap bolgesi: s27 bitisi (227.979) ile s29 baslangici (315.287) arasi; modal f64 cifti @248.907/248.915; cevresi sifir dolgu; qt-sayaclari @243159/@245802/@396536 ayni bolgede", "kaynak": "KANIT", "kanitAtifi": "M0-diff.md (d); M2-diff.md" },
     { "id": "RYT-ANALIZ-ONBELLEGI", "koordinat": "M-base", "konum": "on-govde (ilk akis @157.072 oncesi; '22*..*RYT4' okunabilir isaretli blok)", "kural": "analizi gecersiz kilan ayar degisikliklerinde (ks, radye Q) bu blok kayittan DUSER (M1: −11.872 B; M4: −11.409 B); akis yuvalari yerinde kalir", "kaynak": "KANIT", "kanitAtifi": "M1-diff.md; M4-diff.md" }
   ],
+  "yukcuFaraziSozlesmeler": [
+    {
+      "id": "YFS-1",
+      "ad": "akis-disi kosularin v10 yerlesimi A0-donor nakliyle uretilir",
+      "kural": "v11->v10 donusumde akis-disi kosularin (ELEMAN akis-arkasi gap + ARA + KUYRUK + BASLIK + F9-KABUK) v10 yerlesimi asla v11 duzeninden turetilmez: A0 donor govdesinden akis-indeks capiyla gap-duzeyi nakille uretilir (mutlak ofset degil — Delta len birikir; nakledilen kosularda bolge dLen=0). v11 yerlesimi gercek v10 yukucusunde sayim->realloc->memcpy hattinda erisim ihlali uretir (0xc0000005, VCRUNTIME140.dll ~0x1de2x memcpy bolgesi)",
+      "kaynak": "KANIT",
+      "kanitAtifi": "T-F3.4 t34-rapor (HS_B0_F3 3/3 APPCRASH 0xc0000005; A0 ayni oturumda sorunsuz — kusur dosyaya ozgu) + T-F3.4b t34b-rapor (v2 3/3 APPCRASH, uzaklik 0x1de31/0x1de2c/0x1de23 — v1=v2 cokme sinifi: deger sinifi elenir, YERLESIM sinifi kazanir; imza analizi) + fikir-t33d H2 + T-F3.3d t33d-rapor olcut (i) bes bolge dLen=0 / (iv) yaban-sayim 0 + T-F3.4c t34c-rapor (v3 acilis cokmesiz — H2 dogrulamasi)"
+    },
+    {
+      "id": "YFS-2",
+      "ad": "katalog-disi f64 alanlari govde-geni kodtablosu supurmesiyle duzlestirilir",
+      "kural": "encoded=0 hedef govdesinde her f64 DUZ yazilir: kataloglanmis ofsetlerin disindaki f64 alanlari da donor + calisma tamponunun akis-disi pencerelerinden kurulan sozluk (ayrik degerler) ve ENC(v) kodtablosuyla govde-geni supurmeyle YALNIZ yerinde cozumle duzlestirilir. v10 yukucusu her f64'i FUN_140436060 duz daliyla okur — kodlu artiklar deger konumunda zararsiz, SAYIM konumunda olumculdur. H1'in kismi katkisi: deger sinifini duzeltir, yerlesim sinifini duzeltmez (yerlesim YFS-1'dedir)",
+      "kaynak": "KANIT",
+      "kanitAtifi": "T-F3.3c t33c-rapor (kok neden: yukcu beklenti caprazinda tek ihlal 'encoded=0 => tum f64 duz'; tek kok duzeltme 477.416 artik blok cozumu, t33c-kodcozum-v1log.txt) + T-F3.4b t34b-rapor imza analizi (v1=v2 ayni cokme sinifi — supurme tek basina yetmez, yerlesim baskin) + decompile 1408eb0c0.c (tum ciftler FUN_140437e60/FUN_140436060 hatti)"
+    }
+  ],
+  "perdeEtiketiKanonikBelgesi": {
+    "esas": "tasiyici-ozde esasi",
+    "kural": "perde etiketinin v10 tasiyicisindaki kanonik bicimi A0'nin DEPOLANAN bicimidir ('255/25'); t33 hasadinin bicimi ('25/255') yalniz v11 tarafinin sundugu deger dizilimidir — v10 tasiyicisina yazimda A0 baytlari korunur; parse duzeyinde bicimler anlamsal esittir (labelDiff=0; 392 yuva isaretli envanterde)",
+    "v11YazimOlcumYolu": "v11 yaziminda (transcodeIde10ToIde11) X11 referansinin DEPOLANAN bicimi olculerek eslestirilir; olcum T-F4.1 gorevinedir (paralel kosuyor — bu satir ILKIYI koyar, olcum sonucunu onecek yazmaz)",
+    "kaynak": "KANIT",
+    "kanitAtifi": "T-F3.3d t33d-rapor B0-wins bulgusu (196 perde etiketi; fikir-t33d onermesi tutmadi, A0 baytlari korundu) + t33d-a0-kalanti-envanteri.log bolum 3 + G3 savci S2(c)/hakem 4 (labelDiff=0, parse-esit; baglanan bulgu)"
+  },
   "ayarKayitlari": {
     "koordinat": "M-base",
     "yontem": "tek degiskenli mutasyon deneyleri (tabani yeniden ac → TEK ayar → Ctrl+S; M-ctrl kontrol deneyiyle yeniden serilestirme gurultusu arindirildi: 4.553 B/711 grup)",
