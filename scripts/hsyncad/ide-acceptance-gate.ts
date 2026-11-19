@@ -29,9 +29,11 @@
  *     KIRMIZI sayılmaz ama özet "tam kabul profili DEĞİLDİR" notu taşır.
  *
  * SÜRÜM NOTLARI (oracle ekleme/çıkarma yalnız buraya işlenir):
- *   v1 — 2026-11-19 (T-F7.1): ilk tablo; 11-KABUL §2'nin tamamı tek tek işlendi
- *        (30.260 / 468 / 2 / 10 / 10 / 1.266 / 6/6 / 159 / boyut bandı /
- *        XX uydurma 0 / HS↔X11 geometri-etiket-yük 0 / CRC / masaüstü).
+ *   v1 — 2026-11-19 (T-F7.1): ilk tablo; 11-KABUL §2 dönüşüm ölçütleri tek tek
+ *        işlenmiştir — 30.260 / 468 / 2 / 10 / 10 / 1.266 / 6/6 / 159 / boyut
+ *        bandı / XX uydurma 0 / HS↔X11 geometri-etiket-yük 0 / CRC / masaüstü;
+ *        F9'suz rapor + metraj oracle satırları kapı senaryoları dışında olup
+ *        G3'ün iderpt bayt-özdeş kanıtına bağlıdır.
  *   v2 — 2026-11-19 (T-F7.1 ilk tam koşu): 11-KABUL §2 "1.266/1.266 geometri"
  *        değeri merdiven ayrıştırılmadan ÖNCEKİ okuyucu sayımıdır; güncel okuyucu
  *        7 merdiveni de eleman sayar (T3.3d kanıtı: "geometri 1.266+7") ve
