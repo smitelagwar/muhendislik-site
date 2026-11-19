@@ -60,6 +60,12 @@
  *        (YFS-1: değerler donörden ölçülür, elle sayı uydurma yasak).
  *        Varsayılan davranış (bayrak yok) bayt bayt aynı; gömülü K1 profili
  *        ve 29-ölçüt sözleşmesi DEĞİŞMEDİ.
+ *   v5 — 2026-11-19 (K2 onarım-2 turu; KARAR-002 hükmü): B13 döşeme-yükü sayımının
+ *        donör parmak izi dosya adı sabit K1 adı (A0_orijinal__ide10.fingerprint.json)
+ *        yerine GERÇEK donörden türetilir (fingerprintLabel — fingerprint aşamasının
+ *        kendi <taban>__<uzantı> yazım kuralıyla tutarlı). K1 korpusunda donör
+ *        A0_orijinal.ide10 olduğundan ad aynı kalır; varsayılan davranış ve
+ *        29-ölçüt sözleşmesi DEĞİŞMEDİ. Sayım elle uydurulmaz (YFS-1).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -808,6 +814,52 @@ function sha256(filePath: string): string {
   return hash.digest("hex");
 }
 
+// ── KARAR-002 onarım-2 (B13): donör parmak izi adı gerçek donörden türetilir ──
+// Fingerprint aşaması (ide-fidelity-audit) her dosyayı <taban adı>__<uzantı>.fingerprint.json
+// yazar; B13 döşeme-yükü sayımı da aynı kurala uyar — sabit K1 adı (A0_orijinal)
+// yerine donörün GERÇEK dosya adı kullanılır. K1 korpusunda donör A0_orijinal.ide10
+// olduğundan ad değişmez; varsayılan davranış korunur.
+
+/** Parmak izi etiketi: <taban adı>__<uzantı> — ide-fidelity-audit'in fingerprint yazım kuralı. */
+export function fingerprintLabel(filePath: string): string {
+  return path.basename(filePath).replace(/\.[^.]+$/, "") + "__" + path.extname(filePath).replace(/^\./, "");
+}
+
+/** HS .ide10 + donör parmak izlerinden türetilen beklentiler (B13 + masaüstü C ölçütleri). */
+export interface ExpectedFromFingerprints {
+  floors: string[];
+  projectName: string;
+  /** B13 ölçümü: HS↔donör slabLoads taşıyan eleman sayıları (donör parmak izi yoksa ölçülmez). */
+  slabLoadCount?: { hs10: number; a0: number };
+}
+
+/**
+ * Ölçüm kaynağı: olcum dizinindeki HS .ide10 + donör parmak izi dosyaları.
+ * Donör parmak izi adı fingerprintLabel(donorPath) ile türetilir (KARAR-002);
+ * dosya yoksa slabLoadCount ölçülmez (bırakılır undefined — B13 'ölçülemedi').
+ */
+export function readExpectedFromFingerprints(
+  olcumDir: string, ide10Path: string, donorPath: string, fallbackProjectTitle: string,
+): ExpectedFromFingerprints {
+  const out: ExpectedFromFingerprints = { floors: [], projectName: fallbackProjectTitle };
+  const hs10FpPath = path.join(olcumDir, `${fingerprintLabel(ide10Path)}.fingerprint.json`);
+  const donorFpPath = path.join(olcumDir, `${fingerprintLabel(donorPath)}.fingerprint.json`);
+  if (!fs.existsSync(hs10FpPath)) return out;
+  const fp = JSON.parse(fs.readFileSync(hs10FpPath, "utf8"));
+  out.floors = fp.floors.map((f: { name: string }) => f.name);
+  if (typeof fp.carrier?.projectName === "string" && fp.carrier.projectName.trim() !== "") {
+    out.projectName = fp.carrier.projectName;
+  }
+  if (fs.existsSync(donorFpPath)) {
+    const donorFp = JSON.parse(fs.readFileSync(donorFpPath, "utf8"));
+    out.slabLoadCount = {
+      hs10: fp.elements.filter((el: { slabLoads: unknown }) => el.slabLoads != null).length,
+      a0: donorFp.elements.filter((el: { slabLoads: unknown }) => el.slabLoads != null).length,
+    };
+  }
+  return out;
+}
+
 function sleepSync(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
@@ -1105,20 +1157,19 @@ async function main(): Promise<void> {
     const fingerprintTargets = oracleCtx.x11 !== null
       ? [ide10Path, ide11Path, options.donorPath, options.x11Path]
       : [ide10Path, ide11Path, options.donorPath];
-    const fpLabel = (p: string) => path.basename(p).replace(/\.[^.]+$/, "") + "__" + path.extname(p).replace(/^\./, "");
     const fingerprintOk = new Map<string, boolean>();
     for (const target of fingerprintTargets) {
       const args = ["--import", "tsx", path.join(toolsDir, "ide-fidelity-audit.ts"), "fingerprint", olcumDir, target];
       commandsLog.push(args.join(" "));
       const r = runLogged(process.execPath, args, auditLog, { timeoutMs: options.stageTimeoutMs, cwd: repoRoot });
-      fingerprintOk.set(fpLabel(target), r.ok);
+      fingerprintOk.set(fingerprintLabel(target), r.ok);
     }
 
     const comparePairs: Array<[string, string, keyof MeasurementBundle]> = [
-      [fpLabel(ide10Path), fpLabel(options.donorPath), "pairHs10VsA0"],
+      [fingerprintLabel(ide10Path), fingerprintLabel(options.donorPath), "pairHs10VsA0"],
     ];
     if (oracleCtx.x11 !== null) {
-      comparePairs.push([fpLabel(ide11Path), fpLabel(options.x11Path), "pairHs11VsX11"]);
+      comparePairs.push([fingerprintLabel(ide11Path), fingerprintLabel(options.x11Path), "pairHs11VsX11"]);
     }
     const compareLog = path.join(olcumDir, "compare-cikti.log");
     for (const [labelA, labelB, key] of comparePairs) {
@@ -1134,24 +1185,15 @@ async function main(): Promise<void> {
   }
 
   // ── masaüstü beklenen başlık/kat ölçütleri + döşeme yükü sayımı (parmak izleri) ──
-  let expectedFloors: string[] = [];
-  let expectedProjectName = oracleCtx.constants.desktopProjectTitle;
-  const hs10FpPath = path.join(olcumDir, `${baseName}__ide10.fingerprint.json`);
-  const a0FpPath = path.join(olcumDir, `A0_orijinal__ide10.fingerprint.json`);
-  if (fs.existsSync(hs10FpPath)) {
-    const fp = JSON.parse(fs.readFileSync(hs10FpPath, "utf8"));
-    expectedFloors = fp.floors.map((f: { name: string }) => f.name);
-    if (typeof fp.carrier?.projectName === "string" && fp.carrier.projectName.trim() !== "") {
-      expectedProjectName = fp.carrier.projectName;
-    }
-    if (fs.existsSync(a0FpPath)) {
-      const a0fp = JSON.parse(fs.readFileSync(a0FpPath, "utf8"));
-      bundle.slabLoadCount = {
-        hs10: fp.elements.filter((el: { slabLoads: unknown }) => el.slabLoads != null).length,
-        a0: a0fp.elements.filter((el: { slabLoads: unknown }) => el.slabLoads != null).length,
-      };
-    }
-  }
+  // KARAR-002 onarım-2: donör parmak izi adı sabit K1 adı (A0_orijinal__ide10…)
+  // yerine gerçek donör dosya adından türetilir (fingerprintLabel) — K1 korpusunda
+  // donör A0_orijinal.ide10 olduğundan ad ve varsayılan davranış değişmez.
+  const expectedFp = readExpectedFromFingerprints(
+    olcumDir, ide10Path, options.donorPath, oracleCtx.constants.desktopProjectTitle,
+  );
+  const expectedFloors = expectedFp.floors;
+  const expectedProjectName = expectedFp.projectName;
+  if (expectedFp.slabLoadCount) bundle.slabLoadCount = expectedFp.slabLoadCount;
 
   // ── B2 YAMA (F6 ayağı; G7: F3+F4+F6 tümü) ──────────────────────────────────
   // Kapının KENDİ .ide11 çıktısı üzerinde kanonik test yaması: ilk K34 kirişinin

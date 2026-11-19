@@ -11,6 +11,9 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   ORACLE,
   SEISMIC_ORACLE_FIELDS,
@@ -26,6 +29,8 @@ import {
   computeExitCode,
   isFullAcceptanceProfile,
   withinPct,
+  fingerprintLabel,
+  readExpectedFromFingerprints,
   type MeasurementBundle,
   type PairDiff,
   type PatchMeasurement,
@@ -673,4 +678,67 @@ test("varsayılan bağlam (bayrak yok): gömülü K1 ORACLE'ı ile sonuç bayt-�
   assert.deepEqual(varsayilan, acikBaglam);
   assert.equal(DEFAULT_ORACLE_CONTEXT.x11, "");
   // 29-ölçüt sözleşmesi ve K1 profil davranışı yukarıdaki testlerle sabitlendi
+});
+
+// ── K2/KARAR-002 onarım-2: B13 donör parmak izi adı gerçek donörden türetilir ──
+// Eski kusur: gate donör parmak izini daima sabit `A0_orijinal__ide10.fingerprint.json`
+// adında arıyordu → donörü farklı adlı bir demette (C2/C3) sayım ölçülemedi.
+// Sentetik koşu (mevcut profil test desenini izler): parmak izi dosyaları geçici
+// dizine fingerprint aşamasının kendi kuralıyla yazılır; sayımlar uydurma DEĞİL,
+// yalnız doğrulama katmanının sözleşmesini sınamak içindir (birim test sınıfı).
+
+test("KARAR-002 onarım-2: donör adı A0_orijinal olmayan demette B13 gerçek donör parmak izinden ölçülür; K1 varsayılanı değişmez", () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "gate-b13-"));
+  try {
+    // sentetik parmak izi üreticisi: `loaded` eleman slabLoads taşır
+    const fp = (projectName: string, floorNames: string[], loaded: number, total: number) => ({
+      carrier: { projectName },
+      floors: floorNames.map(name => ({ name })),
+      elements: Array.from({ length: total }, (_, i) => (i < loaded ? { slabLoads: { liveLoad: 500 } } : { name: `E${i}` })),
+    });
+    // adlar fingerprint aşamasının kuralıyla: <taban adı>__<uzantı>.fingerprint.json
+    fs.writeFileSync(path.join(tmp, "HS_TEST__ide10.fingerprint.json"),
+      JSON.stringify(fp("TEST KULESİ", ["2. KAT", "1. KAT"], 60, 300)));
+    fs.writeFileSync(path.join(tmp, "TEST KULESİ__ide10.fingerprint.json"),
+      JSON.stringify(fp("TEST KULESİ", ["2. KAT", "1. KAT"], 60, 300)));
+    // KANIT: sabit K1 adında dosya YOK — ölçüm bu adın varlığına bağlı olmamalı
+    assert.equal(fs.existsSync(path.join(tmp, "A0_orijinal__ide10.fingerprint.json")), false);
+
+    // donör 'TEST KULESİ.ide10' (A0_orijinal DEĞİL) → B13 gerçek donör parmak izinden ölçülür
+    const out = readExpectedFromFingerprints(
+      tmp, path.join(tmp, "HS_TEST.ide10"), "D:\\SENTETIK\\TEST KULESİ.ide10", "K1 VARSAYILAN");
+    assert.deepEqual(out.floors, ["2. KAT", "1. KAT"]);
+    assert.equal(out.projectName, "TEST KULESİ");
+    assert.deepEqual(out.slabLoadCount, { hs10: 60, a0: 60 });
+
+    // sentetik profil koşusu (slabLoads 60): ölçüm gerçek donörden → B13 GECTI
+    const ctx = buildOracleContextFromRaw(makeRawProfile(), "sentetik-test") as OracleContext;
+    const bundle = profileBundle();
+    bundle.slabLoadCount = out.slabLoadCount;
+    const b13 = evaluateStageB(bundle, ctx).find(r => r.id === "B13")!;
+    assert.equal(b13.status, "GECTI");
+    assert.equal(b13.criterion, "döşeme yükü 60/60");
+    assert.equal(b13.target, "60/60 (diff 0)");
+
+    // donör parmak izi YOK (ad donörle eşleşmediğinde) → ölçülemedi KIRMIZI (eski kusur sınıfı)
+    const eksik = readExpectedFromFingerprints(
+      tmp, path.join(tmp, "HS_TEST.ide10"), "D:\\SENTETIK\\BASKA PROJE.ide10", "K1 VARSAYILAN");
+    assert.equal(eksik.slabLoadCount, undefined);
+    const bundleEksik = profileBundle();
+    bundleEksik.slabLoadCount = eksik.slabLoadCount;
+    const b13Eksik = evaluateStageB(bundleEksik, ctx).find(r => r.id === "B13")!;
+    assert.equal(b13Eksik.status, "KIRMIZI");
+    assert.match(b13Eksik.measured, /ölçülemedi/);
+
+    // K1 varsayılanı DEĞİŞMEZ: donör A0_orijinal.ide10 → aynı ad türetilir ve okunur
+    assert.equal(fingerprintLabel("C:\\korpus\\A0_orijinal.ide10"), "A0_orijinal__ide10");
+    fs.writeFileSync(path.join(tmp, "A0_orijinal__ide10.fingerprint.json"),
+      JSON.stringify(fp("MUSTAFA SELVİ 1.KISIM", ["ZEMİN KAT"], 1, 2)));
+    const k1 = readExpectedFromFingerprints(
+      tmp, path.join(tmp, "HS_TEST.ide10"), "C:\\korpus\\A0_orijinal.ide10", "K1 VARSAYILAN");
+    assert.equal(k1.projectName, "TEST KULESİ"); // HS parmak izinden (öncelik değişmedi)
+    assert.deepEqual(k1.slabLoadCount, { hs10: 60, a0: 1 }); // a0 artık A0_orijinal dosyasından
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 });
