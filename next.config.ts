@@ -28,6 +28,7 @@ const nextConfig: NextConfig = {
     tsconfigPath: "tsconfig.next.json",
   },
   experimental: {
+    agentUpgrade: "security",
     optimizePackageImports: ["lucide-react", "recharts"],
   },
 
