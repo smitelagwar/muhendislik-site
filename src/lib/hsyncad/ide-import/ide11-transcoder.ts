@@ -2554,11 +2554,35 @@ export interface Ide10To11UpgradeDiagnostics {
   header: { marker05ce: boolean; demoFlagCleared: boolean; encZeroSlots: number };
   f64Encoded: number;
   outputBytes: number;
+  /** T-F4.1b: X11-donör gap-düzeyi nakil tanıklaması (yalnız `ide11Donor` verilmişse dolu). */
+  transplant?: {
+    donorVersion: number;
+    donorPreviewEnd: number;
+    outputPreviewEnd: number;
+    donorFrames: number;
+    outputFrames: number;
+    twinIndex: number;
+    transplantedGaps: number;
+    transplantedGapBytes: number;
+    outputBytes: number;
+  };
 }
 
 export interface Ide10To11UpgradeOptions {
   /** Optional mutable diagnostics sink filled by the T-F4.1 ide11 upgrade. */
   diagnostics?: Ide10To11UpgradeDiagnostics;
+  /**
+   * T-F4.1b (HIPOTEZ 1): aynı proje için ideCAD'in yazdığı native `.ide11` donörü
+   * (X11 sınıfı: 211220/encoded=1). Verilirse v1 çıktısının akış-DIŞI koşuları
+   * (30.261 gap'in tamamı: ön-gövde, F9-kabuk, kuyruk, R1/R3/R4/R5 v11 ızgaraları,
+   * akış-yuvası +4 ve etiket-sonrası f64 bölgeleri) donörden gap-düzeyinde nakledilir
+   * (t33d 4c'nin ters-yön eşleniği; şema v1.0.2 `yukcuFaraziSozlesmeler` YFS-1).
+   * Çerçeve kayıtları ve [0, previewEnd) başlık/preview/kilit bölgesi v2'nin kalır;
+   * mühür nakil sonrası yeniden atılır. Donör değer eşitliği kampanya KANITIdır
+   * (t51/t33/t33d: donatı 468/0 uyumsuz, malzeme 2/2, deprem 10/10, modal 0 sapma) —
+   * nakil aynı değerlerin bilinen-iyi v11 kodlamasıdır; uydurma yok.
+   */
+  ide11Donor?: Uint8Array;
 }
 
 /** 4×u32 opak pad üreticisi — yazıcı kuralı 4×rand() (140bc75e0 L47-54); 15-bit
@@ -2572,6 +2596,117 @@ function generateIdeUpgradePad(seed: number): Uint8Array {
     view.setUint32(i * 4, s >>> 17, true);
   }
   return out;
+}
+
+/**
+ * T-F4.1b (HIPOTEZ 1): v1 çalışma tamponunun TÜM akış-DIŞI koşularını (30.261 gap —
+ * ön-gövde, F9-kabuk, kuyruk, R1/R3/R4/R5 v11 ızgaraları, akış-yuvası +4 ve
+ * etiket-sonrası f64 bölgeleri) native v11 donöründen gap-düzeyinde nakledir.
+ *
+ * Gerekçe (t42): X11 native aynı EXE'de açılıyor; v1 çıktısı aynı imzada 3/3
+ * deterministik çöküyor (c0000005 @ 0x7af4cb) — kusur v1'in üretilmeyen
+ * yerleşim/ızgara katmanında. F3'te kanıtlanan dersin ters-yön aynası: statik
+ * diff-0 yükleyiciyi tatmin etmez; yerleşim katmanı bilinen-iyi donörden nakledilir.
+ *
+ * Re-ankraj kuralları (t33d 4c'nin ters-yön eşleniği):
+ * (1) çapa akış-İNDEKSİ, mutlak ofset değil — rawLen dizisi iki tarafta birebir
+ *     (t33c KANIT) ve #1885 ikizi her ikisinde aynı indekste düz 201094 kalır;
+ *     önyazı baytları da indeks başına doğrulanır;
+ * (2) çerçeve kayıtları (önyazı+sihir+comp) ve [0, previewEnd) başlık/preview/kilit
+ *     bölgesi v2'nin kalır (comp sınıfı F3'te aklandı: inflate-özdeş, 30.260/30.260);
+ * (3) nakledilen koşullar donörün aynısı → beş bölgede Δlen=0, diffBlock=0;
+ * (4) mühür çağıran tarafta yeniden atılır (uzunluk@79 + CRC32 [88,EOF)).
+ * Tüm çapa ihlalleri HARD-FAIL eder — sessik ikame yok.
+ */
+function transplantIde11LayoutFromX11Donor(
+  work: Uint8Array,
+  workPreviewEnd: number,
+  donor: Uint8Array,
+): { bytes: Uint8Array; report: NonNullable<Ide10To11UpgradeDiagnostics["transplant"]> } {
+  const donorCarrier = validateIdeCarrier(donor);
+  if (donorCarrier.formatVersion !== IDE11_VERSION || donorCarrier.encodedFlag !== 1) {
+    throw new Error(
+      `X11 donörü native v11 taşıyıcı olmalı (211220, encoded=1); gelen: sürüm ${donorCarrier.formatVersion}, encoded ${donorCarrier.encodedFlag}.`,
+    );
+  }
+  const donorView = new DataView(donor.buffer, donor.byteOffset, donor.byteLength);
+  const donorPreviewEnd =
+    116 + donorCarrier.projectNameByteLength + donorView.getUint32(112 + donorCarrier.projectNameByteLength, true);
+  if (donorPreviewEnd + 64 >= donor.length) {
+    throw new Error("X11 donör başlığı okunamadı: previewEnd dosya boyutunun dışında.");
+  }
+
+  const workTwin = scanIdeSubStreamFrames(work, IDE10_VERSION);
+  const donorTwin = scanIdeSubStreamFrames(donor, IDE10_VERSION);
+  const workFrames = [...scanIdeSubStreamFrames(work, IDE11_VERSION), ...workTwin].sort((a, b) => a.offset - b.offset);
+  const donorFrames = [...scanIdeSubStreamFrames(donor, IDE11_VERSION), ...donorTwin].sort((a, b) => a.offset - b.offset);
+  if (workFrames.length < 2 || workFrames.length !== donorFrames.length) {
+    throw new Error(
+      `Donör nakil çapası kırıldı: alt-akış çerçeve sayıları farklı (v1 çıktısı ${workFrames.length}, donör ${donorFrames.length}).`,
+    );
+  }
+  if (workTwin.length !== 1 || donorTwin.length !== 1) {
+    throw new Error(
+      `Donör nakli yalnız 30.259+1 akış yapısını kabul eder; düz 201094 çerçevesi: v1 çıktısı ${workTwin.length}, donör ${donorTwin.length}.`,
+    );
+  }
+  const twinIndex = workFrames.findIndex((frame) => frame.offset === workTwin[0].offset);
+  if (twinIndex < 0 || donorFrames[twinIndex].offset !== donorTwin[0].offset) {
+    throw new Error("Donör nakli ikiz (#1885 sınıfı) indeks çapası kırıldı.");
+  }
+  let rawLenMismatches = 0, preludeMismatches = 0;
+  for (let i = 0; i < workFrames.length; i++) {
+    if (workFrames[i].rawLength !== donorFrames[i].rawLength) rawLenMismatches++;
+    for (let j = 0; j < 3; j++) {
+      if (work[workFrames[i].offset - 3 + j] !== donor[donorFrames[i].offset - 3 + j]) preludeMismatches++;
+    }
+  }
+  if (rawLenMismatches !== 0 || preludeMismatches !== 0) {
+    throw new Error(
+      `Donör nakli akış çapası kırıldı: rawLen uyumsuz ${rawLenMismatches}, önyazı uyumsuz ${preludeMismatches}.`,
+    );
+  }
+  if (workFrames[0].offset <= workPreviewEnd || donorFrames[0].offset <= donorPreviewEnd) {
+    throw new Error("Donör nakli: ilk alt-akış çerçevesi başlık/preview bölgesinin içinde bulunamaz.");
+  }
+
+  // Yeniden birleşim: [0,previewEnd) v2'nin + her gap donörün + her çerçeve v2'nin.
+  const parts: Uint8Array[] = [work.subarray(0, workPreviewEnd)];
+  let transplantedGapBytes = 0;
+  let donorCursor = donorPreviewEnd;
+  for (let i = 0; i < workFrames.length; i++) {
+    const gap = donor.subarray(donorCursor, donorFrames[i].offset);
+    parts.push(gap);
+    transplantedGapBytes += gap.length;
+    parts.push(work.subarray(workFrames[i].offset, workFrames[i].endOffset));
+    donorCursor = donorFrames[i].endOffset;
+  }
+  const tail = donor.subarray(donorCursor, donor.length);
+  parts.push(tail);
+  transplantedGapBytes += tail.length;
+
+  const totalBytes = parts.reduce((sum, part) => sum + part.length, 0);
+  const out = new Uint8Array(totalBytes);
+  let writeCursor = 0;
+  for (const part of parts) {
+    out.set(part, writeCursor);
+    writeCursor += part.length;
+  }
+
+  return {
+    bytes: out,
+    report: {
+      donorVersion: donorCarrier.formatVersion,
+      donorPreviewEnd,
+      outputPreviewEnd: workPreviewEnd,
+      donorFrames: donorFrames.length,
+      outputFrames: workFrames.length,
+      twinIndex,
+      transplantedGaps: workFrames.length + 1,
+      transplantedGapBytes,
+      outputBytes: totalBytes,
+    },
+  };
 }
 
 /**
@@ -2612,11 +2747,16 @@ function generateIdeUpgradePad(seed: number): Uint8Array {
  * başlangıcı, sürüm-geçmişi, RYT/R1/R3 yerleşimi), F9-kabuk ve kuyruk (R5)
  * bölgelerini v11'in kendi düzeninde yeniden üretir — A0 ile bayt-düzeyi
  * eşlenemez (olcum gaps: kuyruk Δ+1.047.937, F9-kabuk Δ−24×373). Bu bölgeler
- * A0 baytlarıyla korunur; parser bu bölgeleri v11'de zaten okumaz (X11'in kendi
- * parmak izinde malzeme/deprem/F9 absent) ve alan-düzeyi kabul (geometri/etiket/
- * yük diff 0) iki tarafta absent-absent ile geçer. Akış-yuvası +4 farkı
- * (1.146/1.719 desenli gap Δ4 — ayrım kuralı çözülmedi) ve etiket-sonrası f64
- * alanları ölçüldü fakat üretime alınmadı (olcum3/olcum4; T-F4.2 girdisi).
+ * donörsüz koşuda A0 baytlarıyla korunur (parser bu bölgeleri v11'de okumaz;
+ * alan-düzeyi kabul iki tarafta absent-absent ile geçer). Akış-yuvası +4 farkı
+ * (1.146/1.719 desenli gap Δ4) ve etiket-sonrası f64 alanları ölçüldü fakat
+ * donörsüz koşuda üretime alınmadı (olcum3/olcum4). **T-F4.1b (H1):** gerçek
+ * ideCAD yükleyicisi bu yerleşimi gerektirdi (t42: v1 3/3 c0000005; X11 native
+ * aynı EXE'de açılıyor) — `ide11Donor` (X11 sınıfı native .ide11) verildiğinde
+ * akış-dışı koşuların TAMAMI (30.261 gap: ön-gövde/F9-kabuk/kuyruk + R1/R3/R4/R5
+ * v11 ızgaraları + akış-yuvası +4 + etiket-sonrası f64 bölgeleri) donörden
+ * gap-düzeyinde nakledilir (transplantIde11LayoutFromX11Donor; t33d 4c'nin
+ * ters-yön eşleniği).
  */
 export function transcodeIde10ToIde11(
   sourceBuffer: ArrayBuffer | Uint8Array,
@@ -2982,6 +3122,18 @@ export function transcodeIde10ToIde11(
   diagnostics.header = { marker05ce, demoFlagCleared, encZeroSlots };
   diagnostics.f64Encoded = f64Encoded;
   diagnostics.outputBytes = work.length;
+
+  // --- T-F4.1b (H1): X11-donör nakli — akış-dışı YERLEŞİM + IZGARA katmanı.
+  // v1 yamaları (story-ref/pad/f64/etiket/36) akış içi değer katmanıdır ve donörün
+  // aynı değerlerin native v11 kodlamasıyla ikame edilir (eşitlik kampanya KANITI);
+  // v2'ye v1'den yalnız çerçeveler (sihir+önyazı+comp) ve başlık/preview/kilit kalır. ---
+  if (options.ide11Donor) {
+    const transplant = transplantIde11LayoutFromX11Donor(work, previewEnd, options.ide11Donor);
+    diagnostics.transplant = transplant.report;
+    diagnostics.outputBytes = transplant.bytes.length;
+    // Mühür: nakil uzunluğu değiştirdiği için başlık yeniden mühürlenir (uzunluk@79 + CRC32).
+    return sealIdeCarrierHeader(transplant.bytes, { formatVersion: IDE11_VERSION, encodedFlag: 1 });
+  }
 
   // --- Mühür: gövde şemasıyla uyumlu sürüm 211220 + encoded=1 (140989c30.c:40). ---
   return sealIdeCarrierHeader(work, { formatVersion: IDE11_VERSION, encodedFlag: 1 });

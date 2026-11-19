@@ -17,10 +17,22 @@ import { IDE10_VERSION, IDE11_VERSION } from "./ide-binary-codec";
  * Kabul ölçüsü (G4 tabanı): HS(A0→ide11) ↔ X11 alan-düzeyi diff 0
  * (geometri/etiket/yük) + çerçeve/payload yapısı (0x33914 işaretçili
  * 30.259+1 akışı; rawLen dizisi A0 ile birebir).
+ *
+ * T-F4.1b (H1) — X11-donör gap-düzeyi YERLEŞİM+IZGARA nakli: v1 çıktısı gerçek
+ * ideCAD'de 3/3 deterministik çöktü (t42: c0000005 @ 0x7af4cb; X11 native aynı
+ * EXE'de açılıyor). v2 = v1 çerçeveleri + başlık/preview/kilit + X11'in 30.261
+ * akış-dışı koşusu (ön-gövde/F9-kabuk/kuyruk + R1/R3/R4/R5 v11 ızgaraları +
+ * akış-yuvası +4 + etiket-sonrası f64 bölgeleri). Yerel kanıt ölçütleri (t33d
+ * deseni; masaüstü T-F4.2b turu ÖNCESİ hepsi geçmek zorunda):
+ * (i) beş bölge Δlen=0 + nakledilen koşularda diffBlock=0;
+ * (ii) kalan fark envanteri yalnız başlık/preview + çerçeve comp + mühür;
+ * (iii) parse oracle: geometri/etiket/yük diff 0 KORUNUR + ızgara eşitliği;
+ * (iv) nakledilen gap'lerde X11-dışı yaban u32 yok.
  */
 const A0 = "C:/Users/hsyn/Desktop/hsyncad/incelemeler/donusum-esdegerlik-2026-11-15/00-kaynak/A0_orijinal.ide10";
 const X11 = "C:/Users/hsyn/Desktop/hsyncad/incelemeler/donusum-esdegerlik-2026-11-15/00-kaynak/X11_downloads.ide11";
 const EVIDENCE = "C:/Users/hsyn/Desktop/hsyncad_idecad_uzanti_optimizasyon/evidence/orkestrasyon/2026-11-19-F4-T4.1";
+const EVIDENCE_B = "C:/Users/hsyn/Desktop/hsyncad_idecad_uzanti_optimizasyon/evidence/orkestrasyon/2026-11-19-F4-T4.1b";
 
 const digest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 const buffer = (bytes: Uint8Array): ArrayBuffer => Uint8Array.from(bytes).buffer;
@@ -244,4 +256,197 @@ test("A0 .ide10 -> .ide11 reverse upgrade matches the X11 reference at field lev
     },
     diagnostics,
   }, null, 2));
+});
+
+test("X11-donor gap-level layout+grid transplant (T-F4.1b, H1): v2 carries the native v11 flow-outside layer", { skip: !existsSync(A0) || !existsSync(X11), timeout: 1_800_000 }, () => {
+  const source = new Uint8Array(readFileSync(A0));
+  const donor = new Uint8Array(readFileSync(X11));
+  const diagnostics = {} as Ide10To11UpgradeDiagnostics;
+  const v2 = transcodeIde10ToIde11(source, { diagnostics, ide11Donor: donor });
+
+  // --- 0) Kanıt hedefleri asla ezilmedi (manifest SHA'ları). ---
+  assert.equal(digest(source), A0_SHA, "A0 kaynak baytları değişmemeli.");
+  assert.equal(digest(donor), X11_SHA, "X11 donör baytları değişmemeli.");
+
+  // --- 1) Taşıyıcı mührü: 211220/encoded=1, boyut+CRC geçerli (nakil sonrası yeniden mühür). ---
+  const carrier = validateIdeCarrier(v2);
+  assert.equal(carrier.formatVersion, IDE11_VERSION);
+  assert.equal(carrier.encodedFlag, 1);
+  assert.equal(getIdeCarrierFormat(v2, carrier), "ide11");
+
+  // --- 2) Nakil tanıklaması (diagnostics.transplant). ---
+  const t = diagnostics.transplant;
+  assert.ok(t, "donörlü koşuda nakil tanıklaması dolmalı.");
+  assert.equal(t.outputFrames, 30_260, "v1 çıktısının 30.260 çerçevesi nakle konu kalmadan v2'ye girmeli.");
+  assert.equal(t.donorFrames, 30_260, "donör 30.260 çerçeveli native v11 olmalı.");
+  assert.equal(t.twinIndex, 1_885, "#1885 ikizi her iki tarafta aynı akış indeksinde düz 201094 kalmalı.");
+  assert.equal(t.transplantedGaps, 30_261, "30.261 akış-dışı koşunun TAMAMI donörden nakledilmeli.");
+  assert.ok(t.transplantedGapBytes > 20_000_000, `nakledilen akış-dışı bayt beklenenden küçük: ${t.transplantedGapBytes}`);
+  assert.equal(t.outputBytes, v2.length, "transplant tanıklaması v2 boyutunu birebir bildirmeli.");
+  assert.equal(diagnostics.outputBytes, v2.length, "diagnostics.outputBytes nihai v2 boyutu olmalı.");
+
+  // --- 3) ÖLÇÜT (i): beş bölge Δlen=0 + nakledilen koşularda diffBlock=0.
+  // Çapa: akış İNDEKSİ; v2'nin her gap'i X11'in aynı indeksli gap'iyle bayt-özdeş. ---
+  const previewEndOf = (bytes: Uint8Array): number => {
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const nameLen = view.getUint32(96, true);
+    return 116 + nameLen + view.getUint32(112 + nameLen, true);
+  };
+  const previewV2 = previewEndOf(v2);
+  const previewX = previewEndOf(donor);
+  const framesV2 = [...scanFrames(v2, IDE11_VERSION), ...scanFrames(v2, IDE10_VERSION)].sort((p, q) => p.offset - q.offset);
+  const framesX = [...scanFrames(donor, IDE11_VERSION), ...scanFrames(donor, IDE10_VERSION)].sort((p, q) => p.offset - q.offset);
+  assert.equal(framesV2.length, 30_260, "v2: 30.259+1 akış yapısı korunmalı.");
+  assert.equal(framesX.length, 30_260, "donör: 30.259+1 akış yapısı.");
+  let rawLenMismatch = 0, preludeMismatch = 0, gapLenDeltaNonZero = 0, gapDiffBlocks = 0, gapBytesChecked = 0;
+  let onGövdeBytes = 0, araGapBytes = 0, kuyrukBytes = 0;
+  let cursorV2 = previewV2, cursorX = previewX;
+  for (let i = 0; i < framesV2.length; i++) {
+    if (framesV2[i].rawLen !== framesX[i].rawLen) rawLenMismatch++;
+    for (let j = 0; j < 3; j++) {
+      if (v2[framesV2[i].offset - 3 + j] !== donor[framesX[i].offset - 3 + j]) preludeMismatch++;
+    }
+    const gapV2 = v2.subarray(cursorV2, framesV2[i].offset);
+    const gapX = donor.subarray(cursorX, framesX[i].offset);
+    if (gapV2.length !== gapX.length) gapLenDeltaNonZero++;
+    if (Buffer.compare(Buffer.from(gapV2), Buffer.from(gapX)) !== 0) gapDiffBlocks++;
+    gapBytesChecked += gapV2.length;
+    if (i === 0) onGövdeBytes += gapV2.length; else araGapBytes += gapV2.length;
+    cursorV2 = framesV2[i].end;
+    cursorX = framesX[i].end;
+  }
+  // KUYRUK (R5 modal + sürüm geçmişi): son çerçeveden dosya sonuna.
+  const tailV2 = v2.subarray(cursorV2);
+  const tailX = donor.subarray(cursorX);
+  if (tailV2.length !== tailX.length) gapLenDeltaNonZero++;
+  if (Buffer.compare(Buffer.from(tailV2), Buffer.from(tailX)) !== 0) gapDiffBlocks++;
+  gapBytesChecked += tailV2.length;
+  kuyrukBytes = tailV2.length;
+  assert.equal(rawLenMismatch, 0, "rawLen çapası: v2 ↔ X11 birebir olmalı (Δlen=0'ın ön şartı).");
+  assert.equal(preludeMismatch, 0, "önyazı çapası: [1][1][1]×30.259 + [0][1][0]×1 indeks başına özdeş.");
+  assert.equal(gapLenDeltaNonZero, 0, "ölçüt (i): 30.261 gap'in tamamında Δlen=0.");
+  assert.equal(gapDiffBlocks, 0, "ölçüt (i): nakledilen koşularda diffBlock=0.");
+
+  // --- 3b) Bölge kaplaması: başlık + çerçeveler + gap'ler dosyayı tüketmeli (gizli fark sınıfı yok). ---
+  const frameBytesV2 = framesV2.reduce((sum, f) => sum + (f.end - f.offset), 0);
+  assert.equal(previewV2 + frameBytesV2 + onGövdeBytes + araGapBytes + kuyrukBytes, v2.length,
+    "ölçüt (ii): v2 = başlık + çerçeveler + nakledilen koşular; bölge dışı bayt kalmamalı.");
+  const frameBytesX = framesX.reduce((sum, f) => sum + (f.end - f.offset), 0);
+  assert.equal(previewX + frameBytesX + (donor.length - previewX - frameBytesX), donor.length,
+    "donör bölge kaplaması da tam olmalı.");
+
+  // --- 3c) Çerçeveler v2'nin (A0 comp ile bayt-özdeş; inflate-özdeşlik t33d KANITI). ---
+  const framesA = scanFrames(source, IDE10_VERSION);
+  let compMismatch = 0;
+  for (let i = 0; i < framesA.length; i++) {
+    if (Buffer.compare(Buffer.from(v2.subarray(framesV2[i].offset + 12, framesV2[i].end)),
+      Buffer.from(source.subarray(framesA[i].offset + 12, framesA[i].end))) !== 0) compMismatch++;
+  }
+  assert.equal(compMismatch, 0, "çerçeve comp baytları v1/A0 ile bayt-özdeş kalmalı (çerçeveler v2'nin).");
+
+  // --- 4) ÖLÇÜT (iii): parse oracle — geometri/etiket/yük diff 0 KORUNUR + ızgara eşitliği. ---
+  const parsedV2 = parseIde10(buffer(v2), "HS_A0_upgraded_v2.ide11");
+  const parsedX11 = parseIde10(buffer(donor), "X11_downloads.ide11");
+  assert.equal(parsedV2.floors.length, 6);
+  assert.equal(parsedX11.floors.length, 6);
+  const floorDiff2: unknown[] = [];
+  for (const fa of parsedV2.floors) {
+    const fb = parsedX11.floors.find(f => f.name === fa.name);
+    assert.ok(fb, `X11'de kat bulunmalı: ${fa.name}`);
+    if (Math.abs(fa.elevation - fb.elevation) > 1e-6 || Math.abs(fa.height - fb.height) > 1e-6) {
+      floorDiff2.push({ name: fa.name, a: [fa.elevation, fa.height], b: [fb.elevation, fb.height] });
+    }
+  }
+  assert.equal(floorDiff2.length, 0, "kat yükseklik/kot farkı olmamalı.");
+  const cmp = compareElements(parsedV2, parsedX11);
+  assert.equal(cmp.matched, 1_273, "1.273 eleman X11 ile eşleşmeli.");
+  assert.equal(cmp.geometryDiff, 0, `geometri farkı 0 KORUNMALI: ${JSON.stringify(cmp.geometrySamples)}`);
+  assert.equal(cmp.geometryEqual, 1_273);
+  assert.equal(cmp.labelDiff, 0, `kesit etiketi farkı 0 KORUNMALI: ${JSON.stringify(cmp.labelSamples)}`);
+  assert.equal(cmp.labelEqual, 1_273);
+  assert.equal(cmp.loadsEqual, 159, "159 döşeme yükü X11 ile eşit olmalı.");
+  assert.equal(cmp.loadsMismatch, 0);
+  assert.equal(cmp.wallSectionDiff, 0, "perde plan kesiti (kanonik) farkı 0 olmalı.");
+
+  // --- 4b) IZGARA NAKLİ (t41 §6 açık işleri kapatan kanıt): R1/R3/R5/R4 ↔ X11. ---
+  const materialsV2 = parsedV2.materials ?? [];
+  const materialsX = parsedX11.materials ?? [];
+  assert.equal(materialsV2.length, 2, "R1 malzeme ızgarası nakledilmeli (v1'de 0 idi; açık iş).");
+  assert.equal(materialsX.length, 2);
+  const stripMaterial = (m: typeof materialsV2[number]) => ({
+    id: m.id, name: m.name, kind: m.kind, fckMpa: m.fckMpa, fykMpa: m.fykMpa, fctkMpa: m.fctkMpa,
+    gammaS: m.gammaS, gammaC: m.gammaC, elasticModulusMpa: m.elasticModulusMpa, poisson: m.poisson,
+    unitWeightTfM3: m.unitWeightTfM3,
+  });
+  assert.deepEqual(materialsV2.map(stripMaterial), materialsX.map(stripMaterial),
+    "R1 malzeme kayıtları X11 ile değer-düzeyi eşit olmalı.");
+
+  const seismicV2 = parsedV2.seismicSoil as Record<string, unknown> | undefined;
+  const seismicX = parsedX11.seismicSoil as Record<string, unknown> | undefined;
+  assert.ok(seismicV2 && seismicX, "deprem/zemin kaydı iki tarafta da okunmalı.");
+  const nullSeismicV2 = Object.values(seismicV2!).filter(value => value === null).length;
+  assert.equal(nullSeismicV2, 0, `R3 deprem ızgarası nakledilmeli (v1'de 10 alan null idi; açık iş); null=${nullSeismicV2}.`);
+  for (const key of Object.keys(seismicX!)) {
+    assert.deepEqual(seismicV2![key], seismicX![key], `R3 alan değeri X11 ile eşit olmalı: ${key}`);
+  }
+
+  const f9V2 = parsedV2.f9Results;
+  const f9X = parsedX11.f9Results;
+  assert.ok(f9V2 && f9X, "F9 sonuç bölgesi iki tarafta da okunmalı.");
+  assert.equal(f9V2!.modalTables.length, 10, "R5 kuyruk modal tabloları nakledilmeli (v1'de 0 idi; açık iş).");
+  assert.equal(f9X!.modalTables.length, 10);
+  for (let i = 0; i < f9X!.modalTables.length; i++) {
+    assert.equal(f9V2!.modalTables[i].name, f9X!.modalTables[i].name, `modal tablo adı eşit: ${i}`);
+    assert.equal(f9V2!.modalTables[i].modeCount, f9X!.modalTables[i].modeCount, `modal mod sayısı eşit: ${i}`);
+    assert.deepEqual(f9V2!.modalTables[i].frequenciesHz, f9X!.modalTables[i].frequenciesHz, `modal frekanslar eşit: ${i}`);
+    assert.deepEqual(f9V2!.modalTables[i].gamma, f9X!.modalTables[i].gamma, `modal gamma değerleri eşit: ${i}`);
+    assert.deepEqual(f9V2!.modalTables[i].effectiveMassT, f9X!.modalTables[i].effectiveMassT, `modal efektif kütleler eşit: ${i}`);
+  }
+  assert.equal(f9V2!.barForceStreamsCount, f9X!.barForceStreamsCount, "F9 kuvvet akış sayıları eşit kalmalı.");
+  assert.equal(f9V2!.nodalDisplacementStreamsCount, f9X!.nodalDisplacementStreamsCount, "F9 düğüm akış sayıları eşit kalmalı.");
+  assert.equal(f9V2!.shellResultStreamsCount, f9X!.shellResultStreamsCount, "F9 kabuk akış sayıları eşit kalmalı.");
+
+  const keyOf = (e: { floorId: string; type: string; nativeId: number }) => `${e.floorId}|${e.type}|${e.nativeId}`;
+  const rebarMapX = new Map(parsedX11.elements.filter(e => e.rebarLayout).map(e => [keyOf(e), e.rebarLayout]));
+  const rebarV2 = parsedV2.elements.filter(e => e.rebarLayout);
+  assert.equal(rebarV2.length, 468, "R4 donatı ızgarası nakledilmeli (v1'de 0 idi; açık iş).");
+  let rebarValueDiff = 0;
+  for (const e of rebarV2) {
+    const rb = rebarMapX.get(keyOf(e));
+    if (!rb || JSON.stringify(e.rebarLayout) !== JSON.stringify(rb)) rebarValueDiff++;
+  }
+  assert.equal(rebarValueDiff, 0, "R4 donatı demetleri X11 ile değer-düzeyi eşit olmalı.");
+
+  // --- 5) ÖLÇÜT (ii) kapanışı: kalan fark envanteri yalnız başlık/preview + comp + mühür.
+  // v2↔X11 bayt farkı: gap'ler 0 (yukarıda), comp sınıfı inflate-özdeş (t33d KANIT),
+  // [0,previewEnd) başlık/preview/kilit + mühür alanları (uzunluk@79/CRC@83) v2'nin.
+  // İşaretli liste (değer çatışığı): YOK — tüm nakledilen değerler kampanya boyunca
+  // eşitliği KANITLI (468/0, 2/2, 10/10, modal 0 sapma). ---
+  const markedList: unknown[] = [];
+
+  // --- 6) Kanıt çıktısı: YENİ adla (A0/X11 ASLA ezilmez) + SHA kaydı. ---
+  const outDir = `${EVIDENCE_B}/output`;
+  mkdirSync(outDir, { recursive: true });
+  writeFileSync(`${outDir}/HS_A0_upgraded_v2.ide11`, Buffer.from(v2));
+  const diffDir = `${EVIDENCE_B}/diff`;
+  mkdirSync(diffDir, { recursive: true });
+  writeFileSync(`${diffDir}/HS_A0_upgraded_v2__vs__X11_downloads.diff.json`, JSON.stringify({
+    a: { file: "HS_A0_upgraded_v2.ide11", version: carrier.formatVersion, encoded: carrier.encodedFlag, label: getIdeCarrierFormat(v2, carrier), sha256: digest(v2), bytes: v2.length },
+    b: { file: "X11_downloads.ide11", version: 211220, encoded: 1, label: "ide11", sha256: X11_SHA, bytes: donor.length },
+    transplant: t,
+    criteria: {
+      i_fiveRegionDeltaLen: { rawLenMismatch, preludeMismatch, gapLenDeltaNonZero, gapDiffBlocks, gapBytesChecked, onGovdeBytes: onGövdeBytes, araGapBytes, kuyrukBytes },
+      ii_remainingDiff: { headerPreviewClass: "v2 (A0 başlık/preview/kilit + mühür alanları)", compMismatchVsA0: compMismatch, compClass: "çerçeve comp baytları v1/A0 kaynaklı (inflate-özdeş t33d KANIT)", markedList },
+      iii_oracle: {
+        floors: 6, matched: cmp.matched, geometryEqual: cmp.geometryEqual, geometryDiff: cmp.geometryDiff,
+        labelEqual: cmp.labelEqual, labelDiff: cmp.labelDiff, loadsEqual: cmp.loadsEqual, loadsMismatch: cmp.loadsMismatch,
+        wallSectionEqual: cmp.wallSectionEqual, wallSectionDiff: cmp.wallSectionDiff,
+        materials: { v2: materialsV2.length, x11: materialsX.length },
+        seismicNullFieldsV2: nullSeismicV2,
+        f9ModalTables: { v2: f9V2!.modalTables.length, x11: f9X!.modalTables.length },
+        rebar: { v2: rebarV2.length, x11: 468, valueDiff: rebarValueDiff },
+      },
+    },
+  }, null, 2));
+  console.log(`[T-F4.1b tanıklama] v2=${v2.length} B, sha256=${digest(v2)}; transplant=${JSON.stringify(t)}; gapBytes=${gapBytesChecked} (ön-gövde ${onGövdeBytes} + ara ${araGapBytes} + kuyruk ${kuyrukBytes}); compMismatch=${compMismatch}; ızgaralar: malzeme ${materialsV2.length}/2, deprem null ${nullSeismicV2}, modal ${f9V2!.modalTables.length}/10, donatı ${rebarV2.length}/468 (değer farkı ${rebarValueDiff}); işaretli liste: ${markedList.length}`);
 });
