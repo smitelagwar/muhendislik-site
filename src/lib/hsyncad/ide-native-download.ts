@@ -33,12 +33,18 @@ export function nativeIdeDownloadTargets(
  * taşıyıcı, IDE11 şeması dışı kaynak veya doğrulanamayan kayıt eşleşmesinde
  * hata fırlatmaya devam eder; UI katmanı bu hatayı dürüstçe gösterir ve
  * yanlış dosya üretilmez. Kaynak arabelleğe asla yazılmaz.
+ *
+ * `.ide10` hedefi eşleşen ticari `.ide10` donörü olmadan ÜRETİLMEZ: K2/S1
+ * kanıtı, donörsüz üretilen dosyanın ideCAD'de çökme verdiğini gösterdi.
  */
 export function convertIdeSourceToNative(
   bytes: ArrayBuffer | Uint8Array,
   target: NativeIdeDownloadTarget,
+  donor?: ArrayBuffer | Uint8Array,
 ): Uint8Array {
-  return target === "ide11"
-    ? transcodeIde11TrialToIde11(bytes)
-    : transcodeIde11TrialToIde10(bytes);
+  if (target === "ide11") return transcodeIde11TrialToIde11(bytes);
+  if (!donor) {
+    throw new Error("Native .ide10 üretimi eşleşen ticari .ide10 dosyasını (donör) gerektirir; donör seçilmeden dönüştürme yapılmaz.");
+  }
+  return transcodeIde11TrialToIde10(bytes, { ide10Donor: donor instanceof Uint8Array ? donor : new Uint8Array(donor) });
 }

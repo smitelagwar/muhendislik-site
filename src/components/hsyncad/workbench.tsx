@@ -162,6 +162,8 @@ export default function HsynCadWorkbench() {
   const inspectorCloseRef = useRef<HTMLButtonElement>(null);
   const inspectorRef = useRef<HTMLElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  // S1 — .ide10 dönüşümü için eşleşen ticari .ide10 donörü seçimi.
+  const donorInput = useRef<HTMLInputElement>(null);
   const floor = model.floors.find((f) => f.id === floorId) ?? model.floors[0];
   const selected = model.elements.find((e) => e.id === selectedId);
   const visibleElements = useMemo(() => model.elements.filter((e) => e.floorId === floor.id && !hiddenLayers.includes(e.layer) && layerState(model, e.layer, e.floorId).visible), [model, floor.id, hiddenLayers]);
@@ -461,11 +463,12 @@ export default function HsynCadWorkbench() {
   // S1 — "Dönüştür + indir": trial/ide11 kaynak baytları native .ide11/.ide10'a
   // çevrilip YENİ adla indirilir. `ide-native-save` guard akışı (boş yama listesiyle
   // native kaydetme reddi) bu fonksiyondan bağımsızdır; kaynak dosyaya yazılmaz.
-  async function downloadIdeNativeConverted(target: "ide11" | "ide10") {
+  // .ide10 hedefi eşleşen ticari .ide10 donörü ister (donörsüz dosya ideCAD'de çöker).
+  async function downloadIdeNativeConverted(target: "ide11" | "ide10", donorBytes?: ArrayBuffer) {
     if (!model.ideImport || !ideSourceSession?.file) { setMessage("Dönüştürmeye uygun IDE kaynağı açık değil."); return; }
     setMessage(`Native .${target} dönüşümü hazırlanıyor…`);
     try {
-      const bytes = convertIdeSourceToNative(await ideSourceSession.file.arrayBuffer(), target);
+      const bytes = convertIdeSourceToNative(await ideSourceSession.file.arrayBuffer(), target, donorBytes);
       const filename = `${ideExportBasename(model.ideImport.source.filename)}.${target}`;
       const payload = bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength
         ? bytes.buffer as ArrayBuffer : bytes.slice().buffer as ArrayBuffer;
@@ -474,6 +477,10 @@ export default function HsynCadWorkbench() {
       setTimeout(() => URL.revokeObjectURL(url), 15000);
       setMessage(`${filename} indirildi: kaynak dosya değişmedi; dönüşüm yeni dosya olarak indirildi.`);
     } catch (error) { setMessage(`Dönüşüm reddedildi: ${error instanceof Error ? error.message : "bilinmeyen hata"}`); }
+  }
+  async function onDonorPicked(file?: File) {
+    if (!file) return;
+    await downloadIdeNativeConverted("ide10", await file.arrayBuffer());
   }
   function exportFile() {
     const url = URL.createObjectURL(new Blob([JSON.stringify(model, null, 2)], { type: "application/json" }));
@@ -825,8 +832,9 @@ export default function HsynCadWorkbench() {
     {model.ideImport && ideSourceSession && <div className={styles.importReport} data-testid="ide-native-save-row">
       <button type="button" data-testid="ide-native-save" onClick={() => void saveIdeNativePatches()}>Native kaydet · {ideNativePatches.length} yama</button>
       {nativeIdeDownload.ide11 && <button type="button" data-testid="ide-download-native-ide11" onClick={() => void downloadIdeNativeConverted("ide11")}>Native .ide11 indir</button>}
-      {nativeIdeDownload.ide10 && <button type="button" data-testid="ide-download-native-ide10" onClick={() => void downloadIdeNativeConverted("ide10")}>Native .ide10 indir</button>}
-      <span className="hcad-fine" data-testid="ide-native-patch-count">{ideNativePatches.length ? `${ideNativePatches.length} kiriş kesit yüksekliği yaması kayda hazır: ${ideNativePatches.map(p => model.ideImport!.source.elements.find(e => e.id === p.id)?.name ?? p.id).join(", ")}.` : "Henüz native yazılabilir düzenleme yok; değişiklik dışı native kaydetme reddedilir."}{nativeIdeDownload.ide11 ? " Sürüm dönüşümü ayrı dosya olarak indirilir; açık projeyi değiştirmez." : ""}</span>
+      {nativeIdeDownload.ide10 && <button type="button" data-testid="ide-download-native-ide10" onClick={() => donorInput.current?.click()}>Native .ide10 indir · donör seç</button>}
+      <input ref={donorInput} type="file" accept=".ide10" hidden aria-label="Eşleşen ticari .ide10 dosyası (donör)" data-testid="hsyncad-donor-ide10" onChange={(e) => { void onDonorPicked(e.target.files?.[0]); e.target.value = ""; }} />
+      <span className="hcad-fine" data-testid="ide-native-patch-count">{ideNativePatches.length ? `${ideNativePatches.length} kiriş kesit yüksekliği yaması kayda hazır: ${ideNativePatches.map(p => model.ideImport!.source.elements.find(e => e.id === p.id)?.name ?? p.id).join(", ")}.` : "Henüz native yazılabilir düzenleme yok; değişiklik dışı native kaydetme reddedilir."}{nativeIdeDownload.ide11 ? " Sürüm dönüşümü ayrı dosya olarak indirilir; açık projeyi değiştirmez. .ide10 için aynı projenin ticari .ide10 dosyası donör olarak seçilir." : ""}</span>
     </div>}
     {model.ideImport && <details className={styles.importReport} data-testid="hsyncad-ide-import-report"><summary>{model.ideImport.source.filename} · {model.ideImport.mappedIds.length} eleman düzenlemeye aktarıldı · {ideReferences.length} kaynak referansı</summary><div><p>Kolon, kiriş, perde, boşluksuz döşeme ve aksları normal çizim araçlarıyla düzenleyin. Kiriş kesit yüksekliği düzenlemeleri <b>Native kaydet</b> ile kaynak dosyanın bayt planına yamalanır; diğer değişiklik türleri native yazılamaz, .hsyncad çalışma dosyasıyla saklanır. ideCAD aktarımı için Dosya menüsündeki IFC çıktısını da kullanabilirsiniz.</p>{ideR15Summary && <p data-testid="hsyncad-ide-r15-summary">{ideR15Summary}</p>}<p>Kaynak referansları metraj ve analize dahil değildir. {ideR15Summary ? "Kaynak R1–R5 verileri (malzeme, deprem/zemin, donatı, F9/modal) yukarıda sayılandırıldı; düzenlemede malzeme atamalarını gözden geçirin." : "Malzemeleri ve yükleri yeniden tanımlayın; native donatı ve analiz sonuçları aktarılmadı."} Okuma kapsamı: {model.ideImport.source.coverage.unsupportedRecords} çözümlenemeyen aday kayıt; bu sayı tüm dosyanın envanteri değildir.</p><label><input type="checkbox" checked={!hiddenLayers.includes(IDE_REFERENCE_LAYER)} onChange={event => setHiddenLayers(current => event.target.checked ? current.filter(l => l !== IDE_REFERENCE_LAYER) : [...current, IDE_REFERENCE_LAYER])} /> Kaynak referanslarını göster</label>{model.ideImport.source.warnings.map((warning, i) => <p key={i}>{warning}</p>)}{model.ideImport.references.length > 0 && <ul>{model.ideImport.references.map(ref => <li key={ref.id}>{model.ideImport!.source.elements.find(e => e.id === ref.id)?.name} — {ref.reason}</li>)}</ul>}</div></details>}
     <div className={`hcad-ribbon ${tab === "Giriş" && tool === "axis" ? "hcad-ribbon-axis" : tab === "Giriş" && !activeType ? "hcad-ribbon-passive" : ""}`} data-testid="hsyncad-context-bar" aria-label="Etkin araç seçenekleri">

@@ -60,6 +60,13 @@ test("nativeIdeDownloadTargets: ide10/cde kaynağı ve koşul eksikleri kapalı 
   assert.deepEqual(nativeIdeDownloadTargets(null, undefined), { ide11: false, ide10: false });
 });
 
+test("convertIdeSourceToNative: .ide10 donörsüz reddedilir, donör verilince transcoder'a geçer", () => {
+  // S1 kanıtı: donörsüz .ide10 üretimi ideCAD'de çökme verdi → ürün kuralı reddeder.
+  assert.throws(() => convertIdeSourceToNative(new Uint8Array([1, 2, 3]), "ide10"), /donör/);
+  // Donör verildiğinde hata mesajı donör eksikliği değil taşıyıcı doğrulamasıdır.
+  assert.throws(() => convertIdeSourceToNative(new Uint8Array([1, 2, 3]), "ide10", new Uint8Array(128)), (error: Error) => !/donör/.test(error.message));
+});
+
 test("convertIdeSourceToNative: geçersiz/boş girdi transcoder hatası fırlatır, kaynak değişmez", () => {
   for (const input of [new Uint8Array(0), new Uint8Array(128), new ArrayBuffer(64)]) {
     const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
