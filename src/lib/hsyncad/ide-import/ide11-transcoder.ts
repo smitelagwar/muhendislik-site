@@ -54,7 +54,7 @@ export interface IdeTranscodeOptions {
   diagnostics?: Ide10TranscodeDiagnostics;
 }
 
-// --- T-F3.3: ide10-grammar.json v1.0.1 üretim yükleyicisi (meta.tuketiciSozlesme) ---
+// --- T-F3.3: ide10-grammar.json v1.0.2 üretim yükleyicisi (meta.tuketiciSozlesme) ---
 
 /** Şema kuralları makine temsili (yalnız okunan alanlar). */
 type Ide10GrammarUnknown = Record<string, unknown>;
@@ -157,8 +157,8 @@ export function assertIde10GrammarForProduction(
   schema: Ide10GrammarUnknown = ide10GrammarSchema as unknown as Ide10GrammarUnknown,
   required: ReadonlyArray<{ collection?: string; id?: string; path?: string; fieldSiralar?: ReadonlyArray<number> }> = IDE10_GRAMMAR_REQUIRED_RULES,
 ): Ide10GrammarProductionReport {
-  if (schema["semaSurumu"] !== "1.0.1") {
-    throw new Error(`ide10-grammar sürümü ${String(schema["semaSurumu"])} değil 1.0.1; üretim sözleşmesi bu sürüme bağlı (tuketiciSozlesme).`);
+  if (schema["semaSurumu"] !== "1.0.2") {
+    throw new Error(`ide10-grammar sürümü ${String(schema["semaSurumu"])} değil 1.0.2; üretim sözleşmesi bu sürüme bağlı (tuketiciSozlesme).`);
   }
   const assumptionLines: string[] = [];
   collectIde10GrammarAssumptionLines(schema, "", assumptionLines);
@@ -192,29 +192,6 @@ export function assertIde10GrammarForProduction(
     );
   }
   return { semaSurumu: String(schema["semaSurumu"]), assumptionLines, requiredRules, rejectedLines };
-}
-
-export interface IdeTranscodeSplice {
-  start: number;
-  end: number;
-  replacement: Uint8Array;
-}
-
-export interface IdeTranscodeOptions {
-  /** Optional map of nativeId -> section string (e.g. from a paired .ide10 donor or edited IdeProject) */
-  wallSectionOverrides?: ReadonlyMap<number, string>;
-  /** Disabled until the native load fields are validated by an ideCAD roundtrip. */
-  slabLoadOverrides?: ReadonlyMap<number, { dead: number; live: number }>;
-  /**
-   * T-F3.3: optional paired native `.ide10` buffer written by ideCAD for the SAME
-   * project. Semantics that are MEASURED in the v11 body are always derived from the
-   * source; the donor supplies only regions whose v11 layout is unestablished
-   * (pre-floor BELGE-GOVDE block, R1 zarf/F9 prelude, R4 inter-record bytes,
-   * R5 opaque headers) — şema `meta.tuketiciSozlesme` donör geçişi.
-   */
-  ide10Donor?: Uint8Array;
-  /** Optional mutable diagnostics sink filled by the T-F3.3 ide10 conversion. */
-  diagnostics?: Ide10TranscodeDiagnostics;
 }
 
 export interface Ide10TranscodeDiagnostics {
@@ -1303,7 +1280,7 @@ export function transcodeIde11TrialToIde11(
  * into a native v10 `.ide10` (201094, encoded=0) binary — T-F3.3 gerçek gövde
  * dönüşümü. Mimari (kaynak→v10 hattı, tümü KANIT kurallarıyla):
  *
- * 1. **Şema yükleyici:** `ide10-grammar.json` v1.0.1 üretim sözleşmesiyle
+ * 1. **Şema yükleyici:** `ide10-grammar.json` v1.0.2 üretim sözleşmesiyle
  *    doğrulanır; gerekli kural yollarından `assumption:true` / VARSAYIM taşıyan
  *    satır HARD-FAIL eder ve reddedilen satırlar mesajda listelenir
  *    (`meta.tuketiciSozlesme.uretimYolu`).
@@ -1436,7 +1413,7 @@ export function transcodeIde11TrialToIde10(
   }
 
   diagnostics.outputBytes = work.length;
-  // 4b) T-F3.3c — V-ENCODEV tam uygulanışı: plan yalnız kataloglanmış ofsetleri
+  // 4b) T-F3.3c — V-ENCODED tam uygulanışı: plan yalnız kataloglanmış ofsetleri
   // düzleştirir; kalan kodlu bloklar v10 (encoded=0) yükleyicisinde çöp f64 olur
   // (T-F3.4 3/3 APPCRASH kök nedeni). Donör sözlüğüyle gövde geneli süpürülür.
   if (donor && donorScan) {

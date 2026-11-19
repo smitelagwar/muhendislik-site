@@ -29,9 +29,9 @@ const digest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest(
 const buffer = (bytes: Uint8Array): ArrayBuffer => Uint8Array.from(bytes).buffer;
 const close = (a: number, b: number) => assert.ok(Math.abs(a - b) < 1e-9, `${a} != ${b}`);
 
-test("ide10-grammar v1.0.1 production contract: required rules are all KANIT; VARSAYIM injection hard-fails", () => {
+test("ide10-grammar v1.0.2 production contract: required rules are all KANIT; VARSAYIM injection hard-fails", () => {
   const report = assertIde10GrammarForProduction();
-  assert.equal(report.semaSurumu, "1.0.1");
+  assert.equal(report.semaSurumu, "1.0.2");
   assert.equal(report.rejectedLines.length, 0, `üretim kuralında VARSAYIM olmamalı: ${report.rejectedLines.join(", ")}`);
   assert.ok(report.requiredRules.length >= 20);
   assert.ok(report.assumptionLines.length > 0, "şema VARSAYIM envanterini taşır (yalnız log; üretimde kullanılmaz)");
@@ -178,7 +178,14 @@ test("B0 .ide11trial -> real .ide10 body conversion matches the A0 oracle", { sk
   assert.equal(diagnostics.frames.native201094, 8, "#1885 ikizi + 7 merdiven çerçevesi 201094 sihriyle durmalı.");
   assert.ok(diagnostics.frames.preludeFlagsCleared > 0, "v11 [1][1][1] önyazı bayrakları temizlenmeli.");
   assert.ok(diagnostics.donor);
-  assert.equal(diagnostics.donor!.recordsMatched, diagnostics.donor!.recordsMatched); // kayıt eşleşmesi atlanmadı
+  // G3 critic BULGU-3: eski iddia `recordsMatched === recordsMatched` öz-ontolojisiydi.
+  // Gerçek tek taraflı iddia: donör kayıt eşleşmesi (tüm kayıt listesi) R4 donatı
+  // bloklarının kayıt evrenini (perde+kiriş+radye; 468-blok sayımıyla aynı kök) kapsar.
+  const donorR4Records = diagnostics.donor!.r4.wall + diagnostics.donor!.r4.beam + diagnostics.donor!.r4.raft;
+  assert.ok(
+    diagnostics.donor!.recordsMatched >= donorR4Records && donorR4Records > 0,
+    `donör kayıt eşleşmesi (${diagnostics.donor!.recordsMatched}) tüm R4 donatı kayıtlarını (${donorR4Records}) kapsamalı — kayıt eşleşmesi atlanmadı.`,
+  );
   assert.ok(diagnostics.donor!.r1.records === 2);
   assert.ok(diagnostics.donor!.r1.slotsDonorFallback <= 2, "en fazla FP ters dönüş yuvası donörle tamamlanmalı.");
   assert.equal(diagnostics.donor!.r3.fieldsBitExact, true, "R3 kaynak değerleri donör bloğuyla bit-özdeş olmalı.");

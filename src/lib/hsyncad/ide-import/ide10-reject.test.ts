@@ -110,7 +110,7 @@ test("ide-export yeniden ihracat yolu aynı gerçek v10 dönüşümünü üretir
 
 test("şema HARD-FAIL: üretime VARSAYIM enjekte edilirse reddedilir; saf şema temiz", () => {
   const report = assertIde10GrammarForProduction();
-  assert.equal(report.semaSurumu, "1.0.1");
+  assert.equal(report.semaSurumu, "1.0.2");
   assert.equal(report.rejectedLines.length, 0, `üretim kuralında VARSAYIM olmamalı: ${report.rejectedLines.join(", ")}`);
   assert.ok(report.requiredRules.length >= 20);
   assert.ok(report.assumptionLines.length > 0, "şema VARSAYIM envanterini taşır (yalnız log; üretimde kullanılmaz)");
