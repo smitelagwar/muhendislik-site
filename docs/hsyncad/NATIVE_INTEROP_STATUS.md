@@ -1,6 +1,32 @@
-# Native IDE uyumluluğu — 5 Kasım 2026
+# Native IDE uyumluluğu — 19 Kasım 2026 güncellemesi (kampanya sonrası)
 
 Yerel kanıt arşivi: `C:\Users\hsyn\Desktop\hsyncad\incelemeler\idecad-rea\native-2026-11-04`. Kullanıcının özgün dosyaları ve büyük native örnekler public/repo ağacına kopyalanmadı.
+
+## Kampanya sonrası durum — 19 Kasım 2026 ("ideCAD uzantı dönüşümü", G0–G6 kapıları kapandı)
+
+Kampanya kökü ve kanıt dizini: `C:\Users\hsyn\Desktop\hsyncad_idecad_uzanti_optimizasyon` (`02-DONUSUM-MATRISI.md`, `11-KABUL-VE-KANIT-PROTOKOLU.md`, `evidence\orkestrasyon\`). Sürüm/gövde sözleşme haritası: [IDE_FORMAT_MAP.md](IDE_FORMAT_MAP.md) (T-F7.2). Aşağıdaki 5 Kasım bölümleri kampanya öncesi taban kaydıdır; en güncel durum bu bölümle birlikte okunmalıdır.
+
+**Ölçülmüş kazanımlar:**
+
+- **F3/G3 — v11 → v10 gerçek gövde dönüşümü:** `HS_B0_F3_v3.ide10` (201094): 30.260/30.260 alt-akış, raw toplam 412.781.980 B = A0 birebir (comp −%0,218, ±%1 bandında); R1 2/2, R3 10/10, R4 468/468, R5 10 modal tablo sapma 0; geometri 1.266+7, kat 6/6; gerçek ideCAD'de çökmesiz açılış (önceki v2 3/3 APPCRASH sınıfı giderildi) + F9'suz iderpt raporu A0 ile bayt-özdeş. Onarım: YFS-1 A0-donör yerleşim nakli + YFS-2 kodtablosu süpürmesi (şema v1.0.2). Hakem ONAY, 11/11 ölçüt. Kanıt: `…/2026-11-19-F3-G3/rapor/g3-hakem-rapor.md`.
+- **F4/G4 — v10 → v11 ters yükseltme:** `HS_A0_upgraded_v2.ide11` (211220/encoded): X11-donör yerleşim/ızgara nakli sonrası geometri/etiket/yük diff 0 (1.273/1.273; 159 yük; perde 196/196); gerçek ideCAD'de tek denemede açıldı, modal sonuç ağacı 10 durum + Malzemeler C25 B420C/S235 okundu; donörsüz v1'in çökme sınıfı (0xc0000005 @ 0x7af4cb) giderildi. Critic ONAY. Kanıt: `…/2026-11-19-F4-G4/rapor/g4-critic-rapor.md`.
+- **F5/G5 — encoded v11 okuma:** 0x33914 (211220) çerçeve çözümü ölçüm-temelli; X11_downloads.ide11'den 2 malzeme + 468 donatı + 10 modal tablo okunur, değerler A0 ile birebir (46/46 log; frekans ≤1e-9); ko yuvası koşulluluğu v10=568 / 211220=677 / 211280=561; UI görünürlük smoke yeşil. Critic ONAY. Kanıt: `…/2026-11-19-F5-G5/rapor/g5-critic-rapor.md`.
+- **F6/G6 — kaydetme roundtrip:** hedefli 12-bayt yama (8B kodlanmış f64 @1377843 + 4B CRC @83); K34 kiriş kesidi 0.50 → 0.55 gerçek ideCAD "Kiriş Ayarları"ndan okundu; değişmeyen 146.686.289 bayt özdeş; CRC mührü bağımsız bitwise CRC-32 ile geçerli; değişiklik-dışı red ilkesi korundu. Hakem ONAY 5/5. Kanıt: `…/2026-11-19-F6-G6/rapor/g6-hakem-rapor.md`.
+
+**Kalan sınırlar (dürüst kayıt):**
+
+- `beamSectionHeight` tek-alan kapsamı: `IdeElement`'te bayt-konum taşıyıcısı yok (t61 açık iş); yalnız kiriş kesit yüksekliği yamanabilir — alan genişletmesi F8 kapanmamış işler listesine bağlandı.
+- R1–R5 **v11 ızgara/yerleşim nakilleri donör bağımlıdır**: her iki yönde de akış-dışı R1/R3/R4/R5 ve yerleşim katmanı donör nakliyle üretilir (v11→v10: A0-donör, YFS-1; v10→v11: X11-donör); donörsüz v10→v11 çıktısı gerçek yükleyicide çöker; sıfırdan ızgara üretimi yoktur.
+- A0-kalıntı envanteri: 612 ULP sınıfı yeniden-hesap alanı (|Δ|≤1e-9, maks 1,78e-14; v11 kazanır), 392 perde etiketi kanonik sapması (parse-eşit, labelDiff 0), 0 gerçek değer çatışması — şema alan-haritası takip görevine ve F8 listesine bağlı (`…/2026-11-19-F3-T3.3d/test-cikti/t33d-a0-kalanti-envanteri.log`).
+- Encoded okuma kapsamı: v11 kolon donatısı korpus kanıtsız olduğundan bilinçli okunmadı; 211280 (B0/C1) donatı/F9 akışları görülmez (G5 taşınan sınırları).
+- **MS2/SK opsiyonel genişleme kulvarı:** ana oracle MUSTAFA SELVİ 1.KISIM'dır; MS2 (46,5 MB) ve SK (70,9 MB) için ayrı akış-sayımı/metraj oracle tablosu gerekir, kampanya yüzdesine katkısı opsiyoneldir (11-KABUL §6).
+- Sıfırdan Hsyncad modeli → native IDE sentezi hâlâ ürün yolu değildir; IFC ara aktarımı ([IFC_INTEROP.md](IFC_INTEROP.md)) geçerli yoldur. Bayt temizleme çıktısının ticari/lisanslı dosya olarak sunulması REA doğrulaması dışındadır (ürün sahibinin kararı; `02-DONUSUM-MATRISI.md` §4 etiket uyarısı).
+
+---
+
+## 5 Kasım 2026 taban kaydı (kampanya öncesi)
+
+Bu bölümden sonraki başlıklar 5 Kasım tarihli özgün belgedir; F3–F6 kampanya kazanımları (yukarıdaki bölüm) yalnızca native dosya dönüşüm/okuma/yama kulvarını değiştirmiştir.
 
 ## Gerçek durum
 
