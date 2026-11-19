@@ -1,9 +1,11 @@
 /**
- * T-F7.1 — ide-acceptance-gate birim testleri.
+ * T-F7.1/T-F7.1b — ide-acceptance-gate birim testleri.
  *
  * Kapının saf değerlendirme katmanı (ORACLE + evaluateGate) mock ölçüm
  * demetleriyle sınanır. Negatif test sözleşmesi (11-KABUL G7): bilerek
  * bozuk/uydurma ölçümler kapıyı KIRMIZI'ya çevirmeli ve exit ≠ 0 üretmeli.
+ * T-F7.1b: F6 yama ayağı (F1-F3) + yamalı .ide11 ikinci masaüstü açılışı
+ * (C5-C7) mock katmanıyla aynı sözleşmeye bağlandı.
  *
  * Koşum: npx tsx --test scripts/hsyncad/ide-acceptance-gate.test.ts
  */
@@ -18,6 +20,7 @@ import {
   withinPct,
   type MeasurementBundle,
   type PairDiff,
+  type PatchMeasurement,
 } from "./ide-acceptance-gate";
 
 // ── ölçüm demeti fabrikaları (mock ölçüm katmanı) ────────────────────────────
@@ -53,6 +56,40 @@ function greenDesktop(): MeasurementBundle["desktop"] {
   };
 }
 
+function greenDesktop11(): MeasurementBundle["desktop11"] {
+  return {
+    skipped: false,
+    mainTitle: "ideCAD Statik - HS_B0_gate_2026-11-19-095629-F6-yamali.ide11 - MUSTAFA SELVİ 1.KISIM - [1. BODRUM TAVANI,  0.50 KOTU]",
+    titleMustContain: ["HS_B0_gate_2026-11-19-095629-F6-yamali.ide11", "MUSTAFA SELVİ 1.KISIM"],
+    floorsExpected: FLOORS,
+    floorsFound: FLOORS,
+    closedClean: true,
+    remainingProcesses: 0,
+    integrityOk: true,
+  };
+}
+
+function greenPatch(): PatchMeasurement {
+  return {
+    ok: true,
+    targetId: "ide-floor-1:6129433",
+    targetName: ORACLE.patchBeamName,
+    targetFloor: "3. KAT",
+    originalHeight: ORACLE.patchFromHeight,
+    patchedHeight: ORACLE.patchToHeight,
+    changedBytes: ORACLE.patchChangedBytes,
+    fieldBytes: ORACLE.patchFieldBytes,
+    crcBytes: ORACLE.patchCrcBytes,
+    outOfScopeBytes: 0,
+    crcValid: true,
+    otherK34Count: 3,
+    otherK34Changed: 0,
+    patchedFile: "HS_B0_gate_2026-11-19-095629-F6-yamali.ide11",
+    patchedSha: "c29ebd482b26995a",
+    elapsedMs: 12_000,
+  };
+}
+
 function greenBundle(): MeasurementBundle {
   return {
     conversionOk: true,
@@ -75,7 +112,9 @@ function greenBundle(): MeasurementBundle {
     pairHs10VsA0: greenPair(),
     pairHs11VsX11: greenPair(),
     slabLoadCount: { hs10: ORACLE.slabLoads, a0: ORACLE.slabLoads },
+    patch: greenPatch(),
     desktop: greenDesktop(),
+    desktop11: greenDesktop11(),
     corpusIntegrityOk: true,
   };
 }
@@ -102,6 +141,13 @@ test("ORACLE tablosu 11-KABUL §2 değerlerini birebir taşır (saptırma yasağ
   assert.equal(ORACLE.ide11GeometryLabelLoadDiff, 0);
   assert.equal(ORACLE.carrierChecksumValid, true);
   assert.equal(ORACLE.desktopFloors, 6);
+  // F6 yama senaryosu sabitleri (v3; kaynak 11-KABUL §3 G6 + T-F6.1)
+  assert.equal(ORACLE.patchBeamName, "K34");
+  assert.equal(ORACLE.patchFromHeight, 0.5);
+  assert.equal(ORACLE.patchToHeight, 0.55);
+  assert.equal(ORACLE.patchFieldBytes, 8);
+  assert.equal(ORACLE.patchCrcBytes, 4);
+  assert.equal(ORACLE.patchChangedBytes, 12);
   assert.equal(SEISMIC_ORACLE_FIELDS.length, 10);
   assert.deepEqual(SEISMIC_ORACLE_FIELDS, [
     "rEntered", "rSelectedRatio", "liveLoadFactorN", "subgradeKoTfM3",
@@ -109,10 +155,17 @@ test("ORACLE tablosu 11-KABUL §2 değerlerini birebir taşır (saptırma yasağ
   ]);
 });
 
-test("tam yeşil ölçüm demeti: 23 ölçütün tamamı GECTI, exit 0, tam kabul profili", () => {
+test("tam yeşil ölçüm demeti: 29 ölçütün tamamı GECTI, exit 0, tam kabul profili", () => {
   const results = evaluateGate(greenBundle(), { skipDesktop: false });
-  assert.equal(results.length, 23);
+  assert.equal(results.length, 29);
   assert.deepEqual(results.map(r => r.status), results.map(() => "GECTI"));
+  // yeni ayaklar tabloda: F6 yama satırları (F1-F3) + ikinci masaüstü açılışı (C5-C7)
+  for (const id of ["F1", "F2", "F3", "C5", "C6", "C7"]) {
+    assert.equal(byId(results, id).status, "GECTI", `${id} GECTI olmalı`);
+  }
+  assert.equal(byId(results, "F1").measured, "12 bayt (alan 8 + CRC 4; kapsam dışı 0)");
+  assert.equal(byId(results, "F2").measured, "K34=0.55 (kaynak 0.5); diğer K34 3 adet, değişen 0");
+  assert.equal(byId(results, "F3").measured, "geçerli");
   assert.equal(computeExitCode(results), 0);
   assert.equal(isFullAcceptanceProfile(results), true);
 });
@@ -198,22 +251,97 @@ test("negatif: kaynak korpus SHA değişti → D1 KIRMIZI", () => {
   assert.equal(computeExitCode(results), 1);
 });
 
+// ── F6 yama ayağı negatifleri (bozuk girdi → KIRMIZI/'ölçülemedi' sözleşmesi) ─
+
+test("negatif: yama bayt kapsamı 13 (kapsam dışı 1 bayt) → F1 KIRMIZI", () => {
+  const bundle = greenBundle();
+  bundle.patch.outOfScopeBytes = 1;
+  bundle.patch.changedBytes = 13;
+  const results = evaluateGate(bundle, { skipDesktop: false });
+  assert.equal(byId(results, "F1").status, "KIRMIZI");
+  assert.equal(byId(results, "F2").status, "GECTI");
+  assert.equal(byId(results, "F3").status, "GECTI");
+  assert.equal(computeExitCode(results), 1);
+});
+
+test("negatif: yamalı parse K34 değişmedi (0.50 kaldı) → F2 KIRMIZI", () => {
+  const bundle = greenBundle();
+  bundle.patch.patchedHeight = 0.5;
+  const results = evaluateGate(bundle, { skipDesktop: false });
+  assert.equal(byId(results, "F2").status, "KIRMIZI");
+  assert.equal(byId(results, "F1").status, "GECTI");
+  assert.equal(computeExitCode(results), 1);
+});
+
+test("negatif: diğer kat K34'lerinden biri değişti → F2 KIRMIZI", () => {
+  const bundle = greenBundle();
+  bundle.patch.otherK34Changed = 1;
+  const results = evaluateGate(bundle, { skipDesktop: false });
+  assert.equal(byId(results, "F2").status, "KIRMIZI");
+  assert.equal(computeExitCode(results), 1);
+});
+
+test("negatif: yamalı çıktı CRC mührü geçersiz → F3 KIRMIZI", () => {
+  const bundle = greenBundle();
+  bundle.patch.crcValid = false;
+  const results = evaluateGate(bundle, { skipDesktop: false });
+  assert.equal(byId(results, "F3").status, "KIRMIZI");
+  assert.equal(byId(results, "F1").status, "GECTI");
+  assert.equal(computeExitCode(results), 1);
+});
+
+test("negatif: yama ayağı bozuk girdide koşamadı → F1..F3 'ölçülemedi' KIRMIZI ve exit ≠ 0", () => {
+  const bundle = greenBundle();
+  bundle.patch = { ok: false, failNote: "yama ayağı hatası: kiriş kesit kaydının grameri doğrulanamadı" };
+  // gerçek main() davranışı: yamalı dosya yoksa ikinci açılış da koşulamaz
+  bundle.desktop11 = { skipped: false, failNote: "yamalı .ide11 üretilemedi — ikinci açılış koşulamadı (yama ayağı hatası: kiriş kesit kaydının grameri doğrulanamadı)" };
+  const results = evaluateGate(bundle, { skipDesktop: false });
+  for (const id of ["F1", "F2", "F3"]) {
+    const row = byId(results, id);
+    assert.equal(row.status, "KIRMIZI", `${id} KIRMIZI olmalı`);
+    assert.match(row.measured, /ölçülemedi/);
+  }
+  // ikinci masaüstü açılışı da yamalı dosya olmadığından KIRMIZI
+  assert.equal(byId(results, "C5").status, "KIRMIZI");
+  assert.equal(computeExitCode(results), 1);
+});
+
+test("negatif: yamalı .ide11 masaüstü başlığı okunamadı → C5-C7 KIRMIZI (birinci açılış yeşil kalır)", () => {
+  const bundle = greenBundle();
+  bundle.desktop11 = { skipped: false, failNote: "tam yükleme başlığı beklenemedi", titleMustContain: ["HS_B0_gate_2026-11-19-095629-F6-yamali.ide11", "MUSTAFA SELVİ 1.KISIM"], floorsExpected: FLOORS };
+  const results = evaluateGate(bundle, { skipDesktop: false });
+  assert.equal(byId(results, "C5").status, "KIRMIZI");
+  assert.equal(byId(results, "C6").status, "KIRMIZI");
+  assert.equal(byId(results, "C7").status, "KIRMIZI");
+  assert.equal(byId(results, "C1").status, "GECTI");
+  assert.equal(byId(results, "C2").status, "GECTI");
+  assert.equal(computeExitCode(results), 1);
+});
+
 // ── profil testleri ───────────────────────────────────────────────────────────
 
-test("--skip-desktop: C1-C3 SKIPPED, KIRMIZI sayılmaz; exit 0 ama tam kabul profili DEĞİLDİR", () => {
+test("--skip-desktop: C1-C3 ve C5-C7 SKIPPED, KIRMIZI sayılmaz; yama ayağı makine ölçümleri yine koşar; exit 0 ama tam kabul profili DEĞİLDİR", () => {
   const bundle = greenBundle();
   bundle.desktop = { skipped: true, integrityOk: true };
+  bundle.desktop11 = { skipped: true, integrityOk: true };
   const results = evaluateGate(bundle, { skipDesktop: true });
   assert.equal(byId(results, "C1").status, "SKIPPED");
   assert.equal(byId(results, "C2").status, "SKIPPED");
   assert.equal(byId(results, "C3").status, "SKIPPED");
+  assert.equal(byId(results, "C5").status, "SKIPPED");
+  assert.equal(byId(results, "C6").status, "SKIPPED");
+  assert.equal(byId(results, "C7").status, "SKIPPED");
   assert.match(byId(results, "C1").note!, /tam kabul profili DEĞİLDİR/);
+  // yama ayak makine ölçümleri masaüstünden bağımsızdır: F satırları ölçüldü
+  assert.equal(byId(results, "F1").status, "GECTI");
+  assert.equal(byId(results, "F2").status, "GECTI");
+  assert.equal(byId(results, "F3").status, "GECTI");
   assert.equal(results.some(r => r.status === "KIRMIZI"), false);
   assert.equal(computeExitCode(results), 0);
   assert.equal(isFullAcceptanceProfile(results), false);
 });
 
-test("dönüşüm üretilemedi → A1 KIRMIZI ve B/C ölçütleri ölçülemedi KIRMIZI", () => {
+test("dönüşüm üretilemedi → A1 KIRMIZI; B/F ölçütleri ölçülemedi KIRMIZI", () => {
   const bundle: MeasurementBundle = {
     conversionOk: false,
     conversionError: "dönüşüm komutu exit 1",
@@ -221,13 +349,17 @@ test("dönüşüm üretilemedi → A1 KIRMIZI ve B/C ölçütleri ölçülemedi 
     census: {},
     pairHs10VsA0: null,
     pairHs11VsX11: null,
+    patch: { ok: false, failNote: "dönüşüm çıktısı yok — yama ayağı koşulamadı" },
     desktop: { skipped: true },
+    desktop11: { skipped: true },
     corpusIntegrityOk: true,
   };
   const results = evaluateGate(bundle, { skipDesktop: true });
   assert.equal(byId(results, "A1").status, "KIRMIZI");
   assert.equal(byId(results, "A2").status, "KIRMIZI");
   assert.equal(byId(results, "B1").status, "KIRMIZI");
+  assert.equal(byId(results, "F1").status, "KIRMIZI");
+  assert.match(byId(results, "F1").measured, /ölçülemedi/);
   assert.equal(computeExitCode(results), 1);
 });
 

@@ -1,14 +1,19 @@
 /**
  * T-F7.1 — KALICI IDE KABUL KAPISI (G7; 11-KABUL-VE-KANIT-PROTOKOLU.md §3)
  *
- * Tek komutla uçtan uca kabul zinciri:
+ * Tek komutla uçtan uca kabul zinciri (G7: F3+F4+F6 senaryolarının TÜMÜ):
  *   A0 ÜRET  : convert_trial_to_native ile B0_orijinal.ide11trial → .ide10 + .ide11
  *              (donör A0; çıktılar daima YENİ adla kanıt klasörüne)
  *   B  ÖLÇ   : probe-attribute-streams (30.260) + ide-fidelity-audit her çıktıya
  *              + çift farkları HS↔A0 ve HS↔X11 (compare-pairs'ın alan-düzeyi
  *              karşılaştırma motoru; taze çıktı etiketleriyle)
- *   C  MASAÜSTÜ: desktop.py ile .ide10 çıktısını gerçek ideCAD'de aç
- *              (başlık + kat ağacı ölçütleri; JSON+PNG kanıt) — bayrakla
+ *   B2 YAMA  : F6 ayağı — kapının KENDİ .ide11 çıktısında ilk K34 kirişinin
+ *              beamSectionHeight alanı 0.50→0.55 (saveNativeIdeOutput; T-F6.1
+ *              deseni): bayt kapsamı 12 B (8 alan + 4 CRC; kapsam dışı 0),
+ *              parse K34=0.55 + diğer kat K34'leri değişmez, CRC mührü geçerli
+ *   C  MASAÜSTÜ: desktop.py ile İKİ açılış — (1) üretilen .ide10 (F3 ayağı),
+ *              (2) yamalı .ide11 (F6/F4 bacakları; T-F6.3 deseni): başlık +
+ *              kat ağacı + kapama ölçütleri (JSON+PNG kanıt) — bayrakla
  *              atlanabilir (--skip-desktop; CI profili) AMA varsayılan AÇIK
  *   D  KANIT : her aşamanın çıktısı evidence\orkestrasyon\<tarih>-acceptance-gate\
  *              altına yazılır (README + ham çıktılar)
@@ -33,6 +38,15 @@
  *        TAMAMI (1.273) geometri/etiket düzeyinde A0 ile eşittir. Ölçüt bu yüzden
  *        1.266 çekirdek + 7 merdiven = 1.273 toplam sayımı üzerinden ölçülür;
  *        çekirdek değer (1.266) tabloda korunur. Diğer ölçütler değişmedi.
+ *   v3 — 2026-11-19 (T-F7.1b): G7 ölçütüne F6 (yama roundtrip) ayağı eklendi:
+ *        ilk K34 beamSectionHeight 0.50→0.55; bayt kapsamı 12 = 8 alan + 4 CRC
+ *        (kapsam dışı 0); parse K34=0.55 + diğer kat K34'leri değişmez; CRC
+ *        mührü geçerli (kaynak: 11-KABUL §3 G6 + T-F6.1 bayt kanıtı). C masaüstü
+ *        ayağı İKİ açılışa genişletildi (üretilen .ide10 + yamalı .ide11; her
+ *        açılışta başlık + kat ağacı + kapama). --negatif-test sözleşmesi
+ *        KORUNDU (yalnız .ide10 stored-CRC bozulur); yama ayağı negatif ve
+ *        --skip-desktop profillerinde de koşar (makine ölçümleri masaüstünden
+ *        bağımsızdır; yama girdisi sağlamsa F satırları izolasyonla yeşildir).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -40,6 +54,8 @@ import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { verifyIdeHeaderChecksum } from "../../src/lib/hsyncad/ide-import/ide-binary-codec";
+import { parseIde10 } from "../../src/lib/hsyncad/ide-import";
+import { saveNativeIdeOutput } from "../../src/lib/hsyncad/ide-native-save";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ORACLE — 11-KABUL §2 "Oracle değerler" (MUSTAFA SELVİ 1.KISIM referans seti).
@@ -66,6 +82,13 @@ export const ORACLE = {
   carrierChecksumValid: true,     // her çıktıda taşıyıcı CRC'si geçerli
   desktopProjectTitle: "MUSTAFA SELVİ",  // pencere başlığı: proje adı + aktif kat
   desktopFloors: 6,               // gerçek ideCAD kat ağacında 6 kat düğümü
+  // F6 yama senaryosu (v3; kaynak: 11-KABUL §3 G6 + T-F6.1 bayt kanıtı):
+  patchBeamName: "K34",           // ilk K34 kirişi (T-F6.1: ide-floor-1:6129433, 3. KAT)
+  patchFromHeight: 0.5,          // 0.50 m kaynak kesit yüksekliği (kesit 25/50)
+  patchToHeight: 0.55,           // 0.55 m yama değeri (kesit 25/55)
+  patchFieldBytes: 8,             // tipli f64 alan, yerinde yazım (alan@ad+266)
+  patchCrcBytes: 4,               // yeniden mühürlenen taşıyıcı CRC'si (@83..86)
+  patchChangedBytes: 12,          // 8 alan + 4 CRC; kapsam dışı 0 (T-F6.1 diff kanıtı)
 } as const;
 
 /** 11-KABUL §2 R3 alan adları (repo okuyucu adlarıyla birebir). */
@@ -77,7 +100,7 @@ export const SEISMIC_ORACLE_FIELDS = [
 export type CriterionStatus = "GECTI" | "KIRMIZI" | "SKIPPED";
 
 export interface CriterionResult {
-  stage: "A" | "B" | "C" | "D";
+  stage: "A" | "B" | "F" | "C" | "D";
   id: string;
   criterion: string;
   target: string;
@@ -118,6 +141,27 @@ export interface DesktopMeasurement {
   image?: string;
 }
 
+/** F6 yama ayağı ölçümleri (saveNativeIdeOutput; T-F6.1 deseni). */
+export interface PatchMeasurement {
+  ok: boolean;
+  failNote?: string;
+  targetId?: string;
+  targetName?: string;
+  targetFloor?: string;
+  originalHeight?: number;
+  patchedHeight?: number;
+  changedBytes?: number;
+  fieldBytes?: number;
+  crcBytes?: number;
+  outOfScopeBytes?: number;
+  crcValid?: boolean;
+  otherK34Count?: number;
+  otherK34Changed?: number;
+  patchedFile?: string;
+  patchedSha?: string;
+  elapsedMs?: number;
+}
+
 export interface MeasurementBundle {
   conversionOk: boolean;
   conversionError?: string;
@@ -128,7 +172,11 @@ export interface MeasurementBundle {
   pairHs11VsX11: PairDiff | null;
   /** slabLoads taşıyan eleman sayısı (HS .ide10 ve A0 parmak izlerinden). */
   slabLoadCount?: { hs10: number; a0: number };
+  /** F6 yama ayağı ölçümleri (kapının kendi .ide11 çıktısında K34 yaması). */
+  patch: PatchMeasurement;
   desktop: DesktopMeasurement;
+  /** İkinci masaüstü açılışı: yamalı .ide11 (F6/F4 bacakları). */
+  desktop11: DesktopMeasurement;
   corpusIntegrityOk: boolean;
   corpusIntegrityNote?: string;
 }
@@ -262,6 +310,41 @@ export function evaluateStageB11(bundle: MeasurementBundle): CriterionResult[] {
   ];
 }
 
+/** F6 yama ayağı: kapının kendi .ide11 çıktısında K34 test yaması (F1-F3). */
+export function evaluateStageF(bundle: MeasurementBundle): CriterionResult[] {
+  const p = bundle.patch;
+  const why = p && p.failNote ? p.failNote : "yama ayağı koşulmadı";
+  if (!p || !p.ok) {
+    return [
+      RED_MISSING("F", "F1", "F6 yama bayt kapsamı (8B alan + 4B CRC = 12; kapsam dışı 0)", "12 bayt", why),
+      RED_MISSING("F", "F2", "yamalı parse: K34=0.55, diğer kat K34'leri değişmez", "K34 0.55; diğerleri 0.50", why),
+      RED_MISSING("F", "F3", "yamalı çıktı CRC mührü geçerli", "geçerli", why),
+    ];
+  }
+  const f1 = p.changedBytes === ORACLE.patchChangedBytes
+    && p.fieldBytes === ORACLE.patchFieldBytes
+    && p.crcBytes === ORACLE.patchCrcBytes
+    && p.outOfScopeBytes === 0;
+  const f2 = p.patchedHeight === ORACLE.patchToHeight
+    && p.originalHeight === ORACLE.patchFromHeight
+    && p.otherK34Changed === 0
+    && (p.otherK34Count ?? 0) >= 1;
+  const f3 = p.crcValid === ORACLE.carrierChecksumValid;
+  return [
+    crit("F", "F1", "F6 yama bayt kapsamı (8B alan + 4B CRC = 12; kapsam dışı 0)", "12 bayt",
+      `${p.changedBytes} bayt (alan ${p.fieldBytes} + CRC ${p.crcBytes}; kapsam dışı ${p.outOfScopeBytes})`,
+      f1 ? "GECTI" : "KIRMIZI",
+      `hedef: ilk ${ORACLE.patchBeamName} kirişi ${p.targetId} (${p.targetFloor}); beamSectionHeight ${ORACLE.patchFromHeight}→${ORACLE.patchToHeight}; T-F6.1 deseni`),
+    crit("F", "F2", "yamalı parse: K34=0.55, diğer kat K34'leri değişmez", "K34 0.55; diğerleri 0.50",
+      `K34=${p.patchedHeight} (kaynak ${p.originalHeight}); diğer K34 ${p.otherK34Count ?? 0} adet, değişen ${p.otherK34Changed ?? "?"}`,
+      f2 ? "GECTI" : "KIRMIZI",
+      "yamalı tampon yeniden parse edilir; yama dışı K34 kirişleri 0.50 kalmalı"),
+    crit("F", "F3", "yamalı çıktı CRC mührü geçerli", "geçerli",
+      p.crcValid ? "geçerli" : "GEÇERSİZ", f3 ? "GECTI" : "KIRMIZI",
+      p.patchedFile ? `yamalı çıktı: ${p.patchedFile} (SHA ${p.patchedSha?.slice(0, 16)}…)` : undefined),
+  ];
+}
+
 export function evaluateStageC(bundle: MeasurementBundle): CriterionResult[] {
   const dt = bundle.desktop;
   if (dt.skipped) {
@@ -293,6 +376,38 @@ export function evaluateStageC(bundle: MeasurementBundle): CriterionResult[] {
   return out;
 }
 
+/** İkinci masaüstü açılışı (yamalı .ide11; F6/F4 bacakları) ölçütleri (C5-C7). */
+export function evaluateStageC11(bundle: MeasurementBundle): CriterionResult[] {
+  const dt = bundle.desktop11;
+  if (dt.skipped) {
+    const note = "CI/hızlı profil — tam kabul profili DEĞİLDİR";
+    return [
+      crit("C", "C5", "yamalı .ide11 açılışı (başlık: dosya+proje+aktif kat)", "başlık tam", "SKIPPED", "SKIPPED", note),
+      crit("C", "C6", "yamalı .ide11 kat ağacı tam 6/6", "6/6", "SKIPPED", "SKIPPED", note),
+      crit("C", "C7", "yamalı .ide11 masaüstü tur sonunda süreç kapanışı", "kapalı, süreç 0", "SKIPPED", "SKIPPED", note),
+    ];
+  }
+  const titleOk = Boolean(dt.mainTitle)
+    && /\[[^\]]+\]/.test(dt.mainTitle!)
+    && (dt.titleMustContain ?? [ORACLE.desktopProjectTitle]).every(part => dt.mainTitle!.includes(part));
+  const expected = dt.floorsExpected ?? [];
+  const found = dt.floorsFound ?? [];
+  const floorsOk = expected.length === ORACLE.desktopFloors && expected.every(f => found.includes(f));
+  return [
+    crit("C", "C5", "yamalı .ide11 açılışı (başlık: dosya+proje+aktif kat)", "başlık tam",
+      dt.failNote && !dt.mainTitle ? dt.failNote : (dt.mainTitle ?? "başlık okunamadı"),
+      titleOk ? "GECTI" : "KIRMIZI",
+      "F6/F4 bacağı: yamalı dosya gerçek ideCAD'de açılmalı (T-F6.3 deseni)"),
+    crit("C", "C6", "yamalı .ide11 kat ağacı tam 6/6", "6/6",
+      found.length ? `${found.length}/${ORACLE.desktopFloors} (${found.join(", ")})` : (dt.failNote ?? "kat ağacı okunamadı"),
+      floorsOk ? "GECTI" : "KIRMIZI",
+      "salt-okunur TVM dökümü (girdi gönderilmez)"),
+    crit("C", "C7", "yamalı .ide11 masaüstü tur sonunda süreç kapanışı", "kapalı, süreç 0",
+      dt.closedClean === undefined ? (dt.failNote ?? "kapanış kanıtı yok") : `closed=${dt.closedClean}, kalan süreç ${dt.remainingProcesses ?? "?"}`,
+      dt.closedClean === true && (dt.remainingProcesses ?? 1) === 0 ? "GECTI" : "KIRMIZI"),
+  ];
+}
+
 export function evaluateGate(bundle: MeasurementBundle, opts: { skipDesktop: boolean }): CriterionResult[] {
   const out: CriterionResult[] = [];
   out.push(crit("A", "A1", "dönüşüm üretimi (.ide10 + .ide11, donör A0)", "iki çıktı üretildi",
@@ -304,13 +419,16 @@ export function evaluateGate(bundle: MeasurementBundle, opts: { skipDesktop: boo
 
   out.push(...evaluateStageB(bundle));
   out.push(...evaluateStageB11(bundle));
+  out.push(...evaluateStageF(bundle));
   out.push(...evaluateStageC(bundle));
+  out.push(...evaluateStageC11(bundle));
 
-  out.push(crit("C", "C4", "masaüstü sonrası çıktı bütünlüğü (.ide10 SHA sabit)", "değişmedi",
-    bundle.desktop.integrityOk === undefined
-      ? (opts.skipDesktop ? "masaüstü koşulmadı (skip)" : "bütünlük ölçümü yok")
-      : bundle.desktop.integrityOk ? "değişmedi" : "DEĞİŞTİ",
-    bundle.desktop.integrityOk === false ? "KIRMIZI" : "GECTI",
+  const i10 = bundle.desktop.integrityOk;
+  const i11 = bundle.desktop11.integrityOk;
+  const fmtIntegrity = (v: boolean | undefined) => v === undefined ? "ölçülmedi" : v ? "sabit" : "DEĞİŞTİ";
+  out.push(crit("C", "C4", "masaüstü sonrası çıktı bütünlüğü (.ide10 + yamalı .ide11 SHA sabit)", "değişmedi (ikisi de)",
+    `ide10=${fmtIntegrity(i10)}, ide11-yamali=${fmtIntegrity(i11)}`,
+    i10 === false || i11 === false ? "KIRMIZI" : "GECTI",
     opts.skipDesktop ? "--skip-desktop profili: masaüstü erişimi olmadığından kanıt zayıf profil" : undefined));
 
   out.push(crit("D", "D1", "kaynak korpus bayt-sabit (B0/A0/X11 yalnız OKU)", "SHA değişmedi",
@@ -370,8 +488,14 @@ const USAGE = [
   "  A0 ÜRET    convert_trial_to_native --to all --donor A0 → .ide10 + .ide11 (yeni adla kanıt klasörüne)",
   "  B  ÖLÇ     probe-attribute-streams (30.260 + boyut bandı) + ide-fidelity-audit fingerprint",
   "             (her çıktı + A0 + X11) + çift farkları: HS↔A0, HS↔X11",
-  "  C  MASAÜSTÜ desktop.py ile .ide10 çıktısını gerçek ideCAD'de aç; başlık + kat ağacı ölçütleri;",
-  "             salt-okunur TVM kat ağacı dökümü; tur sonunda süreç kapanır (varsayılan AÇIK)",
+  "  B2 YAMA    (F6 ayağı) kapının kendi .ide11 çıktısında ilk K34 kirişinin beamSectionHeight",
+  "             değeri 0.50→0.55 (saveNativeIdeOutput; T-F6.1 deseni) → yamalı çıktı yeni adla",
+  "             kanıt klasörüne; ölçütler: bayt kapsamı 12 B (8 alan + 4 CRC; kapsam dışı 0),",
+  "             parse K34=0.55 + diğer kat K34'leri değişmez, CRC mührü geçerli",
+  "  C  MASAÜSTÜ desktop.py ile İKİ açılış: (1) üretilen .ide10 (F3 ayağı — değişmedi),",
+  "             (2) yamalı .ide11 (F6/F4 bacakları; T-F6.3 deseni): başlık + kat ağacı + kapama;",
+  "             salt-okunur TVM kat ağacı dökümü; her tur sonunda süreç kapanır (varsayılan AÇIK;",
+  "             masaüstü süre bütçesi iki açılış)",
   "  D  KANIT   her aşama evidence\\orkestrasyon\\<tarih>-acceptance-gate\\run-<HHMMSS>\\ altına yazar",
   "  E  ÖZET    ölçüt → ölçülen → GEÇTİ/KIRMIZI; herhangi bir KIRMIZI → exit ≠ 0",
   "",
@@ -385,16 +509,21 @@ const USAGE = [
   "  --out-root <dir>       Kanıt kökü [varsayılan: <campaign>\\evidence\\orkestrasyon]",
   "  --skip-desktop         CI/hızlı profil: masaüstü aşaması atlanır (SKIPPED, KIRMIZI sayılmaz;",
   "                         özette 'tam kabul profili DEĞİLDİR' notu)",
-  "  --negatif-test         Kasıtlı bozuk senaryo: üretilen .ide10 stored-CRC'si bozulur;",
-  "                         KIRMIZI + exit ≠ 0 beklenir (doğrulama profili; masaüstü atlanır)",
+  "  --negatif-test         Kasıtlı bozuk senaryo: üretilen .ide10 stored-CRC'si bozulur",
+  "                         (mevcut sözleşme KORUNUR); KIRMIZI + exit ≠ 0 beklenir (doğrulama",
+  "                         profili; masaüstü atlanır; yama ayağı yine koşar — sağlam .ide11",
+  "                         F satırları izolasyonla yeşil kalır)",
   "  --stage-timeout-ms <n> Tek aşama üst sınırı [varsayılan: 900000 = 15 dk]",
   "  -h, --help             Bu yardım",
   "",
   "Sözleşme notları:",
   "  * Ölçütler 11-KABUL-VE-KANIT-PROTOKOLU.md §2'den saptırılamaz; sabitler tek ORACLE tablosu.",
+  "  * G7: kapı F3+F4+F6 senaryolarının TÜMÜNÜ ölçer (yama ayağı B2'de, masaüstü iki açılışta).",
+  "  * Yama ayağı --skip-desktop ve --negatif-test profillerinde de koşar (makine ölçümleri",
+  "    masaüstünden bağımsızdır); yama girdisi bozuksa F satırları KIRMIZI/'ölçülemedi' sınıfına düşer.",
   "  * Masaüstü aşaması öncesi Get-Process ideCAD kontrolü yapılır; açık oturum varsa aşama koşulamaz →",
   "    KIRMIZI ('ertelendi' profili YOK). Oturumu kapatıp yeniden koşun veya CI profili kullanın.",
-  "  * B0/A0/X11 yalnız OKU; tüm çıktılar yeni adla kanıt klasörüne yazılır.",
+  "  * B0/A0/X11 yalnız OKU; tüm çıktılar (yamalı .ide11 dahil) yeni adla kanıt klasörüne yazılır.",
 ].join("\n");
 
 interface GateOptions {
@@ -716,6 +845,11 @@ async function main(): Promise<void> {
   }
 
   // ── B ÖLÇ (probe + fingerprint + çiftler) ─────────────────────────────────
+  // F6 yama ayağı çıktısı: kapının kendi .ide11 çıktısından üretilir, yeni adla
+  // kanıt klasörüne yazılır (kaynak .ide11 yalnız OKU).
+  const patchedIde11Name = `${baseName}-F6-yamali.ide11`;
+  const patchedIde11Path = path.join(uretimDir, patchedIde11Name);
+  const patch: PatchMeasurement = { ok: false, failNote: "yama ayağı koşulmadı" };
   const bundle: MeasurementBundle = {
     conversionOk,
     ...(conversionError ? { conversionError } : {}),
@@ -726,7 +860,9 @@ async function main(): Promise<void> {
     census: {},
     pairHs10VsA0: null,
     pairHs11VsX11: null,
+    patch,
     desktop: { skipped: options.skipDesktop },
+    desktop11: { skipped: options.skipDesktop },
     corpusIntegrityOk: true,
   };
 
@@ -795,68 +931,162 @@ async function main(): Promise<void> {
     }
   }
 
-  // ── C MASAÜSTÜ ────────────────────────────────────────────────────────────
+  // ── B2 YAMA (F6 ayağı; G7: F3+F4+F6 tümü) ──────────────────────────────────
+  // Kapının KENDİ .ide11 çıktısı üzerinde kanonik test yaması: ilk K34 kirişinin
+  // beamSectionHeight değeri 0.50→0.55 (saveNativeIdeOutput; T-F6.1 deseni).
+  // Doğrulamalar: (a) bayt diff yalnız hedef alan 8B + CRC 4B = 12, kapsam dışı 0;
+  // (b) parse ile yamalı K34=0.55 + diğer kat K34'leri değişmez; (c) CRC mührü
+  // geçerli. Masaüstünden bağımsızdır: --skip-desktop / --negatif-test
+  // profillerinde de koşar (negatif profilde yalnız .ide10 bozulur).
+  if (!conversionOk) {
+    patch.failNote = "dönüşüm çıktısı yok — yama ayağı koşulamadı";
+  } else {
+    console.log(`[B2 YAMA] F6 senaryosu: ${baseName}.ide11 → ilk ${ORACLE.patchBeamName} beamSectionHeight ${ORACLE.patchFromHeight}→${ORACLE.patchToHeight} ...`);
+    const patchStarted = Date.now();
+    try {
+      const srcBytes = Uint8Array.from(fs.readFileSync(ide11Path));
+      const srcBuf = srcBytes.buffer.slice(0, srcBytes.byteLength) as ArrayBuffer;
+      const project = parseIde10(srcBuf, `${baseName}.ide11`);
+      const floorName = (id: string) => project.floors.find(f => f.id === id)?.name ?? "?";
+      const k34s = project.elements.filter(e => e.type === "beam" && e.name === ORACLE.patchBeamName);
+      const target = k34s[0];
+      if (!target || typeof target.sourceOffset !== "number") {
+        throw new Error(`yama hedefi bulunamadı: '${ORACLE.patchBeamName}' tipli kiriş kaydı yok`);
+      }
+      if (target.height !== ORACLE.patchFromHeight) {
+        throw new Error(`yama hedefi kesit yüksekliği ${target.height} — beklenen ${ORACLE.patchFromHeight} (T-F6.1 senaryosu)`);
+      }
+      patch.targetId = target.id;
+      patch.targetName = target.name;
+      patch.targetFloor = floorName(target.floorId);
+      patch.originalHeight = target.height;
+      const result = saveNativeIdeOutput(srcBytes, [{
+        id: target.id, sourceOffset: target.sourceOffset,
+        field: "beamSectionHeight", value: ORACLE.patchToHeight,
+      }]);
+      // bağımsız bayt sınıflandırması: her değişen bayt ya yama alanında ya da
+      // yeniden mühürlenen CRC başlığında olmalı; kapsam dışı tek bayt kırmızıdır.
+      let fieldBytes = 0, crcBytes = 0, outOfScopeBytes = 0;
+      for (let i = 0; i < srcBytes.byteLength; i++) {
+        if (srcBytes[i] === result.bytes[i]) continue;
+        const inField = result.patchedRanges.some(r => i >= r.offset && i < r.offset + r.length);
+        if (inField) fieldBytes += 1;
+        else if (i >= 83 && i < 87) crcBytes += 1;
+        else outOfScopeBytes += 1;
+      }
+      patch.fieldBytes = fieldBytes;
+      patch.crcBytes = crcBytes;
+      patch.outOfScopeBytes = outOfScopeBytes;
+      patch.changedBytes = fieldBytes + crcBytes + outOfScopeBytes;
+      patch.crcValid = verifyIdeHeaderChecksum(result.bytes).valid;
+      fs.writeFileSync(patchedIde11Path, result.bytes);
+      patch.patchedFile = patchedIde11Name;
+      patch.patchedSha = sha256(patchedIde11Path);
+      // parse doğrulaması: yamalı K34=0.55 + diğer kat K34'leri değişmez
+      const patchedBuf = result.bytes.buffer.slice(0, result.bytes.byteLength) as ArrayBuffer;
+      const patchedProject = parseIde10(patchedBuf, patchedIde11Name);
+      const targetAfter = patchedProject.elements.find(e => e.id === target.id);
+      const otherK34 = patchedProject.elements.filter(e => e.type === "beam" && e.name === ORACLE.patchBeamName && e.id !== target.id);
+      patch.patchedHeight = targetAfter?.height;
+      patch.otherK34Count = otherK34.length;
+      patch.otherK34Changed = otherK34.filter(e => e.height !== ORACLE.patchFromHeight).length;
+      patch.elapsedMs = Date.now() - patchStarted;
+      patch.ok = true;
+      delete patch.failNote;
+      commandsLog.push(`saveNativeIdeOutput(${baseName}.ide11; ${target.id} '${target.name}' beamSectionHeight ${ORACLE.patchFromHeight}→${ORACLE.patchToHeight}) [süreç içi kitaplık çağrısı]`);
+      console.log(`[B2 YAMA] ${target.id} (${patch.targetFloor}) → ${patchedIde11Name}: ${patch.changedBytes} bayt (alan ${fieldBytes} + CRC ${crcBytes}; kapsam dışı ${outOfScopeBytes}); parse K34=${patch.patchedHeight}, diğer K34 ${otherK34.length} adet (değişen ${patch.otherK34Changed}); CRC=${patch.crcValid}`);
+    } catch (err) {
+      patch.failNote = `yama ayağı hatası: ${err instanceof Error ? err.message : String(err)}`;
+      console.log(`[B2 YAMA] ${patch.failNote}`);
+    }
+    fs.writeFileSync(path.join(olcumDir, "yama-olcum.json"), JSON.stringify(patch, null, 2), "utf8");
+  }
+
+  // ── C MASAÜSTÜ (İKİ açılış: üretilen .ide10 + yamalı .ide11) ────────────────
   const ide10ShaBefore = conversionOk ? sha256(ide10Path) : "";
+  const patchedShaBefore = patch.ok ? sha256(patchedIde11Path) : "";
+  const desktopLog = path.join(kabulDir, "desktop-cikti.log");
+  const storytreePs1Path = path.join(kabulDir, "storytree-dump.ps1");
   if (!options.skipDesktop && conversionOk) {
-    console.log("[C MASAÜSTÜ] gerçek ideCAD kabul turu (desktop.py) ...");
-    const dt: DesktopMeasurement = {
+    console.log("[C MASAÜSTÜ] gerçek ideCAD kabul turu — İKİ açılış (.ide10 + yamalı .ide11) ...");
+    const dt1: DesktopMeasurement = {
       skipped: false,
       titleMustContain: [`${baseName}.ide10`, expectedProjectName],
       floorsExpected: expectedFloors,
     };
-    bundle.desktop = dt;
-    const desktopLog = path.join(kabulDir, "desktop-cikti.log");
-    const sessionPath = path.join(kabulDir, "session.json");
+    const dt2: DesktopMeasurement = {
+      skipped: false,
+      titleMustContain: [patchedIde11Name, expectedProjectName],
+      floorsExpected: expectedFloors,
+    };
+    bundle.desktop = dt1;
+    bundle.desktop11 = dt2;
 
     const pre = listIdecadProcesses();
     commandsLog.push("powershell Get-Process ideCAD* (ön kontrol)");
     if (pre.length > 0) {
-      dt.failNote = `önceden açık ideCAD oturumu (pid ${pre.map(p => p.id).join(",")}) — kapı sözleşmesi: masaüstü aşaması koşulamaz, KIRMIZI. Oturum kapatıp yeniden koşun (CI profili: --skip-desktop).`;
-      console.log(`[C MASAÜSTÜ] ${dt.failNote}`);
-      dt.integrityOk = sha256(ide10Path) === ide10ShaBefore;
+      const preNote = `önceden açık ideCAD oturumu (pid ${pre.map(p => p.id).join(",")}) — kapı sözleşmesi: masaüstü aşaması koşulamaz, KIRMIZI. Oturum kapatıp yeniden koşun (CI profili: --skip-desktop).`;
+      dt1.failNote = preNote;
+      dt2.failNote = preNote;
+      dt1.integrityOk = sha256(ide10Path) === ide10ShaBefore;
+      if (patch.ok) dt2.integrityOk = sha256(patchedIde11Path) === patchedShaBefore;
+      console.log(`[C MASAÜSTÜ] ${preNote}`);
     } else {
-      const launchArgs = ["-X", "utf8", path.join("scripts", "idecad", "desktop.py"), "launch",
-        "--exe", options.desktopExe, "--project", ide10Path, "--dismiss-trial",
-        "--session", sessionPath, "--out-dir", kabulDir];
-      commandsLog.push("python " + launchArgs.join(" "));
-      const launch = runLogged("python", launchArgs, desktopLog, { timeoutMs: 60_000, cwd: repoRoot });
-      let pid: number | null = null;
-      let mainHwnd: number | null = null;
-      if (launch.ok) {
+      // Tek masaüstü ayağı (her iki açılışta aynı düzen): launch → tam yükleme
+      // başlığı → bind+observe → salt-okunur TVM kat ağacı dökümü → alt+f4 →
+      // kalan süreç 0 → çıktı bayt-sabitliği. Her ayak kendi out-dir'ini
+      // kullanır (session/closed/latest dosyaları çakışmaz).
+      const desktopLeg = (leg: {
+        label: string; projectPath: string; outDir: string; sessionPath: string;
+        storyPath: string; katOzetiPath: string; dt: DesktopMeasurement; shaBefore: string;
+      }): void => {
+        const dt = leg.dt;
         try {
-          const j = JSON.parse(launch.stdout.slice(launch.stdout.indexOf("{")));
-          pid = j.pid ?? null;
-          mainHwnd = j.main_hwnd ?? null;
-        } catch { /* kırmızı not aşağıda */ }
-      }
-      if (pid === null) {
-        dt.failNote = `ideCAD launch başarısız (exit ${launch.status}) — bkz. ${desktopLog}`;
-      } else {
-        // tam yükleme bekle: başlıkta dosya adı + [aktif kat] görünecek
-        const deadline = Date.now() + Math.min(options.stageTimeoutMs, 300_000);
-        let title: string | null = null;
-        while (Date.now() < deadline) {
-          const listRes = runLogged("python", ["-X", "utf8", path.join("scripts", "idecad", "desktop.py"), "list"], desktopLog, { timeoutMs: 35_000, cwd: repoRoot });
-          if (listRes.ok) {
+          fs.writeFileSync(storytreePs1Path, STORYTREE_PS1.trimStart() + "\n", "utf8");
+          const launchArgs = ["-X", "utf8", path.join("scripts", "idecad", "desktop.py"), "launch",
+            "--exe", options.desktopExe, "--project", leg.projectPath, "--dismiss-trial",
+            "--session", leg.sessionPath, "--out-dir", leg.outDir];
+          commandsLog.push("python " + launchArgs.join(" "));
+          const launch = runLogged("python", launchArgs, desktopLog, { timeoutMs: 60_000, cwd: repoRoot });
+          let pid: number | null = null;
+          let mainHwnd: number | null = null;
+          if (launch.ok) {
             try {
-              const start = listRes.stdout.indexOf("{");
-              const windowsList = JSON.parse(listRes.stdout.slice(start)).windows as Array<{ pid: number; class: string; title: string; hwnd: number }>;
-              const w = windowsList.find(w => w.pid === pid && w.class === "ideCADMainFrame"
-                && w.title.includes(`${baseName}.ide10`) && /\[[^\]]+\]/.test(w.title));
-              if (w) { title = w.title; mainHwnd = w.hwnd; break; }
-            } catch { /* tekrar dener */ }
+              const j = JSON.parse(launch.stdout.slice(launch.stdout.indexOf("{")));
+              pid = j.pid ?? null;
+              mainHwnd = j.main_hwnd ?? null;
+            } catch { /* kırmızı not aşağıda */ }
           }
-          sleepSync(3000);
-        }
-        if (title === null || mainHwnd === null) {
-          dt.failNote = `tam yükleme başlığı beklenemedi (pid ${pid}) — bkz. ${desktopLog}`;
-        } else {
+          if (pid === null) {
+            dt.failNote = `ideCAD launch başarısız (exit ${launch.status}) — bkz. ${desktopLog}`;
+            return;
+          }
+          // tam yükleme bekle: başlıkta dosya adı + [aktif kat] görünecek
+          const deadline = Date.now() + Math.min(options.stageTimeoutMs, 300_000);
+          let title: string | null = null;
+          while (Date.now() < deadline) {
+            const listRes = runLogged("python", ["-X", "utf8", path.join("scripts", "idecad", "desktop.py"), "list"], desktopLog, { timeoutMs: 35_000, cwd: repoRoot });
+            if (listRes.ok) {
+              try {
+                const start = listRes.stdout.indexOf("{");
+                const windowsList = JSON.parse(listRes.stdout.slice(start)).windows as Array<{ pid: number; class: string; title: string; hwnd: number }>;
+                const w = windowsList.find(w => w.pid === pid && w.class === "ideCADMainFrame"
+                  && w.title.includes(leg.label) && /\[[^\]]+\]/.test(w.title));
+                if (w) { title = w.title; mainHwnd = w.hwnd; break; }
+              } catch { /* tekrar dener */ }
+            }
+            sleepSync(3000);
+          }
+          if (title === null || mainHwnd === null) {
+            dt.failNote = `tam yükleme başlığı beklenemedi (pid ${pid}) — bkz. ${desktopLog}`;
+            return;
+          }
           const bindArgs = ["-X", "utf8", path.join("scripts", "idecad", "desktop.py"), "bind",
             "--hwnd", String(mainHwnd), "--expect-title", title,
-            "--session", sessionPath, "--out-dir", kabulDir];
+            "--session", leg.sessionPath, "--out-dir", leg.outDir];
           commandsLog.push("python " + bindArgs.join(" "));
           const bind = runLogged("python", bindArgs, desktopLog, { timeoutMs: 35_000, cwd: repoRoot });
-          const obsArgs = ["-X", "utf8", path.join("scripts", "idecad", "desktop.py"), "observe", "--session", sessionPath, "--brief"];
+          const obsArgs = ["-X", "utf8", path.join("scripts", "idecad", "desktop.py"), "observe", "--session", leg.sessionPath, "--brief"];
           commandsLog.push("python " + obsArgs.join(" "));
           const obs = runLogged("python", obsArgs, desktopLog, { timeoutMs: 35_000, cwd: repoRoot });
           if (bind.ok && obs.ok) {
@@ -871,15 +1101,12 @@ async function main(): Promise<void> {
           }
 
           // salt-okunur kat ağacı TVM dökümü
-          const ps1Path = path.join(kabulDir, "storytree-dump.ps1");
-          fs.writeFileSync(ps1Path, STORYTREE_PS1.trimStart() + "\n", "utf8");
-          const storyPath = path.join(kabulDir, "storytree.txt");
-          const treeArgs = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps1Path,
-            "-TargetPid", String(pid), "-MainHwnd", String(mainHwnd), "-OutFile", storyPath];
+          const treeArgs = ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", storytreePs1Path,
+            "-TargetPid", String(pid), "-MainHwnd", String(mainHwnd), "-OutFile", leg.storyPath];
           commandsLog.push("powershell " + treeArgs.join(" "));
           const tree = runLogged("powershell", treeArgs, desktopLog, { timeoutMs: 180_000 });
-          if (tree.ok && fs.existsSync(storyPath)) {
-            const nodeNames = fs.readFileSync(storyPath, "utf8")
+          if (tree.ok && fs.existsSync(leg.storyPath)) {
+            const nodeNames = fs.readFileSync(leg.storyPath, "utf8")
               .split(/\r?\n/)
               .map(l => l.trim())
               .filter(Boolean)
@@ -892,17 +1119,17 @@ async function main(): Promise<void> {
               ...expectedFloors.map(f => `  - ${f} → ${floorsFound.includes(f) ? "BULUNDU" : "YOK"}`),
               `TOPLAM: ${floorsFound.length}/${expectedFloors.length}`,
             ].join("\n");
-            fs.writeFileSync(path.join(kabulDir, "kat-ozeti.txt"), katOzeti + "\n", "utf8");
+            fs.writeFileSync(leg.katOzetiPath, katOzeti + "\n", "utf8");
           } else {
             dt.failNote = `kat ağacı TVM dökümü başarısız — bkz. ${desktopLog}`;
           }
 
           // kapanış
           const keyArgs = ["-X", "utf8", path.join("scripts", "idecad", "desktop.py"), "key",
-            "--session", sessionPath, "--chord", "alt+f4"];
+            "--session", leg.sessionPath, "--chord", "alt+f4"];
           commandsLog.push("python " + keyArgs.join(" "));
           const close = runLogged("python", keyArgs, desktopLog, { timeoutMs: 35_000, cwd: repoRoot });
-          const closedJson = path.join(kabulDir, "closed.json");
+          const closedJson = path.join(leg.outDir, "closed.json");
           dt.closedClean = close.ok && fs.existsSync(closedJson)
             ? Boolean(JSON.parse(fs.readFileSync(closedJson, "utf8")).closed)
             : false;
@@ -910,14 +1137,44 @@ async function main(): Promise<void> {
           const post = listIdecadProcesses();
           dt.remainingProcesses = post.length;
           commandsLog.push("powershell Get-Process ideCAD* (kapanış sonrası kontrol)");
+        } finally {
+          // bütünlük: masaüstü sonrası çıktı bayt-sabit
+          dt.integrityOk = sha256(leg.projectPath) === leg.shaBefore;
         }
+      };
+
+      // 1. açılış: üretilen .ide10 (mevcut F3 ayağı — davranış aynen korundu)
+      desktopLeg({
+        label: `${baseName}.ide10`, projectPath: ide10Path, outDir: kabulDir,
+        sessionPath: path.join(kabulDir, "session.json"),
+        storyPath: path.join(kabulDir, "storytree.txt"),
+        katOzetiPath: path.join(kabulDir, "kat-ozeti.txt"),
+        dt: dt1, shaBefore: ide10ShaBefore,
+      });
+
+      // 2. açılış: yamalı .ide11 (F6/F4 bacakları; T-F6.3 deseni) — yalnız
+      // birinci açılış temiz kapandığında koşulur (süreç hijyeni: açık
+      // oturum birikmez, ikinci launch kalan sürecin üstüne binmez).
+      if (!patch.ok) {
+        dt2.failNote = `yamalı .ide11 üretilemedi — ikinci açılış koşulamadı (${patch.failNote ?? "yama ayağı kırmızı"})`;
+      } else if (dt1.closedClean !== true || (dt1.remainingProcesses ?? 1) !== 0) {
+        dt2.failNote = `birinci açılış temiz kapanmadı (closed=${dt1.closedClean}, kalan süreç ${dt1.remainingProcesses ?? "?"}) — ikinci açılış koşulmadı (süreç hijyeni)`;
+      } else {
+        sleepSync(3000);
+        const outDir2 = path.join(kabulDir, "ide11-yamali");
+        fs.mkdirSync(outDir2, { recursive: true });
+        desktopLeg({
+          label: patchedIde11Name, projectPath: patchedIde11Path, outDir: outDir2,
+          sessionPath: path.join(outDir2, "session.json"),
+          storyPath: path.join(outDir2, "storytree.txt"),
+          katOzetiPath: path.join(outDir2, "kat-ozeti.txt"),
+          dt: dt2, shaBefore: patchedShaBefore,
+        });
       }
-      // bütünlük: masaüstü sonrası .ide10 bayt-sabit
-      dt.integrityOk = sha256(ide10Path) === ide10ShaBefore;
-      bundle.desktop = dt;
     }
   } else if (options.skipDesktop && conversionOk) {
     bundle.desktop = { skipped: true, integrityOk: sha256(ide10Path) === ide10ShaBefore };
+    bundle.desktop11 = { skipped: true, ...(patch.ok ? { integrityOk: sha256(patchedIde11Path) === patchedShaBefore } : {}) };
   }
 
   // ── D kaynak korpus bütünlüğü ─────────────────────────────────────────────
@@ -958,9 +1215,9 @@ async function main(): Promise<void> {
     ...commandsLog.map(c => `- \`${c}\``),
     "",
     `## Kanıt yolları`,
-    `- Üretim: \`${uretimDir}\``,
-    `- Ölçüm: \`${olcumDir}\` (census + parmak izleri + çift diff JSON'ları)`,
-    `- Masaüstü: \`${kabulDir}\` (JSON+PNG, storytree, kat-ozeti, closed.json)`,
+    `- Üretim: \`${uretimDir}\` (dönüşüm çıktıları + F6 yamalı ${patchedIde11Name})`,
+    `- Ölçüm: \`${olcumDir}\` (census + parmak izleri + çift diff JSON'ları + yama-olcum.json)`,
+    `- Masaüstü: \`${kabulDir}\` (JSON+PNG, storytree, kat-ozeti, closed.json) + \`${path.join(kabulDir, "ide11-yamali")}\` (yamalı .ide11 açılışı)`,
     "",
     `**Kapı:** ${exitCode === 0 ? (fullProfile ? "TAM KABUL YEŞİL" : "yeşil (SKIPPED profili — tam kabul DEĞİLDİR)") : "KIRMIZI"} — exit ${exitCode}`,
   ];
@@ -970,8 +1227,13 @@ async function main(): Promise<void> {
   const stageNotes: string[] = [];
   stageNotes.push(`- **A0 ÜRET:** ${conversionOk ? "üretildi" : "BAŞARISIZ"} — girdi kopyası bayt-özdeş (SHA ${inputSha.slice(0, 16)}…); donör ${path.basename(options.donorPath)} yalnız okundu; çıktılar yeni adla (${baseName}.ide10/.ide11).${options.negatifTest ? " **NEGATİF TEST profili:** .ide10 stored-CRC kasıtlı bozuldu." : ""}`);
   stageNotes.push(`- **B ÖLÇ:** probe census → ${bundle.census.ide10 ? `${bundle.census.ide10.attributeStreams} alt-akış` : "census yok"}; parmak izleri ${bundle.pairHs10VsA0 ? "tam" : "eksik"}; HS↔A0 diff ${bundle.pairHs10VsA0 ? "üretildi" : "ÜRETİLEMEDİ"}; HS↔X11 diff ${bundle.pairHs11VsX11 ? "üretildi" : "ÜRETİLEMEDİ"}.`);
-  stageNotes.push(`- **C MASAÜSTÜ:** ${options.skipDesktop ? "SKIPPED (--skip-desktop; tam kabul profili DEĞİLDİR)" : bundle.desktop.failNote ? `KIRMIZI notu: ${bundle.desktop.failNote}` : `başlık: ${bundle.desktop.mainTitle ?? "?"}; kat ${bundle.desktop.floorsFound?.length ?? "?"}/${expectedFloors.length}; kapanış ${bundle.desktop.closedClean ? "temiz" : "SORUNLU"}`}.`);
-  stageNotes.push(`- **D BÜTÜNLÜK:** B0/A0/X11 ${corpusOk ? "bayt-sabit kaldı" : "DEĞİŞTİ (KIRMIZI)"}; üretilen .ide10 masaüstü sonrası ${bundle.desktop.integrityOk === false ? "DEĞİŞTİ" : "bayt-sabit"}.`);
+  stageNotes.push(`- **B2 YAMA (F6 ayağı):** ${patch.ok
+    ? `yamalı çıktı \`${patch.patchedFile}\`; ${patch.changedBytes} bayt değişti (alan ${patch.fieldBytes} + CRC ${patch.crcBytes}; kapsam dışı ${patch.outOfScopeBytes}); parse K34=${patch.patchedHeight}, diğer K34 ${patch.otherK34Count} adet (değişen ${patch.otherK34Changed}); CRC=${patch.crcValid}; hedef ${patch.targetId} (${patch.targetFloor})`
+    : `KIRMIZI notu: ${patch.failNote ?? "yama ayağı kırmızı"}`}.`);
+  stageNotes.push(`- **C MASAÜSTÜ:** ${options.skipDesktop
+    ? "SKIPPED (--skip-desktop; tam kabul profili DEĞİLDİR)"
+    : `açılış 1 (.ide10): ${bundle.desktop.failNote ? `KIRMIZI notu: ${bundle.desktop.failNote}` : `başlık: ${bundle.desktop.mainTitle ?? "?"}; kat ${bundle.desktop.floorsFound?.length ?? "?"}/${expectedFloors.length}; kapanış ${bundle.desktop.closedClean ? "temiz" : "SORUNLU"}`}; açılış 2 (yamalı .ide11): ${bundle.desktop11.failNote ? `KIRMIZI notu: ${bundle.desktop11.failNote}` : `başlık: ${bundle.desktop11.mainTitle ?? "?"}; kat ${bundle.desktop11.floorsFound?.length ?? "?"}/${expectedFloors.length}; kapanış ${bundle.desktop11.closedClean ? "temiz" : "SORUNLU"}`}`}.`);
+  stageNotes.push(`- **D BÜTÜNLÜK:** B0/A0/X11 ${corpusOk ? "bayt-sabit kaldı" : "DEĞİŞTİ (KIRMIZI)"}; üretilen .ide10 + yamalı .ide11 masaüstü sonrası ${bundle.desktop.integrityOk === false || bundle.desktop11.integrityOk === false ? "DEĞİŞTİ" : "bayt-sabit"}.`);
   const readme = [
     `# acceptance-gate run-${runId} (${dateStamp})`,
     "",
@@ -992,7 +1254,7 @@ async function main(): Promise<void> {
     "",
     "## Yorum",
     exitCode === 0
-      ? (fullProfile ? "Kapı TAM KABUL profiliyle YEŞİL: 11-KABUL §2 oracle ölçütlerinin tamamı ölçüldü ve geçti." : "Kapı yeşil ama SKIPPED profili: masaüstü aşaması koşulmadı — tam kabul DEĞİLDİR.")
+      ? (fullProfile ? "Kapı TAM KABUL profiliyle YEŞİL: 11-KABUL §2 oracle ölçütlerinin + F6 yama senaryosunun tamamı ölçüldü ve geçti (G7: F3+F4+F6 tümü)." : "Kapı yeşil ama SKIPPED profili: masaüstü aşaması koşulmadı — tam kabul DEĞİLDİR.")
       : "Kapı KIRMIZI: en az bir ölçüt ölçülen değeriyle oracle'a oturmuyor (bkz. tablo).",
     `Oracle sabitleri script içi ORACLE tablosudur (11-KABUL §2); bu koşuda değişiklik yapılmadı.`,
   ].join("\n");
@@ -1008,7 +1270,9 @@ async function main(): Promise<void> {
       census: bundle.census,
       pairHs10VsA0Present: bundle.pairHs10VsA0 !== null,
       pairHs11VsX11Present: bundle.pairHs11VsX11 !== null,
+      patch: bundle.patch,
       desktop: bundle.desktop,
+      desktop11: bundle.desktop11,
       corpusIntegrityOk: bundle.corpusIntegrityOk,
     },
   }, null, 2), "utf8");
