@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import type { IdeProject } from "./ide-import";
 import type { NativeIdeFormat } from "./ide-import/ide-binary-codec";
-import { convertIdeSourceToNative, nativeIdeDownloadTargets } from "./ide-native-download";
+import { convertIdeSourceToNative, nativeIdeDownloadTargets, nativeSaveOptions } from "./ide-native-download";
 
 const digest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
@@ -78,4 +78,40 @@ test("convertIdeSourceToNative: geçersiz/boş girdi transcoder hatası fırlat�
     }
     assert.equal(digest(bytes), before, "kaynak arabellek dönüşüm denemesinde değişmemeli");
   }
+});
+
+test("nativeSaveOptions: açık kaynak yokken iki native hedef de dürüst reddedilir", () => {
+  for (const [project, source] of [[null, undefined], [projectOf("ide11trial"), undefined], [null, file()]] as const) {
+    const options = nativeSaveOptions(project, source, 0);
+    assert.equal(options.ide11.enabled, false);
+    assert.equal(options.ide10.enabled, false);
+    assert.match(options.ide11.reason, /Özgün ideCAD dosyası açık değil/);
+  }
+});
+
+test("nativeSaveOptions: ide11trial/ide11 iki hedefi açar; .ide10 donör ister", () => {
+  for (const format of ["ide11trial", "ide11"] as const) {
+    const options = nativeSaveOptions(projectOf(format), file(), 0);
+    assert.equal(options.ide11.enabled, true, `${format}: .ide11 açık`);
+    assert.equal(options.ide11.donorRequired, false);
+    assert.equal(options.ide10.enabled, true, `${format}: .ide10 açık`);
+    assert.equal(options.ide10.donorRequired, true);
+  }
+});
+
+test("nativeSaveOptions: .ide10 kaynağı yalnız yamalı aynı-biçim kaydına açılır", () => {
+  const empty = nativeSaveOptions(projectOf("ide10"), file(), 0);
+  assert.equal(empty.ide10.enabled, false, "yama yokken aynı-biçim kayıt reddedilir");
+  assert.equal(empty.ide11.enabled, false, ".ide10 → .ide11 kanıtlanmadı");
+  const patched = nativeSaveOptions(projectOf("ide10"), file(), 2);
+  assert.equal(patched.ide10.enabled, true);
+  assert.equal(patched.ide10.donorRequired, false);
+  assert.equal(patched.ide11.enabled, false);
+});
+
+test("nativeSaveOptions: .cde kaynağı native kayda kapalıdır", () => {
+  const options = nativeSaveOptions(projectOf("cde"), file(), 3);
+  assert.equal(options.ide11.enabled, false);
+  assert.equal(options.ide10.enabled, false);
+  assert.match(options.ide11.reason, /\.cde/);
 });

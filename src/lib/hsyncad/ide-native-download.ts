@@ -48,3 +48,50 @@ export function convertIdeSourceToNative(
   }
   return transcodeIde11TrialToIde10(bytes, { ide10Donor: donor instanceof Uint8Array ? donor : new Uint8Array(donor) });
 }
+
+/** Açık projeyi "farklı kaydet" hedefleri. */
+export type NativeIdeSaveTarget = NativeIdeDownloadTarget;
+
+export interface NativeIdeSaveOption {
+  enabled: boolean;
+  /** `.ide10` hedefi için eşleşen ticari donör zorunlu mu? */
+  donorRequired: boolean;
+  /** Açıklama ya da kapalıysa dürüst gerekçe. */
+  reason: string;
+}
+
+/**
+ * Açık ideCAD kaynağının hangi native biçimlere kaydedilebileceğini belirler.
+ *
+ * Kanıtlanmış kapsam (K2/S1):
+ * - `.ide11trial` / `.ide11` kaynağı → `.ide11` donörsüz, `.ide10` donörlü.
+ * - `.ide10` kaynağı → yalnız yerinde yamalı `.ide10`; `.ide11` dönüşümü kanıtlanmadı.
+ * - `.cde` veya kaynak dosya yok → native kayıt kapalı (yanlış dosya üretilmez).
+ */
+export function nativeSaveOptions(
+  project: IdeProject | null,
+  sourceFile: File | undefined,
+  patchCount = 0,
+): Record<NativeIdeSaveTarget, NativeIdeSaveOption> {
+  const closed = (reason: string): NativeIdeSaveOption => ({ enabled: false, donorRequired: false, reason });
+  if (!sourceFile || !project) {
+    const reason = "Özgün ideCAD dosyası açık değil; native kayıt için .ide11trial/.ide11 dosyasını Model aç ile yükleyin.";
+    return { ide11: closed(reason), ide10: closed(reason) };
+  }
+  if (project.format === "ide11trial" || project.format === "ide11") {
+    return {
+      ide11: { enabled: true, donorRequired: false, reason: "Donörsüz sürüm dönüşümü; kaynak dosya değişmez." },
+      ide10: { enabled: true, donorRequired: true, reason: "Eşleşen ticari .ide10 dosyası donör olarak gerekir." },
+    };
+  }
+  if (project.format === "ide10") {
+    return {
+      ide11: closed(".ide10 kaynağından .ide11 dönüşümü kanıtlanmadı; dürüst red."),
+      ide10: patchCount > 0
+        ? { enabled: true, donorRequired: false, reason: `${patchCount} native yama mevcut .ide10 dosyasına yazılır.` }
+        : closed("Değişiklik yok; aynı biçimde kaydetmek için en az bir native yazılabilir düzenleme gerekir."),
+    };
+  }
+  const reason = "Sıkıştırılmış .cde kaynağı native kayda açılmaz.";
+  return { ide11: closed(reason), ide10: closed(reason) };
+}

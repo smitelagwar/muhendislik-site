@@ -23,9 +23,10 @@ type Props = {
   canUndo: boolean; canRedo: boolean; hasSelection: boolean;
   tab: string; onTab: (tab: string) => void;
   actions: Record<number, RibbonAction>;
-  onUndo: () => void; onRedo: () => void; onExport: () => void; onImport: () => void;
+  onUndo: () => void; onRedo: () => void; onImport: () => void;
   onOpenExample: (id: IdeExampleId) => void;
   onOpenIdeConvert: () => void;
+  onSaveAs: () => void;
 };
 const toolIds: Record<number, string> = { 12590: "axis", 12820: "column", 12910: "beam", 13810: "wall", 12570: "slab", 13660: "measureDistance", 13650: "measureArea", 40221: "measureAngle" };
 const iconIds: Record<number, CadIconName> = {
@@ -122,7 +123,7 @@ export default function CommandBar(p: Props) {
       <Link href="/kategori/araclar" aria-label="Araçlara dön" title="Araçlara dön"><ArrowLeft size={12} /></Link><h1>hsynCAD</h1>
       <div className={styles.quick} aria-label="Hızlı erişim">
         <button type="button" title="IDE veya hsynCAD modeli aç · Ctrl+O" aria-label="Model aç" onClick={p.onImport}><CadIcon name="open" size={15} /></button>
-        <button type="button" title="Çalışmayı kaydet · .hsyncad" aria-label="Çalışmayı kaydet · .hsyncad" onClick={p.onExport}><CadIcon name="save" size={15} /></button>
+        <button type="button" title="Kaydet · biçim seç (.hsyncad / .ide11 / .ide10)" aria-label="Kaydet · biçim seç" onClick={p.onSaveAs}><CadIcon name="save" size={15} /></button>
         <button type="button" aria-label="Geri al" title="Geri al · Ctrl+Z" disabled={!p.canUndo} onClick={p.onUndo}><CadIcon name="undo" size={15} /></button>
         <button type="button" aria-label="Yinele" title="Yinele · Ctrl+Shift+Z" disabled={!p.canRedo} onClick={p.onRedo}><CadIcon name="redo" size={15} /></button>
       </div><span className={styles.project}>{p.modelName} — [{p.floorName}]</span><small title={p.saveStatus}>{p.saveStatus}</small>
@@ -133,13 +134,14 @@ export default function CommandBar(p: Props) {
         {fileOpen && <div className={styles.fileMenu} role="menu">{[
           [-1, "Yeni model", "new"],
           [11300, "Model aç", "open"],
-          [11320, "Çalışmayı kaydet · .hsyncad", "save"],
+          [-6, "Kaydet · biçim seç (.hsyncad / .ide11 / .ide10)", "save"],
+          [11320, "Hızlı kaydet · .hsyncad", "save"],
           [11323, "ideCAD için IFC ve aktarım raporu", "model"],
           [-2, "4 × 4 m örneği aç", "model"],
           [-3, "Gelişmiş örneği aç", "model"],
           [-4, "Çizim akışı örneği", "model"],
           [-5, "7 Katlı Plaza (1536 m²)", "model"],
-        ].map(([id, label, icon]) => <button type="button" role="menuitem" key={id} data-testid={id === 11323 ? "workbench-menu-export-ifc" : id === -2 ? "load-demo" : id === -3 ? "load-feature-demo" : id === -4 ? "load-workflow-demo" : id === -5 ? "load-seven-storey-demo" : undefined} onClick={() => execute(Number(id))}><CadIcon name={icon as CadIconName} size={18} />{label}</button>)}<hr /><button type="button" role="menuitem" data-testid="workbench-menu-ide-convert" onClick={() => { setFileOpen(false); p.onOpenIdeConvert(); }}><CadIcon name="model" size={18} />ideCAD dosyası dönüştür · .ide11trial → .ide11 / .ide10</button><hr /><small>Örnek IDE projelerini aç</small>{IDE_EXAMPLES.map(sample => <button type="button" role="menuitem" key={sample.id} data-testid={`ide-sample-${sample.id}`} title={sample.detail} onClick={() => { setFileOpen(false); p.onOpenExample(sample.id); }}><CadIcon name="open" size={18} />{sample.name}</button>)}</div>}
+        ].map(([id, label, icon]) => <button type="button" role="menuitem" key={id} data-testid={id === 11323 ? "workbench-menu-export-ifc" : id === -6 ? "workbench-menu-save-as" : id === -2 ? "load-demo" : id === -3 ? "load-feature-demo" : id === -4 ? "load-workflow-demo" : id === -5 ? "load-seven-storey-demo" : undefined} onClick={() => execute(Number(id))}><CadIcon name={icon as CadIconName} size={18} />{label}</button>)}<hr /><button type="button" role="menuitem" data-testid="workbench-menu-ide-convert" onClick={() => { setFileOpen(false); p.onOpenIdeConvert(); }}><CadIcon name="model" size={18} />Dosyadan dönüştür · kaynak dosya seç (.ide11trial → .ide11 / .ide10)</button><hr /><small>Örnek IDE projelerini aç</small>{IDE_EXAMPLES.map(sample => <button type="button" role="menuitem" key={sample.id} data-testid={`ide-sample-${sample.id}`} title={sample.detail} onClick={() => { setFileOpen(false); p.onOpenExample(sample.id); }}><CadIcon name="open" size={18} />{sample.name}</button>)}</div>}
       </div>
       <div className={styles.tabs} role="tablist" aria-label="Çizim sekmeleri" onKeyDown={event => {
         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;

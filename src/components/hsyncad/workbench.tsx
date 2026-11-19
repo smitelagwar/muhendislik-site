@@ -26,6 +26,7 @@ import Plan2D from "./plan2d";
 import styles from "./workbench.module.css";
 import SettingsDialog from "./settings-dialog";
 import IdeConvertDialog from "./ide-convert-dialog";
+import IdeSaveDialog from "./ide-save-dialog";
 import { LayerOptions, MaterialOptions, SnapOptions } from "./project-settings";
 import QuantityReport from "./quantity-report";
 import EditDialog from "./edit-dialog";
@@ -47,7 +48,7 @@ import { readIdeFile, MAX_IDE_BYTES } from "@/lib/hsyncad/ide-reader-client";
 import { collectIdeNativePatches, importIdeWorkspace, ideProjectAnalytics, ideReferenceElements, IDE_REFERENCE_LAYER } from "@/lib/hsyncad/ide-workspace";
 import { saveNativeIdeOutput } from "@/lib/hsyncad/ide-native-save";
 import { ideExportBasename } from "@/lib/hsyncad/ide-export";
-import { convertIdeSourceToNative, nativeIdeDownloadTargets } from "@/lib/hsyncad/ide-native-download";
+import { convertIdeSourceToNative, nativeIdeDownloadTargets, nativeSaveOptions, type NativeIdeSaveTarget } from "@/lib/hsyncad/ide-native-download";
 import { ideExampleUrl, type IdeExampleId } from "@/lib/hsyncad/ide-examples";
 import {
   AnalysisControlsBar,
@@ -174,6 +175,10 @@ export default function HsynCadWorkbench() {
   const ideNativePatches = useMemo(() => collectIdeNativePatches(model.ideImport?.source, model.elements), [model]);
   // S1b — Dosya menüsünden bağımsız trial→native dönüştürücü (proje açmadan çalışır).
   const [ideConvertOpen, setIdeConvertOpen] = useState(false);
+  // S2 — açık projeyi farklı kaydet: kaynak yeniden seçilmez, açık modelin
+  // ideCAD kaynağı (varsa) hedef biçime yazılır.
+  const [ideSaveOpen, setIdeSaveOpen] = useState(false);
+  const nativeIdeSave = useMemo(() => nativeSaveOptions(model.ideImport?.source ?? null, ideSourceSession?.file, ideNativePatches.length), [model, ideSourceSession, ideNativePatches]);
   // S1 — sürüm dönüşümü (trial→native) indirme hedefleri; tek kaynak: yardımcı.
   const nativeIdeDownload = nativeIdeDownloadTargets(model.ideImport?.source ?? null, ideSourceSession?.file);
   const ideR15Summary = useMemo(() => {
@@ -463,6 +468,14 @@ export default function HsynCadWorkbench() {
     } catch (error) { if (!controller.signal.aborted) setMessage(error instanceof Error ? error.message : "Örnek açılamadı."); }
     finally { clearTimeout(timer); if (importRequest.current === controller) { importRequest.current = null; setImportProgress(null); } }
   }
+  /** Tarayıcıda indirme: baytları yeni dosya olarak verir; kaynak dosyaya yazmaz. */
+  function downloadBytes(bytes: Uint8Array, filename: string) {
+    const payload = bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength
+      ? bytes.buffer as ArrayBuffer : bytes.slice().buffer as ArrayBuffer;
+    const url = URL.createObjectURL(new Blob([payload], { type: "application/octet-stream" }));
+    const link = document.createElement("a"); link.href = url; link.download = filename; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 15000);
+  }
   // S1 — "Dönüştür + indir": trial/ide11 kaynak baytları native .ide11/.ide10'a
   // çevrilip YENİ adla indirilir. `ide-native-save` guard akışı (boş yama listesiyle
   // native kaydetme reddi) bu fonksiyondan bağımsızdır; kaynak dosyaya yazılmaz.
@@ -473,11 +486,7 @@ export default function HsynCadWorkbench() {
     try {
       const bytes = convertIdeSourceToNative(await ideSourceSession.file.arrayBuffer(), target, donorBytes);
       const filename = `${ideExportBasename(model.ideImport.source.filename)}.${target}`;
-      const payload = bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength
-        ? bytes.buffer as ArrayBuffer : bytes.slice().buffer as ArrayBuffer;
-      const url = URL.createObjectURL(new Blob([payload], { type: "application/octet-stream" }));
-      const link = document.createElement("a"); link.href = url; link.download = filename; link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 15000);
+      downloadBytes(bytes, filename);
       setMessage(`${filename} indirildi: kaynak dosya değişmedi; dönüşüm yeni dosya olarak indirildi.`);
     } catch (error) { setMessage(`Dönüşüm reddedildi: ${error instanceof Error ? error.message : "bilinmeyen hata"}`); }
   }
@@ -490,6 +499,34 @@ export default function HsynCadWorkbench() {
     const link = document.createElement("a"); link.href = url; link.download = `${(model.name || "hsyncad-model").replace(/[<>:"/\\|?*\x00-\x1f]/g, "-")}.hsyncad`; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000); setMessage("Düzenlenebilir .hsyncad çalışma dosyası indirildi.");
   }
+  /**
+   * S2 — açık projeyi seçilen native biçimde kaydet ("farklı kaydet").
+   * Kaynak yeniden seçilmez; açık ideCAD kaynağının baytları kullanılır.
+   * Kanıtlanmış yamalar (kiriş kesit yüksekliği) önce kaynağa yazılır, sonra
+   * hedef biçime dönüştürülür. Kanıtlanmamış hedefler `nativeSaveOptions`
+   * tarafından kapalıdır; burada da açık hata verilir (yanlış dosya üretilmez).
+   */
+  async function saveNativeAs(target: NativeIdeSaveTarget, donor?: File): Promise<string> {
+    if (!model.ideImport || !ideSourceSession?.file) throw new Error("Özgün ideCAD dosyası açık değil; native kayıt yapılamaz.");
+    const option = nativeIdeSave[target];
+    if (!option.enabled) throw new Error(option.reason);
+    if (option.donorRequired && !donor) throw new Error("Native .ide10 için eşleşen ticari .ide10 dosyasını (donör) seçin.");
+    let bytes: Uint8Array = new Uint8Array(await ideSourceSession.file.arrayBuffer());
+    let changedByteCount = 0;
+    if (ideNativePatches.length) {
+      const patched = saveNativeIdeOutput(bytes, ideNativePatches);
+      bytes = patched.bytes;
+      changedByteCount = patched.changedByteCount;
+    }
+    if (model.ideImport.source.format !== "ide10") {
+      bytes = convertIdeSourceToNative(bytes, target, donor ? await donor.arrayBuffer() : undefined);
+    } else if (!changedByteCount) {
+      throw new Error("Değişiklik yok; .ide10 kaynağını aynı biçimde kaydetmek için en az bir native yazılabilir düzenleme gerekir.");
+    }
+    const filename = `${ideExportBasename(model.ideImport.source.filename)}.${target}`;
+    downloadBytes(bytes, filename);
+    return `${filename} indirildi${changedByteCount ? ` (${changedByteCount} bayt yama uygulandı)` : ""}; kaynak dosya değişmedi.`;
+  }
   // T-F6.2 — düzenleme → yama → native kaydet akışı. Yama listesi model durumundan
   // türetilir (collectIdeNativePatches); boş listeyle kaydetme ürün ilkesi gereği RED.
   async function saveIdeNativePatches() {
@@ -500,9 +537,7 @@ export default function HsynCadWorkbench() {
       const result = saveNativeIdeOutput(await ideSourceSession.file.arrayBuffer(), ideNativePatches);
       const base = (model.ideImport.source.filename.replace(/\.[^.]+$/, "") || "ide-proje").replace(/[<>:"/\\|?*\x00-\x1f]/g, "-");
       const filename = `HS_${base}_duzenlenmis.${result.format}`;
-      const url = URL.createObjectURL(new Blob([result.bytes.buffer as ArrayBuffer], { type: "application/octet-stream" }));
-      const link = document.createElement("a"); link.href = url; link.download = filename; link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 15000);
+      downloadBytes(result.bytes, filename);
       setMessage(`${filename} indirildi: ${ideNativePatches.length} kiriş kesit yüksekliği yaması, ${result.changedByteCount} bayt değişti. Diğer düzenlemeler (varsa) native dosyaya yazılmaz; .hsyncad çalışma dosyasıyla saklayın.`);
     } catch (error) { setMessage(`Native kayıt reddedildi: ${error instanceof Error ? error.message : "bilinmeyen hata"}`); }
   }
@@ -634,6 +669,7 @@ export default function HsynCadWorkbench() {
     [-3]: { run: () => replaceModel(createFeatureDemo(), "Gelişmiş örnek açıldı.") },
     [-4]: { run: () => replaceModel(createWorkflowDemo(), "Bağlı çizim akışı örneği açıldı.") },
     [-5]: { run: () => replaceModel(createSevenStoreyCommercialBuilding(), "7 Katlı Plaza (1536 m² / Kat) perdeli ve radye temelli model açıldı.") },
+    [-6]: { run: () => setIdeSaveOpen(true) },
     11300: { run: () => fileInput.current?.click() }, 11320: { run: exportFile }, 11323: { run: exportIfc },
     12590: { run: () => selectTool("axis"), active: tool === "axis" },
     12580: { run: () => selectTool("axis"), hint: "Yeni aks seçeneklerini açar" },
@@ -828,9 +864,10 @@ export default function HsynCadWorkbench() {
     <CommandBar tool={tool} modelName={model.name} floorName={`${floor.name} tavanı, ${number(floor.elevation + floor.height, 2)} m`} saveStatus={saveStatus}
       canUndo={!!history.past.length} canRedo={!!history.future.length} hasSelection={!!selected}
       tab={ribbonTab} onTab={chooseRibbon} actions={ribbonActions} onUndo={undo} onRedo={redo}
-      onExport={exportFile} onImport={() => fileInput.current?.click()} onOpenExample={id => void openExample(id)} onOpenIdeConvert={() => setIdeConvertOpen(true)} />
+      onImport={() => fileInput.current?.click()} onOpenExample={id => void openExample(id)} onOpenIdeConvert={() => setIdeConvertOpen(true)} onSaveAs={() => setIdeSaveOpen(true)} />
     <LocalReportDialog open={localReportOpen} onClose={() => setLocalReportOpen(false)} source={ideSourceSession} onReselect={setIdeSourceSession} model={model} analysisResult={analysisResult} activeFloorId={floor.id} activeFloorName={floor.name} selectedElementIds={selectedId ? [selectedId] : []} />
     <IdeConvertDialog open={ideConvertOpen} onClose={() => setIdeConvertOpen(false)} onMessage={setMessage} />
+    {ideSaveOpen && <IdeSaveDialog projectName={model.name} sourceName={model.ideImport?.source.filename} patchCount={ideNativePatches.length} options={nativeIdeSave} onClose={() => setIdeSaveOpen(false)} onSaveHsyncad={exportFile} onSaveNative={saveNativeAs} onMessage={setMessage} />}
     <input ref={fileInput} type="file" accept=".ide,.ide10,.ide11,.ide11trial,.cde,.hsyncad,.json,application/json" hidden aria-label="IDE veya hsynCAD model dosyası" data-testid="hsyncad-import" onChange={(e) => void importFile(e.target.files?.[0])} />
     {importProgress !== null && <div className={styles.importBar} role="status" data-testid="hsyncad-import-progress"><span>{importProgress}</span><button type="button" onClick={() => { importRequest.current?.abort(); importRequest.current = null; setImportProgress(null); setMessage("Dosya açma iptal edildi; mevcut model korundu."); }}>İptal</button></div>}
     {model.ideImport && ideSourceSession && <div className={styles.importReport} data-testid="ide-native-save-row">
@@ -872,7 +909,7 @@ export default function HsynCadWorkbench() {
       {(tab === "Çizimler" || tab === "Araçlar") && <><ReferenceButtons tool={tool} onTool={selectTool} /><ReferenceOptions sources={referenceSources} sourceId={referenceSource?.id ?? ""} onSource={setReferenceId} onDirection={constrainToReference} onLocal={localReference} onGlobal={globalReference} hasFrame={!!references.frame?.enabled} />{tool === "measureArea" && <button type="button" disabled={pending.length < 3} onClick={references.finish} data-testid="finish-measure-area">Alanı tamamla ↵</button>}<span className="hcad-fine">{instruction}</span></>}
       {tab === "Görünüm" && <><button type="button" aria-pressed={showGrid} onClick={() => setShowGrid(!showGrid)}>Izgara göster</button><button type="button" onClick={() => setCadTheme(cadTheme === "light" ? "dark" : "light")}>{cadTheme === "light" ? "Koyu çalışma alanı" : "Açık çalışma alanı"}</button><div className="hcad-ribbon-group"><button type="button" onClick={() => setFitKey((n) => n + 1)}><Maximize2 size={18} />2B çizimi sığdır</button><label className="hcad-toggle"><input type="checkbox" checked={snapping} onChange={(e) => setSnapping(e.target.checked)} />Nokta yakalama</label><label className="hcad-toggle"><input type="checkbox" checked={ortho} onChange={(e) => setOrtho(e.target.checked)} />Dik çizim</label><button type="button" onClick={() => setSettings("snap")}>Yakalama ayarları</button><button type="button" onClick={() => setSettings("layers")}>Katman ayarları</button></div><div className="hcad-ribbon-group hcad-layer-list">{layerOptions.map((layer) => <label key={layer} className="hcad-toggle"><input type="checkbox" checked={!hiddenLayers.includes(layer) && layerState(model, layer, floor.id).visible} onChange={(e) => { setHiddenLayers(old => old.filter(l => l !== layer)); commit(setLayerState(model, layer, { ...layerState(model, layer, floor.id), visible: e.target.checked }, "all", floor.id), "Katman görünürlüğü güncellendi."); }} />{layer}</label>)}</div><p className="hcad-fine">Gizlenen katmanlar metraja dahildir.<br />2B aktif katı, 3B bütün katları gösterir.</p></>}
       {tab === "Katlar" && <><FloorProperties key={JSON.stringify(floor)} floor={floor} onApply={(next) => commit({ ...model, floors: model.floors.map((f) => f.id === next.id ? next : f) }, "Kat güncellendi. Kat tavanına bağlı elemanlar birlikte güncellendi.")} /><button type="button" onClick={addFloor}><Plus size={16} />Yeni kat</button><button type="button" onClick={() => { const next = addStorey(model, floor, true); if (commit(next.model, "Alt kat eklendi.")) { setFloorId(next.floor.id); setSelectedId(null); drawing.clearDraft(); references.clear(); } }}>Aşağı kat ekle</button><button type="button" onClick={copyFloor}>Katı üste kopyala</button><button type="button" disabled={model.floors.length < 2} onClick={deleteFloor}>Katı ve elemanlarını sil</button><p className="hcad-fine">Statik taban: {number(floor.elevation)} m · tavan: {number(floor.elevation + floor.height)} m.<br />Mimari referans: {number(floor.elevation + (floor.architecturalOffset ?? 0))} m; geometrik kotları değiştirmez.</p></>}
-      {tab === "Proje" && <><button type="button" onClick={() => replaceModel(createEmptyModel(), "Yeni boş model açıldı. Önceki model Geri al ile geri getirilebilir.")}><Plus size={17} />Yeni model</button><button type="button" data-testid="load-demo" onClick={() => replaceModel(createDemoModel(), "4 × 4 m ölçülü örnek açıldı. Tüm işlemler geri alınabilir.")}><Box size={18} />4 × 4 m örneği aç</button><button type="button" data-testid="load-idecad-panel-demo" onClick={() => replaceModel(createIdeCadPanelDemo(), "İki kapalı döşeme panelli 4 × 4 m örnek açıldı. IFC aktarımına hazır.")}><Box size={18} />ideCAD için panelli örnek</button><button type="button" onClick={exportFile}><Download size={17} />Çalışmayı kaydet · .hsyncad</button><button type="button" data-testid="workbench-export-ifc" onClick={exportIfc}><FileDown size={17} />IFC ve aktarım raporu indir</button><p className="hcad-fine">Model bu tarayıcıda otomatik saklanır.<br />.hsyncad çalışma dosyanızı korur. IFC, ideCAD içe aktarması içindir; native IDE kaydı ideCAD içinde yapılır.</p></>}
+      {tab === "Proje" && <><button type="button" onClick={() => replaceModel(createEmptyModel(), "Yeni boş model açıldı. Önceki model Geri al ile geri getirilebilir.")}><Plus size={17} />Yeni model</button><button type="button" data-testid="load-demo" onClick={() => replaceModel(createDemoModel(), "4 × 4 m ölçülü örnek açıldı. Tüm işlemler geri alınabilir.")}><Box size={18} />4 × 4 m örneği aç</button><button type="button" data-testid="load-idecad-panel-demo" onClick={() => replaceModel(createIdeCadPanelDemo(), "İki kapalı döşeme panelli 4 × 4 m örnek açıldı. IFC aktarımına hazır.")}><Box size={18} />ideCAD için panelli örnek</button><button type="button" onClick={exportFile}><Download size={17} />Çalışmayı kaydet · .hsyncad</button><button type="button" data-testid="workbench-save-as" onClick={() => setIdeSaveOpen(true)}><Download size={17} />Farklı kaydet · .ide11 / .ide10</button><button type="button" data-testid="workbench-export-ifc" onClick={exportIfc}><FileDown size={17} />IFC ve aktarım raporu indir</button><p className="hcad-fine">Model bu tarayıcıda otomatik saklanır.<br />.hsyncad çalışma dosyanızı korur. IFC, ideCAD içe aktarması içindir; native IDE kaydı ideCAD içinde yapılır.</p></>}
       {tab === "Proje" && <button type="button" onClick={() => setSettings("materials")}>Malzeme tanımları</button>}
       {tab === "Proje" && <button type="button" data-testid="load-feature-demo" onClick={() => replaceModel(createFeatureDemo(), "Gelişmiş örnek açıldı. Daire/poligon/eğik kolon, eğrisel perde ve eğimli katmanlı döşemeyi seçerek inceleyin.")}>Gelişmiş örneği aç</button>}
       {tab === "Proje" && <button type="button" data-testid="load-workflow-demo" onClick={() => replaceModel(createWorkflowDemo(), "Bağlı örnek açıldı. Bir aksı taşıyınca kolonlar, kirişler, orta perde ve döşeme sınırları birlikte güncellenir.")}>Çizim akışı örneği</button>}
