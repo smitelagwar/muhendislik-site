@@ -10,6 +10,7 @@ import {
   ideExportBasename,
   serializeIdeProject,
 } from "@/lib/hsyncad/ide-export";
+import { convertIdeSourceToNative, nativeIdeDownloadTargets } from "@/lib/hsyncad/ide-native-download";
 import styles from "./ide-file-menu.module.css";
 
 type Props = {
@@ -42,8 +43,10 @@ export default function IdeFileMenu({ project, sourceFile, floorId, elements, la
 
   const canExportIde11 = Boolean(sourceFile && project?.format === "ide11");
   const canExportIde10 = Boolean(sourceFile && project?.format === "ide10");
+  // Sürüm dönüşümü (trial→native) görünürlüğü: yalnız IDE11 şemasında kanıtlandı.
+  const nativeDownload = nativeIdeDownloadTargets(project, sourceFile);
 
-  const save = async (format: "source" | "snapshot" | "ide11" | "ide10" | "dxf" | "svg" | "png") => {
+  const save = async (format: "source" | "snapshot" | "ide11" | "ide10" | "native-ide11" | "native-ide10" | "dxf" | "svg" | "png") => {
     if (!project || busy) return;
     setBusy(true); onError("");
     try {
@@ -63,6 +66,18 @@ export default function IdeFileMenu({ project, sourceFile, floorId, elements, la
         const saved = saveNativeIdeSource(await sourceFile.arrayBuffer(), project, format);
         filename = `${base}.${saved.format}`;
         download(new Blob([saved.bytes.buffer as ArrayBuffer], { type: "application/octet-stream" }), filename);
+      } else if (format === "native-ide11" || format === "native-ide10") {
+        // "Dönüştür + indir": kaynak baytları senkron dönüştürülür, YENİ adla
+        // indirilir; açık proje ve kaynak dosya değiştirilmez. Transcoder'ın
+        // güvenli-red hataları mevcut catch üzerinden onError ile gösterilir.
+        if (!sourceFile) throw new Error("Sürüm dönüşümü için özgün kaynak dosyası gerekir.");
+        const target = format === "native-ide11" ? "ide11" : "ide10";
+        const converted = convertIdeSourceToNative(await sourceFile.arrayBuffer(), target);
+        filename = `${base}.${target}`;
+        // Transcoder tam boyutlu özel arabellek döndürür; değilse güvenli kopya.
+        const payload = converted.byteOffset === 0 && converted.byteLength === converted.buffer.byteLength
+          ? converted.buffer as ArrayBuffer : converted.slice().buffer as ArrayBuffer;
+        download(new Blob([payload], { type: "application/octet-stream" }), filename);
       } else if (format === "png") {
         const canvas = root.current?.closest('[data-testid="ide-viewer"]')?.querySelector<HTMLCanvasElement>('[data-testid="ide-plan-canvas"]');
         if (!canvas) throw new Error("PNG için önce 2B Plan görünümünü açın.");
@@ -94,11 +109,13 @@ export default function IdeFileMenu({ project, sourceFile, floorId, elements, la
       <button type="button" role="menuitem" data-testid="ide-export-ide11" disabled={!canExportIde11 || busy} onClick={() => void save("ide11")}>Dışa aktar · .ide11 (v11 Native)</button>
       <button type="button" role="menuitem" data-testid="ide-export-ide10" disabled={!canExportIde10 || busy} onClick={() => void save("ide10")}>Dışa aktar · .ide10 (v10 Native)</button>
       <button type="button" role="menuitem" data-testid="ide-save-source" disabled={!sourceFile || busy} onClick={() => void save("source")}>Özgün IDE dosyasının kopyası</button>
+      <button type="button" role="menuitem" data-testid="ide-download-native-ide11" disabled={!nativeDownload.ide11 || busy} onClick={() => void save("native-ide11")}>Native .ide11 indir</button>
+      <button type="button" role="menuitem" data-testid="ide-download-native-ide10" disabled={!nativeDownload.ide10 || busy} onClick={() => void save("native-ide10")}>Native .ide10 indir</button>
       <hr />
       <button type="button" role="menuitem" data-testid="ide-export-dxf" disabled={!project || busy} onClick={() => void save("dxf")}>Aktif katı dışa aktar · DXF</button>
       <button type="button" role="menuitem" data-testid="ide-export-svg" disabled={!project || busy} onClick={() => void save("svg")}>Aktif katı dışa aktar · SVG</button>
       <button type="button" role="menuitem" data-testid="ide-export-png" disabled={!project || !planVisible || busy} onClick={() => void save("png")}>Görünen planı kaydet · PNG</button>
-      <p>.hsyncad çözümlenen görünümü saklar. Native kayıt yalnız özgün biçimde, tüm kaynak baytları korunarak yapılır. Sürüm dönüşümü ve model değişikliği henüz doğrulanmadı.</p>
+      <p>.hsyncad çözümlenen görünümü saklar. Native kayıt yalnız özgün biçimde, tüm kaynak baytları korunarak yapılır. "Native .ide11/.ide10 indir" kaynak dosyayı sürüm dönüşümüyle yeni dosya olarak indirir; açık projeyi değiştirmez. Düzenlenmiş modelin native kaydedilmesi doğrulanmadı; değişiklikler için .hsyncad kullanın.</p>
     </div>}
   </div>;
 }
