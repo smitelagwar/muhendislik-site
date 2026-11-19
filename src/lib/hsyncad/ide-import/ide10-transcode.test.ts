@@ -9,6 +9,7 @@ import {
   type Ide10TranscodeDiagnostics,
 } from "./ide11-transcoder";
 import { scanIde201094Streams } from "./ide-zlib";
+import { encodeIdeFloat64 } from "./numeric-codec";
 import { validateIdeCarrier } from "./ide-binary-codec";
 import ide10GrammarSchema from "./ide10-grammar.json";
 
@@ -193,4 +194,59 @@ test("B0 .ide11trial -> real .ide10 body conversion matches the A0 oracle", { sk
   // --- Kaynak değişmezliği: B0 hem bellekte hem diskte dokunulmamış. ---
   assert.equal(digest(source), sourceDigest);
   assert.equal(digest(readFileSync(B0)), sourceDigest);
+});
+
+/**
+ * T-F3.3c — V-ENCODED gövde sözleşmesi: çıktıda kodlu f64 artığı YOK.
+ *
+ * Kök neden (T-F3.4 3/3 APPCRASH): plan yalnız kataloglanmış ofsetleri
+ * düzleştiriyordu; katalog dışı kodlu bloklar encoded=0 mühürlü gövdede kalıp
+ * ideCAD v10 yükleyicisinde çöp f64 olarak okunuyordu. Süpürme kuralı bunları
+ * yerinde çözer. Oracle: HS_B0_F3.ide10'da ölçülen kodlu artıklar
+ * (encode(0) 320.318, encode(1) 10.290, encode(0.1) 1.617, encode(0.5) 896
+ * geçiş) çıktının akış-dışı bölgelerinde SIFIR olmalı.
+ */
+test("ide10 output body carries no vocabulary-encoded f64 leftovers (T-F3.3c sweep)", { skip: !existsSync(B0) || !existsSync(A0), timeout: 900_000 }, () => {
+  const source = readFileSync(B0);
+  const donor = readFileSync(A0);
+  const donorDigest = digest(donor);
+  const diagnostics = {} as Ide10TranscodeDiagnostics;
+  const converted = transcodeIde11TrialToIde10(source, { ide10Donor: donor, diagnostics });
+
+  // Süpürme tanıklaması: sözlük kurulmuş ve katalog-dışı bloklar çözülmüş olmalı.
+  assert.ok(diagnostics.donor, "donör hattı çalışmalı.");
+  const sweep = diagnostics.donor!.encodedSweep;
+  assert.ok(sweep, "T-F3.3c kodlu blok süpürmesi diagnostics'e rapor vermelidir.");
+  assert.ok(sweep!.vocabularyValues > 100_000, `sözlük anlamlı boyutta olmalı; ölçülen ${sweep!.vocabularyValues}.`);
+  assert.ok(sweep!.blocksDecoded > 100_000, `katalog-dışı kodlu blok sayısı beklenen büyüklükte olmalı; ölçülen ${sweep!.blocksDecoded}.`);
+
+  // Kesin oracle: bilinen kodlu örüntülerin akış-dışı geçiş sayısı SIFIR olmalı.
+  const view = new DataView(converted.buffer, converted.byteOffset, converted.byteLength);
+  const nameLen = view.getUint32(96, true);
+  const previewEnd = 116 + nameLen + view.getUint32(112 + nameLen, true);
+  const frames = scanIde201094Streams(converted, 0, converted.length, 500_000)
+    .map((f) => [f.payloadOffset, f.endOffset] as const);
+  const occurrences = (needle: Uint8Array): number => {
+    let count = 0, p = previewEnd, fi = 0;
+    while (p + 8 <= converted.length) {
+      while (fi < frames.length && frames[fi][1] <= p) fi++;
+      if (fi < frames.length && p >= frames[fi][0]) { p = frames[fi][1]; continue; }
+      let equal = true;
+      for (let j = 0; j < 8; j++) if (converted[p + j] !== needle[j]) { equal = false; break; }
+      if (equal) count++;
+      p++;
+    }
+    return count;
+  };
+  for (const value of [0, 1, 0.1, 0.5, 0.2, 0.3, 0.4, 0.8]) {
+    assert.equal(
+      occurrences(encodeIdeFloat64(value)),
+      0,
+      `encode(${value}) örüntüsü akış-dışı gövdede kalmamalı (süpürme sözleşmesi).`,
+    );
+  }
+
+  // Donör değişmezliği: süpürme yalnız çalışma tamponunda okur/yazar.
+  assert.equal(digest(donor), donorDigest);
+  assert.equal(digest(readFileSync(A0)), donorDigest);
 });

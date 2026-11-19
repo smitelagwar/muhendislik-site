@@ -303,6 +303,7 @@ async function main() {
         console.log(`    R4: wall ${dn.r4.wall}, beam ${dn.r4.beam}, raft ${dn.r4.raft}; blocks verified ${dn.r4.blocksVerified}, mismatches ${dn.r4.blockMismatches}, tuple unresolved ${dn.r4.tupleUnresolved}`);
         console.log(`    R5: ${dn.r5.tables} modal tables, region byte-equal to donor: ${dn.r5.regionBytesEqual}`);
         console.log(`    Spectrum fields bit-exact: ${dn.spectrum.fieldsBitExact}`);
+        console.log(`    Encoded-block sweep (T-F3.3c): vocabulary ${dn.encodedSweep?.vocabularyValues ?? "?"} values, decoded ${dn.encodedSweep?.blocksDecoded ?? "?"} leftover blocks`);
       } else {
         console.log(`    Donor: none — unestablished-layout regions keep their v11 layout (analytic reads may be partial).`);
       }

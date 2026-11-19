@@ -1,5 +1,5 @@
 import { decodeCp1254 } from "./cp1254";
-import { createIdeDataView, encodeIdeFloat64, hasIdeEncodedNumbers, isIde11SchemaVersion } from "./numeric-codec";
+import { createIdeDataView, decodeIdeNumericBlock, encodeIdeFloat64, hasIdeEncodedNumbers, isIde11SchemaVersion } from "./numeric-codec";
 import { encodeCp1254NulString, sealIdeCarrierHeader, validateIdeCarrier } from "./ide-binary-codec";
 import { readIdeStairTemplate } from "./stairs";
 import { IDE10_VERSION } from "./ide-binary-codec";
@@ -244,6 +244,21 @@ export interface Ide10TranscodeDiagnostics {
     r5: { tables: number; regionBytesEqual: boolean; headerBytesDonor: number };
     spectrum: { fieldsBitExact: boolean };
     wallOverridesFromDonor: number;
+    /**
+     * T-F3.3c — V-ENCODED gövde sözleşmesinin tam uygulanışı (katalog-dışı kodlu
+     * blok süpürmesi). Plan yalnız kataloglanmış ofsetleri düzleştiriyordu; kalan
+     * kodlu bloklar v10 (encoded=0) yükleyicisinde çöp f64 olarak okunuyordu.
+     */
+    encodedSweep?: {
+      /** Sözlükteki ayrık düz f64 değer sayısı (donör + çalışma tamponu pencereleri). */
+      vocabularyValues: number;
+      vocabularyFromDonor: number;
+      vocabularyFromWork: number;
+      /** Süpürülen (yerinde çözülen) kodlu blok sayısı. */
+      blocksDecoded: number;
+      /** İlk N çözüm örneği (kanıt; offset + çözülmüş değer). */
+      firstDecodes: Array<{ offset: number; value: number }>;
+    };
   };
   outputBytes: number;
 }
@@ -1237,6 +1252,11 @@ export function transcodeIde11TrialToIde11(
  *    F9 önyazısı, R4 kayıt-arası baytlar (kiriş intermediates dahil), R5 104B
  *    opak başlıklar. Donör yoksa bu bölgeler taşıyıcıda v11 düzeniyle kalır ve
  *    analitik okuma kısmi olur (uyarı diagnostics'e yazılır).
+ * 4b. **Kodlu blok süpürmesi (T-F3.3c):** plan yalnız kataloglanmış f64
+ *    ofsetlerini düzleştirir; gövdede kalan KODLU bloklar (çizim biçem kayıtları,
+ *    ara bölge, F9 komşulukları, kuyruk) donör+çalışma sözlüğüyle yerinde
+ *    çözülür — V-ENCODED "encoded=0 gövde" sözleşmesi gövde geneline taşınır
+ *    (T-F3.4'teki 3/3 APPCRASH'in kök nedeniydi).
  * 5. Taşıyıcı 201094/encoded=0 ile yeniden mühürlenir (CRC32 [88,EOF)).
  */
 export function transcodeIde11TrialToIde10(
@@ -1337,8 +1357,140 @@ export function transcodeIde11TrialToIde10(
   }
 
   diagnostics.outputBytes = work.length;
+  // 4b) T-F3.3c — V-ENCODEV tam uygulanışı: plan yalnız kataloglanmış ofsetleri
+  // düzleştirir; kalan kodlu bloklar v10 (encoded=0) yükleyicisinde çöp f64 olur
+  // (T-F3.4 3/3 APPCRASH kök nedeni). Donör sözlüğüyle gövde geneli süpürülür.
+  if (donor && donorScan) {
+    sweepRemainingIdeEncodedBlocks(work, donor, diagnostics);
+  }
   // 5) Taşıyıcı mührü: v10 sürümü + düz gövde + CRC32.
   return sealIdeCarrierHeader(work, { formatVersion: IDE10_VERSION, encodedFlag: 0 });
+}
+
+/**
+ * T-F3.3c — V-ENCODED gövde sözleşmesinin TAM uygulanışı (kök düzeltme).
+ *
+ * Hata sınıfı (kanıt: 2026-11-19-F3-T3.3c fark haritası + kod çözüm deneyi):
+ * planın f64 düzleştirmesi yalnız kataloglanmış ofsetleri (geometri, başlık
+ * alanları) çözüyordu; katalog dışı sayı alanları — çizim biçem kayıtları, ara
+ * bölge, F9 komşulukları, kuyruk — Blowfish kodlu kaldı. Taşıyıcı encoded=0
+ * mühürlenince ideCAD v10 yükleyicisi bu blokları DÜZ f64 sanıp çöp magnitüdler
+ * (1e+170 sınıfı) okudu; boyut/indeks matematiği 0xc0000005 üretti (3/3 APPCRASH).
+ *
+ * Yöntem (deterministik; kör eşik yok): donör (aynı projenin gerçek v10'u) ve
+ * çalışma tamponunun akış-dışı 8B pencerelerinden "makul" f64 değerlerinden bir
+ * değer sözlüğü kurulur; her değerin ENC(v) kodtabloya girer; gövde aynı
+ * pencerelerde taranıp kodtablo eşleşmesi YALNIZ yerinde çözmükle düzelttirilir.
+ * Seslilik: eşleşen blok ENC(v) ise çözüm tek ön-görüntüdür (Blowfish bijektiftir)
+ * → gerçek kodlu alanda her zaman doğru düz değer; yapısal baytların sahte
+ * eşleşmesi ~2^-64'tür. Kodtabloya yanlışlıkla giren yapısal pencere değerleri
+ * de zararsızdır: ancak gerçek bir kodlu alanın kendisiyle eşleşebilirler ki bu
+ * durumda çözüm yine alanın gerçek değeridir.
+ *
+ * Kalıntı sözleşme boşluğu (yükcü-farazi; rapora KANIT satırı): v11'in v10'da
+ * olmayan ALANLARI (yerleşim farkları) ve v11'de yeniden hesaplanmış değerler
+ * (sözlükte hiç bulunmayan) bu süpürmenin kapsamı DIŞINDADIR — bunlar gramer
+ * şemasının alan-düzeyi v11→v10 haritasını gerektirir (supervisor şema görevi).
+ */
+function sweepRemainingIdeEncodedBlocks(
+  work: Uint8Array,
+  donor: Uint8Array,
+  diagnostics: Ide10TranscodeDiagnostics,
+): void {
+  const donorDiag = diagnostics.donor;
+  if (!donorDiag) return;
+  const workView = new DataView(work.buffer, work.byteOffset, work.byteLength);
+  const donorView = new DataView(donor.buffer, donor.byteOffset, donor.byteLength);
+  const previewEndOf = (view: DataView): number => {
+    const nameLen = view.getUint32(96, true);
+    return 116 + nameLen + view.getUint32(112 + nameLen, true);
+  };
+  const workPreviewEnd = previewEndOf(workView);
+  const donorPreviewEnd = previewEndOf(donorView);
+  const workFrames = scanIdeSubStreamFrames(work, IDE10_VERSION);
+  const donorFrames = scanIdeSubStreamFrames(donor, IDE10_VERSION);
+
+  // Düz f64 "makul"luk bandı: 0 (±0 dahil) veya 1e-12 ≤ |v| ≤ 1e12.
+  // Yapısal baytlar (u32 çiftleri → denormal, metin → dev üstel) bandın dışında
+  // kalır; bant yalnız sözlük tohumlaması içindir, eşleşme kararı bayt-özdedir.
+  const isPlausibleF64 = (v: number): boolean => {
+    if (!Number.isFinite(v)) return false;
+    if (v === 0) return true;
+    const a = Math.abs(v);
+    return a >= 1e-12 && a <= 1e12;
+  };
+
+  /** Akış-dışı pencerelerden ayrık (BE hi, BE lo) düz f64 bit örüntüleri. */
+  const harvest = (buf: Uint8Array, view: DataView, start: number, frames: Array<{ offset: number; endOffset: number }>): Map<number, Set<number>> => {
+    const vocab = new Map<number, Set<number>>();
+    let p = start, fi = 0;
+    while (p + 8 <= buf.length) {
+      while (fi < frames.length && frames[fi].endOffset <= p) fi++;
+      if (fi < frames.length && p >= frames[fi].offset + 12) { p = frames[fi].endOffset; continue; }
+      if (isPlausibleF64(view.getFloat64(p, true))) {
+        const h = view.getUint32(p, false), l = view.getUint32(p + 4, false);
+        let lows = vocab.get(h);
+        if (!lows) { lows = new Set<number>(); vocab.set(h, lows); }
+        lows.add(l);
+      }
+      p++;
+    }
+    return vocab;
+  };
+
+  const donorVocab = harvest(donor, donorView, donorPreviewEnd, donorFrames);
+  const workVocab = harvest(work, workView, workPreviewEnd, workFrames);
+
+  // Kodtablo: ayrık düz değerler → ENC(v) üyelik kümesi (BE hi → BE lo'lar).
+  const codebook = new Map<number, Set<number>>();
+  const plainScratch = new DataView(new ArrayBuffer(8));
+  let vocabularyValues = 0, vocabularyFromDonor = 0, vocabularyFromWork = 0;
+  const absorb = (vocab: Map<number, Set<number>>, intoDonorCount: boolean): void => {
+    for (const [h, lows] of vocab) {
+      for (const l of lows) {
+        if (intoDonorCount) vocabularyFromDonor++; else vocabularyFromWork++;
+        plainScratch.setUint32(0, h, false);
+        plainScratch.setUint32(4, l, false);
+        const enc = encodeIdeFloat64(plainScratch.getFloat64(0, true));
+        const encView = new DataView(enc.buffer, enc.byteOffset, enc.byteLength);
+        const eh = encView.getUint32(0, false), el = encView.getUint32(4, false);
+        let lows = codebook.get(eh);
+        if (!lows) { lows = new Set<number>(); codebook.set(eh, lows); }
+        if (!lows.has(el)) { lows.add(el); vocabularyValues++; }
+      }
+    }
+  };
+  absorb(donorVocab, true);
+  absorb(workVocab, false);
+
+  // Süpürme: kodtablo eşleşmesi yalnız yerinde çözmükle düzelttirilir.
+  let blocksDecoded = 0;
+  const firstDecodes: Array<{ offset: number; value: number }> = [];
+  let p = workPreviewEnd, fi = 0;
+  while (p + 8 <= work.length) {
+    while (fi < workFrames.length && workFrames[fi].endOffset <= p) fi++;
+    if (fi < workFrames.length && p >= workFrames[fi].offset + 12) { p = workFrames[fi].endOffset; continue; }
+    const encHi = workView.getUint32(p, false);
+    const encLows = codebook.get(encHi);
+    if (encLows !== undefined && encLows.has(workView.getUint32(p + 4, false))) {
+      const plain = decodeIdeNumericBlock(workView, p);
+      work.set(plain, p);
+      blocksDecoded++;
+      if (firstDecodes.length < 12) {
+        firstDecodes.push({ offset: p, value: new DataView(plain.buffer, plain.byteOffset, 8).getFloat64(0, true) });
+      }
+      p += 8;
+      continue;
+    }
+    p++;
+  }
+  donorDiag.encodedSweep = {
+    vocabularyValues,
+    vocabularyFromDonor,
+    vocabularyFromWork,
+    blocksDecoded,
+    firstDecodes,
+  };
 }
 
 /** Donör v10 bölgelerini uygular ve birleşik gövdeyi döndürür. */
