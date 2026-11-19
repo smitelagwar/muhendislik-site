@@ -18,6 +18,7 @@ import {
   buildIde10RaftRebarRecord,
   IDE10_WALL_REBAR_TAIL_OFFSET,
   IDE10_BEAM_REBAR_RECORD_LENGTH,
+  IDE10_RAFT_REBAR_ATTR_OFFSET,
   type Ide10WallRebarInput,
   type Ide10BeamRebarInput,
   type Ide10RaftRebarInput,
@@ -240,6 +241,10 @@ export interface Ide10TranscodeDiagnostics {
     r4: {
       wall: number; beam: number; raft: number;
       blocksVerified: number; blockMismatches: number; tupleUnresolved: number;
+      /** T-F3.3d: bloğu yazılan/ doğrulanan kayıt indisleri (B0-wins geri-enjeksiyon çapası). */
+      wallRecords?: number[];
+      beamRecords?: number[];
+      raftRecords?: number[];
     };
     r5: { tables: number; regionBytesEqual: boolean; headerBytesDonor: number };
     spectrum: { fieldsBitExact: boolean };
@@ -258,6 +263,74 @@ export interface Ide10TranscodeDiagnostics {
       blocksDecoded: number;
       /** İlk N çözüm örneği (kanıt; offset + çözülmüş değer). */
       firstDecodes: Array<{ offset: number; value: number }>;
+    };
+  };
+  /**
+   * T-F3.3d — H2 onarımı: A0'dan gap-düzeyi nakil (yerleşim sınıfı onarımı).
+   *
+   * Re-ankraj kuralları (fikir-t33d §2): (1) çapa akış-İNDEKSİ (mutlak ofset
+   * değil — Δlen birikir); (2) çerçeveler (başlık+comp+payload) ve
+   * preview/kilit baytları v2'nin kalır; (3) nakledilen koşularda bölge
+   * Δlen=0; (4) CRC32 [88,EOF) + header length@79/crc@83 yeniden mühürlenir
+   * (mevcut taşıyıcı mührü); (5) KANIT'lı B0 alanları (XX etiketleri, döşeme
+   * yük hattı, 468 donatı bloğu, merdiven işaretçisi) nakil şablonuna geri
+   * yazılır. B0≠A0 kalan değer konumları işaretli envantere girer (A0-kalıntı;
+   * şema alan-haritası takip görevine devir — sessiz değil).
+   */
+  gapTransplant?: {
+    applied: boolean;
+    /** applied=false nedeni (kanal uyumsuzsa; dönüşüm v2 gövdesiyle devam eder). */
+    reason?: string;
+    /** Akış-çapa sözleşmesi: iki taraftaki çerçeve sayısı ve rawLen dizisi. */
+    framesMatched: number;
+    rawLenMismatch: number;
+    /** Çerçeve-dışı koşu (gap) sayısı: çerçeve sayısı + 1. */
+    gapSegments: number;
+    regionBoundaries: { araGapIndex: number; kuyrukGapIndex: number };
+    regionGapCounts: Record<string, number>;
+    /** v3 ↔ A0 bölge Δlen toplamları (nakil kuralı 3: tamamı 0 olmalı). */
+    regionLenDelta: Record<string, number>;
+    /** v2 kafa baytları ([0, workPreviewEnd) — başlık+ad+preview, kural 2). */
+    headBytesWork: number;
+    frameBytesWork: number;
+    /** A0'dan nakledilen çerçeve-dışı baytlar. */
+    gapBytesDonor: number;
+    /** v3 önyazı baytlarının ([o-3..o-1]) v2 önyazılarıyla uyuşmazlığı. */
+    preludeMismatch: number;
+    /** KANIT'lı B0 alanlarının nakil şablonuna geri yazımı (kural 5). */
+    b0Wins: {
+      beamLabels: number;
+      wallLabels: number;
+      /** Donör hasadı kaynaklı perde etiketlerinde kanonik↔depolanmış sapma
+       * (değer A0'nın kendisinden geldiği için A0'nın baytları kalır; işaretli). */
+      wallLabelCanonicalDivergences: number;
+      slabLines: number;
+      wallRebar: number;
+      beamRebar: number;
+      raftRebar: number;
+      stairMarkers: number;
+      /** Gerçekte değişen bayt sayısı (beklenen: 0 — t33 makinesi bayt-özdeş). */
+      slotBytesWritten: number;
+      /** Yuva uzunluk uyuşmazlığı (yerleşim kırıcı — HARD-FAIL). */
+      slotLengthMismatches: number;
+      /** Bulunamayan B0-wins yuvası (HARD-FAIL). */
+      slotNotFound: number;
+      /** Geri yazılan alanda B0≠A0 kalan konumlar (işaretli; envanter sınıfı). */
+      conflicts: Array<{ kind: string; v3Offset: number; a0Offset: number; b0: string; a0: string; ulp: boolean }>;
+    };
+    /**
+     * A0-kalıntı envanteri: nakledilen gap'lerde B0≠A0 kalan DEĞER konumları.
+     * Yeniden hesap sınıfı (ulpItems) = v11 yeniden hesap artıkları (|Δ| ≤ 1e-9
+     * oracle toleransı; strictUlp = bit uzaklığı ≤ 1 ULP); conflict sınıfı =
+     * gerçek değer çatışması (10,67↔11,15 sınıfı) — ikisi de işaretli.
+     */
+    a0Remnants: {
+      /** Karşılaştırılan geometri f64 alan sayısı (nokta koordinatları + nativeZ + genişlik). */
+      geometryCompared: number;
+      /** Bit-özdeş eşlenen alan sayısı. */
+      geometryBitExact: number;
+      ulpItems: Array<{ field: string; v3Offset: number; a0Offset: number; b0Value: number; a0Value: number; strictUlp: boolean }>;
+      conflicts: Array<{ field: string; v3Offset: number; a0Offset: number; b0Value: number; a0Value: number; strictUlp: boolean }>;
     };
   };
   outputBytes: number;
@@ -1257,6 +1330,12 @@ export function transcodeIde11TrialToIde11(
  *    ara bölge, F9 komşulukları, kuyruk) donör+çalışma sözlüğüyle yerinde
  *    çözülür — V-ENCODED "encoded=0 gövde" sözleşmesi gövde geneline taşınır
  *    (T-F3.4'teki 3/3 APPCRASH'in kök nedeniydi).
+ * 4c. **Gap-düzeyi A0 nakli (T-F3.3d, H2):** v1≡v2 aynı çöküş sınıfı DEĞER
+ *    katmanını eler; kalan v11-YERLEŞİM kalıntıları tüm akış-dışı koşularda
+ *    A0 donöründen nakledilerek onarılır (beş bölge Δlen=0; çerçeveler/kafa
+ *    v2'nin); KANIT'lı B0 alanları geri yazılır; B0≠A0 değer konumları işaretli
+ *    envantere girer. Akış-çapa (çerçeve sayısı + rawLen dizisi) uyumsuzsa nakil
+ *    atlanır ve dönüşüm v2 gövdesiyle devam eder (neden diagnostics'te).
  * 5. Taşıyıcı 201094/encoded=0 ile yeniden mühürlenir (CRC32 [88,EOF)).
  */
 export function transcodeIde11TrialToIde10(
@@ -1363,7 +1442,18 @@ export function transcodeIde11TrialToIde10(
   if (donor && donorScan) {
     sweepRemainingIdeEncodedBlocks(work, donor, diagnostics);
   }
-  // 5) Taşıyıcı mührü: v10 sürümü + düz gövde + CRC32.
+  // 4c) T-F3.3d — H2 onarımı: A0'dan gap-düzeyi nakil. v1≡v2 aynı çöküş sınıfı
+  // değer katmanını eler; v11-yerleşim kalıntıları (ELEMAN ±168 sınıfı, ARA/
+  // BASLIK/KUYRUK kaymaları, F9-KABUK eksik kuyrukları, yabanıl sayımlar)
+  // akış-dışı koşularda kaldığı için TÜM çerçeve-dışı baytlar A0'dan nakledilir
+  // (bölge Δlen=0); çerçeveler + kafa v2'nin kalır; KANIT'lı B0 alanları nakil
+  // şablonuna geri yazılır (B0-wins); B0≠A0 kalan değer konumları işaretli
+  // A0-kalıntı envanterine girer (şema alan-haritası takip görevine devir).
+  if (donor && donorScan) {
+    work = transplantIde10GapLayout(work, donor, donorScan, options.wallSectionOverrides, donorWallOverrides, diagnostics);
+    diagnostics.outputBytes = work.length;
+  }
+  // 5) Taşıyıcı mührü: v10 sürümü + düz gövde + CRC32 (kural 4 — length@79/crc@83).
   return sealIdeCarrierHeader(work, { formatVersion: IDE10_VERSION, encodedFlag: 0 });
 }
 
@@ -1493,6 +1583,539 @@ function sweepRemainingIdeEncodedBlocks(
   };
 }
 
+// --- T-F3.3d: gap-düzeyi A0 nakli (H2 yerleşim onarımı) — yardımcılar ---
+
+/** Etiket yuvası: [u32 uzunluk][CP1254 baytlar][NUL] — uzunluk NUL dahil (okuyucu düzeni). */
+interface TransplantLabelSlot {
+  at: number;
+  text: string;
+}
+
+function readTransplantRecordString(bytes: Uint8Array, view: DataView, at: number, end: number): string | undefined {
+  if (at < 0 || at + 4 > end || at + 4 > bytes.length) return;
+  const length = view.getUint32(at, true);
+  if (length < 3 || length > 64 || at + 4 + length > end || at + 3 + length >= bytes.length) return;
+  if (bytes[at + 3 + length] !== 0) return;
+  const text = bytes.subarray(at + 4, at + 3 + length);
+  if (text.some(value => value < 32 || value === 127 || value === 255)) return;
+  return decodeCp1254(text);
+}
+
+/** Kiriş kesit etiketi: öznitelik penceresindeki ilk `W/H` biçimli dize. */
+function findTransplantBeamLabelSlot(
+  bytes: Uint8Array,
+  view: DataView,
+  attrStart: number,
+  windowEnd: number,
+): TransplantLabelSlot | undefined {
+  for (let at = attrStart + 250; at + 8 < windowEnd; at++) {
+    const text = readTransplantRecordString(bytes, view, at, windowEnd);
+    if (text && /^\d+(?:\.\d+)?\/\d+(?:\.\d+)?$/.test(text)) return { at, text };
+  }
+  return undefined;
+}
+
+/** Perde kesit yuvaları: kesit dizesi + `ad kesit` yoldaşı (okuyucu/plan deseni). */
+function findTransplantWallLabelSlots(
+  bytes: Uint8Array,
+  view: DataView,
+  attrStart: number,
+  windowEnd: number,
+  name: string,
+): { section: TransplantLabelSlot; companion: TransplantLabelSlot } | undefined {
+  const strings: TransplantLabelSlot[] = [];
+  for (let at = attrStart + 400; at + 8 < windowEnd; at++) {
+    const text = readTransplantRecordString(bytes, view, at, windowEnd);
+    if (text) strings.push({ at, text });
+  }
+  for (const s of strings) {
+    if (!/^\d+(?:\.\d+)?\/\d+(?:\.\d+)?$/.test(s.text)) continue;
+    const companion = strings.find(t => t.text === `${name} ${s.text}`);
+    if (!companion) continue;
+    return { section: s, companion };
+  }
+  return undefined;
+}
+
+/** İki düz f64'nin sınıfı: eşit / 1-ULP (v11 yeniden hesap) / değer çatışması / karşılaştırılamaz. */
+function classifyTransplantF64Pair(b0: number, a0: number): "equal" | "ulp" | "conflict" | "invalid" {
+  if (b0 === a0) return "equal";
+  if (!Number.isFinite(b0) || !Number.isFinite(a0)) return "invalid";
+  const scratch = new DataView(new ArrayBuffer(8));
+  scratch.setFloat64(0, b0, true);
+  const b0h = scratch.getUint32(0, false), b0l = scratch.getUint32(4, false);
+  scratch.setFloat64(0, a0, true);
+  const a0h = scratch.getUint32(0, false), a0l = scratch.getUint32(4, false);
+  if (b0h === a0h && Math.abs(b0l - a0l) <= 1) return "ulp";
+  if (b0h - a0h === 1 && b0l - a0l === -(2 ** 32 - 1)) return "ulp";
+  if (b0h - a0h === -1 && b0l - a0l === 2 ** 32 - 1) return "ulp";
+  return "conflict";
+}
+
+/**
+ * T-F3.3d — H2 onarımı: **v3 = A0'dan gap-düzeyi nakil** (fikir-t33d §2).
+ *
+ * Kanıt tabanı: v1≡v2 aynı çöküş sınıfı (VCRUNTIME140.dll ~0x1de2x) — 477.416
+ * değer yerinde çözüldüğü halde çöküş uzaklık/süre sınıfı değişmedi → güdü
+ * süpürmenin dokunmadığı küme {yerleşim ∪ sözlük-dışı}; comp ve 1-ULP aklandı
+ * (fikir §1 madde 6-7) → baskın sınıf YERLEŞİM. v2'nin akış-dışı koşularında
+ * kalan v11-yerleşim kalıntıları (ELEMAN ±168 sınıfı, ARA/BASLIK/KUYRUK kaymaları,
+ * F9-KABUK eksik 24B kuyrukları, 0x568fc02b sınıfı yabanıl sayımlar) v10
+ * yükleyicisinin sayım→realloc→kopya hatlarında ölümcüldü.
+ *
+ * Uygulama (re-ankraj kuralları 1-5):
+ * 1. Çapa akış-İNDEKSİ: her iki tarafta da 201094 çerçeveleri taranır; sayı ve
+ *    rawLen dizisi eşitliği kanıt çapasıdır (mutlak ofset değil — Δlen birikir).
+ * 2. Çerçeveler (başlık+comp+payload) ve kafa ([0,previewEnd): başlık+ad+preview
+ *    + kilit bölgesi) v2'nin kalır.
+ * 3. TÜM çerçeve-dışı koşular (BASLIK-ONKAT + ELEMAN 1.885 akış-arkası gap +
+ *    ARA-BÖLGE + F9-KABUK + KUYRUK) A0 donöründen nakledilir → bölge Δlen=0.
+ * 4. Mühür mevcut taşıyıcı sözleşmesiyle yeniden atılır (CRC32 [88,EOF) +
+ *    length@79/crc@83 — sealIdeCarrierHeader).
+ * 5. KANIT'lı B0 alanları nakil şablonuna geri yazılır: XX etiketleri (kiriş
+ *    ölçülmüş geometriden, perde donör gerçek değerinden), döşeme p+470 yük
+ *    hattı, 468 donatı bloğu (R4 builder çıktısı), merdiven işaretçisi
+ *    (çerçeve geçişi kuralı 2 ile korunur). Yuva bulunamazsa/uzunluk kırarsa
+ *    HARD-FAIL (inşaa B0≠A0 çatışığında tıkanır — sessiz değil).
+ *
+ * A0-kalıntı envanteri (sessiz değil): nakledilen gap'lerde B0≠A0 kalan DEĞER
+ * konumları — 1-ULP sınıfı (v11 yeniden hesap) ve gerçek değer çatışmaları —
+ * işaretli listeye girer ve şema alan-haritası takip görevine devredilir.
+ * Uydurma yok: yerleşim A0'dan, anlamlı B0 alanları B0'dan, çatışan değerler
+ * ENVANTERDE.
+ */
+function transplantIde10GapLayout(
+  work: Uint8Array,
+  donor: Uint8Array,
+  donorScan: Ide10BodyScan,
+  userWallSections: ReadonlyMap<number, string> | undefined,
+  donorWallSections: ReadonlyMap<number, string> | undefined,
+  diagnostics: Ide10TranscodeDiagnostics,
+): Uint8Array {
+  const donorDiag = diagnostics.donor;
+  if (!donorDiag) return work;
+  const workView = new DataView(work.buffer, work.byteOffset, work.byteLength);
+  const donorView = new DataView(donor.buffer, donor.byteOffset, donor.byteLength);
+  const workNameLen = workView.getUint32(96, true);
+  const workPreviewEnd = 116 + workNameLen + workView.getUint32(112 + workNameLen, true);
+  const donorNameLen = donorView.getUint32(96, true);
+  const donorPreviewEnd = 116 + donorNameLen + donorView.getUint32(112 + donorNameLen, true);
+
+  const framesW = scanIdeSubStreamFrames(work, IDE10_VERSION);
+  const framesD = scanIdeSubStreamFrames(donor, IDE10_VERSION);
+  const transplant: NonNullable<Ide10TranscodeDiagnostics["gapTransplant"]> = {
+    applied: false,
+    framesMatched: framesW.length === framesD.length ? framesW.length : 0,
+    rawLenMismatch: 0,
+    gapSegments: framesW.length + 1,
+    regionBoundaries: { araGapIndex: -1, kuyrukGapIndex: framesD.length },
+    regionGapCounts: {},
+    regionLenDelta: {},
+    headBytesWork: workPreviewEnd,
+    frameBytesWork: 0,
+    gapBytesDonor: 0,
+    preludeMismatch: 0,
+    b0Wins: {
+      beamLabels: 0, wallLabels: 0, wallLabelCanonicalDivergences: 0, slabLines: 0,
+      wallRebar: 0, beamRebar: 0, raftRebar: 0, stairMarkers: 0,
+      slotBytesWritten: 0, slotLengthMismatches: 0, slotNotFound: 0, conflicts: [],
+    },
+    a0Remnants: {
+      geometryCompared: 0, geometryBitExact: 0, ulpItems: [], conflicts: [],
+    },
+  };
+  diagnostics.gapTransplant = transplant;
+
+  if (framesW.length === 0 || framesW.length !== framesD.length) {
+    transplant.reason = `akış-çapa uyumsuz: v2 gövdesinde ${framesW.length}, A0'da ${framesD.length} 201094 çerçevesi; nakil atlandı (v2 gövdesi korundu).`;
+    return work;
+  }
+  let rawLenMismatch = 0;
+  for (let i = 0; i < framesW.length; i++) {
+    if (framesW[i].rawLength !== framesD[i].rawLength) rawLenMismatch++;
+  }
+  transplant.rawLenMismatch = rawLenMismatch;
+  if (rawLenMismatch > 0) {
+    transplant.reason = `akış-çapa uyumsuz: ${rawLenMismatch} çerçevenin rawLen'i A0 ile uyuşmuyor; nakil atlandı (v2 gövdesi korundu).`;
+    return work;
+  }
+
+  // Bölge sınırları (t33c fark haritası düzeni): son kaydın çerçevesinden
+  // sonraki gap ARA-BÖLGE; son gap KUYRUK.
+  const lastDonorRecord = donorScan.records[donorScan.records.length - 1];
+  const lastRecordFrameIdx = framesD.findIndex(f => f.offset >= lastDonorRecord.nameOffset);
+  if (lastRecordFrameIdx < 0) {
+    transplant.reason = "bölge sınırı çözümlenemedi: son kayıt çerçevesi bulunamadı; nakil atlandı (v2 gövdesi korundu).";
+    return work;
+  }
+  const frameCount = framesW.length;
+  const araGapIndex = lastRecordFrameIdx + 1;
+  const kuyrukGapIndex = frameCount;
+  transplant.regionBoundaries = { araGapIndex, kuyrukGapIndex };
+  const regionOfGap = (idx: number): string => {
+    if (idx === 0) return "BASLIK-ONKAT";
+    if (idx < araGapIndex) return "ELEMAN-KAYITLARI";
+    if (idx === araGapIndex) return "ARA-BOLGE";
+    if (idx < kuyrukGapIndex) return "F9-KABUK";
+    return "KUYRUK";
+  };
+
+  // --- Yeniden birleşim: kafa v2'nin; TÜM gap koşuları A0'nın; çerçeveler v2'nin. ---
+  const donorGapStarts: number[] = [];
+  const v3GapStarts: number[] = [];
+  let totalBytes = workPreviewEnd;
+  for (let i = 0; i <= frameCount; i++) {
+    const start = i === 0 ? donorPreviewEnd : framesD[i - 1].endOffset;
+    const end = i < frameCount ? framesD[i].offset : donor.length;
+    totalBytes += end - start;
+    donorGapStarts.push(start);
+  }
+  for (let i = 0; i < frameCount; i++) {
+    totalBytes += framesW[i].endOffset - framesW[i].offset;
+  }
+  const out = new Uint8Array(totalBytes);
+  out.set(work.subarray(0, workPreviewEnd), 0);
+  let cursor = workPreviewEnd;
+  for (let i = 0; i < frameCount; i++) {
+    const gapStart = donorGapStarts[i];
+    const gapEnd = i < frameCount ? framesD[i].offset : donor.length;
+    out.set(donor.subarray(gapStart, gapEnd), cursor);
+    v3GapStarts.push(cursor);
+    transplant.gapBytesDonor += gapEnd - gapStart;
+    cursor += gapEnd - gapStart;
+    out.set(work.subarray(framesW[i].offset, framesW[i].endOffset), cursor);
+    transplant.frameBytesWork += framesW[i].endOffset - framesW[i].offset;
+    cursor += framesW[i].endOffset - framesW[i].offset;
+  }
+  const tailStart = donorGapStarts[frameCount];
+  out.set(donor.subarray(tailStart, donor.length), cursor);
+  v3GapStarts.push(cursor);
+  transplant.gapBytesDonor += donor.length - tailStart;
+  cursor += donor.length - tailStart;
+  if (cursor !== totalBytes) {
+    throw new Error(`T-F3.3d nakil birleşimi: boyut muhasebesi tutmadı (${cursor} != ${totalBytes}).`);
+  }
+
+  /** A0 ofseti → v3 ofseti (gap koşuları içinde; çapa akış-indeksi). */
+  const mapDonorToV3 = (donorOffset: number): number => {
+    let lo = 0, hi = donorGapStarts.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (donorGapStarts[mid] <= donorOffset) lo = mid; else hi = mid - 1;
+    }
+    const gapEnd = lo < frameCount ? framesD[lo].offset : donor.length;
+    if (donorOffset < donorGapStarts[lo] || donorOffset >= gapEnd) {
+      throw new Error(`T-F3.3d nakil haritası: A0 ofseti ${donorOffset} bir gap koşusuna düşmüyor (gap ${lo}).`);
+    }
+    return v3GapStarts[lo] + (donorOffset - donorGapStarts[lo]);
+  };
+  const outView = new DataView(out.buffer, out.byteOffset, out.byteLength);
+
+  // --- Bölge muhasebesi (kural 3): v3'teki her koşu A0'nın koşusudur → Δlen=0.
+  for (let i = 0; i <= frameCount; i++) {
+    const region = regionOfGap(i);
+    transplant.regionGapCounts[region] = (transplant.regionGapCounts[region] ?? 0) + 1;
+  }
+
+  // Önyazı baytları ([o-3..o-1]): v3 = A0'nın; v2 ile uyuşmayan çerçeve sayısı (t33c ölçümü 0).
+  for (let i = 0; i < frameCount; i++) {
+    const v3FrameStart = v3GapStarts[i] + (framesD[i].offset - donorGapStarts[i]);
+    const v2Start = framesW[i].offset;
+    if (
+      out[v3FrameStart - 3] !== work[v2Start - 3] ||
+      out[v3FrameStart - 2] !== work[v2Start - 2] ||
+      out[v3FrameStart - 1] !== work[v2Start - 1]
+    ) {
+      transplant.preludeMismatch++;
+    }
+  }
+
+  // --- B0-wins geri-enjeksiyon (kural 5) + A0-kalıntı envanteri. ---
+  const workScan = scanIde10BodyRecords(work);
+  if (workScan.records.length !== donorScan.records.length) {
+    throw new Error(`T-F3.3d nakil çapası: v2 gövde kayıt sayısı (${workScan.records.length}) A0 ile (${donorScan.records.length}) uyuşmuyor.`);
+  }
+  const workInterEnd = lastRecordInterEnd(workScan, framesW);
+  const donorInterEnd = lastRecordInterEnd(donorScan, framesD);
+  const remnantCap = 20_000;
+  const remnantFull = () => transplant.a0Remnants.ulpItems.length + transplant.a0Remnants.conflicts.length >= remnantCap;
+
+  const recordFrameOf = (frames: Array<{ offset: number; endOffset: number; rawLength: number }>, nameOffset: number, nextGeom: number) =>
+    lastFrameInRange(frames, nameOffset, nextGeom);
+
+  for (let i = 0; i < workScan.records.length; i++) {
+    const w = workScan.records[i], d = donorScan.records[i];
+    if (w.nativeId !== d.nativeId || w.name !== d.name) {
+      throw new Error(`T-F3.3d nakil çapası: kayıt ${i} hizası bozuk (v2 ${w.name}:${w.nativeId}, A0 ${d.name}:${d.nativeId}).`);
+    }
+    const nextGeomW = i + 1 < workScan.records.length ? workScan.records[i + 1].geometryOffset : workInterEnd;
+    const nextGeomD = i + 1 < donorScan.records.length ? donorScan.records[i + 1].geometryOffset : donorInterEnd;
+    const pW = w.nameOffset + w.name.length + 1;
+    const pD = d.nameOffset + d.name.length + 1;
+    const workFrame = recordFrameOf(framesW, w.nameOffset, nextGeomW);
+    const donorFrame = recordFrameOf(framesD, d.nameOffset, nextGeomD);
+    const workWindowEnd = Math.min(pW + 1800, workFrame?.offset ?? Number.MAX_SAFE_INTEGER, nextGeomW - 8, work.length);
+    const donorWindowEnd = Math.min(pD + 1800, donorFrame?.offset ?? Number.MAX_SAFE_INTEGER, nextGeomD - 8, donor.length);
+
+    // Kiriş etiketi: v2 tarafında yuva varsa (plan splice'ı) A0 yuvasına geri yaz.
+    if (w.primitiveType === 5) {
+      const b0Slot = findTransplantBeamLabelSlot(work, workView, pW, workWindowEnd);
+      if (b0Slot) {
+        const a0Slot = findTransplantBeamLabelSlot(donor, donorView, pD, donorWindowEnd);
+        if (!a0Slot) {
+          transplant.b0Wins.slotNotFound++;
+          throw new Error(`T-F3.3d B0-wins: kiriş ${w.name}:${w.nativeId} için A0 etiket yuvası bulunamadı (v2 değeri "${b0Slot.text}").`);
+        }
+        const b0SlotLen = 4 + b0Slot.text.length + 1;
+        const a0SlotLen = 4 + a0Slot.text.length + 1;
+        if (b0SlotLen !== a0SlotLen) {
+          transplant.b0Wins.slotLengthMismatches++;
+          throw new Error(`T-F3.3d B0-wins: kiriş ${w.name}:${w.nativeId} etiket yuva uzunluğu kırıyor (v2 ${b0SlotLen}, A0 ${a0SlotLen}) — yerleşim korunamaz.`);
+        }
+        transplant.b0Wins.beamLabels++;
+        const v3At = mapDonorToV3(a0Slot.at);
+        const b0Bytes = work.subarray(b0Slot.at, b0Slot.at + b0SlotLen);
+        const a0Bytes = donor.subarray(a0Slot.at, a0Slot.at + a0SlotLen);
+        for (let j = 0; j < b0SlotLen; j++) {
+          if (b0Bytes[j] !== a0Bytes[j]) {
+            out[v3At + j] = b0Bytes[j];
+            transplant.b0Wins.slotBytesWritten++;
+          }
+        }
+        if (b0Slot.text !== a0Slot.text) {
+          transplant.b0Wins.conflicts.push({ kind: "beamLabel", v3Offset: v3At, a0Offset: a0Slot.at, b0: b0Slot.text, a0: a0Slot.text, ulp: false });
+        }
+      }
+    }
+
+    // Perde etiketleri: kesit + `ad kesit` yoldaşı. KAYNAK-politikası:
+    // kullanıcı override'u → B0 kazanır (geri yaz); donör hasadı → değerin
+    // kaynağı A0'nın kendisi → A0'nın DEPOLANMIŞ baytları kalır, kanonik
+    // sapma işaretli envantere girer; ikisi de değilse (B0 geometri ölçümü)
+    // → B0 kazanır (geri yaz).
+    if (w.primitiveType === 17 && w.points.length === 2 && w.width > 0) {
+      const b0Slots = findTransplantWallLabelSlots(work, workView, pW, workWindowEnd, w.name);
+      if (b0Slots) {
+        const a0Slots = findTransplantWallLabelSlots(donor, donorView, pD, donorWindowEnd, d.name);
+        if (!a0Slots) {
+          transplant.b0Wins.slotNotFound++;
+          throw new Error(`T-F3.3d B0-wins: perde ${w.name}:${w.nativeId} için A0 etiket yuvaları bulunamadı (v2 kesiti "${b0Slots.section.text}").`);
+        }
+        const userWins = userWallSections?.has(w.nativeId) === true;
+        const donorSourced = donorWallSections?.has(w.nativeId) === true;
+        const pairs: Array<{ b0: TransplantLabelSlot; a0: TransplantLabelSlot; kind: string }> = [
+          { b0: b0Slots.section, a0: a0Slots.section, kind: "wallLabel" },
+          { b0: b0Slots.companion, a0: a0Slots.companion, kind: "wallLabelName" },
+        ];
+        for (const pair of pairs) {
+          const b0SlotLen = 4 + pair.b0.text.length + 1;
+          const a0SlotLen = 4 + pair.a0.text.length + 1;
+          if (b0SlotLen !== a0SlotLen) {
+            transplant.b0Wins.slotLengthMismatches++;
+            throw new Error(`T-F3.3d B0-wins: perde ${w.name}:${w.nativeId} ${pair.kind} yuva uzunluğu kırıyor — yerleşim korunamaz.`);
+          }
+          if (pair.b0.text !== pair.a0.text) {
+            if (donorSourced && !userWins) {
+              // Değer A0 hasadından (t33 wallSectionOverrides) — A0'nın depolanmış
+              // etiketi gerçek v10 yazıcısının baytlarıdır; kanonik sapma ENVANTERDE.
+              transplant.b0Wins.wallLabelCanonicalDivergences++;
+              transplant.b0Wins.conflicts.push({
+                kind: `${pair.kind}-canonical`, v3Offset: mapDonorToV3(pair.a0.at), a0Offset: pair.a0.at,
+                b0: pair.b0.text, a0: pair.a0.text, ulp: false,
+              });
+              continue;
+            }
+            transplant.b0Wins.conflicts.push({
+              kind: pair.kind, v3Offset: mapDonorToV3(pair.a0.at), a0Offset: pair.a0.at,
+              b0: pair.b0.text, a0: pair.a0.text, ulp: false,
+            });
+          }
+          const v3At = mapDonorToV3(pair.a0.at);
+          const b0Bytes = work.subarray(pair.b0.at, pair.b0.at + b0SlotLen);
+          const a0Bytes = donor.subarray(pair.a0.at, pair.a0.at + a0SlotLen);
+          for (let j = 0; j < b0SlotLen; j++) {
+            if (b0Bytes[j] !== a0Bytes[j]) {
+              out[v3At + j] = b0Bytes[j];
+              transplant.b0Wins.slotBytesWritten++;
+            }
+          }
+        }
+        transplant.b0Wins.wallLabels++;
+      }
+    }
+
+    // Döşeme p+470 yük hattı: 4 f64 (canlı/ölü + iki korunmuş alan), aralık +16/+8/+8.
+    if (w.primitiveType === 7) {
+      const targets: number[] = [];
+      let workBase = -1;
+      for (const base of [481, 485]) {
+        const values = [0, 16, 24, 32].map(k => workView.getFloat64(pW + base + k, true));
+        if (values.every(v => Number.isFinite(v) && (v === 0 || (Math.abs(v) >= 1e-6 && Math.abs(v) <= 1e4)))) {
+          targets.push(...values);
+          workBase = base;
+          break;
+        }
+      }
+      if (workBase >= 0) {
+        // A0 yuvası: +16/+8/+8 aralıklı 4 makul f64 örüntüsü; B0 değerlerine en yakın aday.
+        const candidateEnd = Math.min(pD + 900, donorFrame?.offset ?? Number.MAX_SAFE_INTEGER, nextGeomD - 40);
+        const offsets = [0, 16, 24, 32];
+        let bestAt = -1, bestScore = Number.POSITIVE_INFINITY, bestDist = Number.POSITIVE_INFINITY;
+        for (let x = pD + 380; x + 40 <= candidateEnd; x++) {
+          let ok = true;
+          const values: number[] = [];
+          for (const k of offsets) {
+            const v = donorView.getFloat64(x + k, true);
+            if (!Number.isFinite(v) || !(v === 0 || (Math.abs(v) >= 1e-6 && Math.abs(v) <= 1e4))) { ok = false; break; }
+            values.push(v);
+          }
+          if (!ok) continue;
+          let score = 0;
+          for (let k = 0; k < 4; k++) score += Math.abs(targets[k] - values[k]);
+          const dist = Math.abs(x - (pD + 481));
+          if (score < bestScore || (score === bestScore && dist < bestDist)) { bestAt = x; bestScore = score; bestDist = dist; }
+        }
+        if (bestAt < 0) {
+          transplant.b0Wins.slotNotFound++;
+          throw new Error(`T-F3.3d B0-wins: döşeme ${w.name}:${w.nativeId} için A0 yük hattı yuvası bulunamadı.`);
+        }
+        transplant.b0Wins.slabLines++;
+        const v3At = mapDonorToV3(bestAt);
+        const fieldNames = ["live", "dead", "preservedA", "preservedB"];
+        for (let k = 0; k < 4; k++) {
+          const b0Value = targets[k];
+          const a0Value = donorView.getFloat64(bestAt + offsets[k], true);
+          if (b0Value === a0Value) continue;
+          const ulp = classifyTransplantF64Pair(b0Value, a0Value) === "ulp";
+          transplant.b0Wins.conflicts.push({ kind: `slabLine.${fieldNames[k]}`, v3Offset: v3At + offsets[k], a0Offset: bestAt + offsets[k], b0: String(b0Value), a0: String(a0Value), ulp });
+          const bytes = new Uint8Array(8);
+          new DataView(bytes.buffer).setFloat64(0, b0Value, true);
+          for (let j = 0; j < 8; j++) {
+            if (out[v3At + offsets[k] + j] !== bytes[j]) {
+              out[v3At + offsets[k] + j] = bytes[j];
+              transplant.b0Wins.slotBytesWritten++;
+            }
+          }
+        }
+      }
+    }
+
+    // 468 donatı bloğu: R4 kayıt listeleriyle (wall/beam dilim içinde, raft özniteliklerde).
+    if (workFrame && donorFrame) {
+      const sliceW = work.subarray(workFrame.endOffset, nextGeomW);
+      const sliceD = donor.subarray(donorFrame.endOffset, nextGeomD);
+      if (donorDiag.r4.wallRecords?.includes(i) && sliceW.length >= IDE10_WALL_REBAR_TAIL_OFFSET + 40 && sliceD.length >= IDE10_WALL_REBAR_TAIL_OFFSET + 40) {
+        transplant.b0Wins.wallRebar++;
+        const v3SliceAt = mapDonorToV3(donorFrame.endOffset);
+        for (let j = 0; j < 40; j++) {
+          const b0 = sliceW[IDE10_WALL_REBAR_TAIL_OFFSET + j];
+          if (out[v3SliceAt + IDE10_WALL_REBAR_TAIL_OFFSET + j] !== b0) {
+            out[v3SliceAt + IDE10_WALL_REBAR_TAIL_OFFSET + j] = b0;
+            transplant.b0Wins.slotBytesWritten++;
+          }
+        }
+      }
+      if (donorDiag.r4.beamRecords?.includes(i)) {
+        const atW = findIde10BeamRebarBlockInSlice(sliceW);
+        const atD = findIde10BeamRebarBlockInSlice(sliceD);
+        if (atW < 0 || atD < 0) {
+          transplant.b0Wins.slotNotFound++;
+          throw new Error(`T-F3.3d B0-wins: kiriş donatı bloğu ${w.name}:${w.nativeId} çözümlenemedi (v2 ${atW}, A0 ${atD}).`);
+        }
+        transplant.b0Wins.beamRebar++;
+        const v3SliceAt = mapDonorToV3(donorFrame.endOffset);
+        for (let j = 0; j < IDE10_BEAM_REBAR_RECORD_LENGTH; j++) {
+          const b0 = sliceW[atW + j];
+          if (out[v3SliceAt + atD + j] !== b0) {
+            out[v3SliceAt + atD + j] = b0;
+            transplant.b0Wins.slotBytesWritten++;
+          }
+        }
+      }
+    }
+    if (donorDiag.r4.raftRecords?.includes(i)) {
+      transplant.b0Wins.raftRebar++;
+      const v3At = mapDonorToV3(pD + IDE10_RAFT_REBAR_ATTR_OFFSET);
+      for (let j = 0; j < 16; j++) {
+        const b0 = work[pW + IDE10_RAFT_REBAR_ATTR_OFFSET + j];
+        if (out[v3At + j] !== b0) {
+          out[v3At + j] = b0;
+          transplant.b0Wins.slotBytesWritten++;
+        }
+      }
+    }
+
+    // Merdiven işaretçisi: çerçeveler v2'nin (kural 2) — v3'te sihir 201094 +
+    // önyazı [1][1][0] denetlenir (plan bayrak 0 + hedef sürüm yazar).
+    if (w.primitiveType === 40 && workFrame) {
+      const frameIdx = framesW.indexOf(workFrame);
+      const v3FrameStart = v3GapStarts[frameIdx] + (framesD[frameIdx].offset - donorGapStarts[frameIdx]);
+      if (
+        outView.getUint32(v3FrameStart, true) === IDE10_VERSION &&
+        out[v3FrameStart - 3] === 1 && out[v3FrameStart - 2] === 1 && out[v3FrameStart - 1] === 0
+      ) {
+        transplant.b0Wins.stairMarkers++;
+      }
+    }
+
+    // --- A0-kalıntı envanteri: geometri f64 alanları (noktalar + nativeZ + genişlik).
+    // Sınıflandırma: bit-özdeş / yeniden hesap (|Δ| ≤ 1e-9 — t33 oracle close()
+    // toleransı; v11 yeniden hesap sınıfının ölçütlü karşılığı) / gerçek değer
+    // çatışması (10,67↔11,15 sınıfı). strictUlp = bit uzaklığı ≤ 1 ULP.
+    const wTail = w.geometryOffset + 8 + w.points.length * 16;
+    const dTail = d.geometryOffset + 8 + d.points.length * 16;
+    const compareField = (field: string, wOffset: number, dOffset: number) => {
+      const b0Value = workView.getFloat64(wOffset, true);
+      const a0Value = donorView.getFloat64(dOffset, true);
+      transplant.a0Remnants.geometryCompared++;
+      if (b0Value === a0Value) {
+        transplant.a0Remnants.geometryBitExact++;
+        return;
+      }
+      if (!Number.isFinite(b0Value) || !Number.isFinite(a0Value)) return;
+      const strictUlp = classifyTransplantF64Pair(b0Value, a0Value) === "ulp";
+      const recompute = Math.abs(b0Value - a0Value) <= 1e-9;
+      if (remnantFull()) return;
+      const item = { field: `${w.name}:${w.nativeId}.${field}`, v3Offset: mapDonorToV3(dOffset), a0Offset: dOffset, b0Value, a0Value, strictUlp };
+      if (recompute) transplant.a0Remnants.ulpItems.push(item);
+      else transplant.a0Remnants.conflicts.push(item);
+    };
+    if (w.points.length === d.points.length) {
+      for (let j = 0; j < w.points.length; j++) {
+        compareField(`point[${j}].x`, w.geometryOffset + 8 + j * 16, d.geometryOffset + 8 + j * 16);
+        compareField(`point[${j}].y`, w.geometryOffset + 16 + j * 16, d.geometryOffset + 16 + j * 16);
+      }
+    } else if (!remnantFull()) {
+      transplant.a0Remnants.conflicts.push({
+        field: `${w.name}:${w.nativeId}.points.length`, v3Offset: mapDonorToV3(dTail), a0Offset: dTail,
+        b0Value: w.points.length, a0Value: d.points.length, strictUlp: false,
+      });
+    }
+    compareField("nativeZ", wTail + 4, dTail + 4);
+    compareField("width", wTail + 12, dTail + 12);
+  }
+
+  // --- Bölge Δlen doğrulaması (kural 3): v3 koşuları A0'nın koşuları. ---
+  const v3Frames = scanIdeSubStreamFrames(out, IDE10_VERSION);
+  if (v3Frames.length !== frameCount) {
+    throw new Error(`T-F3.3d nakil sonrası: v3 gövdesinde ${v3Frames.length} çerçeve (beklenen ${frameCount}).`);
+  }
+  for (let i = 0; i <= frameCount; i++) {
+    const a0Len = (i < frameCount ? framesD[i].offset : donor.length) - donorGapStarts[i];
+    const v3Len = (i < frameCount ? v3Frames[i].offset : out.length) - v3GapStarts[i];
+    const region = regionOfGap(i);
+    transplant.regionLenDelta[region] = (transplant.regionLenDelta[region] ?? 0) + (v3Len - a0Len);
+  }
+  for (const [region, delta] of Object.entries(transplant.regionLenDelta)) {
+    if (delta !== 0) {
+      throw new Error(`T-F3.3d nakil kuralı 3 ihlali: bölge ${region} Δlen=${delta} (0 olmalı).`);
+    }
+  }
+
+  transplant.applied = true;
+  return out;
+}
+
 /** Donör v10 bölgelerini uygular ve birleşik gövdeyi döndürür. */
 function applyIde10DonorRegions(
   work: Uint8Array,
@@ -1516,7 +2139,7 @@ function applyIde10DonorRegions(
     preFloorSplice: { workFrom: 0, workTo: 0, donorFrom: 0, donorTo: 0 },
     r1: { records: 0, slotsBitExact: 0, slotsDonorFallback: 0, donorSlots: [], zarfDonorBytes: 0, preludeDonorBytes: 0 },
     r3: { patches: 0, patchesChangedBytes: 0, fieldsBitExact: false },
-    r4: { wall: 0, beam: 0, raft: 0, blocksVerified: 0, blockMismatches: 0, tupleUnresolved: 0 },
+    r4: { wall: 0, beam: 0, raft: 0, blocksVerified: 0, blockMismatches: 0, tupleUnresolved: 0, wallRecords: [], beamRecords: [], raftRecords: [] },
     r5: { tables: 0, regionBytesEqual: false, headerBytesDonor: 0 },
     spectrum: { fieldsBitExact: false },
     wallOverridesFromDonor: 0,
@@ -1775,6 +2398,9 @@ function applyIde10RebarInterRegions(
 ): void {
   const donorInterEnd = lastRecordInterEnd(donorScan, donorFrames);
   const workInterEnd = lastRecordInterEnd(workScan, workFrames);
+  donorDiag.r4.wallRecords = donorDiag.r4.wallRecords ?? [];
+  donorDiag.r4.beamRecords = donorDiag.r4.beamRecords ?? [];
+  donorDiag.r4.raftRecords = donorDiag.r4.raftRecords ?? [];
   for (let i = 0; i < workScan.records.length; i++) {
     const w = workScan.records[i], d = donorScan.records[i];
     const nextGeomW = i + 1 < workScan.records.length ? workScan.records[i + 1].geometryOffset : workInterEnd;
@@ -1792,6 +2418,7 @@ function applyIde10RebarInterRegions(
       tuple = readIde11RebarTuple(work, encWorkView, workRawView, workFrame.endOffset, attributesOffsetW, "wall");
       if (tuple) {
         donorDiag.r4.wall++;
+        donorDiag.r4.wallRecords!.push(i);
         const built = buildIde10WallRebarRecord(tuple.wall!);
         const at = IDE10_WALL_REBAR_TAIL_OFFSET;
         slice = patchSliceIfDifferent(slice, at, built, donorDiag);
@@ -1802,6 +2429,7 @@ function applyIde10RebarInterRegions(
         donorDiag.r4.beam++;
         const at = findIde10BeamRebarBlockInSlice(slice);
         if (at < 0) { donorDiag.r4.tupleUnresolved++; } else {
+          donorDiag.r4.beamRecords!.push(i);
           const built = buildIde10BeamRebarRecord({
             ...tuple.beam!,
             intermediates: { at32: slice.slice(at + 32, at + 44), at56: slice.slice(at + 56, at + 68) },
@@ -1813,6 +2441,7 @@ function applyIde10RebarInterRegions(
       tuple = readIde11RebarTuple(work, encWorkView, workRawView, workFrame.endOffset, attributesOffsetW, "raft");
       if (tuple) {
         donorDiag.r4.raft++;
+        donorDiag.r4.raftRecords!.push(i);
         // Radye bloğu kayıt özniteliklerinde (+960), kayıt-arası dilimde değil.
         const donorRaft = donor.slice(attributesOffsetD + 960, attributesOffsetD + 976);
         const built = buildIde10RaftRebarRecord(tuple.raft!);

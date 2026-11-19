@@ -191,6 +191,51 @@ test("B0 .ide11trial -> real .ide10 body conversion matches the A0 oracle", { sk
   assert.equal(diagnostics.donor!.r5.regionBytesEqual, true, "R5 bölgesi donörle bayt-özdeş üretilmeli.");
   assert.equal(diagnostics.donor!.spectrum.fieldsBitExact, true, "tayf alanları donörle bit-özdeş.");
 
+  // --- T-F3.3d (H2): gap-düzeyi A0 nakli — akış-çapa + beş bölge Δlen=0 +
+  // B0-wins geri-enjeksiyon bayt-özdeşliği + işaretli A0-kalıntı envanteri. ---
+  const transplant = diagnostics.gapTransplant!;
+  assert.ok(transplant, "T-F3.3d gap-düzeyi nakli diagnostics rapor vermelidir.");
+  assert.equal(transplant.applied, true, "B0/A0 akış-çapası eşit olmalı (30.260 çerçeve + rawLen dizisi).");
+  assert.equal(transplant.framesMatched, 30_260);
+  assert.equal(transplant.rawLenMismatch, 0);
+  assert.equal(transplant.gapSegments, 30_261, "çerçeve-dışı koşu sayısı = çerçeve sayısı + 1.");
+  assert.deepEqual(
+    transplant.regionBoundaries,
+    { araGapIndex: 1886, kuyrukGapIndex: 30_260 },
+    "bölge sınırları t33c fark haritası KANIT sınırlarıyla çakışmalı.",
+  );
+  for (const region of ["BASLIK-ONKAT", "ELEMAN-KAYITLARI", "ARA-BOLGE", "F9-KABUK", "KUYRUK"]) {
+    assert.equal(transplant.regionLenDelta[region], 0, `nakil kuralı 3: bölge ${region} Δlen=0 olmalı.`);
+  }
+  assert.equal(transplant.preludeMismatch, 0, "v3 önyazı baytları A0'nın önyazılarıyla birebir olmalı (t33c ölçümü 0).");
+  assert.equal(
+    transplant.headBytesWork + transplant.frameBytesWork + transplant.gapBytesDonor,
+    converted.length,
+    "v3 boyut muhasebesi: v2 kafası + v2 çerçeveleri + A0 gap'leri.",
+  );
+  const b0Wins = transplant.b0Wins;
+  assert.deepEqual(
+    [b0Wins.beamLabels, b0Wins.wallLabels, b0Wins.slabLines, b0Wins.wallRebar, b0Wins.beamRebar, b0Wins.raftRebar, b0Wins.stairMarkers],
+    [357, 196, 159, 178, 289, 1, 7],
+    "KANIT'lı B0 alanlarının tamamı nakil şablonunda bulunup geri yazılmalı/ doğrulanmalı.",
+  );
+  assert.equal(b0Wins.slotBytesWritten, 0, "B0-wins geri-enjeksiyonu bu korpus çiftinde bayt-özdeş dönmeli (fikir-t33d önermesi).");
+  assert.equal(b0Wins.slotNotFound, 0, "bulunamayan B0-wins yuvası olmamalı (HARD-FAIL sözleşmesi).");
+  assert.equal(b0Wins.slotLengthMismatches, 0, "yuva uzunluk kırığı olmamalı (yerleşim korunmalı).");
+  // Perde etiketi kanonik sapması: t33 hasadının kanoniği ↔ A0'nın depolanmış
+  // etiketi — değer A0 hasadından geldiği için A0'nın baytları kalır, 392 yuva
+  // işaretli envantere girer (sessiz değil; şema alan-haritası takibine devir).
+  assert.equal(b0Wins.wallLabelCanonicalDivergences, 392, "196 perde × (kesit + ad-kesit) kanonik sapma işaretlenmeli.");
+  const remnants = transplant.a0Remnants;
+  assert.ok(remnants.geometryCompared > 300_000, `geometri f64 karşılaştırması kapsamlı olmalı; ölçülen ${remnants.geometryCompared}.`);
+  assert.equal(
+    remnants.geometryBitExact + remnants.ulpItems.length + remnants.conflicts.length,
+    remnants.geometryCompared,
+    "geometri envanteri muhasebesi tutmalı (bit-özdeş + yeniden hesap + çatışma).",
+  );
+  assert.equal(remnants.conflicts.length, 0, "gerçek değer çatışması (10,67↔11,15 sınıfı) bu korpus çiftinde kalmamalı.");
+  assert.ok(remnants.ulpItems.length > 0, "v11 yeniden hesap sınıfı işaretli envanterde görünmeli.");
+
   // --- Kaynak değişmezliği: B0 hem bellekte hem diskte dokunulmamış. ---
   assert.equal(digest(source), sourceDigest);
   assert.equal(digest(readFileSync(B0)), sourceDigest);
