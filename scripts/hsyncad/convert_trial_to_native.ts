@@ -3,9 +3,11 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { parseIde10 } from "../../src/lib/hsyncad/ide-import";
 import * as ideExport from "../../src/lib/hsyncad/ide-export";
+import { transcodeIde11TrialToIde10, transcodeIde10ToIde11, type Ide10TranscodeDiagnostics, type Ide10To11UpgradeDiagnostics } from "../../src/lib/hsyncad/ide-import/ide11-transcoder";
 import {
   getIdeCarrierFormat,
   IDE10_VERSION,
+  IDE11_VERSION,
   validateIdeCarrier,
   verifyIdeHeaderChecksum,
   type NativeIdeFormat,
@@ -13,13 +15,13 @@ import {
 
 type TargetFormat = "ide11" | "ide10";
 type TargetFilter = TargetFormat | "all";
-type TranscodeFn = (sourceBuffer: ArrayBuffer | Uint8Array) => Uint8Array;
 
 interface CliOptions {
   help: boolean;
   inputPath?: string;
   outDir?: string;
   to?: TargetFilter;
+  donorPath?: string;
   force: boolean;
   backupDir?: string;
 }
@@ -30,10 +32,17 @@ const USAGE = [
   "  npx tsx scripts/hsyncad/convert_trial_to_native.ts --input <path> [options]",
   "",
   "Options:",
-  "  --input <path>       Input .ide11trial (or .ide10) file path (required)",
+  "  --input <path>       Input .ide11trial/.ide11/.ide10 file path (required)",
   "  --out-dir <dir>      Output directory (default: directory of input file)",
   "  --to <target>        Target format: ide11 | ide10 | all",
-  "                       (default: all for .ide11trial, ide11 for .ide10)",
+  "                       (trial input default: ide11; --to ide10 and --to all now",
+  "                       perform the real v11->v10 body conversion — T-F3.3;",
+  "                       .ide10 input performs the real v10->v11 reverse schema",
+  "                       upgrade — T-F4.1: +4 story-ref, +16B opaque pads,",
+  "                       x2/x3 scale writes, slab 36, Blowfish f64 encoding,",
+  "                       211220/encoded=1 seal)",
+  "  --donor <path>       Optional paired native .ide10 of the SAME project",
+  "                       (fills unestablished-layout regions; recommended)",
   "  --force              Allow overwriting existing output files or equal input path",
   "  --backup-dir <dir>   Optional directory for additional backup copies",
   "  -h, --help           Show this help message",
@@ -120,6 +129,13 @@ function parseCliArgs(argv: string[]): CliOptions {
       i = nextIndex;
       continue;
     }
+    if (!positionalOnly && (arg === "--donor" || arg.startsWith("--donor="))) {
+      const inline = arg.startsWith("--donor=") ? arg.slice("--donor=".length) : undefined;
+      const { value, nextIndex } = takeValue("--donor", inline, i);
+      options.donorPath = value;
+      i = nextIndex;
+      continue;
+    }
     if (!positionalOnly && arg.startsWith("-")) {
       throw new Error(`Unknown option: ${arg}`);
     }
@@ -137,16 +153,23 @@ function parseCliArgs(argv: string[]): CliOptions {
 
 function resolveTargets(sourceFormat: NativeIdeFormat, to?: TargetFilter): TargetFormat[] {
   if (sourceFormat === "ide11trial") {
-    if (!to || to === "all") return ["ide11", "ide10"];
-    return [to];
+    // T-F3.3: v11→v10 gerçek gövde dönüşümü artık destekli. Trial girdide
+    // varsayılan hedef --to ide11; --to ide10 ve --to all gerçek dönüşümü üretir.
+    if (to === "ide10") return ["ide10"];
+    if (to === "all") return ["ide11", "ide10"];
+    return ["ide11"];
   }
   if (sourceFormat === "ide10") {
-    if (!to || to === "all" || to === "ide11") return ["ide11"];
-    throw new Error("Input file is already .ide10; cannot convert .ide10 to .ide10.");
+    if (to === "ide10") {
+      throw new Error("Input file is already .ide10; cannot convert .ide10 to .ide10.");
+    }
+    return ["ide11"];
   }
   if (sourceFormat === "ide11") {
-    if (to === "ide10") return ["ide10"];
-    throw new Error("Input file is already commercial .ide11. Pass --to ide10 to convert to .ide10.");
+    if (to !== "ide10") {
+      throw new Error("Input file is already commercial .ide11; no other target is currently available.");
+    }
+    return ["ide10"];
   }
   throw new Error(`Unsupported source format "${sourceFormat}" for native conversion.`);
 }
@@ -192,11 +215,23 @@ async function main() {
   const sourceFormat = getIdeCarrierFormat(sourceBytes, sourceCarrier);
   const targets = resolveTargets(sourceFormat, options.to);
 
-  const transcodeIde10ToIde11 = (ideExport as { transcodeIde10ToIde11?: TranscodeFn }).transcodeIde10ToIde11;
-  if (sourceFormat === "ide10" && typeof transcodeIde10ToIde11 !== "function") {
-    throw new Error(
-      "transcodeIde10ToIde11 is not exported by src/lib/hsyncad/ide-export.ts; .ide10 -> .ide11 conversion is not available yet.",
-    );
+  // T-F3.3: --donor ile eş proje .ide10 donörü (yalnız .ide10 hedefi için anlamlı).
+  let donorBytes: Uint8Array | undefined;
+  if (options.donorPath) {
+    if (!targets.includes("ide10")) {
+      throw new Error("--donor yalnız .ide10 hedefiyle anlamlıdır; --to ide10 veya --to all kullanın.");
+    }
+    const donorPath = path.resolve(options.donorPath);
+    if (!fs.existsSync(donorPath) || !fs.statSync(donorPath).isFile()) {
+      throw new Error(`Donör dosyası bulunamadı: ${donorPath}`);
+    }
+    donorBytes = new Uint8Array(fs.readFileSync(donorPath));
+    const donorCarrier = validateIdeCarrier(donorBytes);
+    if (donorCarrier.formatVersion !== IDE10_VERSION || donorCarrier.encodedFlag !== 0) {
+      throw new Error(`Donör v10 (201094, encoded=0) olmalı: sürüm ${donorCarrier.formatVersion}, encoded ${donorCarrier.encodedFlag}.`);
+    }
+    console.log(`[1] Donor: ${donorPath}`);
+    console.log(`    Size: ${donorBytes.length.toLocaleString()} bytes, SHA-256: ${sha256(donorBytes)}`);
   }
 
   const plannedOutputs = targets.map(target => ({
@@ -245,11 +280,39 @@ async function main() {
 
     let outBytes: Uint8Array;
     if (plan.target === "ide11") {
-      outBytes = sourceFormat === "ide10"
-        ? transcodeIde10ToIde11!(sourceBytes)
-        : ideExport.transcodeIde11TrialToIde11(sourceBytes);
+      if (sourceFormat === "ide10") {
+        // T-F4.1: .ide10 -> .ide11 reverse schema upgrade (real body transform).
+        const upgradeDiag = {} as Ide10To11UpgradeDiagnostics;
+        outBytes = transcodeIde10ToIde11(sourceBytes, { diagnostics: upgradeDiag });
+        console.log(`    Floors: ${upgradeDiag.records?.floors ?? "?"} (native headers +4 story-ref: ${upgradeDiag.records?.nativeFloorHeaders ?? "?"})`);
+        console.log(`    Records upgraded: ${upgradeDiag.records?.elements ?? "?"} (+16B pads; slabs ${upgradeDiag.records?.slabs ?? "?"}, stairs ${upgradeDiag.records?.stairs ?? "?"})`);
+        console.log(`    Wall label swaps (X11 canonical form): ${upgradeDiag.splices?.wallLabelSwaps ?? "?"}`);
+        console.log(`    Frames rewritten to 211220: ${upgradeDiag.frames?.rewritten211220 ?? "?"} (plain 201094 kept: ${upgradeDiag.frames?.plain201094Kept ?? "?"}, prelude flags set: ${upgradeDiag.frames?.preludeFlagsSet ?? "?"})`);
+        console.log(`    f64 Blowfish-encoded: ${upgradeDiag.f64Encoded ?? "?"}; header: 0x5ce marker ${upgradeDiag.header?.marker05ce ?? "?"}, demo flag cleared ${upgradeDiag.header?.demoFlagCleared ?? "?"}`);
+      } else {
+        outBytes = ideExport.transcodeIde11TrialToIde11(sourceBytes);
+      }
     } else {
-      outBytes = ideExport.transcodeIde11TrialToIde10(sourceBytes);
+      const diagnostics = {} as Ide10TranscodeDiagnostics;
+      outBytes = transcodeIde11TrialToIde10(
+        sourceBytes,
+        donorBytes ? { ide10Donor: donorBytes, diagnostics } : { diagnostics },
+      );
+      // Dönüşüm tanıklama özeti (T-F3.3): gerçek ölçülen değerler.
+      console.log(`    Frames rewritten: ${diagnostics.frames?.rewritten ?? "?"} (native 201094 kept: ${diagnostics.frames?.native201094 ?? "?"}, prelude flags cleared: ${diagnostics.frames?.preludeFlagsCleared ?? "?"})`);
+      console.log(`    Label splices (beam + wall sections): ${diagnostics.labelSplices?.beam ?? "?"}`);
+      if (diagnostics.donor) {
+        const dn = diagnostics.donor;
+        console.log(`    Donor regions: pre-floor [${dn.preFloorSplice.workFrom}..${dn.preFloorSplice.workTo}) <- donor [${dn.preFloorSplice.donorFrom}..${dn.preFloorSplice.donorTo})`);
+        console.log(`    R1: ${dn.r1.records} records, ${dn.r1.slotsBitExact} slots bit-exact, ${dn.r1.slotsDonorFallback} donor slots${dn.r1.donorSlots.length ? ` (${dn.r1.donorSlots.join(",")})` : ""}`);
+        console.log(`    R3: ${dn.r3.patches} patches, changed bytes ${dn.r3.patchesChangedBytes}, fields bit-exact: ${dn.r3.fieldsBitExact}`);
+        console.log(`    R4: wall ${dn.r4.wall}, beam ${dn.r4.beam}, raft ${dn.r4.raft}; blocks verified ${dn.r4.blocksVerified}, mismatches ${dn.r4.blockMismatches}, tuple unresolved ${dn.r4.tupleUnresolved}`);
+        console.log(`    R5: ${dn.r5.tables} modal tables, region byte-equal to donor: ${dn.r5.regionBytesEqual}`);
+        console.log(`    Spectrum fields bit-exact: ${dn.spectrum.fieldsBitExact}`);
+        console.log(`    Encoded-block sweep (T-F3.3c): vocabulary ${dn.encodedSweep?.vocabularyValues ?? "?"} values, decoded ${dn.encodedSweep?.blocksDecoded ?? "?"} leftover blocks`);
+      } else {
+        console.log(`    Donor: none — unestablished-layout regions keep their v11 layout (analytic reads may be partial).`);
+      }
     }
 
     const chk = verifyIdeHeaderChecksum(outBytes);
@@ -259,15 +322,26 @@ async function main() {
     const outCarrier = validateIdeCarrier(outBytes);
     const outFormat = getIdeCarrierFormat(outBytes, outCarrier);
     if (plan.target === "ide11") {
-      // The v11 carrier keeps the source schema version: ideCAD 11.28 writes 211280 and
-      // closes any file it does not recognise, so the version may not be rewritten.
-      if (outCarrier.formatVersion !== sourceCarrier.formatVersion) {
-        throw new Error(
-          `IDE11 carrier version mismatch: source ${sourceCarrier.formatVersion}, output ${outCarrier.formatVersion}.`,
-        );
-      }
-      if (outFormat !== "ide11" && outFormat !== "ide11trial") {
-        throw new Error(`IDE11 carrier format mismatch: got "${outFormat}".`);
+      if (sourceFormat === "ide10") {
+        // T-F4.1: the v10->v11 upgrade seals a body-schema-compatible 211220/encoded=1
+        // carrier (writer rule 140989c30.c:40) — the source is 201094, so the version
+        // parity check below intentionally does not apply to the reverse upgrade.
+        if (outCarrier.formatVersion !== IDE11_VERSION || outCarrier.encodedFlag !== 1 || outFormat !== "ide11") {
+          throw new Error(
+            `IDE11 upgrade carrier mismatch: expected ide11 @ ${IDE11_VERSION}/encoded=1, got "${outFormat}" @ ${outCarrier.formatVersion}/encoded ${outCarrier.encodedFlag}.`,
+          );
+        }
+      } else {
+        // The v11 carrier keeps the source schema version: ideCAD 11.28 writes 211280 and
+        // closes any file it does not recognise, so the version may not be rewritten.
+        if (outCarrier.formatVersion !== sourceCarrier.formatVersion) {
+          throw new Error(
+            `IDE11 carrier version mismatch: source ${sourceCarrier.formatVersion}, output ${outCarrier.formatVersion}.`,
+          );
+        }
+        if (outFormat !== "ide11" && outFormat !== "ide11trial") {
+          throw new Error(`IDE11 carrier format mismatch: got "${outFormat}".`);
+        }
       }
     } else if (outFormat !== "ide10" || outCarrier.formatVersion !== IDE10_VERSION) {
       throw new Error(

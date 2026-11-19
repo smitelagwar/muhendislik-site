@@ -11,6 +11,7 @@ import {
   extractIdePrecomputedF9,
   extractIdeSeismicAndSoil,
   transformIdeF9Coord,
+  type IdePrecomputedF9,
 } from "./ide-r1-r5";
 import { parseIde10 } from "./index";
 import { importIdeWorkspace } from "../ide-workspace";
@@ -18,6 +19,9 @@ import { importIdeWorkspace } from "../ide-workspace";
 const MS1_PATH = "D:\\IDM_DOWNLOAD\\MUSTAFA SELVİ TÜM PROJELER\\STATİK\\1.kısım\\MUSTAFA SELVİ 1.KISIM.ide10";
 const MS2_PATH = "D:\\IDM_DOWNLOAD\\MUSTAFA SELVİ TÜM PROJELER\\STATİK\\2.kısım\\MUSTAFA SELVİ 2.KISIM.ide10";
 const SK_PATH = "D:\\IDM_DOWNLOAD\\SÜHEYLA KARA PROJELER\\STATİK\\218 ada 50 parsel STATİK.ide10";
+// T-F5.1: encoded v11 (211220) reading oracle — same project as MS1/A0, values must match the A0 fingerprint.
+const X11_PATH = "C:\\Users\\hsyn\\Desktop\\hsyncad\\incelemeler\\donusum-esdegerlik-2026-11-15\\00-kaynak\\X11_downloads.ide11";
+const A0_FINGERPRINT_PATH = "C:\\Users\\hsyn\\Desktop\\hsyncad_idecad_uzanti_optimizasyon\\evidence\\fingerprints\\A0_orijinal__ide10.fingerprint.json";
 
 const close = (actual: number | null | undefined, expected: number, tol = 1e-4) => {
   assert.equal(typeof actual, "number", `Expected number near ${expected}, got ${actual}`);
@@ -143,6 +147,114 @@ test("MS1 real .ide10 extracts R1-R5 and hydrates CadModel without ide-unassigne
   if (hydratedSlab?.type === "slab") {
     close(hydratedSlab.finishLoad, 0.17 * 9.80665, 1e-3);
     close(hydratedSlab.liveLoad, 0.5 * 9.80665, 1e-3);
+  }
+});
+
+test("X11 encoded v11 .ide11 reads R1-R5 with the exact A0 oracle values (T-F5.1)", { skip: !existsSync(X11_PATH), timeout: 300_000 }, () => {
+  const project = parseIde10(loadArrayBuffer(X11_PATH), "X11_downloads.ide11");
+  assert.equal(project.format, "ide11");
+
+  // R1: 2 materials, semantics equal to the A0 (v10 .ide10) oracle.
+  assert.ok(project.materials && project.materials.length === 2, `Expected 2 materials, got ${project.materials?.length}`);
+  const [c25, s235] = project.materials!;
+  assert.equal(c25.name, "C25 B420C");
+  assert.equal(c25.kind, "concrete");
+  close(c25.fckMpa, 25.0, 0.05);
+  close(c25.fykMpa, 420.0, 0.5);
+  close(c25.fctkMpa, 1.75, 0.05);
+  close(c25.gammaS, 1.15, 1e-6);
+  close(c25.gammaC, 1.5, 1e-6);
+  close(c25.elasticModulusMpa, 30250.0, 5.0);
+  close(c25.poisson, 0.2, 1e-9);
+  close(c25.unitWeightTfM3, 2.5, 1e-9);
+  assert.equal(s235.name, "S235");
+  assert.equal(s235.kind, "steel");
+  assert.equal(s235.fckMpa, null);
+  assert.equal(s235.fykMpa, null);
+  close(s235.elasticModulusMpa, 200000.0, 50.0);
+  close(s235.poisson, 0.3, 1e-9);
+  close(s235.unitWeightTfM3, 7.849, 1e-9);
+
+  // R3: seismic/soil — every field equal to the A0 oracle (fingerprint values).
+  assert.ok(project.seismicSoil, "Expected seismicSoil on the encoded v11 carrier");
+  assert.equal(project.seismicSoil.exposureClass, "XC2");
+  close(project.seismicSoil.rEntered, 6, 1e-3);
+  close(project.seismicSoil.rSelectedRatio, 0.7794746499380645, 1e-9);
+  close(project.seismicSoil.liveLoadFactorN, 0.3, 1e-4);
+  close(project.seismicSoil.subgradeKoTfM3, 3080, 1e-3);
+  close(project.seismicSoil.bearingCapacityQtTfM2, 55, 1e-3);
+  close(project.seismicSoil.importanceI, 1, 1e-6);
+  assert.equal(project.seismicSoil.spectrumId, "DSF1");
+  close(project.seismicSoil.ss, 0.429, 1e-6);
+  close(project.seismicSoil.s1, 0.143, 1e-6);
+  close(project.seismicSoil.sds, 0.3861, 1e-6);
+  close(project.seismicSoil.sd1, 0.1144, 1e-6);
+  close(project.seismicSoil.latitude, 39.6584, 1e-3);
+  close(project.seismicSoil.longitude, 35.8734, 1e-3);
+
+  // R4: 468 rebar layouts = 178 walls + 289 beams + 1 raft, spot values equal to A0.
+  const walls = project.elements.filter(e => e.type === "wall" && e.rebarLayout?.kind === "wall");
+  const beams = project.elements.filter(e => e.type === "beam" && e.rebarLayout?.kind === "beam");
+  const rafts = project.elements.filter(e => e.type === "slab" && e.rebarLayout?.kind === "raft");
+  assert.equal(walls.length, 178, `Expected 178 wall rebars, got ${walls.length}`);
+  assert.equal(beams.length, 289, `Expected 289 beam rebars, got ${beams.length}`);
+  assert.equal(rafts.length, 1, `Expected 1 raft rebar, got ${rafts.length}`);
+  assert.equal(walls.length + beams.length + rafts.length, 468);
+
+  const roofFloorId = project.floors.find(f => f.name === "ASANSÖR MAK.DAİRESİ")!.id;
+  const thirdFloorId = project.floors.find(f => f.name === "3. KAT")!.id;
+  const p43 = walls.find(w => w.name === "P43" && w.floorId === roofFloorId);
+  assert.ok(p43?.rebarLayout && p43.rebarLayout.kind === "wall", "Expected P43 wall rebar on ASANSÖR MAK.DAİRESİ");
+  assert.deepEqual(p43.rebarLayout, {
+    kind: "wall", webDiaMm: 10, webSpacingCm: 25, headCount: 9, headDiaMm: 14,
+    webStirrupDiaMm: 8, webStirrupSpacingCm: 20, headStirrupDiaMm: 8, headStirrupSpacingCm: 16,
+  });
+  const k34 = beams.find(b => b.name === "K34" && b.floorId === thirdFloorId);
+  assert.ok(k34?.rebarLayout && k34.rebarLayout.kind === "beam", "Expected K34 beam rebar on 3. KAT");
+  assert.deepEqual(k34.rebarLayout, {
+    kind: "beam", topCount: 2, topDiaMm: 14, bottomCount: 2, bottomDiaMm: 14,
+    stirrupDiaMm: 8, stirrupSpacingCm: [20, 10],
+  });
+  const k63 = beams.find(b => b.name === "K63" && b.floorId === thirdFloorId);
+  assert.ok(k63?.rebarLayout && k63.rebarLayout.kind === "beam", "Expected K63 beam rebar on 3. KAT");
+  assert.deepEqual(k63.rebarLayout, {
+    kind: "beam", topCount: 3, topDiaMm: 14, bottomCount: 2, bottomDiaMm: 14,
+    stirrupDiaMm: 8, stirrupSpacingCm: [20, 10],
+  });
+  assert.equal(rafts[0].name, "RD01");
+  assert.deepEqual(rafts[0].rebarLayout, {
+    kind: "raft", topX: "Ø14/13", topY: "Ø14/13", bottomX: "Ø14/13", bottomY: "Ø14/13",
+  });
+
+  // R5: 10 modal tables + 201094 stream census equal to A0.
+  assert.ok(project.f9Results, "Expected f9Results on the encoded v11 carrier");
+  assert.equal(project.f9Results.modalTables.length, 10);
+  assert.equal(project.f9Results.barForceStreamsCount, 1057);
+  assert.equal(project.f9Results.nodalDisplacementStreamsCount, 28001);
+  assert.equal(project.f9Results.shellResultStreamsCount, 373);
+  const modalMain = project.f9Results.modalTables.find(t => t.name === "Modal'")!;
+  assert.equal(modalMain.modeCount, 15);
+  close(modalMain.frequenciesHz[0], 1.1943711174476759, 1e-9);
+
+  // Full modal comparison against the A0 fingerprint oracle (frequency deviation <= 1e-9).
+  if (existsSync(A0_FINGERPRINT_PATH)) {
+    const a0 = JSON.parse(readFileSync(A0_FINGERPRINT_PATH, "utf8")) as {
+      f9Results: { modalTables: { name: string; modeCount: number; frequenciesHz: number[] }[] };
+    };
+    assert.equal(a0.f9Results.modalTables.length, project.f9Results!.modalTables.length);
+    for (let i = 0; i < a0.f9Results.modalTables.length; i++) {
+      const expected = a0.f9Results.modalTables[i];
+      const actual: IdePrecomputedF9["modalTables"][number] = project.f9Results!.modalTables[i];
+      assert.equal(actual.name, expected.name, `Modal table ${i} name`);
+      assert.equal(actual.modeCount, expected.modeCount, `Modal table ${i} modeCount`);
+      assert.equal(actual.frequenciesHz.length, expected.frequenciesHz.length, `Modal table ${i} frequency count`);
+      for (let m = 0; m < expected.frequenciesHz.length; m++) {
+        assert.ok(
+          Math.abs(actual.frequenciesHz[m] - expected.frequenciesHz[m]) <= 1e-9,
+          `Modal ${expected.name} mode ${m}: ${actual.frequenciesHz[m]} != ${expected.frequenciesHz[m]} (±1e-9)`,
+        );
+      }
+    }
   }
 });
 

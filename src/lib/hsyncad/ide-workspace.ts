@@ -1,4 +1,5 @@
 import type { IdeElement, IdeProject } from "./ide-import";
+import type { IdeNativeElementPatch } from "./ide-native-save";
 import { createEmptyModel, validateModel, type CadElement, type CadModel, type Floor, type Point } from "./model";
 import { elementFootprint, isSimplePolygon } from "./geometry";
 
@@ -104,8 +105,56 @@ export function importIdeWorkspace(source: IdeProject): CadModel {
   return validateModel(model);
 }
 
+/** R1–R5 counts shown by the workbench/report summary labels.
+ *  Fields absent from the source stay at 0/undefined — nothing is fabricated. */
+export type IdeProjectAnalytics = {
+  materialCount: number;
+  rebarCount: number;
+  modalTableCount: number;
+  seismic?: IdeProject["seismicSoil"];
+};
+
+export function ideProjectAnalytics(source: IdeProject | null | undefined): IdeProjectAnalytics | null {
+  if (!source) return null;
+  let rebarCount = 0;
+  for (const element of source.elements) if (element.rebarLayout) rebarCount += 1;
+  return {
+    materialCount: source.materials?.length ?? 0,
+    rebarCount,
+    modalTableCount: source.f9Results?.modalTables.length ?? 0,
+    ...(source.seismicSoil ? { seismic: source.seismicSoil } : {}),
+  };
+}
+
 export function ideReferenceElements(model: CadModel): IdeElement[] {
   if (!model.ideImport) return [];
   const ids = new Set(model.ideImport.references.map(r => r.id)), floors = new Set(model.floors.map(f => f.id));
   return model.ideImport.source.elements.filter(e => ids.has(e.id) && floors.has(e.floorId));
+}
+
+/**
+ * T-F6.2 — derive the pending native save patches from the live editor model.
+ * Only beams whose section height drifted from the decoded source value are
+ * writable (T-F6.1 grammar contract); everything else is a UI-level rejection.
+ * The derivation reads the model itself, so an undo that restores the source
+ * height makes the patch disappear without a separate patch store. No source
+ * (or an unresolvable record) yields no patch — an empty list keeps the
+ * product rule intact: editing nothing can never produce a native save.
+ */
+export function collectIdeNativePatches(source: IdeProject | null | undefined, elements: CadElement[]): IdeNativeElementPatch[] {
+  if (!source) return [];
+  const beams = new Map<string, IdeElement>();
+  for (const element of source.elements) if (element.type === "beam") beams.set(element.id, element);
+  const patches: IdeNativeElementPatch[] = [];
+  for (const element of elements) {
+    if (element.type !== "beam") continue;
+    const native = beams.get(element.id);
+    if (!native) continue;
+    if (native.height === undefined || !Number.isFinite(native.height)) continue;
+    if (!Number.isInteger(native.sourceOffset) || native.sourceOffset < 0) continue;
+    // Float noise below 1e-9 is not a user edit.
+    if (!Number.isFinite(element.height) || Math.abs(element.height - native.height) <= 1e-9) continue;
+    patches.push({ id: element.id, sourceOffset: native.sourceOffset, field: "beamSectionHeight", value: element.height });
+  }
+  return patches;
 }

@@ -102,11 +102,10 @@ export function getIde11CompressedBlock(bytes: Uint8Array, metadata: IdeCarrierM
   return { offset, rawLength };
 }
 
-/** Keep the source format and the observed trial marker. */
+/** Keep the source format; the trial label is decided by the observed lock bytes, never by the version alone. */
 export function getIdeCarrierFormat(bytes: Uint8Array, metadata: IdeCarrierMetadata): NativeIdeFormat {
   if (metadata.formatVersion < IDE11_040_VERSION) return "ide10";
   if (getIde11CompressedBlock(bytes, metadata)) return "cde";
-  if (metadata.formatVersion === IDE11_CURRENT_TRIAL_VERSION) return "ide11trial";
   const previewEnd = getIdePreviewEnd(bytes, metadata);
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   if (previewEnd !== undefined && previewEnd + 34 <= bytes.length && view.getUint32(previewEnd + 30, true) === 0x5ce) {

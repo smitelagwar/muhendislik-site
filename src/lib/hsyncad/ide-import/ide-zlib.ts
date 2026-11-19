@@ -1,4 +1,4 @@
-import { unzlibSync } from "three/addons/libs/fflate.module.js";
+import { unzlibSync, zlibSync } from "three/addons/libs/fflate.module.js";
 
 function adler32(bytes: Uint8Array) {
   let a = 1, b = 0;
@@ -88,4 +88,65 @@ export function inflateIde201094Stream(bytes: Uint8Array, header: Ide201094Strea
     bytes.subarray(header.payloadOffset, header.endOffset),
     header.rawLength,
   );
+}
+
+// --- Reverse direction (T-F3.1): writer for the `[u32 201094][u32 comp_len][u32 raw_len][0x78...]` frame ---
+
+/** Length of the `201094` frame header (magic + compLen + rawLen). */
+export const IDE_201094_FRAME_HEADER_LENGTH = 12;
+
+export interface Ide201094FrameOptions {
+  /**
+   * fflate zlib level (0-6; default 6). Every level emits the `0x78` zlib header the
+   * scanner accepts, so roundtrip identity is level-independent (proven by tests).
+   * Note for T-F3.3: byte-exact matching of ideCAD's own zlib output level is a
+   * donor-comparison experiment there; this writer only promises roundtrip identity.
+   */
+  level?: number;
+}
+
+/**
+ * fflate `zlibSync` only accepts the literal 0-9 level union, but the public writer option stays
+ * `number` (T-F3.1's level test iterates a plain `number[]`), so narrow at the call boundary
+ * with a type-only assertion — zero runtime change (T-F3.1b).
+ */
+type FflateZlibLevel = NonNullable<NonNullable<Parameters<typeof zlibSync>[1]>["level"]>;
+
+/** Build a complete `[u32 201094][u32 compLen][u32 rawLen][zlib 0x78...]` frame from raw bytes. */
+export function buildIde201094Frame(raw: Uint8Array, options?: Ide201094FrameOptions): Uint8Array {
+  const compressed = zlibSync(raw, { level: options?.level as FflateZlibLevel });
+  if (compressed[0] !== 0x78 || compressed.length < 8) {
+    throw new Error("IDE zlib yazıcısı tarayıcıyla uyumlu 0x78 başlığı üretmedi.");
+  }
+  const frame = new Uint8Array(IDE_201094_FRAME_HEADER_LENGTH + compressed.length);
+  const view = new DataView(frame.buffer, frame.byteOffset, frame.byteLength);
+  view.setUint32(0, IDE_201094_MAGIC, true);
+  view.setUint32(4, compressed.length, true);
+  view.setUint32(8, raw.length, true);
+  frame.set(compressed, IDE_201094_FRAME_HEADER_LENGTH);
+  return frame;
+}
+
+/**
+ * Build a pre-allocated empty-slot frame (gramer §2.2/§16): F9/hesap yuvaları are stored as
+ * ready-made zero frames — `rawLen=4` (döşeme kenarı) or `rawLen=16` (döşeme) with an all-zero payload.
+ */
+export function buildIde201094EmptySlotFrame(rawLength: 4 | 16 = 4): Uint8Array {
+  return buildIde201094Frame(new Uint8Array(rawLength));
+}
+
+/** Write a `201094` frame for `raw` into `target` at `offset`; returns the end offset. */
+export function writeIde201094Stream(
+  target: Uint8Array,
+  offset: number,
+  raw: Uint8Array,
+  options?: Ide201094FrameOptions,
+): number {
+  const frame = buildIde201094Frame(raw, options);
+  const end = offset + frame.length;
+  if (offset < 0 || end > target.length) {
+    throw new Error("IDE 201094 yazıcısı hedef tamponun sınırlarını aşıyor.");
+  }
+  target.set(frame, offset);
+  return end;
 }

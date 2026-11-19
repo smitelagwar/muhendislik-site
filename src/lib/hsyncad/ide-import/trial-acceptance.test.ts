@@ -6,6 +6,7 @@ import { parseIde10 } from "./index";
 import { saveNativeIdeSource } from "../ide-native-save";
 import { parseIdeProjectSnapshot, serializeIdeProject, exportIdeDxf } from "../ide-export";
 import { transcodeIde11TrialToIde10, transcodeIde11TrialToIde11 } from "./ide11-transcoder";
+import { validateIdeCarrier } from "./ide-binary-codec";
 
 const file = "C:/Users/hsyn/Desktop/MUSTAFA SELVİ 1.KISIM.ide11trial";
 const original = "D:/IDM_DOWNLOAD/MUSTAFA SELVİ TÜM PROJELER/STATİK/1.kısım/MUSTAFA SELVİ 1.KISIM.ide10";
@@ -23,25 +24,48 @@ test("unverified native slab load overrides fail before modifying output", () =>
   }
 });
 
-test("IDE11 trial to IDE10 preserves normal slab live loads", { skip: !existsSync(file), timeout: 30_000 }, () => {
+// T-F1.1b açık işi kapatıldı (T-F3.3): bu test artık GERÇEK v11→v10 gövde
+// dönüşümünü doğrular — taşıyıcı v10 mührü, model eşitliği ve döşeme yüklerinin
+// korunması. Donör: kullanıcının kendi native .ide10 kaydı (`original`).
+test("IDE11 trial to IDE10 performs the real body conversion and preserves slab live loads", { skip: !existsSync(file) || !existsSync(original), timeout: 300_000 }, () => {
   const source = readFileSync(file);
   const before = digest(source);
-  const originalProject = parseIde10(buffer(source), "source.ide11trial");
-  const converted = transcodeIde11TrialToIde10(source);
-  const project = parseIde10(buffer(converted), "converted-copy.ide10");
-  const key = (e: typeof project.elements[number]) => `${e.floorId}:${e.nativeId}`;
-  const originalSlabs = originalProject.elements.filter(e => e.type === "slab" && !e.foundation && e.planAnnotation?.loads);
-  const convertedSlabs = new Map(project.elements.filter(e => e.type === "slab" && !e.foundation).map(e => [key(e), e]));
-  assert.equal(originalSlabs.length, 158);
-  for (const slab of originalSlabs) {
-    const convertedSlab = convertedSlabs.get(key(slab));
-    assert.ok(convertedSlab?.planAnnotation?.loads, `Missing slab ${key(slab)}`);
-    close(convertedSlab.planAnnotation.loads.live, slab.planAnnotation!.loads!.live);
+  const donor = readFileSync(original);
+  const converted = transcodeIde11TrialToIde10(source, { ide10Donor: donor });
+  const outView = new DataView(converted.buffer, converted.byteOffset, converted.byteLength);
+  assert.equal(outView.getUint32(74, true), 201094);
+  assert.equal(converted[78], 0);
+  const sealed = validateIdeCarrier(converted);
+  assert.equal(sealed.formatVersion, 201094);
+  assert.equal(sealed.encodedFlag, 0);
+  const trial = parseIde10(buffer(source), "source.ide11trial");
+  const parsed = parseIde10(buffer(converted), "converted.ide10");
+  const prior = parseIde10(buffer(donor), "donor.ide10");
+  assert.equal(parsed.format, "ide10");
+  assert.equal(parsed.floors.length, trial.floors.length);
+  assert.deepEqual(
+    parsed.floors.map(f => [f.name, f.elevation, f.height]),
+    trial.floors.map(f => [f.name, f.elevation, f.height]),
+  );
+  assert.equal(parsed.elements.length, trial.elements.length);
+  assert.deepEqual(parsed.coverage.byType, trial.coverage.byType);
+  // Döşeme yükleri dönüşümde korunur (T-F1.1b notunun asıl talebi).
+  const key = (e: typeof parsed.elements[number]) => `${e.floorId}:${e.nativeId}`;
+  const trialLoads = new Map(
+    trial.elements.filter(e => e.planAnnotation?.loads).map(e => [key(e), e.planAnnotation!.loads!]),
+  );
+  assert.ok(trialLoads.size >= 150, `kaynakta en az 150 döşeme yükü beklenirdi; ${trialLoads.size}.`);
+  for (const e of parsed.elements) {
+    const t = trialLoads.get(key(e));
+    if (!t) continue;
+    assert.ok(e.planAnnotation?.loads, `${key(e)} döşeme yükleri dönüşümde kaybolmamalı.`);
+    close(e.planAnnotation!.loads!.dead, t.dead);
+    close(e.planAnnotation!.loads!.live, t.live);
   }
-  const d1 = project.elements.find(e => e.nativeId === 6129657);
-  assert.ok(d1?.planAnnotation?.loads);
-  close(d1.planAnnotation.loads.live, 1);
-  close(new DataView(converted.buffer, converted.byteOffset, converted.byteLength).getFloat64(d1.planAnnotation.loads.sourceOffset - 8, true), 1);
+  // Donör parite tanıklığı: eleman kimlikleri ve katlar donörle hizalı.
+  assert.equal(parsed.floors.length, prior.floors.length);
+  assert.equal(parsed.elements.length, prior.elements.length);
+  // Kaynak dosya değişmedi.
   assert.equal(digest(source), before);
   assert.equal(digest(readFileSync(file)), before);
 });
@@ -146,4 +170,38 @@ test("ideCAD 11.28 trial save retains the observed model and stair mesh", { skip
   const saved = saveNativeIdeSource(source, native, "ide11trial");
   assert.equal(digest(saved.bytes), before);
   assert.equal(digest(source), before);
+});
+
+/**
+ * ideCAD 11.28'in açtığı taşıyıcı sürüm kabul ailesi: 201091 (yapı şablonu),
+ * 201094 (native .ide10), 211220 (ideCAD 11.20 şeması) ve 211280 (ideCAD 11.28 şeması).
+ */
+const IDECAD_1128_ACCEPTANCE_FAMILY = new Set([211220, 211280, 201091, 201094]);
+const conversionEvidence = (name: string) =>
+  `C:/Users/hsyn/Desktop/hsyncad_idecad_uzanti_optimizasyon/evidence/hsyncad-conversions/${name}`;
+const nativeIde11Carriers = ["HS_B0_orijinal.ide11", "HS_X11_downloads.ide11"].map(conversionEvidence);
+
+test("native ide11 output keeps the source carrier version inside the ideCAD 11.28 acceptance family", { skip: !nativeIde11Carriers.every(existsSync), timeout: 120_000 }, () => {
+  for (const carrierPath of nativeIde11Carriers) {
+    const source = readFileSync(carrierPath);
+    const before = digest(source);
+    const sourceVersion = source.readUInt32LE(74);
+    assert.ok(IDECAD_1128_ACCEPTANCE_FAMILY.has(sourceVersion), `${carrierPath}: kaynak taşıyıcı ${sourceVersion} kabul ailesi dışında.`);
+    const converted = transcodeIde11TrialToIde11(source);
+    const outView = new DataView(converted.buffer, converted.byteOffset, converted.byteLength);
+    const outputVersion = outView.getUint32(74, true);
+    // P0 regresyon koruması: gövde şeması değişmediği için çıktı taşıyıcısı kaynak
+    // şema sürümünü taşımalıdır. 211280 gövdeyi sabit 211220 taşıyıcıyla mühürlemek
+    // (eski davranış) ideCAD 11.28'in açışta kapattığı dosyalar üretiyordu.
+    assert.equal(outputVersion, sourceVersion, `${carrierPath}: çıktı taşıyıcı ${outputVersion} kaynak sürüm ${sourceVersion} ile eşit olmalı.`);
+    if (sourceVersion === 211280) {
+      assert.notEqual(outputVersion, 211220, "211280 kaynağı için eski sabit-211220 mühürleme geri dönmemeli.");
+    }
+    assert.ok(IDECAD_1128_ACCEPTANCE_FAMILY.has(outputVersion), `${carrierPath}: çıktı taşıyıcı ${outputVersion} ideCAD 11.28 kabul ailesi dışında.`);
+    assert.equal(converted[78], source[78], `${carrierPath}: encodedFlag dönüşümde korunmalı.`);
+    assert.equal(outView.getUint32(79, true), converted.length, `${carrierPath}: mühürlü boyut çıktı ile eşit olmalı.`);
+    const sealed = validateIdeCarrier(converted);
+    assert.equal(sealed.formatVersion, sourceVersion);
+    assert.equal(digest(source), before);
+  }
 });

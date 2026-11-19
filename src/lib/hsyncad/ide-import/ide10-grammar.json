@@ -1,0 +1,435 @@
+{
+  "$id": "hsyncad/ide10-govde-grameri",
+  "semaSurumu": "1.0.2",
+  "olusturanGorev": "F2/T-F2.6 (2026-11-19)",
+  "meta": {
+    "ad": "ideCAD v10 (.ide10) govde grameri — makine-okunur sema",
+    "insanOkunurDokuman": "docs/hsyncad/IDE10_GOVDE_GRAMERI.md",
+    "tuketiciler": [
+      "T-F3.3 transcodeIde11TrialToIde10: v10 govde uretimi (kayit sirasi + olcekler + opak bloklar + surum kosullari + alt-akis yeniden uretimi)",
+      "T-F4.1 transcodeIde10ToIde11: ters sema yukseltmesi",
+      "T-F5.1 encoded v11 govdesinde R1/R3/R4/R5 karsilik offset cozumu"
+    ],
+    "kanitEtiketSozlesmesi": {
+      "KANIT": "tek degiskenli diferansiyel deney, decompile satir atfi, census capasi veya oracle olcumuyle desteklenmis kural",
+      "VARSAYIM": "kanitsiz/eksik kanitli kural; 'assumption: true' bayragi tasir; F3 uretim girdisi olarak KULLANILAMAZ (T-F2.7 savci turu denetler; F3 girdisinde VARSAYIM YASAK)"
+    },
+    "tuketiciSozlesme": {
+      "uretimYolu": "T-F3.3 uretim yukleyicisi 'assumption:true' tasiyan her kural satiri icin URETIM yolunda hard-fail eder ve reddedilen satirlari loglar",
+      "testAnalitikYolu": "ayni satirlar icin yalnizca warning uretir",
+      "not": "VARSAYIM satirlarinin hicbiri F3 uretim kurali olarak gerekmez — yaptirim savunma derinligidir",
+      "dayanak": "G2 savci raporu §2 TALEP + G2 critic raporu onayi (evidence/orkestrasyon/2026-11-19-F2-G2/rapor/)"
+    },
+    "offsetSozlesmesi": "Sayisal 'offset' degerleri dosya bayt ofsetidir. 'offsetTuru': 'dosya' = taSIyici/govde icinde mutlak bayt; 'kayit-ici' = kayit tabanindan (p) goreli bayt; 'cppUye' = decompile edilen C++ nesne uyesi (yazici alan sirasi icin kullanilir, dosya ofseti degildir). 'offsetTabani': 'tail' = ofset kayit tabanindan (p) degil, son degisken-uzunluklu alanin bitisinden (tail) goreli hesaplanir (ELEMAN-GEOMETRI sira>=4; MD §5). Degisken uzunluklu alanlardan sonra gelen alanlar 'sira' ile okunur.",
+    "exeCapKurali": "Kurulu ideCAD_Statik_11_Deneme.exe 30 Ekim 2026 sonrasi GUNCELLENDI (eski SHA-256 a4dcabe8… → guncel 350d5a581417dec9cddac52b66e1a4b60ecdce227e70eb93cb909b6f660162f4). 0x14098xxxx bolgesi degismedi (5 hazir decompile taze ciktiyla bayt-ozdes); 0x140b8eXXX bolgesi KAYMISTIR (eski RVA b8e1c0/b8e9c0 guncel yapida baska koda denk gelir). Bu semadaki her adres atfi (a) 'guncel SHA + taze decompile satiri' veya (b) 'eski SHA a4dcabe8… + eski yapi' etiketiyle okunmali; ciplak RVA asla guncel yapiya tasinmaz. Yeni EXE surumlerinde adres atiflari icerik/SHA capasiyla yeniden dogrulanmadan kural uretime alinmaz.",
+    "a0KalantiEnvanteri": {
+      "kaynak": "KANIT",
+      "kanitAtifi": "T-F3.3d t33d-rapor (A0-kalanti envanteri ozeti) + TAM LISTE: evidence/orkestrasyon/2026-11-19-F3-T3.3d/test-cikti/t33d-a0-kalanti-envanteri.log (612 ULP satiri + 392 perde etiketi yuvasi; devir notu fikir-t33d 2 — sessiz degil); G3 savci S2(c)/S5 + hakem 4: baglanan bulgu, kabul engeli degil",
+      "olcum": "geometri f64 356.190 alan karsilastirmasi (v3 vs A0): 355.578 bit-ozdes + 612 yeniden hesap; gercek deger catismasi 0 (10,67<->11,15 sinifi YOK)",
+      "ulpYenidenHesapSinifi": {
+        "adet": 612,
+        "tolerans": "|Delta|<=1e-9 (oracle)",
+        "maksSapma": 1.78e-14,
+        "dagilim": { "nokta.x": 145, "nokta.y": 271, "genislik": 157, "nativeZ": 39 },
+        "kural": "v11 x0,5/x1/3 olcek ve ag yeniden hesap sinifi; v11 KAYNAK KAZANIR — v10 tasiyicisinda A0 degeri kalir, uzerine yazilmaz"
+      },
+      "perdeEtiketiKanonikSapmasi": {
+        "adet": 392,
+        "kapsam": "196 perde etiketi x 2 yuva (wallLabel + wallLabelName)",
+        "kural": "kanonik hasat bicimi ('25/255') ile A0'nin depolanan bicimi ('255/25'; '310/25'<->'25/310' vb.) parse-esittir (labelDiff=0); v10 tasiyicisinda A0'nin depolanan bicimi esas — bkz. perdeEtiketiKanonikBelgesi"
+      },
+      "gercekDegerCatisma": 0
+    },
+    "degisiklikGecmisi": [
+      { "surum": "1.0.1", "tarih": "2026-11-19", "gorev": "F2/T-F2.7b", "not": "Savci/critic keskinlik duzeltmeleri: B1 qt@112899 ampirik(KANIT)/yapisal(VARSAYIM) ayrimi; B2 meta.tuketiciSozlesme uretim-yolu hard-fail yaptirimi; critic-a ELEMAN-GEOMETRI sira>=4 offsetTabani:tail; critic-b alt-tip cozumlemesinde bos-yuva-once onceligi; critic-d encoded=1 kosulunun sozluge (V-ENCODED) baglanmasi — siniflandirma davranisi degismedi (t27b tanik: 30.260/30.260; 1885/1/28001/373; 1659/212/14)" },
+      { "surum": "1.0.2", "tarih": "2026-11-19", "gorev": "F2/T-F2.7c", "not": "G3 baglamalari (tum yeni kalemler KANIT, assumption:true YOK — uretim yukleyicisinde hard-fail tetiklemez): yukcuFaraziSozlesmeler YFS-1 (akis-disi kosularin v10 yerlesimi A0-donor nakliyle uretilir; t34/t34b WER + fikir-t33d H2 + t33d olcut i/iv) + YFS-2 (katalog-disi f64 alanlari govde-geni kodtablosu supurmesiyle duzlestirilir; t33c + t34b imza analizi); meta.a0KalantiEnvanteri (612 ULP |Delta|<=1e-9 maks 1.78e-14 + 392 perde etiketi parse-esit + 0 gercek catisma; tam liste t33d kanit logunda); perdeEtiketiKanonikBelgesi (tasiyici-ozde esasi; v11 olcum yolu T-F4.1'e atif)" }
+    ]
+  },
+  "koordinatSistemleri": [
+    {
+      "id": "A0",
+      "dosya": "A0_orijinal.ide10 (145.671.130 B, SHA-256 0095778181794af8f4f8cfb52cabcca3dda4fc098cb3ea33a90e5c659bdaf325)",
+      "not": "v10 (201094) referans govdesi; bolgeHaritasi ve altAkisTipleri bu koordinat sistemindedir",
+      "kaynak": "KANIT",
+      "kanitAtifi": "T-F2.4 bytemap-A0.md §1"
+    },
+    {
+      "id": "M-base",
+      "dosya": "M-base/M0-work .ide11trial (464.850 B, SHA-256 BD32651EAB0ECE07E58BFC6C61464ECD94B8998CEED65799174615A3564C69B3, encoded=1, surum 211280)",
+      "not": "M0–M6 ayar/sonuc ofsetleri (ayarKayitlari, modalPeriyotKaydi) bu kucuk deney dosyasinin koordinat sistemindedir; A0'a dogrudan tasinmaz",
+      "kaynak": "KANIT",
+      "kanitAtifi": "T-F2.2 M0-diff.md (a); T-F2.3 t23-rapor.md"
+    }
+  ],
+  "tasiyici": {
+    "kabulSurumAilesi": [201091, 201094, 211040, 211220, 211280],
+    "surumEtiketKurali": {
+      "kural": "tasiyici surumu, govdeyi YAZAN yazicinin surumudur; sabit deger muhurlenmez, kaynak surumu korunur",
+      "kaynak": "KANIT",
+      "kanitAtifi": "140989c30.c L40-44 (yazici 0x33950=211280'i kendi surumuyle yazar; proje kayit surumu varsa onu kullanir) — guncel SHA 350d5a58…; 05-REA-CAPRAZ-DOGRULAMA.md §2.2; ide11-transcoder.ts L676-682"
+    },
+    "baslikAlanlari": [
+      { "offset": 74, "offsetTuru": "dosya", "tip": "u32", "ad": "tasiyici format surumu", "kaynak": "KANIT", "kanitAtifi": "ide-binary-codec.ts; trial-acceptance.test.ts (IDECAD_1128_ACCEPTANCE_FAMILY)" },
+      { "offset": "previewEnd+28", "offsetTuru": "dosya", "tip": "bayt", "ad": "ogrenci kilidi isareti", "kaynak": "KANIT", "kanitAtifi": "T-F1.3 (kilit baytindan format ayrimi; ide-binary-codec.test.ts gercek B0/X11/D0 caplari)" },
+      { "offset": "previewEnd+29", "offsetTuru": "dosya", "tip": "bayt", "ad": "demo kilidi isareti", "kaynak": "KANIT", "kanitAtifi": "T-F1.3" }
+    ],
+    "crc32": {
+      "kural": "ham CRC32, baslangic 0xffffffff, polinom 0xedb88320, bayt araligi [88, EOF), final XOR yok",
+      "kaynak": "KANIT",
+      "kanitAtifi": "native-integrity-2026-11-04/selected-carriers-before-repair.json checksumContract birebir; 05-REA-CAPRAZ-DOGRULAMA.md §1/10"
+    }
+  },
+  "altAkisCercevesi": {
+    "desen": "[u32 201094][u32 compLen][u32 rawLen][zlib deflate govdesi (0x78 baslangicli)]",
+    "kaynak": "KANIT",
+    "kanitAtifi": "ide-zlib.ts scanIde201094Streams; T-F2.4 census capasi (A0=30.260 akis; comp 116.600.559 / raw 412.781.980; Adler-32 dahili dogrulamali, 0 inflate hatasi)",
+    "bosYuvaDavranisi": {
+      "kural": "F9/hesap yuvalari onceden hazir bos cercevelerdir: rawLen=4, icerik 00 00 00 00; analizin calismasi ayni cerceveleri konum-korumali icerikle doldurur (0 yeni/silinen cerceve)",
+      "kaynak": "KANIT",
+      "kanitAtifi": "M0-diff.md (b)-(c): A dosyasinda 137/137 akis bos yuvaydi; F9 sonrasi B dosyasinda ayni 137 cercevenin 136'si doldu (+128 KB; 107 dugum kaydi ekrandaki D.Noktasi=107 ile birebir)"
+    },
+    "v11Notu": {
+      "kural": "encoded v11 (211220/211280, encodedFlag=1) govdede cerceveler Blowfish kodlamasi altinda duz metinde gorunmez; yalniz 1 adet duz zlib akis kalir (A0 #1885'nin bayt-ozdes ikizi)",
+      "kaynak": "KANIT",
+      "kanitAtifi": "T-F2.4 bytemap-A0.md §7 (B0@36.758.804 / X11@36.772.778; comp 116.908 / raw 813.063 bayt-ozdes)"
+    }
+  },
+  "surnumKosullari": [
+    { "id": "V-160100", "hex": "0x27164", "dec": 160100, "kural": "okuyucu alt surum tabani: <160100 dosya reddedilir (hata 8)", "kaynak": "KANIT", "kanitAtifi": "14098b600.c L53-56 (guncel SHA)" },
+    { "id": "V-162000", "hex": "0x278cf/0x278d0", "dec": "161999/162000", "kural": "surum <162000'de ortak kayda +0x80 nesne listesi yazilir ([u32 n][n×8B kayit, FUN_140be6db0]; global bayrak kosullu); >=162000'de ust yazici ek u32 @+0x11f yazar; ayar yazicisi 1B ve kodlu f64 alanlarini >161999'a sartlar", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L114-129; 140989c30.c L309-312; 14098d270.c L13-59 (guncel SHA)" },
+    { "id": "V-165400", "hex": "0x28618", "dec": 165400, "kural": "surum-gecmis listesi [u32 n][n×u32 surum kaydi][n×f64 zaman damgasi] yalniz >=165400'te yazilir (_time64 guncellemesiyle)", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L81-112" },
+    { "id": "V-170001", "hex": "0x29811", "dec": 170001, "kural": "param_1[0x13b] vtable+8 kaydi yalniz >170001'de cagrilir", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L619-621" },
+    { "id": "V-180012", "hex": "0x2bf2c", "dec": 180012, "kural": "1B @+0x8da yalniz >180012'de yazilir", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L302-306" },
+    { "id": "V-180500", "hex": "0x2c113/0x2c114", "dec": "180499/180500", "kural": "u32 @+0xc8 yalniz >=180500'te yazilir", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L130-133" },
+    { "id": "V-180502", "hex": "0x2c115/0x2c116", "dec": "180501/180502", "kural": "u32 @+0xc4 yalniz >=180502'de yazilir", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L106-109 (yazici >0x2c115); eski yapi okuyucusu 0x2c116 jge (trial-common-record-static.json, eski SHA a4dcabe8…)" },
+    { "id": "V-180000", "hex": "179999 (dec)", "dec": 180000, "kural": "u8 @+0x11b ve u8 @+0x8d9 yalniz >179999'de yazilir; CERCEVE listesi [u32 n @+0x1a3][n × cerceve kaydi (FUN_1408fa1f0)] yalniz >179999'de yazilir — A0 (201094) bu kapsamdadır", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L293-301 ve L624-636; T-F2.5 t25-rapor.md B6" },
+    { "id": "V-190000", "hex": "189999/190000 (dec)", "dec": 190000, "kural": "[u32 n][n×32B kayit] blogu (FUN_1404366b0, esik 190000) ve 1B @+0x28 yalniz >189999'de yazilir", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L134-144" },
+    { "id": "V-201017", "hex": "0x31139/0x3113a", "dec": "201017/201018", "kural": "belge basindaki iki 1B alani yalniz >201017 / >201018'de yazilir", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L61-68" },
+    { "id": "V-211002", "hex": "0x3383a", "dec": 211002, "kural": "u32 @+0x8cc eski-surum duzeltmesi: surum <211002'de deger 5 ise 4 olarak yazilir/okunur; okuyucu ayrica <211240'ta deger 2'yi isaretler ve <2'yi 2'ye kenetler", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L278-288 (yazici); 14098b600.c L374-389 (okuyucu)" },
+    { "id": "V-211016", "hex": "0x33847/0x33848", "dec": "211015/211016", "kural": "isaret (marker) u32 0x5ce yalniz >=211016'de yazilir/okunur", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L69-78 (yazici >0x33847); 14098b600.c L60-77 (okuyucu <0x33848 atlama)" },
+    { "id": "V-211150", "hex": "0x338ce", "dec": 211150, "kural": "KRITIK KAPI — story reference B: surum >=211150'de kat basliginda ek 4 bayt okunur/yazilir; viewport olcegi 201094'te +28, 211220'de +32'de baslar. GENEL 'encoded ⇒ +4' cikarimi YASAKTIR (yalniz bu surum esigi)", "kaynak": "KANIT", "kanitAtifi": "trial-numeric-codec-findings-2026-10-30.md okuyucu 0x9938a0/0x993a67 (eski SHA a4dcabe8…); 05-REA-CAPRAZ-DOGRULAMA.md §2.3; eski yapi ortak kayit okuyucusunda 0x338ce karsilastirmasi (trial-common-record-static.json b8e645)" },
+    { "id": "V-211240", "hex": "0x33928", "dec": 211240, "kural": "u32 ek alani yalniz <211240'te yazilir (yazici L135-138 esik 0x33928)", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L135-138; 14098b600.c L106-108 (okuyucu <0x33928 zorlamasi)" },
+    { "id": "V-211280", "hex": "0x33950", "dec": 211280, "kural": "guncel yazicinin varsayilan surumu (belge basina yazilir; proje surumu varsa o yazar)", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L40-44" },
+    { "id": "V-ENCODED", "hex": "encodedFlag=1", "dec": 1, "kural": "tasiyici encoded bayragi=1 (encoded v11 ailesi 211220/211280) oldugunda ELEMAN-GEOMETRI sira-9 OPAK 16B (4×u32) ilk referans listesinden sonra yazilir (liste bos olsa bile); bayrak=0 (duz v10 201094) oldugunda yazilmaz — sayisal surum esigi degil, format bayragi kosulu", "kaynak": "KANIT", "kanitAtifi": "index.ts L240-244 ('The 211220 native writer adds four opaque u32 values after the first reference list, even when empty'); ide-binary-codec.ts (encodedFlag); opakBloklar OPAK-16B-RAND" }
+  ],
+  "bolgeHaritasi": [
+    { "id": "BASLIK-ON-KAT", "baslangic": 0, "bitis": 27700, "koordinat": "A0", "icerik": "baslik + kat oncesi sablon; akis yok (sinir yaklasiktir)", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §4" },
+    { "id": "ELEMAN-KAYITLARI", "baslangic": 27700, "bitis": 35473174, "koordinat": "A0", "icerik": "6 kat eleman kayitlari; 1.885 oznitelik alt-akisi (idx 0..1884; ilk akis @264.359, son @34.872.699)", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §4 + parseIde10 eleman kayit araliklari" },
+    { "id": "ARA-BOLGE", "baslangic": 35473174, "bitis": 36402671, "koordinat": "A0", "icerik": "son eleman ardı ara bolge; #1885 CIZIM-BICEM-TABLOSU @35.506.109", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §4/§6-2; T-F2.5 1885-raw.bin" },
+    { "id": "MATERYAL-BOSLUGU-R1", "baslangic": 36402671, "bitis": 36403785, "koordinat": "A0", "icerik": "R1 malzeme sozlugu akis DISINDA: 'TEMEL TASARIM ZARFI\\0' @36.402.671; kayitlar C25 B420C (beton) + S235 (celik); akis yok", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §4/§5 (oracle 2/2)" },
+    { "id": "F9-DUGUM-BLOKU", "baslangic": 36403785, "bitis": 131110848, "koordinat": "A0", "icerik": "28.001 dugum yerdegistirme sonuc akisi (idx 1886..29886; hepsi rawLen 13.564)", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §3/§4" },
+    { "id": "F9-KABUK-BLOKU", "baslangic": 131110848, "bitis": 145103614, "koordinat": "A0", "icerik": "373 kabuk sonuc akisi (idx 29887..30259)", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §3/§4" },
+    { "id": "KUYUK", "baslangic": 145103614, "bitis": 145671130, "koordinat": "A0", "icerik": "567.516 B akis-disi duz bolge: 10 modal tablo + DSF1 tayfi @145.264.162 + G1 koordinat; akis yok", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §4/§5" }
+  ],
+  "kayitTipleri": [
+    {
+      "id": "BELGE-GOVDE",
+      "uretici": "0x140989c30 (belge yazicisi; guncel SHA 350d5a58…, taze decompile bayt-ozdes)",
+      "okuyucu": "0x14098b600",
+      "kaynak": "KANIT",
+      "kanitAtifi": "140989c30.c / 14098b600.c (T-F2.5 A1-A2 UYUSUYOR); 1409441c0.c fabrika (A3)",
+      "alanlar": [
+        { "sira": 1, "offset": 0, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "govde surumu (0x33950=211280 veya proje kayit surumu)", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L40-44" },
+        { "sira": 2, "offset": 4, "offsetTuru": "kayit-ici", "tip": "u8", "ad": "sabit 1", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L45-46" },
+        { "sira": 3, "offset": 5, "offsetTuru": "kayit-ici", "tip": "2×u32", "ad": "storing-modu dal bloğu (param_2+0x14==0 iken yazilir; storing konumu L118-123'te u32 olarak devam eder)", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L49-59, L118-123" },
+        { "sira": 4, "offset": null, "offsetTuru": "kayit-ici", "tip": "u8", "ad": "surum >201017 alani", "kosul": "V-201017", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L61-64" },
+        { "sira": 5, "offset": null, "offsetTuru": "kayit-ici", "tip": "u8", "ad": "surum >201018 alani", "kosul": "V-201017", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L65-68" },
+        { "sira": 6, "offset": null, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "isaret (marker) 0x5ce=1486", "kosul": "V-211016", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L69-78" },
+        { "sira": 7, "offset": null, "offsetTuru": "kayit-ici", "tip": "[u32 n][n×u32 surum][n×f64 zaman]", "ad": "surum-gecmis listesi (_time64 damgalari)", "kosul": "V-165400", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L81-112" },
+        { "sira": 8, "offset": null, "offsetTuru": "kayit-ici", "tip": "u8", "ad": "global bayrak (+0x19a09)", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L114-117" },
+        { "sira": 9, "offset": null, "offsetTuru": "kayit-ici", "tip": "3×u32", "ad": "sabitler 0x22d08/0x4bf0/0x540", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L124-129" },
+        { "sira": 10, "offset": null, "offsetTuru": "kayit-ici", "tip": "blok", "ad": "alt serilestiriciler: FUN_140864b90, FUN_1405b1020, FUN_140eec320, FUN_14100b960, FUN_140ef4840, FUN_140b466b0, FUN_140a6d010 — alan eslesmeleri ACIK IS (kayit tasiyicilari olarak kayda gecti)", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L79-80, L130-134" },
+        { "sira": 11, "offset": null, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "surum <211240 ek alani", "kosul": "V-211240", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L135-138" },
+        { "sira": 12, "offset": null, "offsetTuru": "kayit-ici", "tip": "dize", "ad": "proje dizesi @+0x155: [u8 bos-degil bayragi][u32 uzunluk][baytlar]", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L139-149; okuyucu 14098b600.c L128-130" },
+        { "sira": 13, "offset": null, "offsetTuru": "kayit-ici", "tip": "[u32 katSayisi][katSayisi × KAYIT-KAT]", "ad": "kat listesi (her kat FUN_1409c8330 ile yazilir; okuyucu FUN_1409c6ff0)", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L235-245; 14098b600.c L239-251" },
+        { "sira": 14, "offset": null, "offsetTuru": "kayit-ici", "tip": "[u32 n][n × FUN_140ad3270 kaydi]", "ad": "ek liste @+0x1ae", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L246-256" },
+        { "sira": 15, "offset": null, "offsetTuru": "kayit-ici", "tip": "[u32 n][n × FUN_1408eb0c0 kaydi]", "ad": "varlik listesi (aktif kat kaydi @+0x11e ile isaretlenir)", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L257-272" },
+        { "sira": 16, "offset": null, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "aktif kat indeksi @+0x11e", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L271-272" },
+        { "sira": 17, "offset": null, "offsetTuru": "kayit-ici", "tip": "blok", "ad": "cizim tanim listesi ureticisi FUN_140a8c5e0 — A0 #1885 CIZIM-BICEM-TABLOSU'nun uretici dali (kesin atama guclu ama tam degil; ACIK IS)", "kaynak": "VARSAYIM", "assumption": true, "kanitAtifi": "140989c30.c L276; t25-rapor.md B7 (kesin dal atamasi KANIT-seviyesinde guclu ama tam; uc dize fonksiyonu ayri decompile bekler)" },
+        { "sira": 18, "offset": null, "offsetTuru": "kayit-ici", "tip": "blok", "ad": "ayar alanlari serilestiricisi FUN_14098d270 — ayarKayitlari bolgesinin yazicisi (kodlu f64 alanlari FUN_140437e60 ile)", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L277; ana-exe-pass3/14098d270.c L13-59" },
+        { "sira": 19, "offset": null, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "mod @+0x8cc (eski surumde 5→4 duzeltmesi)", "kosul": "V-211002", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L278-288; okuyucu 14098b600.c L374-389" },
+        { "sira": 20, "offset": null, "offsetTuru": "kayit-ici", "tip": "u32+u32", "ad": "@+0x11a ve @+0x8d4", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L289-292" },
+        { "sira": 21, "offset": null, "offsetTuru": "kayit-ici", "tip": "u8+u8", "ad": "@+0x11b ve @+0x8d9", "kosul": "V-180000", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L293-301" },
+        { "sira": 22, "offset": null, "offsetTuru": "kayit-ici", "tip": "u8", "ad": "@+0x8da", "kosul": "V-180012", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L302-306" },
+        { "sira": 23, "offset": null, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "@+0x8f4", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L307-308" },
+        { "sira": 24, "offset": null, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "@+0x11f", "kosul": "V-162000", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L309-312" },
+        { "sira": 25, "offset": null, "offsetTuru": "kayit-ici", "tip": "[u32 n @+0x1a3][n × CERCEVE-BOYUT-TABLOSU kaydi]", "ad": "eleman cerceve listesi (FRAME_SIZES; A0'da 1.057 adet f32 tablo)", "kosul": "V-180000", "kaynak": "KANIT", "kanitAtifi": "140989c30.c L624-636; t25-rapor.md B6" }
+      ],
+      "acikIsNotu": "Belge yazicisinin L150-618 arasi orta blogu (kat/varsayim serilestiricileri) bu fazda alan-duzeyinde acilmadi; tasiyici islevler ve sinirlar kayitlidir. Tam alan eslemesi F3'te gerektikce T-F2.7 onayli sekilde acilir — uydurma alan adi YOK."
+    },
+    {
+      "id": "KAYIT-KAT",
+      "uretici": "FUN_1409c8330 (140989c30.c L239 cagrisi)",
+      "okuyucu": "FUN_1409c6ff0 (14098b600.c L244 cagrisi)",
+      "kaynak": "KANIT",
+      "kanitAtifi": "140989c30.c L235-245; 14098b600.c L239-251",
+      "alanlar": [
+        { "sira": 1, "offset": 0, "offsetTuru": "kayit-ici", "tip": "blok", "ad": "kat baslangic kaydi (alan eslemesi ACIK IS)", "kaynak": "VARSAYIM", "assumption": true, "kanitAtifi": "kat dongusu KANIT (yukarida); ic alan haritasi bu fazda acilmadi" },
+        { "sira": 2, "offset": null, "offsetTuru": "kayit-ici", "tip": "4 bayt", "ad": "story reference B (ek gorunum gostergesi) — yalniz surum >=211150", "kosul": "V-211150", "kaynak": "KANIT", "kanitAtifi": "trial-numeric-codec-findings-2026-10-30.md okuyucu 0x9938a0/0x993a67; viewport olcegi +28 (201094) / +32 (211220)" }
+      ]
+    },
+    {
+      "id": "ELEMAN-ORTAK-KAYIT",
+      "uretici": "FUN_140bc75e0 (kaymis common-record yazicisi; guncel SHA 350d5a58…)",
+      "eskiYapiOkuyucu": "0xb8e1c0 (eski SHA a4dcabe8… — RVA guncel yapida GECERSIZ)",
+      "kaynak": "KANIT",
+      "kanitAtifi": "140bc75e0.c (T-F2.5 A4/A5 UYUSUYOR); trial-common-record-static.json (eski yapi; olcek-0,5/1-3 geri okuma kosulu +0x10/+0x11 bayraklari)",
+      "alanlar": [
+        { "sira": 1, "offset": "+0xbc", "offsetTuru": "cppUye", "tip": "[u32 n][n×16B]", "ad": "iliski ciftleri listesi (her oge iki f64; FUN_140437e60 kodlu)", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L19-29" },
+        { "sira": 2, "offset": "+0xa4", "offsetTuru": "cppUye", "tip": "u32", "ad": "skaler", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L31-32" },
+        { "sira": 3, "offset": "+0x68", "offsetTuru": "cppUye", "tip": "f64", "olcek": "yazim ×2 (nativeZ); encoded okuma ×0,5", "ad": "nativeZ (kot)", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L33 '(+0x68)+(+0x68)'; eski okuyucu b8e2a5-b8e2c9 (×0,5, bayrak +0x10); repo okuyucu index.ts L229 (encoded dosyada ×0,5, 1.266/1.266 dogrulamali)" },
+        { "sira": 4, "offset": "+0x58", "offsetTuru": "cppUye", "tip": "f64", "olcek": "yazim ×3 (genislik; _DAT_145331218=3.0); encoded okuma ×1/3", "ad": "genislik", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L34; find-rip-scale-consts.mjs (0x145331218'deki double=3.0); eski okuyucu b8e2b7-b8e2c9 (×1/3, bayrak +0x11); index.ts L229" },
+        { "sira": 5, "offset": "+0x2c", "offsetTuru": "cppUye", "tip": "u32", "ad": "skaler (eski yapi okuyucusunda surume bagli kenetleme)", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L35-36; eski okuyucu b8e2dd-b8e343" },
+        { "sira": 6, "offset": "+0xa0", "offsetTuru": "cppUye", "tip": "[u32 n][n×u32]", "ad": "tamsayi dizisi", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L37-45" },
+        { "sira": 7, "offset": null, "offsetTuru": "kayit-ici", "tip": "16B", "ad": "OPAK BLOK — 4×rand() u32; liste uzunlugundan bagimsiz; KORUNUR, temizlenmez", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L47-54 (4x rand); eski okuyucu okur ve DISCARD eder (b8e3a5-b8e409)" },
+        { "sira": 8, "offset": "+0x50", "offsetTuru": "cppUye", "tip": "f64", "ad": "skaler", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L55" },
+        { "sira": 9, "offset": "+0x38", "offsetTuru": "cppUye", "tip": "[u32 n][n×u32]", "ad": "tamsayi dizisi", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L56-66" },
+        { "sira": 10, "offset": "+0x48", "offsetTuru": "cppUye", "tip": "[u32 n][n×u32]", "ad": "tamsayi dizisi", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L67-77" },
+        { "sira": 11, "offset": "+0x60", "offsetTuru": "cppUye", "tip": "f64", "ad": "skaler", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L78" },
+        { "sira": 12, "offset": "+0xcc..+0xd8", "offsetTuru": "cppUye", "tip": "4×f32 (16B)", "ad": "bbox float32 blogu — global bayrak +0x19a09 sifirsa yazilir (KOSULLU 16B); 8B sayisal blok gibi cozulmez", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L79-85; eski yazici b8ec3b-b8ec56 / okuyucu b8e545-b8e57e" },
+        { "sira": 13, "offset": "+0x90", "offsetTuru": "cppUye", "tip": "[u8 bos-degil][u32 uzunluk][bayt]", "ad": "ad dizesi", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L86-99" },
+        { "sira": 14, "offset": "+0xa8", "offsetTuru": "cppUye", "tip": "u32", "ad": "skaler", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L100-101" },
+        { "sira": 15, "offset": "+8", "offsetTuru": "cppUye", "tip": "u32", "ad": "durum bayraklari (eski okuyucu <211150'te 0x4000 bitini temizler)", "kosul": "V-211150", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L102-103; eski okuyucu b8e645-b8e653" },
+        { "sira": 16, "offset": "+0xb4", "offsetTuru": "cppUye", "tip": "u32", "ad": "skaler", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L104-105" },
+        { "sira": 17, "offset": "+0xc4", "offsetTuru": "cppUye", "tip": "u32", "ad": "skaler", "kosul": "V-180502", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L106-109" },
+        { "sira": 18, "offset": "+0xb8", "offsetTuru": "cppUye", "tip": "u32", "ad": "skaler", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L110-111" },
+        { "sira": 19, "offset": "+0xac", "offsetTuru": "cppUye", "tip": "u32", "ad": "skaler", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L112-113" },
+        { "sira": 20, "offset": "+0x88/+0x80", "offsetTuru": "cppUye", "tip": "[u32 n][n×8B]", "ad": "nesne listesi (FUN_140be6db0 kayitlari)", "kosul": "V-162000", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L114-129 (yalniz <162000'de yazilir; global bayrak kosulu)" },
+        { "sira": 21, "offset": "+0xc8", "offsetTuru": "cppUye", "tip": "u32", "ad": "skaler", "kosul": "V-180500", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L130-133" },
+        { "sira": 22, "offset": "+0x10", "offsetTuru": "cppUye", "tip": "[u32 n][n×32B]", "ad": "32B kayit dizisi (FUN_1404366b0; n=(+0x18−+0x10)/32)", "kosul": "V-190000", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L134-140" },
+        { "sira": 23, "offset": "+0x28", "offsetTuru": "cppUye", "tip": "u8", "ad": "kuyruk bayragi", "kosul": "V-190000", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L141-144" }
+      ],
+      "acikIsNotu": "Guncel yapida ORTAK KAYIT OKUYUCU ikizi bulunamadi (3 prologue adayi olcek icermiyor; 0,5+1/3 RIP cifti yok) — olcek kurallari yazici tarafi + eski yapi okuyucusu + repo okuyucu davranisiyla kanitli, tek-kanalli decompile kanıtı degil (ACIK IS; T-F2.5 §1)."
+    },
+    {
+      "id": "ELEMAN-GEOMETRI",
+      "uretici": "eleman fabrikasi 0x1409441c0: u32 tur kodu → tur basina sanal yazici (case 2/5 → FUN_141fccbd0; case 3/6/8/9/10 → FUN_140bc4c80(…,tur); case 4 → FUN_14059e0e0)",
+      "kaynak": "KANIT",
+      "kanitAtifi": "1409441c0.c L43 switch; index.ts L225-263 (repo okuyucu; 1.266/1.266 geometri parmak izi oracle'i)",
+      "alanlar": [
+        { "sira": 1, "offset": 0, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "tur kodu (123=kesit-duvar, 128=bant, 13=dizesiz, 40=merdiven vb. — fabrika switch'i)", "kaynak": "KANIT", "kanitAtifi": "1409441c0.c L41-43; unsupported-records.json/unsupported-type128-proof.json (tip 123/128 tam gramer kaniti)" },
+        { "sira": 2, "offset": 4, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "nokta sayisi (count)", "kaynak": "KANIT", "kanitAtifi": "index.ts L225-227" },
+        { "sira": 3, "offset": 8, "offsetTuru": "kayit-ici", "tip": "count×16B (f64 x, f64 y)", "ad": "nokta ciftleri", "kaynak": "KANIT", "kanitAtifi": "index.ts L254-256" },
+        { "sira": 4, "offset": 0, "offsetTuru": "kayit-ici", "offsetTabani": "tail", "tip": "u32", "ad": "nativeId (sifirdan farkli)", "kaynak": "KANIT", "kanitAtifi": "index.ts L229-230 (tail=p+8+count×16)" },
+        { "sira": 5, "offset": 4, "offsetTuru": "kayit-ici", "offsetTabani": "tail", "tip": "f64", "olcek": "encoded okuma ×0,5 (yazim ×2)", "ad": "nativeZ (kot)", "kaynak": "KANIT", "kanitAtifi": "index.ts L229; 140bc75e0.c L33" },
+        { "sira": 6, "offset": 12, "offsetTuru": "kayit-ici", "offsetTabani": "tail", "tip": "f64", "olcek": "encoded okuma ×1/3 (yazim ×3)", "ad": "genislik", "kaynak": "KANIT", "kanitAtifi": "index.ts L229; 140bc75e0.c L34" },
+        { "sira": 7, "offset": 20, "offsetTuru": "kayit-ici", "offsetTabani": "tail", "tip": "u32", "ad": "layerId", "kaynak": "KANIT", "kanitAtifi": "index.ts L229-230" },
+        { "sira": 8, "offset": 24, "offsetTuru": "kayit-ici", "offsetTabani": "tail", "tip": "[u32 n][n×u32]", "ad": "referans listesi 0", "kaynak": "KANIT", "kanitAtifi": "index.ts L231-240" },
+        { "sira": 9, "offset": null, "offsetTuru": "kayit-ici", "tip": "16B", "ad": "OPAK 16B (4×u32) — encoded 211220 ailesinde ilk referans listesinden sonra, liste bos olsa bile; yazici 4×rand(); KORUNUR", "kosul": "V-ENCODED", "kaynak": "KANIT", "kanitAtifi": "index.ts L240-244 (yorum: 'The 211220 native writer adds four opaque u32 values after the first reference list, even when empty'); 140bc75e0.c L47-54" },
+        { "sira": 10, "offset": null, "offsetTuru": "kayit-ici", "tip": "f64", "ad": "rotasyon", "kaynak": "KANIT", "kanitAtifi": "index.ts L245-246" },
+        { "sira": 11, "offset": null, "offsetTuru": "kayit-ici", "tip": "[u32 n][n×u32]", "ad": "referans listesi 1 (iliskiler)", "kaynak": "KANIT", "kanitAtifi": "index.ts L232-239" },
+        { "sira": 12, "offset": null, "offsetTuru": "kayit-ici", "tip": "[u32 n][n×u32]", "ad": "referans listesi 2", "kaynak": "KANIT", "kanitAtifi": "index.ts L233-248" },
+        { "sira": 13, "offset": null, "offsetTuru": "kayit-ici", "tip": "f64", "ad": "yanal ofset (kayit sonu: cursor+8 == geometriSonu)", "kaynak": "KANIT", "kanitAtifi": "index.ts L249-251" }
+      ]
+    },
+    {
+      "id": "CERCEVE-BOYUT-TABLOSU",
+      "uretici": "FUN_1408fa1f0 (okuyucu L21-60, yazici L63-75, dize kuyrugu L76-94)",
+      "kaynak": "KANIT",
+      "kanitAtifi": "t25-rapor.md B6 (FRAME_SIZES kesin tip); 140989c30.c L624-636 cagrisi",
+      "alanlar": [
+        { "sira": 1, "offset": 0, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "N (4B oge sayisi)", "kaynak": "KANIT", "kanitAtifi": "1408fa1f0.c L63-71" },
+        { "sira": 2, "offset": 4, "offsetTuru": "kayit-ici", "tip": "N×4B ham dizi", "ad": "eleman-oznitelik f32 tablosu (rawLen=4+4N; A0'da N%6==0 tum olculerde)", "kaynak": "KANIT", "kanitAtifi": "1408fa1f0.c L66-74; bytemap-A0.md §3.1 (820=4+204×4, 1636=4+408×4, 5716=4+1428×4, 17140=4+4284×4; hepsi N%6==0)" },
+        { "sira": 3, "offset": null, "offsetTuru": "kayit-ici", "tip": "[u8 bayrak][u32 uzunluk][bayt]", "ad": "cerceve ad dizesi (opsiyonel kuyruk)", "kaynak": "KANIT", "kanitAtifi": "1408fa1f0.c L76-94" }
+      ],
+      "varsayimNotu": {
+        "kural": "'N%6==0 → dugum basina 6 kuvvet bileseni (Fx,Fy,Fz,Mx,My,Mz)' yorumu SEKIL lehindedir ama decompile yalniz 4 baytlik ham deger yazimi gorur",
+        "kaynak": "VARSAYIM",
+        "assumption": true,
+        "kanitAtifi": "t25-rapor.md B6 (semantik T-F2.7'de veri tarafindan kanitlanmali)"
+      }
+    },
+    {
+      "id": "F64-DIZI-KODLU",
+      "uretici": "FUN_140436460 ([u32 n][n×8B]; her f64 FUN_1404c11d0 kodlayicisindan gecer)",
+      "kaynak": "KANIT",
+      "kanitAtifi": "ana-exe-pass5/140436460.c L19-57 (kodlayici cagrisi L38, 8B yazim L55); t25-rapor.md (v10 duz / v11 kodlu ayrimini aciklar)",
+      "alanlar": [
+        { "sira": 1, "offset": 0, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "n (f64 oge sayisi)", "kaynak": "KANIT", "kanitAtifi": "140436460.c L19-22" },
+        { "sira": 2, "offset": 4, "offsetTuru": "kayit-ici", "tip": "n×8B", "ad": "kodlu f64 dizisi (FUN_1404c11d0 — Blowfish tarzi sayisal codec; trial-blowfish-context.json takvimi)", "kaynak": "KANIT", "kanitAtifi": "140436460.c L23-57; ide10-2026-10-28/trial-blowfish-context.json + verify-trial-numeric-codec.py" }
+      ]
+    },
+    {
+      "id": "AYAR-ALANLARI",
+      "uretici": "FUN_14098d270 (belge yazicisi L277'den cagrilir; kodlu f64 alanlari FUN_140437e60, okuma FUN_140436060)",
+      "kaynak": "KANIT",
+      "kanitAtifi": "ana-exe-pass3/14098d270.c L13-59; M1–M6 diff'leri (asagida ayarKayitlari)",
+      "alanlar": [
+        { "sira": 1, "offset": null, "offsetTuru": "kayit-ici", "tip": "u8", "ad": "ayar bayraklari (surum >=162000 kosullu)", "kosul": "V-162000", "kaynak": "KANIT", "kanitAtifi": "14098d270.c L13-25" },
+        { "sira": 2, "offset": null, "offsetTuru": "kayit-ici", "tip": "f64 kodlu (8B)", "ad": "sayisal ayar alanlari (FUN_140437e60 ile kodlu yazim — duz f64 dosyada gorunmez)", "kosul": "V-162000", "kaynak": "KANIT", "kanitAtifi": "14098d270.c L29-59; M2-diff (qt 42→45 duz f64/f32/i32 aranamadi, 8B kodlanmis kayit bulundu)" }
+      ]
+    },
+    {
+      "id": "DOSEME-KAYDI",
+      "kaynak": "KANIT",
+      "kanitAtifi": "index.ts L305-318 (okuyucu; 525/525 normal doseme Q okumasi); ide11-transcoder.ts L344-361 + L657-671; ide-write/record-builders.ts L511-529",
+      "not": "p = eleman adi dizesinin (CP1254, NUL sonlu) bitiminden sonraki ilk bayt; 'shift' = v11 sema kayitlarinda +4 (kayit-ici +4 ailesi), v10 (201094) kayitlarinda 0",
+      "alanlar": [
+        { "sira": 1, "offset": 466, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "doseme imzasi 43 (radye temel kaydinda 11)", "kaynak": "KANIT", "kanitAtifi": "index.ts L309; record-builders.ts L516" },
+        { "sira": 2, "offset": 470, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "DOSEME '36' ETIKETI — yalniz v11 sema kaydinda yazilir; v10 (201094) kaydinda bu 4 bayt YOKTUR, sonraki alanlar +4 kayar (v11→v10 donusumde p+470..p+474 cikarilir)", "kaynak": "KANIT", "kanitAtifi": "index.ts L309 (v11Schema && u32@p+470===36 sarti); ide11-transcoder.ts L346+L358-360 (hedef 201094'te splice); record-builders.ts L517-519 (yalniz ide11 yazar)" },
+        { "sira": 3, "offset": "470+shift", "offsetTuru": "kayit-ici", "tip": "u32", "ad": "sabit 1", "kaynak": "KANIT", "kanitAtifi": "index.ts L309; record-builders.ts L520" },
+        { "sira": 4, "offset": "475+shift", "offsetTuru": "kayit-ici", "tip": "u32", "ad": "sabit 1", "kaynak": "KANIT", "kanitAtifi": "index.ts L309; record-builders.ts L521" },
+        { "sira": 5, "offset": "481+shift", "offsetTuru": "kayit-ici", "tip": "f64", "ad": "G/hareketli-yuku adayi (transcoder slabLoadOverrides.live hedefi; kesin semantik adi ACIK)", "kaynak": "VARSAYIM", "assumption": true, "kanitAtifi": "ide11-transcoder.ts L347+L353-356 (davranis olcumu); semantik adi kurulmadi" },
+        { "sira": 6, "offset": "489+shift", "offsetTuru": "kayit-ici", "tip": "u32", "ad": "imza 85 (radyede 1)", "kaynak": "KANIT", "kanitAtifi": "index.ts L309; record-builders.ts L527" },
+        { "sira": 7, "offset": "493+shift", "offsetTuru": "kayit-ici", "tip": "u32", "ad": "imza 45 (radyede 81 veya 65)", "kaynak": "KANIT", "kanitAtifi": "index.ts L309; record-builders.ts L528" },
+        { "sira": 8, "offset": "497+shift", "offsetTuru": "kayit-ici", "tip": "f64", "ad": "Q / odu (sabit) yuku", "kaynak": "KANIT", "kanitAtifi": "index.ts L310; IDECAD_BIREBIR_ESLESME_REHBERI.md:39 (525/525 dogrulama); ide11-transcoder.ts L663-669" },
+        { "sira": 9, "offset": "505+shift", "offsetTuru": "kayit-ici", "tip": "f64", "ad": "kaplama (finish) yuku", "kaynak": "KANIT", "kanitAtifi": "index.ts L311; ide11-transcoder.ts L351" },
+        { "sira": 10, "offset": "513+shift", "offsetTuru": "kayit-ici", "tip": "f64", "ad": "hareketli yuku (525/525 okunan alan)", "kaynak": "KANIT", "kanitAtifi": "index.ts L308+L312; IDECAD_BIREBIR_ESLESME_REHBERI.md:39 ('normal doseme Q okumasi p+513')" },
+        { "sira": 11, "offset": "772+shift", "offsetTuru": "kayit-ici", "tip": "blok", "ad": "doseme hesap akslari (eksen denklemi + 4 kaynak noktasi; readSlabDesignAxes)", "kaynak": "KANIT", "kanitAtifi": "index.ts L324-327; record-builders.ts L531-544" }
+      ]
+    },
+    {
+      "id": "MERDIVEN-ALT-AKIS",
+      "kaynak": "KANIT",
+      "kanitAtifi": "ide11-transcoder.ts L362-388 (v11→v10 surum isareti yeniden yazimi); bytemap-A0.md §3.1 (7 merdiven × 1 analiz agi)",
+      "alanlar": [
+        { "sira": 1, "offset": 0, "offsetTuru": "kayit-ici", "tip": "u8", "ad": "sabit 1", "kaynak": "KANIT", "kanitAtifi": "ide11-transcoder.ts L382 (work[at]===1 sarti)" },
+        { "sira": 2, "offset": 1, "offsetTuru": "kayit-ici", "tip": "u8", "ad": "sabit 1", "kaynak": "KANIT", "kanitAtifi": "ide11-transcoder.ts L382 (work[at+1]===1)" },
+        { "sira": 3, "offset": 2, "offsetTuru": "kayit-ici", "tip": "u8", "ad": "alt-akis surum bayragi (v11'de 1; v10 hedefinde 0 yazilir)", "kaynak": "KANIT", "kanitAtifi": "ide11-transcoder.ts L382-383" },
+        { "sira": 4, "offset": 3, "offsetTuru": "kayit-ici", "tip": "u32", "ad": "alt-akis surumu (v11'de 211220; v10 hedefinde hedef surum yazilir)", "kaynak": "KANIT", "kanitAtifi": "ide11-transcoder.ts L382+L384" },
+        { "sira": 5, "offset": 15, "offsetTuru": "kayit-ici", "tip": "0x78", "ad": "zlib baslangici (merdiven analiz agi: rawLen 147.712..211.504 + 153.636×4 gozlemlendi)", "kaynak": "KANIT", "kanitAtifi": "ide11-transcoder.ts L382 (work[at+15]===0x78); bytemap-A0.md §3.1" }
+      ],
+      "acikIsNotu": "Bayrak/surum isaretinin uretici fonksiyon satiri decompile ile baglanmadi (ampirik transcoder kaniti); merdiven graf donusumleri icin ide10-2026-10-28/stair-graph-*.json + stair-transforms.json hazir kanittir."
+    },
+    {
+      "id": "MODAL-PERIYOT-KAYDI",
+      "kaynak": "KANIT",
+      "kanitAtifi": "M0-diff.md (d)/t22-rapor.md 5 (bit-exact; A dosyasinda hicbir yerde yok)",
+      "koordinat": "M-base",
+      "alanlar": [
+        { "sira": 1, "offset": 248907, "offsetTuru": "dosya", "tip": "f64", "olcek": "yok (DUZ f64 — Blowfish kodlamasiz, akis DISI govde bolgesi)", "ad": "Mode 3 periyodu T=0.03801594350107567 (ekran 0.03802)", "kaynak": "KANIT", "kanitAtifi": "M0-diff.md (d); t22-modal-tam-eslesme.log" },
+        { "sira": 2, "offset": 248915, "offsetTuru": "dosya", "tip": "f64", "olcek": "yok (DUZ f64)", "ad": "Mode 1 periyodu T=0.16059170853931365 (ekran 0.16059)", "kaynak": "KANIT", "kanitAtifi": "M0-diff.md (d); t22-modal-tam-eslesme.log" }
+      ],
+      "varsayimNotu": {
+        "kural": "Mode 2 (0.13299), Mode 4 (0.03574), Mode 5 (0.02920), Mode 6 (0.00433) periyotlarinin kesin bayt konumu COZULEMEDI (duz f64 / ENC-tek-blok / f32 / T² / ω² formlarinda bulunamadi); akis ici gevsek f32 adaylari (orn. s27 raw+10912=0.0357457) OLASILIK duzeyindedir",
+        "kaynak": "VARSAYIM",
+        "assumption": true,
+        "kanitAtifi": "M0-diff.md (e)/1; t22-modal-ozdeger.log"
+      }
+    }
+  ],
+  "altAkisTipleri": [
+    {
+      "id": "ELEMAN-OZNITELIK",
+      "t24Etiketi": "ELEMAN-OZNITELIK",
+      "ad": "eleman kayitlari icindeki oznitelik tablosu akislari (geometri kayitta sikismamis duz f64'dir; akislar oznitelik tasiyicisidir)",
+      "eslesme": { "bolge": "ELEMAN-KAYITLARI", "kural": "bolge-onyelikli: akis bir eleman kaydinin icindeyse bu tiptir" },
+      "adetA0": 1885,
+      "altTipCozumOnceligi": "bos-yuva once: rawLen=4 VE payload tamami sifir ise akis once bos-yuva olarak cozumlenir (f32-tablo kosuluyla N=0'da cakisir); aksi halde f32-tablo kosulu uygulanir, kalan tamsayi-kayit — 1659/212/14 dagilimi ancak bu oncelikle cikar",
+      "altTipler": [
+        { "id": "f32-tablo", "eslesme": { "rawLenBicimi": "4+4*N", "ilkU32": "N", "Nmod6": 0 }, "adet": 1659, "ad": "kiriş (1071; 9 farkli olcu) + perde (588; tek olcu 820) cerceve boyut tablolari", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §3.1; 1408fa1f0.c" },
+        { "id": "bos-yuva", "eslesme": { "rawLen": [4, 16], "payload": "tamami sifir" }, "adet": 212, "ad": "doseme 152×16B sifir + doseme kenari 60×4B sifir", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §3.1; M0-diff.md (b) bos yuva davranisi" },
+        { "id": "tamsayi-kayit", "eslesme": { "kural": "bolge icinde f32-tablo ve bos-yuva kosullarina uymayan kalan" }, "adet": 14, "ad": "doseme FEM ag tablolari 7 (rawLen 7.536..2.608.304; RD01 radye dahil) + merdiven analiz aglari 7 (rawLen 147.712..211.504 + 153.636×4)", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §3.1 (bolge atamasi); IC gramer ACIK IS (alan haritasi F3'te acilir)" }
+      ],
+      "kaynak": "KANIT",
+      "kanitAtifi": "bytemap-A0.md §3 (parseIde10 eleman kayit araliklari yontemi)"
+    },
+    {
+      "id": "CIZIM-BICEM-TABLOSU",
+      "t24Etiketi": "BILINMEYEN (#1885)",
+      "ad": "cizim bicem/tanim tablosu (yazi tipi + cizgi tipi tanimlari; F9 sonucu VEYA kuvvet tablosu DEGIL)",
+      "eslesme": { "bolge": "ARA-BOLGE", "rawLenEsit": 813063 },
+      "adetA0": 1,
+      "icerikKaniti": { "ilkU32": 1461, "dizeler": ["Arial\\0 (u32-uzunluk 6)", "CONTINUOUS\\0 (u32-uzunluk 11)"], "kaynak": "KANIT", "kanitAtifi": "1885-raw.bin (813.063 B acildi); t25-rapor.md B7" },
+      "ureticiDali": { "kural": "ust yazicida eleman bolumunden sonraki ilk alt-akis uretecisi FUN_140a8c5e0 zinciri (140989c30.c L276)", "kaynak": "VARSAYIM", "assumption": true, "kanitAtifi": "t25-rapor.md B7 (sekil ozdes ama dize yazim satiri uc ayri decompile bekler)" },
+      "capNotu": "B0 ve X11'in TEK duz-zlib akisiyla acik+sikismis payload bayt-ozdes (comp 116.908 / raw 813.063) — bicim-bagimsiz blok; v11 govdesinde duz metinde kalan tek alt-akis",
+      "kaynak": "KANIT",
+      "kanitAtifi": "bytemap-A0.md §6/2 + §7"
+    },
+    {
+      "id": "R5-F9-DUGUM-YERDEGISTIRME",
+      "t24Etiketi": "R5-F9-DUGUM-YERDEGISTIRME",
+      "ad": "F9 dugum yerdegistirme sonuc kaydi (tek duzen; 14.620 boyutu A0'da hic gorunmez)",
+      "eslesme": { "bolge": "F9-DUGUM-BLOKU", "rawLenEsit": 13564 },
+      "adetA0": 28001,
+      "kaynak": "KANIT",
+      "kanitAtifi": "bytemap-A0.md §3/§6-3; M0-diff.md (c) s29–s135 = 107 akis ↔ ekrandaki D.Noktasi=107 birebir"
+    },
+    {
+      "id": "R5-F9-KABUK-SONUC",
+      "t24Etiketi": "R5-F9-KABUK-SONUC",
+      "ad": "F9 kabuk sonuc kaydi",
+      "eslesme": { "bolge": "F9-KABUK-BLOKU", "rawLenMin": 45, "rawLenFormulu": "(rawLen-17) % 28 == 0" },
+      "adetA0": 373,
+      "kaynak": "KANIT",
+      "kanitAtifi": "bytemap-A0.md §3"
+    }
+  ],
+  "akisDisiTasiyicilar": [
+    { "id": "R1-MALZEME", "koordinat": "A0", "konum": "MATERYAL-BOSLUGU @36.402.671 ('TEMEL TASARIM ZARFI\\0')", "icerik": "C25 B420C (beton) + S235 (celik); eleman↔malzeme eslemesi kayitlarda", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §5 (oracle 2/2)" },
+    { "id": "R3-DEPREM-ZEMIN", "koordinat": "A0", "konum": "akis-disi duz bolge", "icerik": "10/10 alan: XC2, r=6, oran=0.77947, n=0.3, ko=3080, qt=55, I=1, DSF1: ss=0.429 s1=0.143 sds=0.3861 sd1=0.1144 (+ lat 39.6584 lon 35.8734)", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §5 (oracle 10/10)" },
+    { "id": "R4-DONATI", "koordinat": "A0", "konum": "eleman kaydinda akis SONRASI kuyrukta (tamsayi donati dizilimleri)", "icerik": "468 eleman rebarLayout = 178 perde + 289 kiris + 1 radye", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §5 (oracle 468/468); M5-diff.md (kiris donatisi s0–s23 akislarinda: KANIT)" },
+    { "id": "R5-MODAL", "koordinat": "A0", "konum": "KUYUK (145.103.614..145.671.130) akis-disi duz bolge + DSF1 tayfi @145.264.162", "icerik": "10 modal tablo", "kaynak": "KANIT", "kanitAtifi": "bytemap-A0.md §4/§5 (oracle 10 tablo)" },
+    { "id": "MODAL-PERIYOT-BOLGESI", "koordinat": "M-base", "konum": "akis-arsi gap bolgesi: s27 bitisi (227.979) ile s29 baslangici (315.287) arasi; modal f64 cifti @248.907/248.915; cevresi sifir dolgu; qt-sayaclari @243159/@245802/@396536 ayni bolgede", "kaynak": "KANIT", "kanitAtifi": "M0-diff.md (d); M2-diff.md" },
+    { "id": "RYT-ANALIZ-ONBELLEGI", "koordinat": "M-base", "konum": "on-govde (ilk akis @157.072 oncesi; '22*..*RYT4' okunabilir isaretli blok)", "kural": "analizi gecersiz kilan ayar degisikliklerinde (ks, radye Q) bu blok kayittan DUSER (M1: −11.872 B; M4: −11.409 B); akis yuvalari yerinde kalir", "kaynak": "KANIT", "kanitAtifi": "M1-diff.md; M4-diff.md" }
+  ],
+  "yukcuFaraziSozlesmeler": [
+    {
+      "id": "YFS-1",
+      "ad": "akis-disi kosularin v10 yerlesimi A0-donor nakliyle uretilir",
+      "kural": "v11->v10 donusumde akis-disi kosularin (ELEMAN akis-arkasi gap + ARA + KUYRUK + BASLIK + F9-KABUK) v10 yerlesimi asla v11 duzeninden turetilmez: A0 donor govdesinden akis-indeks capiyla gap-duzeyi nakille uretilir (mutlak ofset degil — Delta len birikir; nakledilen kosularda bolge dLen=0). v11 yerlesimi gercek v10 yukucusunde sayim->realloc->memcpy hattinda erisim ihlali uretir (0xc0000005, VCRUNTIME140.dll ~0x1de2x memcpy bolgesi)",
+      "kaynak": "KANIT",
+      "kanitAtifi": "T-F3.4 t34-rapor (HS_B0_F3 3/3 APPCRASH 0xc0000005; A0 ayni oturumda sorunsuz — kusur dosyaya ozgu) + T-F3.4b t34b-rapor (v2 3/3 APPCRASH, uzaklik 0x1de31/0x1de2c/0x1de23 — v1=v2 cokme sinifi: deger sinifi elenir, YERLESIM sinifi kazanir; imza analizi) + fikir-t33d H2 + T-F3.3d t33d-rapor olcut (i) bes bolge dLen=0 / (iv) yaban-sayim 0 + T-F3.4c t34c-rapor (v3 acilis cokmesiz — H2 dogrulamasi)"
+    },
+    {
+      "id": "YFS-2",
+      "ad": "katalog-disi f64 alanlari govde-geni kodtablosu supurmesiyle duzlestirilir",
+      "kural": "encoded=0 hedef govdesinde her f64 DUZ yazilir: kataloglanmis ofsetlerin disindaki f64 alanlari da donor + calisma tamponunun akis-disi pencerelerinden kurulan sozluk (ayrik degerler) ve ENC(v) kodtablosuyla govde-geni supurmeyle YALNIZ yerinde cozumle duzlestirilir. v10 yukucusu her f64'i FUN_140436060 duz daliyla okur — kodlu artiklar deger konumunda zararsiz, SAYIM konumunda olumculdur. H1'in kismi katkisi: deger sinifini duzeltir, yerlesim sinifini duzeltmez (yerlesim YFS-1'dedir)",
+      "kaynak": "KANIT",
+      "kanitAtifi": "T-F3.3c t33c-rapor (kok neden: yukcu beklenti caprazinda tek ihlal 'encoded=0 => tum f64 duz'; tek kok duzeltme 477.416 artik blok cozumu, t33c-kodcozum-v1log.txt) + T-F3.4b t34b-rapor imza analizi (v1=v2 ayni cokme sinifi — supurme tek basina yetmez, yerlesim baskin) + decompile 1408eb0c0.c (tum ciftler FUN_140437e60/FUN_140436060 hatti)"
+    }
+  ],
+  "perdeEtiketiKanonikBelgesi": {
+    "esas": "tasiyici-ozde esasi",
+    "kural": "perde etiketinin v10 tasiyicisindaki kanonik bicimi A0'nin DEPOLANAN bicimidir ('255/25'); t33 hasadinin bicimi ('25/255') yalniz v11 tarafinin sundugu deger dizilimidir — v10 tasiyicisina yazimda A0 baytlari korunur; parse duzeyinde bicimler anlamsal esittir (labelDiff=0; 392 yuva isaretli envanterde)",
+    "v11YazimOlcumYolu": "v11 yaziminda (transcodeIde10ToIde11) X11 referansinin DEPOLANAN bicimi olculerek eslestirilir; olcum T-F4.1 gorevinedir (paralel kosuyor — bu satir ILKIYI koyar, olcum sonucunu onecek yazmaz)",
+    "kaynak": "KANIT",
+    "kanitAtifi": "T-F3.3d t33d-rapor B0-wins bulgusu (196 perde etiketi; fikir-t33d onermesi tutmadi, A0 baytlari korundu) + t33d-a0-kalanti-envanteri.log bolum 3 + G3 savci S2(c)/hakem 4 (labelDiff=0, parse-esit; baglanan bulgu)"
+  },
+  "ayarKayitlari": {
+    "koordinat": "M-base",
+    "yontem": "tek degiskenli mutasyon deneyleri (tabani yeniden ac → TEK ayar → Ctrl+S; M-ctrl kontrol deneyiyle yeniden serilestirme gurultusu arindirildi: 4.553 B/711 grup)",
+    "gurultuSiniflari": [
+      { "id": "oturum-sayaci", "konum": "@19512-19524 (13B; kayit basi artis 12→13)", "kaynak": "KANIT", "kanitAtifi": "M2-diff.md; M3-diff (t23b)" },
+      { "id": "akis-araligi-yeniden-hesap", "konum": "@160257 civari (13B kayitlar)", "kaynak": "KANIT", "kanitAtifi": "M2-diff.md (kontrol deneyinde de degisir → qt'ye ozgu degil)" }
+    ],
+    "alanlar": [
+      { "offset": 112899, "offsetTuru": "dosya", "tip": "8B kodlanmis", "ad": "zemin tasima gucu qt — AMPiRIK satir: kimlik + konum + 8B kodlu kayit gercegi (42→45 tf/m² mutasyonu tam bu kayitta; assumption bayragi TASIMAZ)", "kaynak": "KANIT", "kanitAtifi": "M2-diff.md (8f7f17a268cd40a0 → 426b53f4f19c961d; duz f64/f32/i32 yok) + UI deger atfi (42→45, geri okuma)" },
+      { "offset": 112899, "offsetTuru": "dosya", "tip": "8B kodlanmis", "ad": "zemin tasima gucu qt — YAPISAL satir: kodlu f64 temsili + FUN_14098d270→FUN_140437e60 uretici uye eslesmesi cozulemedi", "kaynak": "VARSAYIM", "assumption": true, "kanitAtifi": "M2-diff kaydi 'aday' adlandirir; 45 degerinin kodlanmis temsili cozulemedi; dogrulanan 14098d270.c yalniz kodlu f64 sinif mekanizmasini gosterir, bu kayitla birebir baglanmaz (G2 savci B1/T1 ayrimi)" },
+      { "offset": 28843, "offsetTuru": "dosya", "tip": "8B kodlanmis", "ad": "doseme Q yuk tanimi (0.15→0.532 tf/m²; komut cubugu yuk combosu)", "kaynak": "KANIT", "kanitAtifi": "t23b M3-diff.md (19b1bbe8443bf11a → 6c833fbf0c10f3c1; qt @112899'a dokunulmadi)" },
+      { "offset": 28859, "offsetTuru": "dosya", "tip": "6B kodlanmis", "ad": "doseme Q ikincil alani (yuk tanim ID/sayac adayi)", "kaynak": "KANIT", "kanitAtifi": "t23b M3-diff.md (0100ffffffff → 000003000000)" },
+      { "offset": 113429, "offsetTuru": "dosya", "tip": "1B bayrak", "ad": "rapor 'Ode Kapak' secenegi (acik=01 → kapali=00)", "kaynak": "KANIT", "kanitAtifi": "M6-diff.md (tek bayt; 137/137 akis ve boyut degismedi)" },
+      { "offset": 147265, "offsetTuru": "dosya", "tip": "5B sayac", "ad": "qt-sayac ailesi 1 (@147265-147269)", "kaynak": "KANIT", "kanitAtifi": "M2-diff.md (25 99 03 00 03 → 26 99 03 00 04; M3'te taban degerinde)" },
+      { "offset": 243159, "offsetTuru": "dosya", "tip": "1B sayac", "ad": "qt-sayac ailesi 2 (mod-periyot gap bolgesi; +1)", "kaynak": "KANIT", "kanitAtifi": "M2-diff.md" },
+      { "offset": "245802/396536", "offsetTuru": "dosya", "tip": "1B sayac", "ad": "qt-sayac ailesi 3 (0x02→0x03)", "kaynak": "KANIT", "kanitAtifi": "M2-diff.md" },
+      { "offset": "s0–s23", "offsetTuru": "dosya", "tip": "8×[1516+436+436] akis grubu", "ad": "kiris basina hesap/donati sonuc grubu (Cubuk sayisi=8 ile birebir); dosya offset 157.052–196.759", "kaynak": "KANIT", "kanitAtifi": "M0-diff.md (c) sayim eslesmesi + M5-diff.md TEK DEGISKEN donati mutasyonunda tam bu grup degisti → donati tasiyicisi KANIT" },
+      { "offset": "s27/s136", "offsetTuru": "dosya", "tip": "buyuk tablo akislari", "ad": "buyuk kuvvet/sonuc tablolari (s27: 210.793–227.979, raw 31.448; s136: 365.146–380.394, raw 30.169); donati mutasyonunda DEGISMEDI", "kaynak": "KANIT", "kanitAtifi": "M0-diff.md (c); M5-diff.md" },
+      { "offset": "s29–s135", "offsetTuru": "dosya", "tip": "107×460B akis", "ad": "dugum sonuc kayitlari (315.287–362.247; D.Noktasi=107 birebir)", "kaynak": "KANIT", "kanitAtifi": "M0-diff.md (c)" }
+    ]
+  },
+  "olcekKurallari": [
+    { "id": "OLCEK-NATIVEZ", "kural": "nativeZ skaleri yazimda ×2; encoded okumada ×0,5 ile geri alinir", "kapsam": "YALNIZ ortak/eleman kaydinin nativeZ skaler alaninda — dosyadaki her sayiya uygulanmaz; akis ici f32/f64 tablolar olceklenmez", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L33; eski yapi okuyucusu b8e2a5 (bayraklar +0x10/+0x11); index.ts L229 (encoded dosyada ×0,5)" },
+    { "id": "OLCEK-GENISLIK", "kural": "genislik skaleri yazimda ×3 (_DAT_145331218=3.0); encoded okumada ×1/3 ile geri alinir", "kapsam": "YALNIZ genislik skaler alaninda", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L34; find-rip-scale-consts.mjs; eski okuyucu b8e2b7; index.ts L229" },
+    { "id": "OLCEK-OKUYUCU-IKIZI", "kural": "olcek geri-okuma kosulunun GUNCEL yapidaki okuyucu ikizi bulunamadi (tek kanal: yazici + eski yapi okuyucusu + repo okuyucu davranisi)", "kaynak": "VARSAYIM", "assumption": true, "kanitAtifi": "t25-rapor.md Acik is 1" }
+  ],
+  "opakBloklar": [
+    { "id": "OPAK-16B-RAND", "kural": "yazici 16 bayt ham u32 yazar (4×rand()); kodlamali okuyucu okur ve DISCARD eder; liste uzunlugundan bagimsiz; donusumde AYNEN KORUNUR, 'temizlenmez'", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L47-54; eski okuyucu b8e3a5-b8e409; index.ts L240-244 (encoded 211220 ailesi eleman kaydinda ilk referans listesinden sonra)" },
+    { "id": "OPAK-BBOX-F32", "kural": "bbox 16 baytlik ham float32 blogudur (4×f32 +0xcc..+0xd8); global bayrak +0x19a09 sifirsa yazilir (KOSULLU 16B); 8 baytlik sayisal blok gibi cozulmez", "kaynak": "KANIT", "kanitAtifi": "140bc75e0.c L79-85; eski yazici b8ec3b / okuyucu b8e545; 03-OPTIMIZASYON-PLANI.md P1.3 kurallari" }
+  ],
+  "sinama": {
+    "olcut": "sema, T-F2.4 bytemap-A0.json verisiyle sinanir: akislarin >=%95'i tip bazinda aciklanabilmeli (G2)",
+    "yontem": "scratch-t26 scripti semanin bolge+yapisal eslesme kurallarini 30.260 akis satirina uygular; t24 etiketiyle capraz karsilastirir",
+    "girdi": "C:/Users/hsyn/Desktop/hsyncad_idecad_uzanti_optimizasyon/evidence/orkestrasyon/2026-11-18-F2-T2.4/rea/bytemap-A0.json",
+    "log": "C:/Users/hsyn/Desktop/hsyncad_idecad_uzanti_optimizasyon/evidence/orkestrasyon/2026-11-18-F2-T2.6/test-cikti/t26-aciklama-orani.log",
+    "sonuc": {
+      "aciklamaOrani": "%100.00 (30260/30260)",
+      "g2Olcutu": "KARSILANDI (>= %95)",
+      "cakisma": 0,
+      "t24BilinmeyenYukseltme": 1,
+      "olculenTipDagilimi": { "ELEMAN-OZNITELIK": 1885, "CIZIM-BICEM-TABLOSU": 1, "R5-F9-DUGUM-YERDEGISTIRME": 28001, "R5-F9-KABUK-SONUC": 373 },
+      "olculenAltTipDagilimi": { "f32-tablo": 1659, "bos-yuva": 212, "tamsayi-kayit": 14 },
+      "karakteristikNot": "t24'un kendi tabani bilinen %99,997 (tek BILINMEYEN #1885); sema bu satirin kimligini t25 icerik analiziyle aciklar",
+      "kosuTarihi": "2026-11-19"
+    }
+  }
+}

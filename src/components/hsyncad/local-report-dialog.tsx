@@ -2,6 +2,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CadModel } from "@/lib/hsyncad/model";
 import type { IdeProject } from "@/lib/hsyncad/ide-import";
+import { ideProjectAnalytics } from "@/lib/hsyncad/ide-workspace";
 import type { AnalysisResult } from "@/lib/hsyncad/analysis";
 import {
   DEFAULT_IDE_REPORT_SECTIONS,
@@ -297,6 +298,20 @@ export default function LocalReportDialog({
     }
     return { presentGroups, omittedSelected };
   }, [presence, derivedSections]);
+
+  // T-F5.2 — R1/R3/R4/R5 kaynak sayım etiketi (encoded v11 dahil).
+  const ideSourceSummary = useMemo(() => {
+    const analytics = ideProjectAnalytics(activeSourceProject);
+    if (!analytics || (!analytics.materialCount && !analytics.rebarCount && !analytics.modalTableCount)) return null;
+    return [
+      `${analytics.materialCount} malzeme`,
+      ...(analytics.rebarCount ? [`${analytics.rebarCount} donatı`] : []),
+      ...(analytics.modalTableCount ? [`${analytics.modalTableCount} F9/modal tablosu`] : []),
+      ...(analytics.seismic
+        ? [`deprem: ${analytics.seismic.exposureClass ?? "?"}${analytics.seismic.spectrumId ? `/${analytics.seismic.spectrumId}` : ""}`]
+        : []),
+    ].join(" · ");
+  }, [activeSourceProject]);
 
   // Tri-state status for Metraj branch
   const metrajCheckedCount = METRAJ_LEAVES.filter(m => metrajState[m.key]).length;
@@ -729,6 +744,11 @@ export default function LocalReportDialog({
                 Mevcut: {presenceSummary.presentGroups} grup
                 {presenceSummary.omittedSelected > 0 ? ` · ${presenceSummary.omittedSelected} boş grup atlanır` : ""}
               </span>
+              {ideSourceSummary && (
+                <span className="ide-tree-badge ide-tree-badge-count" data-testid="hsyncad-ide-source-summary">
+                  Kaynak: {ideSourceSummary}
+                </span>
+              )}
             </div>
             <div className="ide-report-tree-toolbar">
               <button type="button" className="ide-win-btn-sm" onClick={applyDefaultProfile} disabled={active}>
