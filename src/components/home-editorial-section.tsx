@@ -37,30 +37,33 @@ export function HomeEditorialSection({ articles }: { articles: HomeArticle[] }) 
           <Link
             href={`/${leadArticle.slug}`}
             data-testid="home-lead-article"
-            className="group relative min-h-[27rem] overflow-hidden rounded-xl border border-[var(--home-border)] bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent)] sm:min-h-[32rem] lg:col-span-7"
+            className="group relative min-h-[27rem] overflow-hidden rounded-xl border border-[var(--home-border)] bg-[#0f0908] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--home-accent)] sm:min-h-[32rem] lg:col-span-7"
           >
             <Image
               src={leadArticle.image}
               alt=""
               fill
               sizes="(max-width: 1024px) 100vw, 58vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-[1.018]"
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
               aria-hidden
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/5" aria-hidden />
+            <div
+              className="absolute inset-0 bg-gradient-to-t from-[#120605] via-[#120605]/50 to-transparent"
+              aria-hidden
+            />
             <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
-              <div className="flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-slate-300">
-                <span className="bg-amber-400 px-2 py-1 font-bold text-slate-950">Öne çıkan rehber</span>
+              <div className="flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-[#f4dfd2]">
+                <span className="bg-[#9d200b] px-2.5 py-1 font-bold text-[#fff8f2]">Öne çıkan rehber</span>
                 <span>{leadArticle.category}</span>
                 <span className="inline-flex items-center gap-1.5">
                   <Clock3 className="h-3.5 w-3.5" aria-hidden />
                   {leadArticle.readTime}
                 </span>
               </div>
-              <h3 className="mt-4 max-w-3xl text-2xl font-bold leading-tight tracking-[-0.025em] text-white sm:text-4xl">
+              <h3 className="mt-4 max-w-3xl text-2xl font-bold leading-tight tracking-[-0.025em] text-[#fff8f2] sm:text-4xl">
                 {leadArticle.title}
               </h3>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">{leadArticle.description}</p>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-[#ebd8cc]">{leadArticle.description}</p>
             </div>
           </Link>
 
@@ -84,17 +87,24 @@ export function HomeEditorialSection({ articles }: { articles: HomeArticle[] }) 
                 </div>
                 <div className="flex min-w-0 flex-col justify-between py-1">
                   <div>
-                    <p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--home-info)]">
+                    <p className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--home-crimson)]">
                       {article.category}
                     </p>
                     <h3 className="mt-3 text-lg font-bold leading-snug tracking-[-0.02em] text-[var(--home-fg)] transition-colors group-hover:text-[var(--home-accent)]">
                       {article.title}
                     </h3>
-                    <p className="mt-3 hidden line-clamp-2 text-xs leading-5 text-[var(--home-muted)] sm:block">{article.description}</p>
+                    <p className="mt-3 hidden line-clamp-2 text-xs leading-5 text-[var(--home-muted)] sm:block">
+                      {article.description}
+                    </p>
                   </div>
                   <div className="mt-3 flex items-center justify-between font-mono text-[10px] text-[var(--home-muted)] sm:mt-5">
-                    <span>{article.date} · {article.readTime}</span>
-                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" aria-hidden />
+                    <span>
+                      {article.date} · {article.readTime}
+                    </span>
+                    <ArrowRight
+                      className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
+                      aria-hidden
+                    />
                   </div>
                 </div>
               </Link>
@@ -102,12 +112,18 @@ export function HomeEditorialSection({ articles }: { articles: HomeArticle[] }) 
           </div>
         </div>
 
-        <nav aria-label="Teknik içerik konuları" className="mt-10 flex flex-wrap gap-x-8 gap-y-4 border-t border-[var(--home-border)] pt-6">
+        <nav
+          aria-label="Teknik içerik konuları"
+          className="mt-10 flex flex-wrap gap-x-8 gap-y-4 border-t border-[var(--home-border)] pt-6"
+        >
           {TOPIC_ROUTES.map((topic) => (
             <Link key={topic.href} href={topic.href} className="home-topic-link group">
-              <span className="font-mono text-[9px] font-bold text-[var(--home-accent)]">{topic.code}</span>
+              <span className="font-mono text-[9px] font-bold text-[var(--home-crimson)]">{topic.code}</span>
               <span>{topic.label}</span>
-              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" aria-hidden />
+              <ArrowRight
+                className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1"
+                aria-hidden
+              />
             </Link>
           ))}
         </nav>

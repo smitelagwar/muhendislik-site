@@ -24,11 +24,14 @@ export function HomeProjectPath({ phases }: { phases: HomeProjectPhase[] }) {
         <div className="grid gap-8 border-b border-white/10 pb-8 lg:grid-cols-12 lg:items-end">
           <div className="lg:col-span-8">
             <p className="home-section-kicker home-section-kicker-inverse">03 / Uygula</p>
-            <h2 id="home-phases-title" className="mt-5 max-w-4xl text-3xl font-bold tracking-[-0.035em] text-white sm:text-5xl">
+            <h2
+              id="home-phases-title"
+              className="mt-5 max-w-4xl text-3xl font-bold tracking-[-0.035em] text-[#fff8f2] sm:text-5xl"
+            >
               Aynı yapının, projeden teslime altı hâli.
             </h2>
           </div>
-          <p className="max-w-xl text-sm leading-7 text-slate-400 lg:col-span-4 lg:justify-self-end">
+          <p className="max-w-xl text-sm leading-7 text-[#c9bcb4] lg:col-span-4 lg:justify-self-end">
             Tasarım kararını, saha uygulamasını ve teslim sürecini aynı yapı geometrisi üzerinden kesintisiz izleyin.
           </p>
         </div>
@@ -43,27 +46,30 @@ export function HomeProjectPath({ phases }: { phases: HomeProjectPhase[] }) {
               >
                 <div
                   style={getPhaseFrameStyle(phase.frameIndex)}
-                  className="home-phase-frame aspect-[4/3] overflow-hidden rounded-md border border-white/10 bg-[#0b0d10]"
+                  className="home-phase-frame aspect-[4/3] overflow-hidden rounded-md border border-white/10 bg-[#0d0808]"
                   aria-hidden
                 />
-                <div className="flex min-w-0 flex-col xl:min-h-56 xl:pt-5">
-                  <span className="font-mono text-[10px] font-bold tracking-[0.16em] text-amber-400">
+                <div className="flex min-w-0 flex-col xl:min-h-56 xl:p-5">
+                  <span className="inline-flex items-center gap-2 font-mono text-[10px] font-bold tracking-[0.16em] text-amber-400">
+                    <span className="h-1.5 w-1.5 bg-[#c9371e]" aria-hidden />
                     {String(index + 1).padStart(2, "0")}
                   </span>
-                  <h3 className="mt-3 text-base font-bold leading-tight text-white transition-colors group-hover:text-amber-200">
+                  <h3 className="mt-3 text-base font-bold leading-tight text-[#fff8f2] transition-colors group-hover:text-[#ffd8b0]">
                     {phase.title}
                   </h3>
-                  <p className="mt-3 hidden line-clamp-3 text-xs leading-5 text-slate-400 sm:block">{phase.summary}</p>
-                  <span className="mt-auto hidden items-center gap-2 pt-4 text-xs font-bold text-slate-200 sm:inline-flex">
+                  <p className="mt-3 hidden line-clamp-3 text-xs leading-5 text-[#b5a79f] sm:block">{phase.summary}</p>
+                  <span className="mt-auto hidden items-center gap-2 pt-4 text-xs font-bold text-[#f3e5dc] sm:inline-flex">
                     Fazı incele
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" aria-hidden />
+                    <ArrowRight
+                      className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1"
+                      aria-hidden
+                    />
                   </span>
                 </div>
               </Link>
             </article>
           ))}
         </div>
-
       </div>
     </section>
   );

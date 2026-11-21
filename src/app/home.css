@@ -1,30 +1,217 @@
+/* Anasayfa — Anıtsal Filozof Hologramı ve Konstrüktif Editoryal Sistem */
+
 .home-page {
-  --home-bg: #f4f2ec;
-  --home-surface: #fbfaf6;
-  --home-surface-raised: #ebe8df;
-  --home-fg: #151515;
-  --home-muted: #5e625f;
-  --home-border: rgba(21, 21, 21, 0.15);
-  --home-grid: rgba(21, 21, 21, 0.055);
-  --home-accent: #a85308;
+  --home-bg: #f5f1ea;
+  --home-surface: #fcfaf6;
+  --home-surface-raised: #ede7dd;
+  --home-fg: #181311;
+  --home-muted: #5d534d;
+  --home-border: rgba(24, 19, 17, 0.14);
+  --home-grid: rgba(24, 19, 17, 0.05);
+  --home-accent: #9c380a;
   --home-accent-solid: #d97706;
+  --home-crimson: #961f0b;
   --home-info: #1e5fbf;
   background: var(--home-bg);
   color: var(--home-fg);
 }
 
 .dark .home-page {
-  --home-bg: #0a0a0a;
-  --home-surface: #101111;
-  --home-surface-raised: #141515;
-  --home-fg: #f5f3ed;
-  --home-muted: #a3a8a5;
-  --home-border: rgba(255, 255, 255, 0.12);
-  --home-grid: rgba(255, 255, 255, 0.045);
-  --home-accent: #f2aa45;
+  --home-bg: #090808;
+  --home-surface: #121010;
+  --home-surface-raised: #171312;
+  --home-fg: #f7f2eb;
+  --home-muted: #ada39b;
+  --home-border: rgba(255, 240, 228, 0.11);
+  --home-grid: rgba(255, 240, 228, 0.04);
+  --home-accent: #f3ae4b;
   --home-accent-solid: #f59e0b;
+  --home-crimson: #e05338;
   --home-info: #6ea8ff;
 }
+
+/* ==========================================================================
+   Hero — Derin Kızıl-Terakota Galeri Sahnesi & 3B Halftone Filozof Hologramı
+   ========================================================================== */
+
+.home-crimson-hero {
+  --hero-tilt-x: 0px;
+  --hero-tilt-y: 0px;
+  background:
+    radial-gradient(ellipse 56% 68% at 50% 48%, rgba(214, 58, 22, 0.44) 0%, transparent 72%),
+    radial-gradient(ellipse 92% 88% at 50% 46%, #9b1f09 0%, #801506 52%, #590c03 86%, #380702 100%);
+  color: #fff8f2;
+}
+
+.home-crimson-grid {
+  background-image:
+    linear-gradient(rgba(255, 238, 224, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 238, 224, 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 88% 82% at 50% 50%, black 22%, transparent 94%);
+}
+
+.home-crimson-vignette {
+  background:
+    radial-gradient(circle at 50% 48%, transparent 46%, rgba(26, 4, 1, 0.42) 100%),
+    linear-gradient(180deg, rgba(22, 3, 1, 0.16) 0%, transparent 18%, transparent 82%, rgba(16, 2, 1, 0.34) 100%);
+}
+
+.home-crimson-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: #f8d2b0;
+}
+
+.home-amber-dot {
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  background: #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.7);
+}
+
+.home-hero-visual {
+  --hero-scan-x: 42%;
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-hologram-halo {
+  background: radial-gradient(
+    ellipse 42% 54% at 50% 52%,
+    rgba(255, 148, 102, 0.17) 0%,
+    rgba(196, 46, 16, 0.09) 42%,
+    transparent 74%
+  );
+}
+
+.home-hero-scan-line {
+  left: var(--hero-scan-x);
+  width: 1px;
+  opacity: 0.26;
+  background: linear-gradient(
+    transparent 6%,
+    rgba(255, 224, 186, 0.48) 28%,
+    rgba(245, 158, 11, 0.58) 54%,
+    transparent 92%
+  );
+  transition: left 110ms ease-out;
+}
+
+.home-hero-callout {
+  transform: translate3d(var(--hero-tilt-x), var(--hero-tilt-y), 0);
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.home-hologram-hint {
+  transition: opacity 420ms ease;
+}
+
+[data-hologram-interacted="true"] .home-hologram-hint {
+  opacity: 0.28;
+}
+
+.home-crimson-search {
+  display: flex;
+  min-height: 3.25rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  border: 1px solid rgba(255, 232, 214, 0.24);
+  border-radius: 0.4rem;
+  background: rgba(24, 5, 3, 0.46);
+  padding: 0.72rem 0.95rem;
+  color: rgba(255, 238, 224, 0.88);
+  font-size: 0.84rem;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 42px -24px rgba(0, 0, 0, 0.65);
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+
+.home-crimson-search:hover {
+  border-color: rgba(255, 214, 170, 0.56);
+  background: rgba(34, 7, 4, 0.62);
+  transform: translateY(-1px);
+}
+
+.home-crimson-search:focus-visible,
+.home-crimson-cta:focus-visible,
+.home-crimson-link:focus-visible {
+  outline: 2px solid #fbbf24;
+  outline-offset: 3px;
+}
+
+.home-crimson-cta {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid rgba(255, 240, 228, 0.75);
+  border-radius: 0.25rem;
+  background: rgba(255, 248, 242, 0.96);
+  padding: 0.65rem 1.05rem;
+  color: #360803;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.home-crimson-cta:hover {
+  border-color: #ffe2b8;
+  background: #ffe8cb;
+  transform: translateY(-1px);
+}
+
+.home-crimson-link {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(255, 232, 214, 0.34);
+  border-radius: 0.25rem;
+  background: rgba(34, 6, 3, 0.34);
+  padding: 0.65rem 0.95rem;
+  color: #fff3e8;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.home-crimson-link:hover {
+  border-color: rgba(255, 216, 176, 0.7);
+  background: rgba(54, 10, 5, 0.52);
+  color: #ffe4c4;
+}
+
+/* ==========================================================================
+   Editoryal Alt Bölümler (01 / Hesapla · 02 / Öğren · 03 / Uygula)
+   ========================================================================== */
 
 .home-hero-grid,
 .home-process-grid,
@@ -41,49 +228,38 @@
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  border-radius: 0;
   font-family: var(--font-mono), monospace;
   font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.15em;
   line-height: 1.6;
   text-transform: uppercase;
+  color: var(--home-crimson);
+}
+
+.dark .home-kicker,
+.dark .home-section-kicker {
+  border: 0;
+  background: transparent;
+  padding: 0;
   color: var(--home-accent);
 }
 
 .home-kicker::before,
 .home-section-kicker::before {
-  width: 1.75rem;
+  width: 1.5rem;
   height: 1px;
   background: currentColor;
   content: "";
 }
 
 .home-section-kicker-inverse {
-  color: #fbbf24;
-}
-
-.home-search-trigger {
-  display: flex;
-  min-height: 3.75rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  border: 1px solid var(--home-border);
-  border-radius: 0.55rem;
-  background: color-mix(in srgb, var(--home-surface) 92%, transparent);
-  padding: 0.85rem 1rem;
-  color: var(--home-muted);
-  box-shadow: 0 16px 45px rgb(0 0 0 / 6%);
-  transition:
-    border-color 180ms ease,
-    background-color 180ms ease,
-    transform 180ms ease;
-}
-
-.home-search-trigger:hover {
-  border-color: color-mix(in srgb, var(--home-accent) 50%, var(--home-border));
-  background: var(--home-surface);
-  transform: translateY(-1px);
+  color: #f5b358;
 }
 
 .home-search-trigger:focus-visible,
@@ -106,6 +282,11 @@
 
 .home-quiet-link:hover,
 .home-topic-link:hover {
+  color: var(--home-crimson);
+}
+
+.dark .home-quiet-link:hover,
+.dark .home-topic-link:hover {
   color: var(--home-accent);
 }
 
@@ -114,46 +295,19 @@
   font-weight: 700;
 }
 
-.home-hero-visual {
-  --hero-scan-x: 42%;
-  background: #0b0d0f;
-  box-shadow: 0 28px 80px rgb(0 0 0 / 18%);
-}
-
-.home-hero-visual-shade {
-  background:
-    linear-gradient(90deg, rgb(0 0 0 / 28%), transparent 42%),
-    linear-gradient(0deg, rgb(0 0 0 / 32%), transparent 46%);
-}
-
-.home-hero-visual-grid {
-  background-image:
-    linear-gradient(rgb(255 255 255 / 7%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 7%) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: linear-gradient(120deg, transparent 16%, black, transparent 84%);
-}
-
-.home-hero-scan-line {
-  left: var(--hero-scan-x);
-  width: 1px;
-  background: linear-gradient(transparent, rgb(251 191 36 / 82%) 22%, rgb(96 165 250 / 70%) 76%, transparent);
-  box-shadow: 0 0 24px rgb(251 191 36 / 45%);
-  transition: left 120ms ease-out;
-}
-
 .home-button-primary {
   display: inline-flex;
   min-height: 2.75rem;
   align-items: center;
   gap: 0.6rem;
-  border: 1px solid #e28c0a;
-  border-radius: 0.4rem;
-  background: #f6a91a;
-  padding: 0.72rem 1rem;
-  color: #15100a;
+  border: 1px solid #8a1b08 !important;
+  border-radius: 0.35rem;
+  background: #9c200b !important;
+  padding: 0.72rem 1.05rem;
+  color: #fff8f2 !important;
   font-size: 0.78rem;
   font-weight: 700;
+  text-shadow: none;
   box-shadow: none;
   transition:
     background-color 180ms ease,
@@ -161,30 +315,37 @@
     transform 180ms ease;
 }
 
-.home-button-primary:hover,
-.dark .home-button-primary:hover {
-  border-color: #f2b544;
-  background: #ffc24f;
-  color: #15100a;
+.home-button-primary:hover {
+  border-color: #b4260e !important;
+  background: #b4260e !important;
+  color: #fff8f2 !important;
   transform: translateY(-1px);
 }
 
 .dark .home-button-primary {
-  border-color: #b96500;
-  background: #e89714;
-  color: #160e04;
+  border: 1px solid #d48914 !important;
+  background: #eb9b1c !important;
+  color: #170d04 !important;
+  box-shadow: none;
+}
+
+.dark .home-button-primary:hover {
+  border-color: #f6b543 !important;
+  background: #f9b942 !important;
+  color: #170d04 !important;
+  transform: translateY(-1px);
 }
 
 .home-featured-calculation {
   min-height: 100%;
   background:
-    radial-gradient(circle at 88% 10%, color-mix(in srgb, var(--home-info) 16%, transparent), transparent 34%),
+    radial-gradient(circle at 90% 8%, color-mix(in srgb, var(--home-crimson) 13%, transparent), transparent 38%),
     var(--home-surface-raised);
 }
 
 .home-featured-blueprint {
   background-size: 32px 32px;
-  opacity: 0.8;
+  opacity: 0.75;
   mask-image: linear-gradient(135deg, black, transparent 82%);
 }
 
@@ -195,17 +356,19 @@
 }
 
 .home-resource-row:hover {
-  background: color-mix(in srgb, var(--home-surface-raised) 72%, transparent);
+  background: color-mix(in srgb, var(--home-surface-raised) 76%, transparent);
   padding-inline: 0.6rem;
 }
 
 .home-process-shell {
-  background: #0b0c0c;
-  color: white;
+  background:
+    radial-gradient(ellipse 68% 36% at 50% 0%, rgba(142, 26, 8, 0.24) 0%, transparent 72%),
+    #0a0808;
+  color: #fff8f2;
 }
 
 .home-process-grid {
-  --home-grid: rgb(255 255 255 / 4.5%);
+  --home-grid: rgb(255 240 228 / 4.2%);
   mask-image: linear-gradient(to bottom, black, transparent 86%);
 }
 
@@ -214,7 +377,7 @@
 }
 
 .home-phase-item {
-  border-bottom: 1px solid rgb(255 255 255 / 10%);
+  border-bottom: 1px solid rgb(255 240 228 / 10%);
 }
 
 .home-phase-frame {
@@ -228,7 +391,7 @@
 }
 
 .home-phase-item:hover .home-phase-frame {
-  border-color: rgb(251 191 36 / 48%);
+  border-color: rgb(245 158 11 / 52%);
   filter: brightness(1.08);
 }
 
@@ -237,18 +400,18 @@
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 1px;
     overflow: hidden;
-    border: 1px solid rgb(255 255 255 / 10%);
+    border: 1px solid rgb(255 240 228 / 11%);
     border-radius: 0.55rem;
-    background: rgb(255 255 255 / 10%);
+    background: rgb(255 240 228 / 11%);
   }
 
   .home-phase-item {
     border-bottom: 0;
-    background: #0b0c0c;
+    background: #0d0909;
   }
 
   .home-phase-item + .home-phase-item {
-    border-left: 1px solid rgb(255 255 255 / 10%);
+    border-left: 1px solid rgb(255 240 228 / 10%);
   }
 }
 
@@ -258,16 +421,6 @@
   [data-testid="home-phase-path"] > .relative {
     padding-top: 3rem;
     padding-bottom: 3rem;
-  }
-
-  [data-testid="home-hero"] > .relative {
-    padding-top: 2.5rem;
-    padding-bottom: 2rem;
-  }
-
-  [data-testid="home-closing"] > div {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
   }
 
   #home-resources [aria-label="Teknik dayanaklar"] > div {
@@ -289,13 +442,17 @@
   }
 
   .home-kicker,
-  .home-section-kicker {
-    font-size: 0.61rem;
+  .home-section-kicker,
+  .home-crimson-kicker {
+    font-size: 0.6rem;
     letter-spacing: 0.1em;
   }
 
-  .home-featured-calculation .home-button-primary {
+  .home-featured-calculation .home-button-primary,
+  .home-crimson-cta,
+  .home-crimson-link {
     width: 100%;
+    justify-content: center;
   }
 }
 
@@ -309,7 +466,12 @@
     animation-iteration-count: 1 !important;
   }
 
-  .home-hero-scan-line {
+  .home-hero-scan-line,
+  .home-hologram-hint {
     display: none;
+  }
+
+  .home-hero-callout {
+    transform: none !important;
   }
 }
