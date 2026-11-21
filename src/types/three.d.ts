@@ -43,8 +43,15 @@ declare module "three" {
     faceIndex?: number | null;
   }
 
+  export class Ray {
+    origin: Vector3;
+    direction: Vector3;
+    intersectPlane(plane: Plane, target: Vector3): Vector3 | null;
+  }
+
   export class Raycaster {
     constructor(origin?: Vector3, direction?: Vector3, near?: number, far?: number);
+    ray: Ray;
     setFromCamera(coords: Vector2, camera: PerspectiveCamera | OrthographicCamera): void;
     intersectObjects(objects: any[], recursive?: boolean, optionalTarget?: Intersection[]): Intersection[];
   }
@@ -90,10 +97,13 @@ declare module "three" {
     setLength(length: number): this;
     normalize(): this;
     dot(v: Vector3): number;
+    applyMatrix4(m: Matrix4): this;
   }
 
   export class Matrix4 {
     constructor();
+    copy(m: Matrix4): this;
+    invert(): this;
     makeTranslation(x: number, y: number, z: number): this;
     compose(position: Vector3, quaternion: Quaternion, scale: Vector3): this;
     identity(): this;
@@ -107,6 +117,8 @@ declare module "three" {
     rotation: Euler;
     scale: Vector3;
     quaternion: Quaternion;
+    matrixWorld: Matrix4;
+    updateMatrixWorld(force?: boolean): void;
     name: string;
     children: any[];
     userData: Record<string, any>;
@@ -185,6 +197,7 @@ declare module "three" {
     setPixelRatio(value: number): void;
     setSize(width: number, height: number, updateStyle?: boolean): void;
     setClearColor(color: number | Color, alpha?: number): void;
+    compile(scene: Scene, camera: OrthographicCamera | PerspectiveCamera): void;
     render(scene: Scene, camera: OrthographicCamera | PerspectiveCamera): void;
     getContext(): WebGLRenderingContext | WebGL2RenderingContext;
     dispose(): void;
@@ -214,6 +227,8 @@ declare module "three" {
     b: number;
     set(value: number | string): this;
     setHex(hex: number): this;
+    clone(): Color;
+    lerp(color: Color, alpha: number): this;
   }
 
   export class BufferGeometry {
@@ -264,17 +279,33 @@ declare module "three" {
 
   export class Texture {
     isTexture: true;
+    minFilter: number;
+    magFilter: number;
+    wrapS: number;
+    wrapT: number;
+    generateMipmaps: boolean;
+    needsUpdate: boolean;
     image?: { data?: ArrayBufferView; width?: number; height?: number };
     dispose(): void;
   }
 
+  export class CanvasTexture extends Texture {
+    constructor(canvas: HTMLCanvasElement | OffscreenCanvas);
+  }
+
+  export class TextureLoader {
+    constructor();
+    load(
+      url: string,
+      onLoad?: (texture: Texture) => void,
+      onProgress?: (event: ProgressEvent) => void,
+      onError?: (err: unknown) => void,
+    ): Texture;
+  }
+
   export class DataTexture extends Texture {
     constructor(data: ArrayBufferView, width: number, height: number, format?: number, type?: number);
-    minFilter: number;
-    magFilter: number;
-    generateMipmaps: boolean;
     flipY: boolean;
-    needsUpdate: boolean;
   }
 
   export class Material {
@@ -293,6 +324,7 @@ declare module "three" {
       transparent?: boolean;
       depthTest?: boolean;
       depthWrite?: boolean;
+      blending?: number;
       glslVersion?: string;
       uniforms?: Record<string, { value: unknown }>;
       vertexShader?: string;
@@ -310,6 +342,7 @@ declare module "three" {
     count: number;
     normalized: boolean;
     needsUpdate: boolean;
+    setUsage(value: number): this;
   }
 
   export class Float32BufferAttribute {
@@ -357,12 +390,22 @@ declare module "three" {
   export class LineSegments {
     constructor(geometry?: BufferGeometry, material?: LineBasicMaterial | Material);
     position: Vector3;
+    rotation: Euler;
     name: string;
     visible: boolean;
     geometry: BufferGeometry;
     material: LineBasicMaterial | Material;
     renderOrder: number;
     userData: Record<string, any>;
+  }
+
+  export class Points {
+    constructor(geometry?: BufferGeometry, material?: Material);
+    position: Vector3;
+    rotation: Euler;
+    frustumCulled: boolean;
+    geometry: BufferGeometry;
+    material: Material;
   }
 
   export class MeshBasicMaterial extends Material {
@@ -458,6 +501,10 @@ declare module "three" {
   export const RGBAFormat: number;
   export const FloatType: number;
   export const NearestFilter: number;
+  export const LinearFilter: number;
+  export const ClampToEdgeWrapping: number;
+  export const DynamicDrawUsage: number;
+  export const NormalBlending: number;
   export const GLSL3: string;
   export const SRGBColorSpace: string;
 }

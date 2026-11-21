@@ -182,23 +182,16 @@ try {
   await interactionPage.click('[data-testid="home-hero"] button[aria-controls="command-palette-dialog"]');
   await interactionPage.waitForSelector("#command-palette-dialog", { visible: true, timeout: 10000 });
   await interactionPage.keyboard.press("Escape");
+  await interactionPage.waitForSelector("#command-palette-dialog", { hidden: true, timeout: 5000 });
 
-  await interactionPage.$eval('[data-testid="home-hero-visual"]', (element) => {
-    const bounds = element.getBoundingClientRect();
-    element.dispatchEvent(
-      new PointerEvent("pointermove", {
-        bubbles: true,
-        clientX: bounds.left + bounds.width * 0.76,
-        clientY: bounds.top + bounds.height * 0.52,
-        pointerType: "mouse",
-      }),
-    );
-  });
-  const scanPosition = await interactionPage.$eval(
-    '[data-testid="home-hero-visual"]',
-    (element) => element.style.getPropertyValue("--hero-scan-x"),
+  await interactionPage.click('[data-testid="hologram-dock-toggle"]');
+  await interactionPage.waitForSelector('button[aria-label="Açık tema"]', { visible: true, timeout: 8000 });
+  await interactionPage.click('button[aria-label="Açık tema"]');
+  const switchedAtmosphere = await interactionPage.$eval(
+    "[data-home-atmosphere]",
+    (element) => element.getAttribute("data-home-atmosphere"),
   );
-  assert(scanPosition && scanPosition !== "42%", "Hero tarama çizgisi imleci takip etmedi.");
+  assert(switchedAtmosphere === "alabaster", "Hologram atmosfer seçici açık temaya geçmedi.");
 
   await interactionPage.keyboard.press("Home");
   await interactionPage.keyboard.press("Tab");
@@ -211,7 +204,7 @@ try {
     focusedElement.tag === "A" || focusedElement.tag === "BUTTON",
     `Klavye odağı etkileşimli bir öğeye geçmedi (${JSON.stringify(focusedElement)}).`,
   );
-  checks.push("arama, hero etkileşimi ve klavye odağı");
+  checks.push("arama, hologram atmosfer geçişi ve klavye odağı");
   await interactionPage.close();
 
   const reducedMotionPage = await browser.newPage();
@@ -219,13 +212,17 @@ try {
   await reducedMotionPage.setViewport({ width: 1440, height: 900 });
   await openHome(reducedMotionPage, baseUrl, "dark");
   const reducedMotionState = await reducedMotionPage.evaluate(() => ({
-    scanDisplay: window.getComputedStyle(document.querySelector(".home-hero-scan-line")).display,
+    dispersion:
+      document.querySelector('[data-testid="hologram-canvas"]')?.getAttribute("data-dispersion") ?? "0.0000",
   }));
-  assert(reducedMotionState.scanDisplay === "none", "Azaltılmış harekette hero tarama çizgisi kapanmadı.");
+  assert(reducedMotionState.dispersion === "0.0000", "Azaltılmış harekette hologram dağılımı sıfır kalmalı.");
   checks.push("azaltılmış hareket tercihi");
   await reducedMotionPage.close();
 
   console.log(JSON.stringify({ status: "ok", baseUrl, checks }, null, 2));
+} catch (error) {
+  console.error(error);
+  process.exitCode = 1;
 } finally {
   await browser.close();
   if (server) {

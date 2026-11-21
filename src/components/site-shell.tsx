@@ -1,8 +1,8 @@
 "use client";
 
+import { useEffect, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Toaster } from "sonner";
-import type { ReactNode } from "react";
 import { GlobalOverlays } from "@/components/global-overlays";
 import { Navbar } from "@/components/navbar";
 import { BelgeAccountProvider } from "@/components/belge-hesap/account-provider";
@@ -11,6 +11,28 @@ import styles from "@/components/hsyncad/immersive-shell.module.css";
 /** Layouts persist across navigation; the chrome decision must follow the current route. */
 export function SiteShell({ children, footer }: { children: ReactNode; footer: ReactNode }) {
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (pathname !== "/") {
+      delete document.documentElement.dataset.homeAtmosphere;
+    }
+  }, [pathname]);
+  if (pathname === "/") {
+    return (
+      <>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-amber-500 focus:px-4 focus:py-2 focus:text-xs focus:font-semibold focus:text-black focus:shadow-lg"
+        >
+          Ana içeriğe atla
+        </a>
+        {children}
+        <GlobalOverlays />
+        <Toaster position="top-center" richColors />
+      </>
+    );
+  }
+
   if (pathname.startsWith("/b/")) {
     return <main id="main-content" tabIndex={-1} className="min-h-screen focus:outline-none">{children}</main>;
   }

@@ -1,16 +1,26 @@
 import type { Metadata } from "next";
-import { HomeEditorialSection } from "@/components/home-editorial-section";
-import { HomeHeroSection } from "@/components/home-hero-section";
-import { HomeProjectPath } from "@/components/home-project-path";
-import { HomeResourceShowcase } from "@/components/home-resource-showcase";
+import { Bricolage_Grotesque, Plus_Jakarta_Sans } from "next/font/google";
+import { HomeStudioClient } from "@/components/home/home-studio-client";
 import { JsonLd } from "@/components/seo/json-ld";
-import { getHomePageModel } from "@/lib/home-content";
 import { buildCollectionPageSchema, buildHomeMetadata } from "@/lib/seo";
+
+const bricolageDisplay = Bricolage_Grotesque({
+  subsets: ["latin", "latin-ext"],
+  weight: ["500", "600", "700"],
+  variable: "--font-hp-display",
+  display: "swap",
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-hp-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = buildHomeMetadata();
 
 export default function Home() {
-  const model = getHomePageModel();
   const schema = buildCollectionPageSchema({
     title: "İnşaat mühendisliği ve mimarlık için teknik çalışma alanı",
     description:
@@ -21,23 +31,14 @@ export default function Home() {
       { name: "Yapısal araçlar", href: "/kategori/araclar" },
       { name: "Deprem ve yönetmelikler", href: "/kategori/deprem-yonetmelik" },
       { name: "Belgeler ve şablonlar", href: "/belgeler" },
+      { name: "Dokümantasyon arşivi", href: "/dokumantasyon" },
     ],
   });
 
   return (
-    <>
-      <div className="home-page overflow-hidden">
-        <JsonLd schema={schema} />
-        <HomeHeroSection />
-        <HomeResourceShowcase
-          featuredCalculation={model.featuredCalculation}
-          resources={model.resources}
-          standards={model.standards}
-        />
-        <HomeEditorialSection articles={model.articles} />
-        <HomeProjectPath phases={model.phases} />
-      </div>
-    </>
+    <div className={`${bricolageDisplay.variable} ${plusJakartaSans.variable}`}>
+      <JsonLd schema={schema} />
+      <HomeStudioClient />
+    </div>
   );
 }
-

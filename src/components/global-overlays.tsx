@@ -15,10 +15,12 @@ export function GlobalOverlays() {
   const isIrregularityStudio = pathname === "/kategori/araclar/duzensizlik-simulatoru";
   const isImmersiveWorkspace = isDocumentWorkspace || isBelgeStudio || isHsynCadWorkspace || isIrregularityStudio;
 
+  const isHomePage = pathname === "/";
+
   return (
     <>
       {!isImmersiveWorkspace && <BottomNav />}
-      {!isImmersiveWorkspace && <BackToTop />}
+      {!isImmersiveWorkspace && !isHomePage && <BackToTop />}
       <DeferredCommandPalette key={pathname} />
       <div id="dok-overlay-root" />
     </>
