@@ -39,6 +39,7 @@ export function MobileExplorer({
   grouped,
   view,
   selectedIds,
+  cutItemIds,
   selection,
   scrollRef,
   onActivate,
@@ -50,6 +51,7 @@ export function MobileExplorer({
   grouped: boolean;
   view: "list" | "grid";
   selectedIds: Set<string>;
+  cutItemIds?: Set<string>;
   selection: boolean;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   onActivate: (
@@ -196,8 +198,9 @@ export function MobileExplorer({
         data-file-id={folder ? undefined : item.id}
         data-folder-id={folder ? item.id : undefined}
         data-selected={selectedIds.has(item.id)}
+        data-clipboard-cut={cutItemIds?.has(item.id) ? "true" : undefined}
         data-mobile-item
-        className={view === "list" ? s.row : s.tile}
+        className={`${view === "list" ? s.row : s.tile} ${cutItemIds?.has(item.id) ? "opacity-60 border-dashed" : ""}`}
         onClick={(e) => onActivate(item, "body", e)}
         onDoubleClick={(e) => onActivate(item, "double", e)}
         onContextMenu={(e) => onActivate(item, "context", e)}

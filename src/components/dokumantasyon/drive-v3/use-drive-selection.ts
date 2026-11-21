@@ -31,6 +31,7 @@ export type UseDriveSelectionOptions = {
   viewMode: "list" | "grid";
   gridMetrics: GridMetrics;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+  isGrouped?: boolean;
 };
 
 export function useDriveSelection({
@@ -38,6 +39,7 @@ export function useDriveSelection({
   viewMode,
   gridMetrics,
   scrollContainerRef,
+  isGrouped = false,
 }: UseDriveSelectionOptions) {
   const [state, dispatch] = useReducer(selectionReducer, INITIAL_SELECTION_STATE);
 
@@ -207,19 +209,22 @@ export function useDriveSelection({
       height: Math.max(0, contentBbox.bottom - contentBbox.top),
     });
 
-    // Source-of-Truth: Content-space virtual geometry (virtualization-aware, includes offscreen items)
+    // Source-of-Truth: Content-space virtual geometry when ungrouped;
+    // when grouped, group headers offset item positions so we use DOM bounding-box intersection.
     let geometryHits: string[] = [];
-    if (viewMode === "list") {
-      geometryHits = hitTestList(
-        contentBbox,
-        visibleOrderedIds,
-        undefined,
-        undefined,
-        0,
-        container.clientWidth
-      );
-    } else {
-      geometryHits = hitTestGrid(contentBbox, visibleOrderedIds, gridMetrics);
+    if (!isGrouped) {
+      if (viewMode === "list") {
+        geometryHits = hitTestList(
+          contentBbox,
+          visibleOrderedIds,
+          undefined,
+          undefined,
+          0,
+          container.clientWidth
+        );
+      } else {
+        geometryHits = hitTestGrid(contentBbox, visibleOrderedIds, gridMetrics);
+      }
     }
 
     // Optional mounted element union: Ensures mounted items along visual edges are included
@@ -267,7 +272,7 @@ export function useDriveSelection({
         rafIdRef.current = requestAnimationFrame(() => updateMarqueeFrameRef.current());
       }
     }
-  }, [scrollContainerRef, viewMode, visibleOrderedIds, gridMetrics]);
+  }, [scrollContainerRef, viewMode, visibleOrderedIds, gridMetrics, isGrouped]);
 
   useEffect(() => {
     updateMarqueeFrameRef.current = updateMarqueeFrame;

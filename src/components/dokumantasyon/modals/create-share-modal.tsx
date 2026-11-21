@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import {
   Link2,
-  X,
   Loader2,
   Clock,
   KeyRound,
@@ -11,6 +10,7 @@ import {
   AlertCircle,
   Sparkles,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { formatBytes } from "../ui-helpers";
 import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
@@ -47,13 +47,16 @@ export function CreateShareModal({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+    if (isOpen) {
+      setTitle("");
+      setDuration("1_DAY");
+      setCustomDate("");
+      setPassword("");
+      setMaxDownloads("");
+      setError(null);
+      setLoading(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen || selectedItems.length === 0) return null;
 
@@ -70,7 +73,14 @@ export function CreateShareModal({
         if (!customDate) {
           throw new Error("Lütfen özel bitiş tarihi seçin.");
         }
-        customExpiresAtIso = new Date(customDate).toISOString();
+        const parsedDate = new Date(customDate);
+        if (Number.isNaN(parsedDate.getTime())) {
+          throw new Error("Geçerli bir bitiş tarihi ve saati girin.");
+        }
+        if (parsedDate.getTime() <= Date.now()) {
+          throw new Error("Özel bitiş tarihi geçmiş bir tarih olamaz. Lütfen ileri bir tarih seçin.");
+        }
+        customExpiresAtIso = parsedDate.toISOString();
       }
 
       const result = await requestDokMutation<{
@@ -95,6 +105,7 @@ export function CreateShareModal({
       if (!result.ok) throw new Error(result.message);
       const data = result.data;
 
+      toast.success("Paylaşım bağlantısı oluşturuldu.");
       onSuccess({
         shareUrl: data.shareUrl,
         rawToken: data.rawToken,
@@ -113,24 +124,18 @@ export function CreateShareModal({
   };
 
   return (
-    <OverlayPortal isOpen={isOpen} onClose={onClose}>
+    <OverlayPortal isOpen={isOpen} onClose={onClose} title="Süreli Paylaşım Linki Oluştur">
       <div
         data-testid="dok-dialog-content"
         className="w-full max-w-lg rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl"
       >
-        <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
+        <div className="flex items-center border-b border-border/60 pb-3.5 pr-10">
           <div className="flex items-center gap-2.5 font-bold text-foreground">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
               <Link2 className="h-4 w-4" />
             </div>
             <span className="text-base">Süreli Paylaşım Linki Oluştur</span>
           </div>
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">

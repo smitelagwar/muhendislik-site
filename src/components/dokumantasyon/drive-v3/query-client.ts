@@ -8,16 +8,27 @@ import React from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { DokFile, DokFolder, DokBreadcrumbItem } from "@/lib/dokumantasyon/types";
 
+export type DokItemsSummary = {
+  totalFiles?: number;
+  totalFolders?: number;
+  totalSizeBytes?: number;
+  starredCount?: number;
+  trashCount?: number;
+  activeSharesCount?: number;
+  categoryCounts?: {
+    cad: number;
+    pdf: number;
+    image: number;
+    other: number;
+  };
+};
+
 export type DokItemsResponse = {
   folder: DokFolder | null;
   breadcrumbs: DokBreadcrumbItem[];
   folders: DokFolder[];
   files: DokFile[];
-  summary?: {
-    totalFiles?: number;
-    totalSizeBytes?: number;
-    starredCount?: number;
-  };
+  summary?: DokItemsSummary;
 };
 
 export const dokQueryClient = new QueryClient({
@@ -43,6 +54,7 @@ export type DokItemsKeyParams = {
   type?: string;
   date?: string;
   size?: string;
+  scope?: string;
   sortBy?: string;
   sortOrder?: string;
 };
@@ -57,6 +69,7 @@ export const dokKeys = {
       params.type ?? "all",
       params.date ?? "all",
       params.size ?? "all",
+      params.scope ?? "current",
       params.sortBy ?? "name",
       params.sortOrder ?? "asc",
     ] as const,
@@ -70,7 +83,9 @@ export async function fetchDokItems(
   const url = new URL("/api/dokumantasyon/items", typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
   if (folderId) url.searchParams.set("folderId", folderId);
   for (const [k, v] of Object.entries(queryParams)) {
-    if (v && v !== "all" && v !== "none") url.searchParams.set(k, v);
+    if (v && v !== "none" && (v !== "all" || k === "scope")) {
+      url.searchParams.set(k, v);
+    }
   }
 
   const res = await fetch(url.toString(), { signal });
@@ -90,6 +105,7 @@ export function useDokItemsQuery({
   typeFilter = "all",
   dateFilter = "all",
   sizeFilter = "all",
+  scope = "current",
   sortBy = "name",
   sortOrder = "asc",
   enabled = true,
@@ -99,6 +115,7 @@ export function useDokItemsQuery({
   typeFilter?: string;
   dateFilter?: string;
   sizeFilter?: string;
+  scope?: string;
   sortBy?: string;
   sortOrder?: string;
   enabled?: boolean;
@@ -108,6 +125,7 @@ export function useDokItemsQuery({
     type: typeFilter,
     date: dateFilter,
     size: sizeFilter,
+    scope,
     sortBy,
     sortOrder,
   };
@@ -121,8 +139,9 @@ export function useDokItemsQuery({
       if (typeFilter && typeFilter !== "all") queryParams.type = typeFilter;
       if (dateFilter && dateFilter !== "all") queryParams.date = dateFilter;
       if (sizeFilter && sizeFilter !== "all") queryParams.size = sizeFilter;
+      if (scope === "all") queryParams.scope = "all";
       if (sortBy) queryParams.sortBy = sortBy;
-      if (sortOrder) queryParams.sortOrder = sortOrder;
+      if (sortOrder) queryParams.order = sortOrder;
       return fetchDokItems(folderId, queryParams, signal);
     },
     enabled,

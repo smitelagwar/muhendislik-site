@@ -193,3 +193,45 @@ export async function executeBulkRestore(
 
   return { succeeded, failed, totalProcessed: items.length };
 }
+
+
+export async function executeBulkCopy(
+  items: BulkItem[],
+  targetFolderId: string | null,
+  onProgress?: (progress: { processed: number; total: number }) => void
+): Promise<BulkResult> {
+  const chunks = chunkItems(items, BULK_CHUNK_SIZE);
+  const succeeded: string[] = [];
+  const failed: BulkFailureItem[] = [];
+  let processed = 0;
+
+  for (const chunk of chunks) {
+    const res = await requestDokMutation<{ succeeded: string[]; failed: BulkFailureItem[] }>(
+      "/api/dokumantasyon/bulk/copy",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: chunk, targetFolderId }),
+      }
+    );
+
+    if (!res.ok) {
+      for (const item of chunk) {
+        failed.push({
+          id: item.id,
+          type: item.type,
+          code: "NETWORK_OR_SERVER_ERROR",
+          message: res.message || "Bilinmeyen sunucu hatası",
+        });
+      }
+    } else {
+      succeeded.push(...res.data.succeeded);
+      failed.push(...res.data.failed);
+    }
+
+    processed += chunk.length;
+    onProgress?.({ processed, total: items.length });
+  }
+
+  return { succeeded, failed, totalProcessed: items.length };
+}

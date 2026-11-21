@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Edit3, X, Loader2, AlertCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Edit3, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 import { OverlayPortal } from "../drive-v3/overlay-portal";
@@ -22,13 +23,27 @@ export function RenameModal({
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (item) {
-      setName(item.name);
-      setError(null);
-    }
-  }, [item]);
+    if (!isOpen || !item) return;
+    setName(item.name);
+    setError(null);
+    const frameId = requestAnimationFrame(() => {
+      const input = inputRef.current;
+      if (!input) return;
+      input.focus();
+      if (item.type === "file") {
+        const dotIndex = item.name.lastIndexOf(".");
+        if (dotIndex > 0) {
+          input.setSelectionRange(0, dotIndex);
+          return;
+        }
+      }
+      input.select();
+    });
+    return () => cancelAnimationFrame(frameId);
+  }, [isOpen, item]);
 
   if (!isOpen || !item) return null;
 
@@ -61,6 +76,7 @@ export function RenameModal({
         return;
       }
 
+      toast.success(`"${name.trim()}" olarak yeniden adlandırıldı.`);
       onSuccess();
       onClose();
     } catch {
@@ -70,33 +86,27 @@ export function RenameModal({
     }
   };
 
+  const title = item.type === "folder" ? "Klasörü Yeniden Adlandır" : "Dosyayı Yeniden Adlandır";
+
   return (
-    <OverlayPortal isOpen={isOpen} onClose={onClose}>
+    <OverlayPortal isOpen={isOpen} onClose={onClose} title={title} initialFocusRef={inputRef}>
       {/* z-[90] overlay standard */}
       <div
         data-testid="dok-dialog-content"
         className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl z-[90]"
       >
-        <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
+        <div className="flex items-center border-b border-border/60 pb-3.5 pr-10">
           <div className="flex items-center gap-2.5 font-bold text-foreground">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20">
               <Edit3 className="h-4 w-4" />
             </div>
-            <span className="text-base">
-              {item.type === "folder" ? "Klasörü Yeniden Adlandır" : "Dosyayı Yeniden Adlandır"}
-            </span>
+            <span className="text-base">{title}</span>
           </div>
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           {error && (
-            <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">
+            <div role="alert" className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -107,9 +117,9 @@ export function RenameModal({
               Yeni İsim
             </label>
             <input
+              ref={inputRef}
               type="text"
               required
-              autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="mt-1.5 w-full rounded-xl border border-input bg-background/80 px-3.5 py-2.5 text-sm text-foreground focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 shadow-sm"
@@ -133,7 +143,7 @@ export function RenameModal({
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none mr-1.5" />
                   <span>Kaydediliyor...</span>
                 </>
               ) : (

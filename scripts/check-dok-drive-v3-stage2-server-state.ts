@@ -159,12 +159,12 @@ async function runStage2Tests() {
     groupBy: "none",
   };
   const viewDate = deriveExplorerView(cacheAfterUpload, dateDescOptions);
-  // Alpha (Jan 1), Beta (Jan 2), Gamma (Jan 3) -> Date desc: Gamma (f-3), Beta (f-2), Alpha (f-1)
+  // BUG-05 (updated_at || created_at): f-2 rename sırasında updated_at aldığı için en yeni olur -> Date desc: f-2, f-3, f-1
   assert(
-    viewDate.displayedFolders[0].id === "f-3" &&
-    viewDate.displayedFolders[1].id === "f-2" &&
+    viewDate.displayedFolders[0].id === "f-2" &&
+    viewDate.displayedFolders[1].id === "f-3" &&
     viewDate.displayedFolders[2].id === "f-1",
-    "Tarihe göre sıralamada comparator tutarlı davrandı (Gamma, Beta, Alpha)"
+    "Tarihe göre sıralamada comparator tutarlı davrandı (Beta Yenilendi [updated_at], Gamma, Alpha)"
   );
 
   console.log("\n======================================================================");

@@ -3,6 +3,16 @@
 // ============================================================================
 
 import { DokFile, DokFolder } from "@/lib/dokumantasyon/types";
+import {
+  FILE_SIZE_THRESHOLDS,
+  getEffectiveItemTimestamp,
+  getGroupFileBucket,
+  matchesDateFilter,
+  matchesSizeFilter,
+  matchesTypeFilter,
+  normalizeExtension,
+  normalizeTrSearch,
+} from "@/lib/dokumantasyon/file-categories";
 
 export type ExplorerSortBy = "name" | "date" | "size" | "type";
 export type ExplorerSortOrder = "asc" | "desc";
@@ -47,8 +57,8 @@ export function compareFolders(
     // Folders sort by name when sorting by name, type, or size
     cmp = (a.name || "").localeCompare(b.name || "", "tr", { sensitivity: "base" });
   } else if (sortBy === "date") {
-    const timeA = new Date(a.created_at || 0).getTime();
-    const timeB = new Date(b.created_at || 0).getTime();
+    const timeA = getEffectiveItemTimestamp(a);
+    const timeB = getEffectiveItemTimestamp(b);
     cmp = timeA - timeB; // Natural ascending (oldest first)
   }
   return sortOrder === "asc" ? cmp : -cmp;
@@ -64,14 +74,14 @@ export function compareFiles(
   if (sortBy === "name") {
     cmp = (a.display_name || "").localeCompare(b.display_name || "", "tr", { sensitivity: "base" });
   } else if (sortBy === "date") {
-    const timeA = new Date(a.created_at || 0).getTime();
-    const timeB = new Date(b.created_at || 0).getTime();
+    const timeA = getEffectiveItemTimestamp(a);
+    const timeB = getEffectiveItemTimestamp(b);
     cmp = timeA - timeB; // Natural ascending (oldest first)
   } else if (sortBy === "size") {
     cmp = Number(a.size_bytes || 0) - Number(b.size_bytes || 0); // Natural ascending (smallest first)
   } else if (sortBy === "type") {
-    const extA = (a.extension || "").toLowerCase();
-    const extB = (b.extension || "").toLowerCase();
+    const extA = normalizeExtension(a.extension || a.display_name);
+    const extB = normalizeExtension(b.extension || b.display_name);
     cmp = extA.localeCompare(extB, "tr", { sensitivity: "base" });
     if (cmp === 0) {
       cmp = (a.display_name || "").localeCompare(b.display_name || "", "tr", { sensitivity: "base" });
@@ -88,46 +98,34 @@ export function matchesFilters(
   if (options.starredOnly && !item.starred_at) return false;
   if (options.collection === "starred" && !item.starred_at) return false;
 
-  const query = (options.searchQuery || "").trim().toLowerCase();
+  const query = normalizeTrSearch(options.searchQuery || "");
   if (query) {
     const name = isFolder ? (item as DokFolder).name : (item as DokFile).display_name;
-    if (!name.toLowerCase().includes(query)) return false;
+    if (!normalizeTrSearch(name || "").includes(query)) return false;
   }
 
   // Type filter
   if (options.typeFilter && options.typeFilter !== "all") {
     if (isFolder) {
-      // Folders are hidden when specific file type filter is active
       return false;
     }
     const file = item as DokFile;
-    const ext = (file.extension || "").toLowerCase().replace(".", "");
-    if (options.typeFilter === "cad") {
-      if (ext !== "dwg" && ext !== "dxf" && ext !== "dwf") return false;
-    } else if (options.typeFilter === "pdf") {
-      if (ext !== "pdf") return false;
-    } else if (options.typeFilter === "image") {
-      if (!["png", "jpg", "jpeg", "webp", "svg", "gif"].includes(ext)) return false;
+    if (!matchesTypeFilter(file.extension || file.display_name, options.typeFilter)) {
+      return false;
     }
   }
 
   // Date filter
-  if (options.dateFilter && options.dateFilter !== "all" && item.created_at) {
-    const itemTime = new Date(item.created_at).getTime();
-    const now = Date.now();
-    const ONE_DAY = 24 * 60 * 60 * 1000;
-    if (options.dateFilter === "today" && now - itemTime > ONE_DAY) return false;
-    if (options.dateFilter === "week" && now - itemTime > 7 * ONE_DAY) return false;
-    if (options.dateFilter === "month" && now - itemTime > 30 * ONE_DAY) return false;
+  if (options.dateFilter && options.dateFilter !== "all") {
+    if (!matchesDateFilter(item, options.dateFilter)) return false;
   }
 
-  // Size filter (files only)
-  if (!isFolder && options.sizeFilter && options.sizeFilter !== "all") {
-    const size = Number((item as DokFile).size_bytes || 0);
-    const MB = 1024 * 1024;
-    if (options.sizeFilter === "small" && size >= 5 * MB) return false;
-    if (options.sizeFilter === "medium" && (size < 5 * MB || size > 50 * MB)) return false;
-    if (options.sizeFilter === "large" && size <= 50 * MB) return false;
+  // Size filter (files only; hide folders to match server contract)
+  if (options.sizeFilter && options.sizeFilter !== "all") {
+    if (isFolder) return false;
+    if (!matchesSizeFilter((item as DokFile).size_bytes, options.sizeFilter)) {
+      return false;
+    }
   }
 
   return true;
@@ -152,28 +150,18 @@ export function groupItems(
   if (groupBy === "type") {
     const buckets: Record<string, ItemGroup> = {
       folders: { key: "folders", label: "📁 Klasörler", folders: [], files: [] },
-      cad: { key: "cad", label: "📐 AutoCAD & CAD Çizimleri (DWG / DXF)", folders: [], files: [] },
+      cad: { key: "cad", label: "📐 AutoCAD & CAD Çizimleri (DWG / DXF / DWF)", folders: [], files: [] },
       pdf: { key: "pdf", label: "📄 PDF Dokümanları", folders: [], files: [] },
       image: { key: "image", label: "🖼️ Görseller & Fotoğraflar", folders: [], files: [] },
-      text: { key: "text", label: "📝 Metin & Kod Belgeleri", folders: [], files: [] },
+      document: { key: "document", label: "📝 Metin & Kod Belgeleri", folders: [], files: [] },
       other: { key: "other", label: "📦 Diğer Dosyalar", folders: [], files: [] },
     };
 
     buckets.folders.folders = folders;
 
     files.forEach((file) => {
-      const ext = (file.extension || "").toLowerCase().replace(".", "");
-      if (ext === "dwg" || ext === "dxf" || ext === "dwf") {
-        buckets.cad.files.push(file);
-      } else if (ext === "pdf") {
-        buckets.pdf.files.push(file);
-      } else if (["png", "jpg", "jpeg", "webp", "svg", "gif"].includes(ext)) {
-        buckets.image.files.push(file);
-      } else if (["txt", "md", "json", "csv", "ts", "js", "html", "css", "doc", "docx", "xls", "xlsx"].includes(ext)) {
-        buckets.text.files.push(file);
-      } else {
-        buckets.other.files.push(file);
-      }
+      const bucketKey = getGroupFileBucket(file.extension || file.display_name);
+      buckets[bucketKey].files.push(file);
     });
 
     return Object.values(buckets).filter((b) => b.folders.length > 0 || b.files.length > 0);
@@ -190,26 +178,27 @@ export function groupItems(
       older: { key: "older", label: "🗄️ Daha Eski", folders: [], files: [] },
     };
 
-    const classify = (dateStr?: string) => {
-      if (!dateStr) return "older";
-      const diff = now - new Date(dateStr).getTime();
+    const classify = (item: { updated_at?: string | null; created_at?: string | null }) => {
+      const ts = getEffectiveItemTimestamp(item);
+      if (!ts) return "older";
+      const diff = now - ts;
       if (diff < ONE_DAY) return "today";
       if (diff < 7 * ONE_DAY) return "week";
       if (diff < 30 * ONE_DAY) return "month";
       return "older";
     };
 
-    folders.forEach((f) => buckets[classify(f.created_at)].folders.push(f));
-    files.forEach((f) => buckets[classify(f.created_at)].files.push(f));
+    folders.forEach((f) => buckets[classify(f)].folders.push(f));
+    files.forEach((f) => buckets[classify(f)].files.push(f));
 
     return Object.values(buckets).filter((b) => b.folders.length > 0 || b.files.length > 0);
   }
 
   if (groupBy === "size") {
-    const MB = 1024 * 1024;
+    const { MB, SMALL_MAX_BYTES, LARGE_MIN_BYTES, BUCKET_MEDIUM_MAX_BYTES } = FILE_SIZE_THRESHOLDS;
     const buckets: Record<string, ItemGroup> = {
       folders: { key: "folders", label: "📁 Klasörler", folders: [], files: [] },
-      huge: { key: "huge", label: "🔥 Çok Büyük (> 100 MB)", folders: [], files: [] },
+      huge: { key: "huge", label: "🔥 Çok Büyük (≥ 100 MB)", folders: [], files: [] },
       large: { key: "large", label: "📦 Büyük (25 - 100 MB)", folders: [], files: [] },
       medium: { key: "medium", label: "📄 Orta (5 - 25 MB)", folders: [], files: [] },
       small: { key: "small", label: "⚡ Küçük (< 5 MB)", folders: [], files: [] },
@@ -219,9 +208,9 @@ export function groupItems(
 
     files.forEach((f) => {
       const size = Number(f.size_bytes || 0);
-      if (size >= 100 * MB) buckets.huge.files.push(f);
-      else if (size >= 25 * MB) buckets.large.files.push(f);
-      else if (size >= 5 * MB) buckets.medium.files.push(f);
+      if (size >= LARGE_MIN_BYTES) buckets.huge.files.push(f);
+      else if (size >= BUCKET_MEDIUM_MAX_BYTES) buckets.large.files.push(f);
+      else if (size >= SMALL_MAX_BYTES && MB > 0) buckets.medium.files.push(f);
       else buckets.small.files.push(f);
     });
 

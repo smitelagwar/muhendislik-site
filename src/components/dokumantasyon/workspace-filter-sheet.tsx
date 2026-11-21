@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
-import { SlidersHorizontal, X } from "lucide-react";
+import { useRef } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { OverlayPortal } from "./drive-v3/overlay-portal";
 
 export interface WorkspaceFilters {
   type: "all" | "cad" | "pdf" | "image" | "other";
@@ -17,6 +18,7 @@ interface WorkspaceFilterSheetProps {
   filters: WorkspaceFilters;
   onChange: (filters: WorkspaceFilters) => void;
   onClose: () => void;
+  matchCount?: number;
 }
 
 const emptyFilters: WorkspaceFilters = {
@@ -27,15 +29,8 @@ const emptyFilters: WorkspaceFilters = {
   starredOnly: false,
 };
 
-export function WorkspaceFilterSheet({ isOpen, filters, onChange, onClose }: WorkspaceFilterSheetProps) {
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+export function WorkspaceFilterSheet({ isOpen, filters, onChange, onClose, matchCount }: WorkspaceFilterSheetProps) {
+  const initialFocusRef = useRef<HTMLSelectElement>(null);
 
   if (!isOpen) return null;
 
@@ -44,30 +39,35 @@ export function WorkspaceFilterSheet({ isOpen, filters, onChange, onClose }: Wor
   };
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="workspace-filter-title"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-      className="fixed inset-0 z-[60] flex items-end bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4"
+    <OverlayPortal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Dosyaları filtrele"
+      presentation="sheet"
+      initialFocusRef={initialFocusRef}
     >
-      <section className="w-full rounded-t-2xl border border-border bg-card p-5 shadow-2xl sm:max-w-md sm:rounded-2xl" data-testid="workspace-filter-sheet">
-        <div className="flex items-center justify-between border-b border-border pb-3">
+      <section className="w-full p-5 sm:p-6" data-testid="workspace-filter-sheet">
+        <div className="flex items-center justify-between border-b border-border pb-3 pr-10">
           <div className="flex items-center gap-2 font-bold text-foreground">
             <SlidersHorizontal className="h-5 w-5 text-amber-500" />
             <h2 id="workspace-filter-title">Dosyaları filtrele</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="Filtreleri kapat" className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
-            <X className="h-4 w-4" />
-          </button>
+          {typeof matchCount === "number" && (
+            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+              {matchCount} eşleşme
+            </span>
+          )}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
           <label className="space-y-1.5 text-muted-foreground">
             <span>Tür</span>
-            <select autoFocus value={filters.type} onChange={(event) => update("type", event.target.value as WorkspaceFilters["type"])} className="h-10 w-full rounded-lg border border-input bg-background px-2 text-foreground">
+            <select
+              ref={initialFocusRef}
+              value={filters.type}
+              onChange={(event) => update("type", event.target.value as WorkspaceFilters["type"])}
+              className="h-10 w-full rounded-lg border border-input bg-background px-2 text-foreground"
+            >
               <option value="all">Tüm türler</option><option value="cad">CAD</option><option value="pdf">PDF</option><option value="image">Görsel</option><option value="other">Diğer</option>
             </select>
           </label>
@@ -101,6 +101,6 @@ export function WorkspaceFilterSheet({ isOpen, filters, onChange, onClose }: Wor
           <Button type="button" size="sm" onClick={onClose} className="bg-amber-500 font-semibold text-zinc-950 hover:bg-amber-400">Uygula</Button>
         </div>
       </section>
-    </div>
+    </OverlayPortal>
   );
 }

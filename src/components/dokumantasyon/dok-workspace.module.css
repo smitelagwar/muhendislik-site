@@ -530,6 +530,23 @@
 
 /* Erişilebilirlik: Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
+  .ambientOrb1,
+  .ambientOrb2,
+  .ambientOrb3,
+  .statusPulseDot,
+  .statusPulseDot::after,
+  .starPopActive,
+  .skeletonShimmer,
+  .topProgressBar,
+  .ctaSheen::after {
+    transition: none !important;
+    animation: none !important;
+  }
+  .virtualCard:hover .cardIconStage {
+    transform: none !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
   .card,
   .virtualCard,
   .virtualRow {
@@ -715,4 +732,234 @@
  .workspace::before, .workspace::after { display:none; }
  .mobileSelectionBar > div:last-child { width:100%; display:flex; }
  .mobileSelectionBar [data-mobile-action=move], .mobileSelectionBar [data-mobile-action=share], .mobileSelectionBar [data-mobile-action=trash] { flex:1; }
+}
+
+
+/* --- V4 Canlılık Katmanları (Ambiyans, Shimmer, Mikro-Etkileşimler) --- */
+@keyframes dokOrbFloat {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(18px, -14px, 0) scale(1.06);
+  }
+  100% {
+    transform: translate3d(-12px, 10px, 0) scale(0.98);
+  }
+}
+
+.ambientOrb1 {
+  animation: dokOrbFloat 18s ease-in-out infinite alternate;
+}
+
+.ambientOrb2 {
+  animation: dokOrbFloat 22s ease-in-out infinite alternate-reverse;
+}
+
+.ambientOrb3 {
+  animation: dokOrbFloat 26s ease-in-out infinite alternate;
+}
+
+@keyframes dokStatusPulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.75;
+  }
+  70% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+.statusPulseDot {
+  position: relative;
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+}
+
+.statusPulseDot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: dokStatusPulse 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes dokStarPop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.32);
+  }
+  70% {
+    transform: scale(0.92);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.starPopActive {
+  animation: dokStarPop 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes dokShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeletonShimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.12) 25%,
+    rgba(148, 163, 184, 0.24) 50%,
+    rgba(148, 163, 184, 0.12) 75%
+  );
+  background-size: 200% 100%;
+  animation: dokShimmer 1.5s ease-in-out infinite;
+}
+
+:global(.dark) .skeletonShimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+}
+
+@keyframes dokTopProgress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
+.topProgressBar {
+  width: 35%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, #f59e0b, #fbbf24, transparent);
+  animation: dokTopProgress 1.2s ease-in-out infinite;
+}
+
+.ctaSheen {
+  position: relative;
+  overflow: hidden;
+}
+
+.ctaSheen::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ctaSheen:hover::after {
+    left: 140%;
+  }
+}
+
+.rowQuickActions {
+  opacity: 0;
+  transform: translateX(4px);
+  transition: opacity 0.15s cubic-bezier(0.22, 1, 0.36, 1), transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .virtualRow:hover .rowQuickActions,
+  .virtualRow:focus-within .rowQuickActions {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .virtualCard:hover .cardIconStage {
+    transform: translateY(-2px) scale(1.04);
+  }
+}
+
+.cardIconStage {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-file-kind="dwg"].virtualCard::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.55), transparent);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+[data-file-kind="dxf"].virtualCard::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.55), transparent);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+[data-file-kind="pdf"].virtualCard::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(244, 63, 94, 0.55), transparent);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+[data-file-kind="image"].virtualCard::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.55), transparent);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+[data-file-kind="folder"].virtualCard::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.6), transparent);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .virtualCard:hover::after {
+    opacity: 1;
+  }
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { FolderPlus, X, Loader2, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { FolderPlus, Loader2, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { requestDokMutation } from "@/lib/dokumantasyon/client-mutation";
 import { DokFolder } from "@/lib/dokumantasyon/types";
@@ -13,7 +14,7 @@ interface NewFolderModalProps {
   onClose: () => void;
   onSuccess: () => void;
   onStartPending?: (pendingFolder: DokFolder) => void;
-  onCreatedFolder?: (folder: DokFolder) => void;
+  onCreatedFolder?: (tempId: string, folder: DokFolder) => void;
   onCancelPending?: (tempId: string) => void;
 }
 
@@ -29,6 +30,14 @@ export function NewFolderModal({
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setName("");
+      setError(null);
+      setLoading(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -71,8 +80,9 @@ export function NewFolderModal({
 
       setName("");
       if (result.data?.folder) {
-        onCreatedFolder?.(result.data.folder);
+        onCreatedFolder?.(tempId, result.data.folder);
       }
+      toast.success(`"${trimmedName}" klasörü oluşturuldu.`);
       onSuccess();
       onClose();
     } catch {
@@ -84,30 +94,24 @@ export function NewFolderModal({
   };
 
   return (
-    <OverlayPortal isOpen={isOpen} onClose={onClose}>
+    <OverlayPortal isOpen={isOpen} onClose={onClose} title="Yeni Klasör Oluştur">
       {/* z-[90] overlay standard */}
       <div
         data-testid="dok-dialog-content"
         className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl z-[90]"
       >
-        <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
+        <div className="flex items-center border-b border-border/60 pb-3.5 pr-10">
           <div className="flex items-center gap-2.5 font-bold text-foreground">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
               <FolderPlus className="h-4 w-4" />
             </div>
             <span className="text-base">Yeni Klasör Oluştur</span>
           </div>
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           {error && (
-            <div className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">
+            <div role="alert" className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -145,7 +149,7 @@ export function NewFolderModal({
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                  <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none mr-1.5" />
                   <span>Oluşturuluyor...</span>
                 </>
               ) : (

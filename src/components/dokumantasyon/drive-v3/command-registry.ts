@@ -206,11 +206,12 @@ export const COMMAND_DEFINITIONS: Record<CommandId, CommandDefinition> = {
   share: {
     id: "share",
     label: "Paylaş",
+    shortcut: "Alt+S",
     requiresSelection: true,
     allowMulti: true,
     canExecute: (ctx) =>
       ctx.selectedItems.length >= 1 &&
-      ctx.selectedItems.some((i) => i.type === "file" && !i.pending) &&
+      ctx.selectedItems.every((i) => !i.pending) &&
       !ctx.isTrashView &&
       !ctx.isPendingOperation,
   },

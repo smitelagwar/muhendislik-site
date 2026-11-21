@@ -7,7 +7,6 @@ import {
   Check,
   Share2,
   QrCode,
-  X,
   Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,14 +36,11 @@ export function ShareResultModal({
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [showQr, setShowQr] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  const handleClose = () => {
+    setCopied(false);
+    setShowQr(false);
+    onClose();
+  };
 
   useEffect(() => {
     if (result?.shareUrl) {
@@ -57,7 +53,7 @@ export function ShareResultModal({
         },
       })
         .then((url) => setQrDataUrl(url))
-        .catch((err) => console.error("QR kod üretim hatası:", err));
+        .catch(() => setQrDataUrl(null));
     }
   }, [result?.shareUrl]);
 
@@ -85,8 +81,8 @@ export function ShareResultModal({
         document.body.removeChild(textarea);
         setCopied(true);
         setTimeout(() => setCopied(false), 3000);
-      } catch (err) {
-        console.warn("Kopyalama başarısız oldu:", err);
+      } catch {
+        // Kopyalama başarısız
       }
     }
   };
@@ -106,24 +102,18 @@ export function ShareResultModal({
   };
 
   return (
-    <OverlayPortal isOpen={isOpen} onClose={onClose}>
+    <OverlayPortal isOpen={isOpen} onClose={handleClose} title="Paylaşım bağlantısı oluşturuldu">
       <div
         data-testid="dok-dialog-content"
         className="w-full max-w-md rounded-2xl border border-border/80 bg-card/95 p-6 shadow-2xl backdrop-blur-xl"
       >
-        <div className="flex items-center justify-between border-b border-border/60 pb-3.5">
+        <div className="flex items-center border-b border-border/60 pb-3.5 pr-10">
           <div className="flex items-center gap-2.5 font-bold text-foreground">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
               <CheckCircle2 className="h-4 w-4" />
             </div>
             <span className="text-base">Paylaşım Linki Hazır!</span>
           </div>
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
 
         <div className="mt-4 space-y-4">

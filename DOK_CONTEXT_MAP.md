@@ -1,6 +1,6 @@
 # Dokümantasyon bağlam haritası
 
-Son güncelleme: 12 Eylül 2026 (telefon dosya yöneticisi yayın denetimi; fiziksel cihaz kabulü ayrıdır)
+Son güncelleme: 21 Kasım 2026 (Dokümantasyon UX V4 canlı arayüz, pano/sağ tık/27 komut ve S1–S8 test paketi)
 
 Bu dosya `/dokumantasyon` modülünün hızlı başlangıç haritasıdır. Ayrıntılı CAD geçmişi için `docs/cad-upstream-migration-stage*.md`, **güncel CAD çalışma mimarisi** için `docs/DOKUMANTASYON_CAD_MIMARI_HAFIZA.md` okunur.
 
@@ -33,7 +33,10 @@ Dosya yöneticisi (`/dokumantasyon`) V3.1 sürümüyle aşağıdaki modern işle
 - **Sıfır-F5 & Server-State:** `@tanstack/react-query`, tek `deriveExplorerView` comparator'ı, optimistic pending updates, abort controller request cancellation.
 - **Sanal Marquee:** Matematiksel offscreen hit-testing, row-major Grid Shift seçimi, sağ tık çoklu seçim koruması (`src/components/dokumantasyon/drive-v3/selection-reducer.ts`).
 - **Body-Level Overlay:** `OverlayPortal` artık Radix Dialog Portal kullanır; odak kapanı, modal semantiği ve scroll kilidi Radix'e aittir. `#dok-overlay-root` diğer overlay tüketicileri için korunur.
-- **Toplu İşlemler & PDD:** `/api/dokumantasyon/bulk/*` (trash, move, star, restore), tek request 100 item, max chunk 250, partial failure toleransı, Atlassian Pragmatic Drag & Drop auto-scroll (`pdd-integration.ts`, `bulk-operations.ts`).
+- **Toplu İşlemler & PDD:** `/api/dokumantasyon/bulk/*` (`trash`, `move`, `star`, `restore`, `copy`), tek request 100 item, max chunk 250, partial failure toleransı, Atlassian Pragmatic Drag & Drop auto-scroll (`pdd-integration.ts`, `bulk-operations.ts`).
+- **UX V4 Canlı Arayüz & Komut/Pano Altyapısı (21 Kasım 2026):** `command-registry.ts` 27 komutu (`copy`, `cut`, `paste`, `open-cad-v2` dahil) yönetir. Masaüstü tekil/çoklu/boş alan sağ tık menüsü (`context-menu.tsx`), `POST /api/dokumantasyon/bulk/copy` destekli kopyala/kes/yapıştır pano çubuğu (`clipboard-bar.tsx`), `?` kısayol rehberi (`shortcuts-modal.tsx`), katlanabilir grup başlıkları/seçimi ve tek sticky başlık, filtre çip çubuğu (`filter-chips-bar.tsx`), durum çubuğu (`workspace-status-bar.tsx`), iskelet yükleyici (`explorer-skeleton.tsx`), 0-seçim/çoklu-seçim detay çekmecesi (`drive-details-drawer.tsx`) + etkinlik sekmesi, gerçek kenar çubuğu toplamları (`drive-sidebar.tsx`), Türkçe `İ/ı/I/i` arama/sıralama normalizasyonu ve `scope: "all"` / `order` / `sortBy: "type"` / `updated_at || created_at` birliği aktiftir.
+- **Ortak Kategori & Boyut Sözleşmesi:** `src/lib/dokumantasyon/file-categories.ts` `.dwf` dahil dosya kategorilerini ve `5–100 MB` / `>= 100 MB` boyut eşiklerini istemci ve backend için tek kaynak olarak tanımlar.
+- **UX V4 Test Paketi (S1–S8) & Birim Test:** `tests/dok-drive-v3/ux-v4-*.spec.ts` (8 senaryo dosyası: filtre/gruplama, buton/çekmece, sağ tık/pano/kısayol, modallar/çöp/paylaşım/yükleme, DnD/breadcrumb, responsive/tema/motion, dayanıklılık/5.000 ölçek, gerçek backend e2e) ve `tests/dok-drive-v3/explorer-derive.unit.test.ts`.
 - **Transfer Kuyruğu:** `app/dokumantasyon/layout.tsx` içindeki `DokWorkspaceSessionProvider`, gerçek yükleyiciyi `UploadQueueManager(3)` ile çalıştırır. Dosya yöneticisi/görüntüleyici geçişlerinde sürer; yenileme veya sekme kapanmasında kaldığı yerden devam garantisi yoktur. Başarı metadata doğrulamasından sonra gösterilir. Telefon görünümünde akış içi özet ve detay paneli kullanılır.
 - **Sanallaştırma & Ölçek:** `@tanstack/react-virtual` 5.000+ item desteği, mounted DOM < 250 node, anchor-preserving resize (`use-virtual-explorer.ts`, `virtual-scroll.ts`).
 - **Görsel & Mobil:** Sürekli `will-change` katmanları kullanılmaz. Merkezi explorer-activation policy, mouse-only double-click/contextmenu, callout suppression, `touch-action: pan-y`, `100dvh`, `viewportFit: cover` korunur.
@@ -56,6 +59,7 @@ DB/veri helper'ları ağırlıklı olarak `src/lib/dokumantasyon/` altındadır:
 - `shares.ts`
 - `auth.ts`
 - `file-access.ts`
+- `file-categories.ts`
 - `storage-lifecycle.ts`
 
 Kalıcı storage yaşam döngüsü için `DOK_STORAGE_CONTRACT.md`, operasyonel notlar için `docs/DOKUMANTASYON_RUNBOOK.md` kullanılır.
@@ -163,6 +167,8 @@ Dokümantasyon için ilgili test alanları:
 
 - `scripts/check-dokumantasyon-*.mjs`
 - `scripts/check-dokumantasyon-*.ts`
+- `tests/dok-drive-v3/explorer-derive.unit.test.ts`
+- `tests/dok-drive-v3/ux-v4-*.spec.ts`
 - `tests/document-studio/`
 - `tests/document-studio/release.spec.ts`
 - `tests/document-studio/cad-dxf.spec.ts`

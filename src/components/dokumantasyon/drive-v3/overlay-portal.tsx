@@ -14,9 +14,10 @@ export interface OverlayPortalProps {
   presentation?: "dialog" | "sheet" | "drawer";
   initialFocusRef?: React.RefObject<HTMLElement | null>;
   returnFocusRef?: React.RefObject<HTMLElement | null>;
+  onEscapeKeyDown?: (event: KeyboardEvent) => void;
 }
 /** Odak ve scroll kilidinin tek sahibi. */
-export function OverlayPortal({ children, isOpen, onClose, zIndex = "var(--dok-z-dialog-backdrop, 600)", preventBackdropClose = false, title = "Dokümantasyon işlemi", presentation = "dialog", initialFocusRef, returnFocusRef }: OverlayPortalProps) {
+export function OverlayPortal({ children, isOpen, onClose, zIndex = "var(--dok-z-dialog-backdrop, 600)", preventBackdropClose = false, title = "Dokümantasyon işlemi", presentation = "dialog", initialFocusRef, returnFocusRef, onEscapeKeyDown }: OverlayPortalProps) {
   const trigger = useRef<HTMLElement | null>(null);
   const rect = useVisibleViewport(isOpen);
   return <Dialog.Root open={isOpen} onOpenChange={open => { if (!open) onClose?.(); }}>
@@ -34,6 +35,7 @@ export function OverlayPortal({ children, isOpen, onClose, zIndex = "var(--dok-z
           if (target?.isConnected) target.focus({ preventScroll: true });
           else document.querySelector<HTMLElement>('[data-testid="dok-phone-more"], [data-testid="dok-explorer-viewport"]')?.focus({ preventScroll: true });
         }}
+        onEscapeKeyDown={onEscapeKeyDown}
         onPointerDownOutside={event => { if (preventBackdropClose) event.preventDefault(); }}>
         <Dialog.Title className="sr-only">{title}</Dialog.Title>
         {children}
