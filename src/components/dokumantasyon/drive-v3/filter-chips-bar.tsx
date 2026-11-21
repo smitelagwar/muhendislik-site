@@ -36,11 +36,14 @@ const TYPE_LABELS: Record<string, string> = {
   cad: "Tür: AutoCAD (DWG/DXF)",
   pdf: "Tür: PDF",
   image: "Tür: Görsel",
+  document: "Tür: Belgeler & Tablolar",
   other: "Tür: Diğer",
 };
 
 const DATE_LABELS: Record<string, string> = {
   today: "Tarih: Bugün",
+  week: "Tarih: Son 7 gün",
+  month: "Tarih: Son 30 gün",
   "7d": "Tarih: Son 7 gün",
   "30d": "Tarih: Son 30 gün",
 };

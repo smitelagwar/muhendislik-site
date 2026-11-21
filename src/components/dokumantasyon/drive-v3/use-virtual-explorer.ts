@@ -26,6 +26,7 @@ export interface UseVirtualExplorerProps<T> {
   filter?: string;
   overscan?: number;
   enabled?: boolean;
+  listRowHeight?: number;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -36,6 +37,7 @@ export function useVirtualExplorer<T>({
   filter,
   overscan = 5,
   enabled = true,
+  listRowHeight = DRIVE_LIST_ROW_HEIGHT,
   scrollContainerRef,
 }: UseVirtualExplorerProps<T>) {
   const internalContainerRef = useRef<HTMLDivElement | null>(null);
@@ -109,13 +111,19 @@ export function useVirtualExplorer<T>({
     enabled,
     count: items.length,
     getScrollElement: () => containerRef.current,
-    estimateSize: () => DRIVE_LIST_ROW_HEIGHT,
+    estimateSize: () => listRowHeight,
     overscan: overscan * 2,
     getItemKey: (index) => {
       const item = items[index] as { id?: string } | undefined;
       return item?.id ?? index;
     },
   });
+
+  useEffect(() => {
+    if (enabled) {
+      listVirtualizer.measure();
+    }
+  }, [enabled, listRowHeight, listVirtualizer]);
 
   // Grid Virtualizer (1 row = columnCount items)
   const gridRowCount = useMemo(() => {

@@ -1,18 +1,28 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useRef, useEffect, ReactNode } from "react";
 import { CheckCircle, XCircle, Info, X, Share2, Heart } from "lucide-react";
 
 type ToastType = "success" | "error" | "info" | "share" | "like";
+
+export interface ToastOptions {
+    actionLabel?: string;
+    onAction?: () => void;
+    durationMs?: number;
+    actionTestId?: string;
+}
 
 interface Toast {
     id: number;
     message: string;
     type: ToastType;
+    actionLabel?: string;
+    onAction?: () => void;
+    actionTestId?: string;
 }
 
 interface ToastContextType {
-    showToast: (message: string, type: ToastType) => void;
+    showToast: (message: string, type?: ToastType, options?: ToastOptions) => void;
 }
 
 const ToastContext = createContext<ToastContextType>({ showToast: () => { } });
@@ -23,18 +33,48 @@ export function useToast() {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
     const [toasts, setToasts] = useState<Toast[]>([]);
+    const nextIdRef = useRef(1);
+    const timersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
-    const showToast = useCallback((message: string, type: ToastType = "info") => {
-        const id = Date.now();
-        setToasts((prev) => [...prev, { id, message, type }]);
-        setTimeout(() => {
-            setToasts((prev) => prev.filter((t) => t.id !== id));
-        }, 3000);
+    useEffect(() => {
+        const timers = timersRef.current;
+        return () => {
+            for (const timer of timers.values()) {
+                clearTimeout(timer);
+            }
+            timers.clear();
+        };
     }, []);
 
-    const removeToast = (id: number) => {
+    const removeToast = useCallback((id: number) => {
+        const timer = timersRef.current.get(id);
+        if (timer) {
+            clearTimeout(timer);
+            timersRef.current.delete(id);
+        }
         setToasts((prev) => prev.filter((t) => t.id !== id));
-    };
+    }, []);
+
+    const showToast = useCallback((message: string, type: ToastType = "info", options?: ToastOptions) => {
+        const id = nextIdRef.current++;
+        const duration = options?.durationMs ?? 3000;
+        setToasts((prev) => [
+            ...prev,
+            {
+                id,
+                message,
+                type,
+                actionLabel: options?.actionLabel,
+                onAction: options?.onAction,
+                actionTestId: options?.actionTestId,
+            },
+        ]);
+        const timer = setTimeout(() => {
+            timersRef.current.delete(id);
+            setToasts((prev) => prev.filter((t) => t.id !== id));
+        }, duration);
+        timersRef.current.set(id, timer);
+    }, []);
 
     const icons: Record<ToastType, ReactNode> = {
         success: <CheckCircle className="w-5 h-5 text-emerald-500" />,
@@ -63,6 +103,20 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                     >
                         {icons[toast.type]}
                         <span className="text-sm font-medium text-zinc-800 dark:text-zinc-100 whitespace-nowrap">{toast.message}</span>
+                        {toast.actionLabel && toast.onAction && (
+                            <button
+                                type="button"
+                                data-testid={toast.actionTestId || "dok-toast-undo"}
+                                onClick={() => {
+                                    const handler = toast.onAction;
+                                    removeToast(toast.id);
+                                    handler?.();
+                                }}
+                                className="ml-1 rounded-lg border border-amber-500/40 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-500/25 dark:text-amber-300 transition-colors whitespace-nowrap"
+                            >
+                                {toast.actionLabel}
+                            </button>
+                        )}
                         <button onClick={() => removeToast(toast.id)} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 ml-1">
                             <X className="w-3.5 h-3.5" />
                         </button>

@@ -47,7 +47,7 @@ async function openWorkspaceReady(page: Page) {
 }
 
 async function createFolderViaUi(page: Page, name: string): Promise<string | null> {
-  await page.getByRole("button", { name: "Yeni Klasör", exact: true }).first().click();
+  await page.getByRole("button", { name: "Yeni Klasör Oluştur", exact: true }).first().click();
   const dialog = page.getByTestId("dok-dialog-content");
   await expect(dialog).toBeVisible();
   await dialog.getByRole("textbox").fill(name);
@@ -97,13 +97,13 @@ test.describe("Senaryo S8 — Gerçek Backend Entegrasyon Testi (Mock'suz Yerel 
         await expect(page.getByTestId("dok-file-row").filter({ hasText: seed.name })).toBeVisible();
       }
 
-      // Kök dizine dön ve scope=all + type=other uygula -> .md alt klasörden gelmeli
+      // Kök dizine dön ve scope=all + type=document uygula -> .md alt klasörden gelmeli
       await page.locator("[data-breadcrumb] button").filter({ hasText: "Kök Dizin" }).first().click();
       await page.getByRole("button", { name: /Filtre/i }).first().click();
       const filterSheet = page.getByRole("dialog");
       await expect(filterSheet).toBeVisible();
       const selects = filterSheet.locator("select");
-      await selects.nth(0).selectOption("other");
+      await selects.nth(0).selectOption("document");
       await selects.nth(3).selectOption("all");
       await page.keyboard.press("Escape");
 
@@ -161,13 +161,13 @@ test.describe("Senaryo S8 — Gerçek Backend Entegrasyon Testi (Mock'suz Yerel 
       const fileId = await fileRow.getAttribute("data-file-id");
       if (fileId) createdFileIds.push(fileId);
 
-      // Yeniden adlandır
+      // Yeniden adlandır (V5-10: F2 satır içi adlandırma)
       await fileRow.click({ position: { x: 8, y: 8 } });
       await page.keyboard.press("F2");
-      const renameModal = page.getByRole("dialog");
-      await expect(renameModal).toBeVisible();
-      await renameModal.getByRole("textbox").fill(renamedFileName);
-      await renameModal.getByRole("button", { name: /Kaydet/i }).click();
+      const inlineRenameInput = page.getByTestId("dok-inline-rename-input");
+      await expect(inlineRenameInput).toBeVisible();
+      await inlineRenameInput.fill(renamedFileName);
+      await page.keyboard.press("Enter");
       const renamedRow = page.getByTestId("dok-file-row").filter({ hasText: renamedFileName }).first();
       await expect(renamedRow).toBeVisible();
 

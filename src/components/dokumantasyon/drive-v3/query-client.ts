@@ -19,6 +19,7 @@ export type DokItemsSummary = {
     cad: number;
     pdf: number;
     image: number;
+    document?: number;
     other: number;
   };
 };

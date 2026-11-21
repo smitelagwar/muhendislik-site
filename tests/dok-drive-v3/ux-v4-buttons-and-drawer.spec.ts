@@ -187,10 +187,12 @@ test.describe("UX V4 — S2: Sıfır Ölü Kontrol, Çekmece, Dock & Çıkış",
     await expect(page.getByTestId("workspace-filter-sheet")).toBeVisible();
     await page.keyboard.press("Escape");
 
-    // Yeni Klasör
-    await page.getByRole("button", { name: "Yeni Klasör", exact: true }).click();
+    // Yeni Klasör (+ Yeni açılır menüsü)
+    await page.getByRole("button", { name: "Yeni", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Yeni Klasör" }).click();
     await expect(page.getByTestId("dok-dialog-content")).toBeVisible();
     await page.keyboard.press("Escape");
+    await expect(page.getByTestId("dok-dialog-content")).toHaveCount(0);
 
     // Liste <-> Grid
     await page.getByRole("button", { name: "Kart (Grid) Görünümü", exact: true }).click();

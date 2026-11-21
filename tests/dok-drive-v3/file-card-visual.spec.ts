@@ -53,8 +53,13 @@ test.describe("Dokümantasyon grid kartı görsel kabul", () => {
     expect(footerBox).not.toBeNull();
     expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(box!.y + box!.height + 1);
 
-    await page.evaluate(() => document.documentElement.classList.remove("dark"));
-    await page.screenshot({ path: info.outputPath("grid-light-1920.png"), fullPage: true });
+    await page.evaluate(async () => {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.style.colorScheme = "light";
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    });
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: info.outputPath("grid-light-1920.png"), fullPage: true, animations: "disabled" });
 
     await first.click({ position: { x: 8, y: 8 } });
     await expect(first).toHaveAttribute("data-selected", "true");

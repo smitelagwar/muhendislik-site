@@ -43,6 +43,7 @@ export function DeferredCommandPalette() {
   useEffect(() => {
     const handleOpenEvent = () => openPalette();
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         togglePalette();

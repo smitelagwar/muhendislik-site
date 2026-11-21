@@ -12,18 +12,19 @@ export interface OverlayPortalProps {
   preventBackdropClose?: boolean;
   title?: string;
   presentation?: "dialog" | "sheet" | "drawer";
+  size?: "default" | "wide";
   initialFocusRef?: React.RefObject<HTMLElement | null>;
   returnFocusRef?: React.RefObject<HTMLElement | null>;
   onEscapeKeyDown?: (event: KeyboardEvent) => void;
 }
 /** Odak ve scroll kilidinin tek sahibi. */
-export function OverlayPortal({ children, isOpen, onClose, zIndex = "var(--dok-z-dialog-backdrop, 600)", preventBackdropClose = false, title = "Dokümantasyon işlemi", presentation = "dialog", initialFocusRef, returnFocusRef, onEscapeKeyDown }: OverlayPortalProps) {
+export function OverlayPortal({ children, isOpen, onClose, zIndex = "var(--dok-z-dialog-backdrop, 600)", preventBackdropClose = false, title = "Dokümantasyon işlemi", presentation = "dialog", size = "default", initialFocusRef, returnFocusRef, onEscapeKeyDown }: OverlayPortalProps) {
   const trigger = useRef<HTMLElement | null>(null);
   const rect = useVisibleViewport(isOpen);
   return <Dialog.Root open={isOpen} onOpenChange={open => { if (!open) onClose?.(); }}>
     <Dialog.Portal>
       <Dialog.Overlay className={styles.backdrop} style={{ zIndex }} />
-      <Dialog.Content className={styles.modal} data-presentation={presentation} aria-describedby={undefined}
+      <Dialog.Content className={styles.modal} data-presentation={presentation} data-size={size} aria-describedby={undefined}
         style={{ zIndex, ...(rect ? { maxHeight: rect.height - 16, top: presentation === "sheet" ? rect.top + rect.height : rect.top + rect.height / 2 } : {}) }}
         onOpenAutoFocus={event => {
           trigger.current = document.activeElement as HTMLElement | null;

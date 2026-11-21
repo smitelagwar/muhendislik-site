@@ -210,7 +210,7 @@ test.describe("Senaryo S5 — Sürükle-Bırak, Breadcrumb Drop & Harici Dosya",
     await expect.poll(() => state.moveRequests.length).toBe(1);
     expect(state.moveRequests[0].targetFolderId).toBe("folder-target");
     expect(state.moveRequests[0].items.map((i) => i.id).sort()).toEqual(["file-dnd-1", "file-dnd-2"]);
-    await expect(page.getByText(/2 öğe taşındı/i)).toBeVisible();
+    await expect(page.getByText(/2 öğe .*taşındı/i)).toBeVisible();
     await expect(file1).toHaveCount(0);
     expect(errors).toEqual([]);
   });
@@ -240,7 +240,7 @@ test.describe("Senaryo S5 — Sürükle-Bırak, Breadcrumb Drop & Harici Dosya",
     await expect.poll(() => state.moveRequests.length).toBe(1);
     expect(state.moveRequests[0].targetFolderId).toBeNull();
     expect(state.moveRequests[0].items[0]?.id).toBe("file-in-sub");
-    await expect(page.getByText(/1 öğe taşındı/i)).toBeVisible();
+    await expect(page.getByText(/1 öğe .*taşındı/i)).toBeVisible();
     expect(errors).toEqual([]);
   });
 

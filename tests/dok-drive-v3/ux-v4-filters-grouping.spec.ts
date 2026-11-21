@@ -280,13 +280,11 @@ test.describe("UX V4 — S1: Filtre, Kapsam, Sıralama & Gruplama", () => {
     // Sıralama dropdown seçenekleri
     const sortBtn = page.getByRole("button", { name: "Sırala" });
     for (const label of [
-      "İsim (Z → A)",
-      "En Yeni İlk",
-      "En Eski İlk",
-      "Büyük → Küçük",
-      "Küçük → Büyük",
-      "Türe Göre (Uzantı A-Z)",
-      "İsim (A → Z)",
+      "İsme Göre",
+      "Tarihe Göre",
+      "Boyuta Göre",
+      "Türe Göre",
+      "İsme Göre",
     ]) {
       await sortBtn.click();
       await page.getByRole("menuitem", { name: label }).click();
@@ -297,7 +295,7 @@ test.describe("UX V4 — S1: Filtre, Kapsam, Sıralama & Gruplama", () => {
     expect(requests.some((u) => u.searchParams.has("order"))).toBe(true);
 
     // S1.6: Liste modunda gruplama
-    for (const groupLabel of ["Türe Göre (CAD, PDF, vb.)", "Tarihe Göre (Bugün, Bu Ay)", "Boyuta Göre (>100MB, <5MB)"]) {
+    for (const groupLabel of ["Türe Göre", "Tarihe Göre", "Boyuta Göre"]) {
       await page.getByRole("button", { name: "Grupla" }).click();
       await page.getByRole("menuitem", { name: groupLabel }).click();
       const firstHeader = page.getByTestId("dok-group-header").first();

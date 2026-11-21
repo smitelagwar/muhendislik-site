@@ -73,6 +73,7 @@ async function run() {
   console.log("\n--- 5. Explorer Entegrasyon Sözleşmesi ---");
   const root = process.cwd();
   const fileManager = read(root, "src/components/dokumantasyon/file-manager.tsx");
+  const explorerRowCard = read(root, "src/components/dokumantasyon/drive-v3/explorer-row-card.tsx");
   const mobileExplorer = read(root, "src/components/dokumantasyon/mobile-explorer.tsx");
   const detailsDrawer = read(root, "src/components/dokumantasyon/drive-details-drawer.tsx");
   const mobileDetails = read(root, "src/components/dokumantasyon/mobile-details-sheet.tsx");
@@ -85,6 +86,7 @@ async function run() {
 
   for (const [name, source] of [
     ["file-manager.tsx", fileManager],
+    ["explorer-row-card.tsx", explorerRowCard],
     ["mobile-explorer.tsx", mobileExplorer],
     ["drive-details-drawer.tsx", detailsDrawer],
     ["mobile-details-sheet.tsx", mobileDetails],
@@ -94,14 +96,14 @@ async function run() {
     assert(!source.includes("getFileIcon("), `${name} eski getFileIcon() render yolunu kullanmıyor`);
   }
 
-  assert(fileManager.includes('size="list"'), "Desktop list okunabilir list tokenını kullanıyor");
-  assert(fileManager.includes("size={68}"), "Desktop grid dosya ikonu 68px hero boyutunu kullanıyor");
-  assert(fileManager.includes("size={72}"), "Desktop grid klasör ikonu 72px hero boyutunu kullanıyor");
-  assert(fileManager.includes("cardMetaRow"), "Desktop grid metadata chip satırını kullanıyor");
-  assert(fileManager.includes("cardFooter"), "Desktop grid tarih footer satırını kullanıyor");
-  assert(fileManager.includes('data-testid="dok-card-icon-stage"'), "Desktop grid hero ikon sahnesi test kancasını taşıyor");
-  assert(fileManager.includes('data-testid="dok-card-meta"'), "Desktop grid meta satırı test kancasını taşıyor");
-  assert(fileManager.includes('data-testid="dok-card-footer"'), "Desktop grid footer test kancasını taşıyor");
+  assert(explorerRowCard.includes('size="list"'), "Desktop list okunabilir list tokenını kullanıyor");
+  assert(explorerRowCard.includes("size={68}"), "Desktop grid dosya ikonu 68px hero boyutunu kullanıyor");
+  assert(explorerRowCard.includes("size={72}"), "Desktop grid klasör ikonu 72px hero boyutunu kullanıyor");
+  assert(explorerRowCard.includes("cardMetaRow"), "Desktop grid metadata chip satırını kullanıyor");
+  assert(explorerRowCard.includes("cardFooter"), "Desktop grid tarih footer satırını kullanıyor");
+  assert(explorerRowCard.includes('data-testid="dok-card-icon-stage"'), "Desktop grid hero ikon sahnesi test kancasını taşıyor");
+  assert(explorerRowCard.includes('data-testid="dok-card-meta"'), "Desktop grid meta satırı test kancasını taşıyor");
+  assert(explorerRowCard.includes('data-testid="dok-card-footer"'), "Desktop grid footer test kancasını taşıyor");
   assert(mobileExplorer.includes('view === "grid" ? "grid" : "list"'), "Mobil liste/grid boyutu görünümle değişiyor");
   assert(detailsDrawer.includes('size="detail"'), "Desktop detay çekmecesi 48px token kullanıyor");
   assert(mobileSearch.includes('<FolderIcon size="list" />'), "Mobil arama klasör sonuçlarında özel ikon kullanıyor");

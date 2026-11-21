@@ -94,8 +94,43 @@ const MIXED_FILE_SEEDS: MixedFileSeed[] = [
   { extension: "xlsx", mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", display_name: "Metraj_Ozeti.xlsx", size_bytes: 486_400 },
 ];
 
+const MOCK_PREVIEW_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#18181b"/>
+      <stop offset="100%" stop-color="#27272a"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#f59e0b" stroke-opacity="0.18" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="640" height="400" fill="url(#bg)"/>
+  <rect width="640" height="400" fill="url(#grid)"/>
+  <rect x="96" y="72" width="448" height="256" rx="12" fill="none" stroke="#f59e0b" stroke-width="3"/>
+  <line x1="96" y1="200" x2="544" y2="200" stroke="#38bdf8" stroke-width="2" stroke-dasharray="8 6"/>
+  <line x1="320" y1="72" x2="320" y2="328" stroke="#38bdf8" stroke-width="2" stroke-dasharray="8 6"/>
+  <circle cx="320" cy="200" r="56" fill="#f59e0b" fill-opacity="0.22" stroke="#f59e0b" stroke-width="2.5"/>
+  <text x="320" y="365" fill="#fbbf24" font-family="monospace" font-size="18" font-weight="bold" text-anchor="middle">AKS PLANI · 640x400</text>
+</svg>`;
+
 export async function mockMixedExplorerData(page: Page) {
   await page.route("**/api/dokumantasyon/readiness", route => route.fulfill({ json: { ok: true, storageMode: "local_dev" } }));
+  await page.route("**/api/dokumantasyon/files/*/stream", async (route) => {
+    const url = route.request().url();
+    if (url.includes("mixed-3")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/markdown; charset=utf-8",
+        body: "# Betonarme Perdeler\nC30/37 analiz notları.",
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "image/svg+xml; charset=utf-8",
+      body: MOCK_PREVIEW_SVG,
+    });
+  });
   await page.route("**/api/dokumantasyon/items**", async route => {
     await route.fulfill({
       status: 200,

@@ -35,6 +35,7 @@ export interface DriveContextMenuProps {
   targetItem?: CommandTargetItem | null;
   canExecute: (id: CommandId) => boolean;
   onExecute: (id: CommandId) => void;
+  onInvertSelection?: () => void;
   onClose: () => void;
   supportsFolderUpload?: boolean;
 }
@@ -42,6 +43,8 @@ export interface DriveContextMenuProps {
 interface MenuEntry {
   type: "item" | "separator";
   id?: CommandId;
+  customTestId?: string;
+  onCustomClick?: () => void;
   label?: string;
   shortcut?: string;
   icon?: React.ReactNode;
@@ -57,6 +60,7 @@ export function DriveContextMenu({
   targetItem,
   canExecute,
   onExecute,
+  onInvertSelection,
   onClose,
   supportsFolderUpload = true,
 }: DriveContextMenuProps) {
@@ -94,7 +98,7 @@ export function DriveContextMenu({
         {
           type: "item",
           id: isFile ? "preview" : "open",
-          label: isFile ? "Önizle" : "Klasörü Aç",
+          label: isFile ? "Hızlı Bakış" : "Klasörü Aç",
           shortcut: isFile ? "Space" : "Enter",
           icon: isFile ? <Eye className="h-4 w-4" /> : <FolderOpen className="h-4 w-4" />,
           disabled: !canExecute(isFile ? "preview" : "open"),
@@ -258,6 +262,17 @@ export function DriveContextMenu({
           icon: allStarred ? <StarOff className="h-4 w-4" /> : <Star className="h-4 w-4" />,
           disabled: !canExecute(allStarred ? "unstar" : "star"),
         },
+        ...(onInvertSelection
+          ? [
+              {
+                type: "item" as const,
+                customTestId: "dok-ctx-invert-selection",
+                label: "Seçimi Tersine Çevir",
+                icon: <RefreshCw className="h-4 w-4" />,
+                onCustomClick: onInvertSelection,
+              },
+            ]
+          : []),
         { type: "separator" },
         {
           type: "item",
@@ -359,9 +374,11 @@ export function DriveContextMenu({
     }
 
     const rect = el.getBoundingClientRect();
-    const margin = 8;
-    const maxLeft = Math.max(margin, window.innerWidth - rect.width - margin);
-    const maxTop = Math.max(margin, window.innerHeight - rect.height - margin);
+    const width = Math.max(rect.width, el.offsetWidth);
+    const height = Math.max(rect.height, el.offsetHeight);
+    const margin = 10;
+    const maxLeft = Math.max(margin, window.innerWidth - width - margin);
+    const maxTop = Math.max(margin, window.innerHeight - height - margin);
     setPosition({
       left: Math.min(Math.max(margin, x), maxLeft),
       top: Math.min(Math.max(margin, y), maxTop),
@@ -471,16 +488,22 @@ export function DriveContextMenu({
 
             return (
               <button
-                key={entry.id}
+                key={entry.id ?? entry.customTestId ?? index}
                 type="button"
                 role="menuitem"
                 disabled={isDisabled}
-                data-testid={`dok-ctx-${entry.id}`}
+                data-testid={entry.customTestId ?? `dok-ctx-${entry.id}`}
                 onMouseEnter={() => {
                   if (!isDisabled) setActiveIndex(index);
                 }}
                 onClick={() => {
-                  if (isDisabled || !entry.id) return;
+                  if (isDisabled) return;
+                  if (entry.onCustomClick) {
+                    entry.onCustomClick();
+                    onClose();
+                    return;
+                  }
+                  if (!entry.id) return;
                   onExecute(entry.id);
                   onClose();
                 }}

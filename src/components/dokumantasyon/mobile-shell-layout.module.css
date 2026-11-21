@@ -1,5 +1,37 @@
+.shell {
+  min-height: calc(100vh - var(--dok-app-header-height, 4.5rem));
+}
+
 .managerSlot {
   min-width: 0;
+}
+
+/* Masaüstü: çalışma alanı viewport yüksekliğine sabitlenir.
+   Sayfa kaydırması yok; kaydırma yalnızca dosya listesi viewport'unda. */
+@media (min-width: 1024px) {
+  .shell {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .shellContent {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  .managerSlot {
+    display: flex;
+    flex: 1 1 0%;
+    min-height: 0;
+  }
+
+  .managerSlot > :global(*) {
+    width: 100%;
+    min-height: 0 !important;
+  }
 }
 
 @media (max-width: 1023px) {

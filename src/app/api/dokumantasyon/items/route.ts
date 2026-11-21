@@ -34,6 +34,7 @@ export interface DokItemsSummary {
     cad: number;
     pdf: number;
     image: number;
+    document: number;
     other: number;
   };
 }
@@ -94,7 +95,7 @@ export async function GET(request: Request) {
     const rawOrder = searchParams.get("order") || searchParams.get("sortOrder");
     const order = rawOrder === "desc" ? "DESC" : "ASC";
     const collection = enumParam(searchParams.get("collection"), ["none", "recent", "starred"] as const, "none");
-    const type = enumParam(searchParams.get("type"), ["all", "cad", "pdf", "image", "other"] as const, "all");
+    const type = enumParam(searchParams.get("type"), ["all", "cad", "pdf", "image", "document", "other"] as const, "all");
     const date = enumParam(searchParams.get("date"), ["all", "today", "week", "month"] as const, "all");
     const size = enumParam(searchParams.get("size"), ["all", "small", "medium", "large"] as const, "all");
     // Yıldızlılar ve son açılanlar klasör bağımsızdır; diğer görünüm kullanıcı seçimine uyar.
@@ -111,7 +112,7 @@ export async function GET(request: Request) {
       starredCount: 0,
       trashCount: 0,
       activeSharesCount: 0,
-      categoryCounts: { cad: 0, pdf: 0, image: 0, other: 0 },
+      categoryCounts: { cad: 0, pdf: 0, image: 0, document: 0, other: 0 },
     };
 
     if (!hasDatabaseUrl()) {
@@ -126,7 +127,7 @@ export async function GET(request: Request) {
         (file) => useAllFolders || file.folder_id === folderId || (!file.folder_id && !folderId)
       );
 
-      const categoryCounts = { cad: 0, pdf: 0, image: 0, other: 0 };
+      const categoryCounts = { cad: 0, pdf: 0, image: 0, document: 0, other: 0 };
       let totalSizeBytes = 0;
       let starredFiles = 0;
       for (const file of activeFiles) {
@@ -177,7 +178,8 @@ export async function GET(request: Request) {
             COUNT(*) FILTER (WHERE deleted_at IS NOT NULL)::int AS trashed_files,
             COUNT(*) FILTER (WHERE deleted_at IS NULL AND LOWER(REPLACE(COALESCE(extension, ''), '.', '')) IN ('dwg', 'dxf', 'dwf'))::int AS cad_count,
             COUNT(*) FILTER (WHERE deleted_at IS NULL AND LOWER(REPLACE(COALESCE(extension, ''), '.', '')) = 'pdf')::int AS pdf_count,
-            COUNT(*) FILTER (WHERE deleted_at IS NULL AND LOWER(REPLACE(COALESCE(extension, ''), '.', '')) IN ('png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'))::int AS image_count
+            COUNT(*) FILTER (WHERE deleted_at IS NULL AND LOWER(REPLACE(COALESCE(extension, ''), '.', '')) IN ('png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'))::int AS image_count,
+            COUNT(*) FILTER (WHERE deleted_at IS NULL AND LOWER(REPLACE(COALESCE(extension, ''), '.', '')) IN ('md', 'txt', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'json', 'xml', 'html', 'css', 'ts', 'js'))::int AS document_count
           FROM dok_files;
         `,
         sql`
@@ -201,6 +203,7 @@ export async function GET(request: Request) {
       const cadCount = Number(fs.cad_count || 0);
       const pdfCount = Number(fs.pdf_count || 0);
       const imageCount = Number(fs.image_count || 0);
+      const documentCount = Number(fs.document_count || 0);
 
       summary = {
         totalFiles,
@@ -213,7 +216,8 @@ export async function GET(request: Request) {
           cad: cadCount,
           pdf: pdfCount,
           image: imageCount,
-          other: Math.max(0, totalFiles - cadCount - pdfCount - imageCount),
+          document: documentCount,
+          other: Math.max(0, totalFiles - cadCount - pdfCount - imageCount - documentCount),
         },
       };
     }

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { OverlayPortal } from "./drive-v3/overlay-portal";
 
 export interface WorkspaceFilters {
-  type: "all" | "cad" | "pdf" | "image" | "other";
+  type: "all" | "cad" | "pdf" | "image" | "document" | "other";
   date: "all" | "today" | "week" | "month";
   size: "all" | "small" | "medium" | "large";
   scope: "current" | "all";
@@ -68,7 +68,7 @@ export function WorkspaceFilterSheet({ isOpen, filters, onChange, onClose, match
               onChange={(event) => update("type", event.target.value as WorkspaceFilters["type"])}
               className="h-10 w-full rounded-lg border border-input bg-background px-2 text-foreground"
             >
-              <option value="all">Tüm türler</option><option value="cad">CAD</option><option value="pdf">PDF</option><option value="image">Görsel</option><option value="other">Diğer</option>
+              <option value="all">Tüm türler</option><option value="cad">CAD</option><option value="pdf">PDF</option><option value="image">Görsel</option><option value="document">Belgeler &amp; Tablolar</option><option value="other">Diğer</option>
             </select>
           </label>
           <label className="space-y-1.5 text-muted-foreground">

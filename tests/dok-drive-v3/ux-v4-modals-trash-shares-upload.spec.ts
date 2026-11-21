@@ -329,7 +329,7 @@ test.describe("UX V4 — S4: Modallar, Çöp Kutusu, Paylaşımlar & Yükleme Ku
     await expect(page.getByTestId("dok-file-row").first()).toBeVisible();
 
     // S4.2: NewFolderModal -> tek kapatma düğmesi + pending->gerçek ID + tekrar açılışta boş input
-    await page.getByRole("button", { name: "Yeni Klasör", exact: true }).click();
+    await page.getByRole("button", { name: "Yeni Klasör Oluştur", exact: true }).click();
     const dialog = page.getByTestId("dok-dialog-content");
     await expect(dialog).toBeVisible();
     await expect(page.getByRole("dialog").getByRole("button", { name: "Pencereyi kapat" })).toHaveCount(1);
@@ -339,18 +339,17 @@ test.describe("UX V4 — S4: Modallar, Çöp Kutusu, Paylaşımlar & Yükleme Ku
     await dialog.getByRole("button", { name: /Oluştur/i }).click();
     await expect(page.getByTestId("dok-explorer-viewport").getByText("Yeni Şantiye Klasörü")).toBeVisible();
 
-    await page.getByRole("button", { name: "Yeni Klasör", exact: true }).click();
+    await page.getByRole("button", { name: "Yeni Klasör Oluştur", exact: true }).click();
     await expect(dialog.getByPlaceholder("Örn: 2026 Statik Projeleri")).toHaveValue("");
     await page.keyboard.press("Escape");
 
-    // S4.3: RenameModal -> tek kapatma düğmesi + uzantısız gövde seçili + kaydetme
+    // S4.3: F2 Satır İçi Yeniden Adlandırma (V5-10) -> uzantısız gövde seçili + kaydetme
     const fileRow = page.locator('[data-file-id="file-plan"]');
     await fileRow.click({ position: { x: 10, y: 10 } });
     await page.keyboard.press("F2");
-    await expect(dialog).toBeVisible();
-    await expect(page.getByRole("dialog").getByRole("button", { name: "Pencereyi kapat" })).toHaveCount(1);
+    const renameInput = page.getByTestId("dok-inline-rename-input");
+    await expect(renameInput).toBeVisible();
 
-    const renameInput = dialog.locator("input").first();
     const selectedRange = await renameInput.evaluate((el) => {
       const input = el as HTMLInputElement;
       return { start: input.selectionStart, end: input.selectionEnd, value: input.value };
@@ -359,8 +358,8 @@ test.describe("UX V4 — S4: Modallar, Çöp Kutusu, Paylaşımlar & Yükleme Ku
     expect(selectedRange.start).toBe(0);
     expect(selectedRange.end).toBe("TemelKalip".length);
 
-    await renameInput.fill("RevizeTemel.dwg");
-    await dialog.getByRole("button", { name: /Kaydet/i }).click();
+    await renameInput.fill("RevizeTemel");
+    await page.keyboard.press("Enter");
     await expect(page.getByText("RevizeTemel.dwg")).toBeVisible();
 
     // S4.4: MoveModal -> hiyerarşik ağaç + arama + döngüsel hedef hariç

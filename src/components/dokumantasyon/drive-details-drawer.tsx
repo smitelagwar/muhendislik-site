@@ -22,6 +22,9 @@ import {
   Link2Off,
   Activity,
   Info,
+  Copy,
+  Check,
+  History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DokActivityEvent, DokFile, DokFolder } from "@/lib/dokumantasyon/types";
@@ -62,6 +65,8 @@ interface DriveDetailsDrawerProps {
   onBulkMove?: () => void;
   onBulkDelete?: () => void;
   onClearSelection?: () => void;
+  onQuickLook?: (file: DokFile) => void;
+  onActivityItemClick?: (ev: DokActivityEvent) => void;
 }
 
 type DrawerTab = "info" | "activity";
@@ -145,11 +150,16 @@ export function DriveDetailsDrawer({
   onBulkMove,
   onBulkDelete,
   onClearSelection,
+  onQuickLook,
+  onActivityItemClick,
 }: DriveDetailsDrawerProps) {
   const [activeTab, setActiveTab] = useState<DrawerTab>("info");
   const [events, setEvents] = useState<DokActivityEvent[]>([]);
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
   const [activityError, setActivityError] = useState<string | null>(null);
+  const [copiedFileId, setCopiedFileId] = useState<string | null>(null);
+  const [thumbFailedId, setThumbFailedId] = useState<string | null>(null);
+  const [versionInfo, setVersionInfo] = useState<{ fileId: string; count: number; latest: number } | null>(null);
 
   const loadActivity = useCallback(async (signal?: AbortSignal) => {
     await Promise.resolve();
@@ -197,12 +207,23 @@ export function DriveDetailsDrawer({
     let folderCount = 0;
     let fileCount = 0;
     let totalBytes = 0;
+    let cad = 0;
+    let pdf = 0;
+    let image = 0;
+    let document = 0;
+    let other = 0;
     for (const entry of multiItems) {
       if (entry.type === "folder") {
         folderCount += 1;
       } else {
         fileCount += 1;
         totalBytes += Number(entry.file?.size_bytes ?? 0);
+        const cat = getFileCategory(entry.file?.extension || entry.file?.display_name);
+        if (cat === "cad") cad += 1;
+        else if (cat === "pdf") pdf += 1;
+        else if (cat === "image") image += 1;
+        else if (cat === "document") document += 1;
+        else other += 1;
       }
     }
     return {
@@ -210,24 +231,66 @@ export function DriveDetailsDrawer({
       folderCount,
       fileCount,
       totalBytes,
+      distribution: { cad, pdf, image, document, other, folder: folderCount },
     };
   }, [multiItems]);
+
+  const singleFileId =
+    singleResolved?.type === "file" && singleResolved.file ? singleResolved.file.id : null;
+
+  useEffect(() => {
+    if (!singleFileId) return;
+    const controller = new AbortController();
+    fetch(`/api/dokumantasyon/files/${encodeURIComponent(singleFileId)}/versions`, {
+      signal: controller.signal,
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { versions?: Array<{ version_number?: number }> } | null) => {
+        if (controller.signal.aborted || !data || !Array.isArray(data.versions) || data.versions.length === 0) {
+          return;
+        }
+        const latest = data.versions.reduce(
+          (max, v) => Math.max(max, Number(v.version_number || 0)),
+          data.versions.length
+        );
+        setVersionInfo({ fileId: singleFileId, count: data.versions.length, latest });
+      })
+      .catch(() => {
+        // Sessiz fallback
+      });
+    return () => controller.abort();
+  }, [singleFileId]);
+
+  const handleCopyStudioLink = useCallback(async (fileId: string) => {
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      await navigator.clipboard.writeText(`${origin}/dokumantasyon/dosya/${fileId}`);
+      setCopiedFileId(fileId);
+      setTimeout(() => {
+        setCopiedFileId((prev) => (prev === fileId ? null : prev));
+      }, 2000);
+    } catch {
+      // Clipboard izin hatasında sessiz kal
+    }
+  }, []);
 
   const folderDistribution = useMemo(() => {
     const files = folderSummary?.files ?? [];
     let cad = 0;
     let pdf = 0;
     let image = 0;
+    let document = 0;
     let other = 0;
     for (const f of files) {
       const cat = getFileCategory(f.extension || f.display_name);
       if (cat === "cad") cad += 1;
       else if (cat === "pdf") pdf += 1;
       else if (cat === "image") image += 1;
+      else if (cat === "document") document += 1;
       else other += 1;
     }
-    const total = cad + pdf + image + other;
-    return { cad, pdf, image, other, total };
+    const total = cad + pdf + image + document + other;
+    return { cad, pdf, image, document, other, total };
   }, [folderSummary]);
 
   const renderSingleInfo = () => {
@@ -245,14 +308,41 @@ export function DriveDetailsDrawer({
     const lastOpenedAt = isFile ? file!.last_opened_at : null;
     const isStarred = isFile ? Boolean(file!.starred_at) : Boolean(folder!.starred_at);
     const extension = isFile ? file!.extension : "Klasör";
+    const isImageFile =
+      isFile && getFileCategory(file!.extension || file!.display_name) === "image";
+    const showImagePreview = isImageFile && thumbFailedId !== file!.id;
+    const activeVersion =
+      isFile && versionInfo && versionInfo.fileId === file!.id ? versionInfo : null;
+    const isCopied = isFile && copiedFileId === file!.id;
 
     return (
       <>
-        <div className="my-4 flex flex-col items-center justify-center rounded-2xl border border-border/80 bg-secondary/30 p-5 text-center shadow-inner">
+        <div className="my-4 flex flex-col items-center justify-center rounded-2xl border border-border/80 bg-secondary/30 p-4 text-center shadow-inner">
           {isFile ? (
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-card border border-border/80 shadow-md">
-              <FileTypeIcon extension={file!.extension} mimeType={file!.mime_type} size="detail" />
-            </div>
+            showImagePreview ? (
+              <button
+                type="button"
+                onClick={() => onQuickLook?.(file!)}
+                title={onQuickLook ? "Hızlı önizleme için tıklayın" : undefined}
+                className={`group relative w-full overflow-hidden rounded-xl border border-border/80 bg-card aspect-video shadow-sm ${
+                  onQuickLook ? "cursor-pointer" : "cursor-default"
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/api/dokumantasyon/files/${file!.id}/stream`}
+                  alt={file!.display_name}
+                  loading="lazy"
+                  decoding="async"
+                  onError={() => setThumbFailedId(file!.id)}
+                  className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                />
+              </button>
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-card border border-border/80 shadow-md">
+                <FileTypeIcon extension={file!.extension} mimeType={file!.mime_type} size="detail" />
+              </div>
+            )
           ) : (
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 shadow-sm">
               <FolderIcon size="detail" />
@@ -266,6 +356,12 @@ export function DriveDetailsDrawer({
             <span className="inline-flex items-center rounded-full bg-secondary/80 border border-border/60 px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">
               {extension}
             </span>
+            {activeVersion && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 border border-blue-500/30 px-2 py-0.5 text-[10px] font-bold font-mono text-blue-600 dark:text-blue-400">
+                <History className="h-3 w-3" />
+                v{activeVersion.latest} · {activeVersion.count} sürüm
+              </span>
+            )}
             {isStarred && (
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
                 <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
@@ -301,6 +397,26 @@ export function DriveDetailsDrawer({
                   <span>İndir</span>
                 </Button>
               )}
+
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void handleCopyStudioLink(file!.id)}
+                className="col-span-2 gap-1.5 text-xs border-border/80 hover:bg-secondary rounded-xl h-9 font-semibold"
+              >
+                {isCopied ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-emerald-500" />
+                    <span className="text-emerald-600 dark:text-emerald-400">Link kopyalandı</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>Stüdyo Linkini Kopyala</span>
+                  </>
+                )}
+              </Button>
             </>
           )}
 
@@ -418,6 +534,60 @@ export function DriveDetailsDrawer({
           </span>
         </div>
 
+        {multiStats.totalCount > 0 && (
+          <div className="mb-4 rounded-xl border border-border/60 bg-secondary/30 p-3 space-y-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Seçim Tür Dağılımı
+            </span>
+            <div className="flex h-2 w-full overflow-hidden rounded-full bg-secondary">
+              {multiStats.distribution.cad > 0 && (
+                <div
+                  style={{ width: `${(multiStats.distribution.cad / multiStats.totalCount) * 100}%` }}
+                  className="bg-cyan-500"
+                />
+              )}
+              {multiStats.distribution.pdf > 0 && (
+                <div
+                  style={{ width: `${(multiStats.distribution.pdf / multiStats.totalCount) * 100}%` }}
+                  className="bg-red-500"
+                />
+              )}
+              {multiStats.distribution.image > 0 && (
+                <div
+                  style={{ width: `${(multiStats.distribution.image / multiStats.totalCount) * 100}%` }}
+                  className="bg-emerald-500"
+                />
+              )}
+              {multiStats.distribution.document > 0 && (
+                <div
+                  style={{ width: `${(multiStats.distribution.document / multiStats.totalCount) * 100}%` }}
+                  className="bg-indigo-500"
+                />
+              )}
+              {multiStats.distribution.other > 0 && (
+                <div
+                  style={{ width: `${(multiStats.distribution.other / multiStats.totalCount) * 100}%` }}
+                  className="bg-zinc-400"
+                />
+              )}
+              {multiStats.distribution.folder > 0 && (
+                <div
+                  style={{ width: `${(multiStats.distribution.folder / multiStats.totalCount) * 100}%` }}
+                  className="bg-amber-500"
+                />
+              )}
+            </div>
+            <div className="flex flex-wrap gap-x-2.5 gap-y-1 text-[10px] text-muted-foreground">
+              {multiStats.distribution.cad > 0 && <span>CAD: {multiStats.distribution.cad}</span>}
+              {multiStats.distribution.pdf > 0 && <span>PDF: {multiStats.distribution.pdf}</span>}
+              {multiStats.distribution.image > 0 && <span>Görsel: {multiStats.distribution.image}</span>}
+              {multiStats.distribution.document > 0 && <span>Belge: {multiStats.distribution.document}</span>}
+              {multiStats.distribution.other > 0 && <span>Diğer: {multiStats.distribution.other}</span>}
+              {multiStats.distribution.folder > 0 && <span>Klasör: {multiStats.distribution.folder}</span>}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-2">
           {onBulkShare && (
             <Button
@@ -473,7 +643,7 @@ export function DriveDetailsDrawer({
     const foldersCount = folderSummary?.foldersCount ?? 0;
     const filesCount = folderSummary?.filesCount ?? 0;
     const totalSizeBytes = folderSummary?.totalSizeBytes ?? 0;
-    const { cad, pdf, image, other, total } = folderDistribution;
+    const { cad, pdf, image, document, other, total } = folderDistribution;
 
     return (
       <>
@@ -533,6 +703,9 @@ export function DriveDetailsDrawer({
                 {image > 0 && (
                   <div style={{ width: `${(image / total) * 100}%` }} className="bg-emerald-500" />
                 )}
+                {document > 0 && (
+                  <div style={{ width: `${(document / total) * 100}%` }} className="bg-indigo-500" />
+                )}
                 {other > 0 && (
                   <div style={{ width: `${(other / total) * 100}%` }} className="bg-amber-500/80" />
                 )}
@@ -549,6 +722,10 @@ export function DriveDetailsDrawer({
                 <span className="flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   Görsel: <strong className="font-mono text-foreground">{image}</strong>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-indigo-500" />
+                  Belge: <strong className="font-mono text-foreground">{document}</strong>
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-amber-500/80" />
@@ -603,10 +780,16 @@ export function DriveDetailsDrawer({
 
           {events.map((ev) => {
             const meta = getActivityMeta(ev.action);
+            const interactive = Boolean(onActivityItemClick);
             return (
-              <div
+              <button
                 key={ev.id}
-                className="flex items-start gap-2.5 rounded-xl border border-border/60 bg-secondary/25 p-2.5 text-xs"
+                type="button"
+                disabled={!interactive}
+                onClick={() => onActivityItemClick?.(ev)}
+                className={`flex w-full items-start gap-2.5 rounded-xl border border-border/60 bg-secondary/25 p-2.5 text-left text-xs transition-colors ${
+                  interactive ? "hover:border-amber-500/40 hover:bg-secondary/50 cursor-pointer" : "cursor-default"
+                }`}
               >
                 <span
                   className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${meta.colorClass}`}
@@ -622,7 +805,7 @@ export function DriveDetailsDrawer({
                     <span className="shrink-0 font-mono">{formatRelativeTime(ev.created_at)}</span>
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

@@ -86,6 +86,13 @@ import { ShortcutsModal } from "./drive-v3/shortcuts-modal";
 import { ExplorerSkeleton, TopFetchingBar } from "./drive-v3/explorer-skeleton";
 import { FilterChipsBar, type FilterChipKey } from "./drive-v3/filter-chips-bar";
 import { WorkspaceStatusBar } from "./drive-v3/workspace-status-bar";
+import { DriveCheckbox } from "./drive-v3/drive-checkbox";
+import { SelectionDock } from "./drive-v3/selection-dock";
+import { ExplorerToolbar, type ExplorerDensity } from "./drive-v3/explorer-toolbar";
+import { ExplorerFolderItem, ExplorerFileItem } from "./drive-v3/explorer-row-card";
+import { QuickLookModal } from "./drive-v3/quick-look-modal";
+import { CommandPalette, type PaletteCommand } from "./drive-v3/command-palette";
+import { useUndoToast, type UndoMoveItem } from "./drive-v3/use-undo-toast";
 import { useDriveSelection } from "./drive-v3/use-drive-selection";
 import { useVirtualExplorer } from "./drive-v3/use-virtual-explorer";
 import {
@@ -180,7 +187,7 @@ function reconcileWorkspaceFilters(
   if (next.starredOnly) {
     return { activeFilter: "starred", filters: next };
   }
-  if (next.type === "cad" || next.type === "pdf" || next.type === "image") {
+  if (next.type === "cad" || next.type === "pdf" || next.type === "image" || next.type === "document" || next.type === "other") {
     return { activeFilter: next.type, filters: next };
   }
   return { activeFilter: "all", filters: next };
@@ -204,7 +211,8 @@ function DokumantasyonFileManagerInner() {
   const selectionModeButtonRef = useRef<HTMLButtonElement>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
-      return new URLSearchParams(window.location.search).get("folderId") || null;
+      const sp = new URLSearchParams(window.location.search);
+      return sp.get("folderId") || sp.get("folder") || null;
     }
     return null;
   });
@@ -212,12 +220,25 @@ function DokumantasyonFileManagerInner() {
   // Drive UX Durumları
   const [activeFilter, setActiveFilter] = useState<DriveNavFilter>("all");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [density, setDensity] = useState<ExplorerDensity>("comfortable");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
   const [workspaceFilters, setWorkspaceFilters] = useState<WorkspaceFilters>(DEFAULT_WORKSPACE_FILTERS);
   const [quickQuery, setQuickQuery] = useState("");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [quickLookFile, setQuickLookFile] = useState<DokFile | null>(null);
+  const [inlineRenameItem, setInlineRenameItem] = useState<{
+    id: string;
+    type: "file" | "folder";
+  } | null>(null);
+  const [navHistory, setNavHistory] = useState<{
+    past: Array<string | null>;
+    future: Array<string | null>;
+  }>({ past: [], future: [] });
+  const [sidebarTreeRefreshKey, setSidebarTreeRefreshKey] = useState(0);
+  const prefsHydratedRef = useRef(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [starMigrationVersion, setStarMigrationVersion] = useState(0);
   const [starPopId, setStarPopId] = useState<string | null>(null);
@@ -229,7 +250,14 @@ function DokumantasyonFileManagerInner() {
   const [groupBy, setGroupBy] = useState<"none" | "type" | "date" | "size">("none");
 
   // TanStack Query Deterministik Sunucu Durumu (Zero-F5 Cache Engine)
-  const navigationType = activeFilter === "cad" || activeFilter === "pdf" || activeFilter === "image" ? activeFilter : workspaceFilters.type;
+  const navigationType =
+    activeFilter === "cad" ||
+    activeFilter === "pdf" ||
+    activeFilter === "image" ||
+    activeFilter === "document" ||
+    activeFilter === "other"
+      ? activeFilter
+      : workspaceFilters.type;
   const activeCollection = activeFilter === "recent" ? "recent" : activeFilter === "starred" || workspaceFilters.starredOnly ? "starred" : "none";
   const effectiveScope = activeCollection !== "none" ? "all" : workspaceFilters.scope;
 
@@ -334,6 +362,7 @@ function DokumantasyonFileManagerInner() {
     folderId: currentFolderId,
     filter: activeFilter,
     overscan: 6,
+    listRowHeight: !isMobileExplorer && density === "compact" ? 44 : 56,
     scrollContainerRef,
     enabled: !isPhone,
   });
@@ -435,26 +464,105 @@ function DokumantasyonFileManagerInner() {
   const mobileSidebarRef = useRef<HTMLDivElement>(null);
   const [supportsFolderUpload, setSupportsFolderUpload] = useState(false);
 
-  // URL & Tarayıcı Geçmişi ile Klasör Konumu Senkronizasyonu
-  const navigateToFolder = useCallback((folderId: string | null) => {
-    setCurrentFolderId(folderId);
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      if (folderId) {
-        url.searchParams.set("folderId", folderId);
-      } else {
-        url.searchParams.delete("folderId");
-      }
-      if (url.search !== window.location.search) {
-        window.history.pushState({ folderId }, "", url.toString());
-      }
+  // URL & Tarayıcı Geçmişi ile Klasör Konumu Senkronizasyonu + ←/→ Geçmiş
+  const syncUrlFolder = useCallback((folderId: string | null) => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (folderId) {
+      url.searchParams.set("folderId", folderId);
+    } else {
+      url.searchParams.delete("folderId");
+    }
+    url.searchParams.delete("folder");
+    if (url.search !== window.location.search) {
+      window.history.pushState({ folderId }, "", url.toString());
     }
   }, []);
+
+  const navigateToFolder = useCallback(
+    (folderId: string | null, options?: { recordHistory?: boolean }) => {
+      const recordHistory = options?.recordHistory ?? true;
+      setInlineRenameItem(null);
+      if (recordHistory && folderId !== currentFolderId) {
+        setNavHistory((prev) => ({
+          past: [...prev.past.slice(-24), currentFolderId],
+          future: [],
+        }));
+      }
+      setCurrentFolderId(folderId);
+      syncUrlFolder(folderId);
+    },
+    [currentFolderId, syncUrlFolder]
+  );
+
+  const handleHistoryBack = useCallback(() => {
+    if (navHistory.past.length === 0) return;
+    const previous = navHistory.past[navHistory.past.length - 1];
+    setNavHistory({
+      past: navHistory.past.slice(0, -1),
+      future: [currentFolderId, ...navHistory.future.slice(0, 24)],
+    });
+    setCurrentFolderId(previous);
+    syncUrlFolder(previous);
+  }, [currentFolderId, navHistory, syncUrlFolder]);
+
+  const handleHistoryForward = useCallback(() => {
+    if (navHistory.future.length === 0) return;
+    const next = navHistory.future[0];
+    setNavHistory({
+      past: [...navHistory.past.slice(-24), currentFolderId],
+      future: navHistory.future.slice(1),
+    });
+    setCurrentFolderId(next);
+    syncUrlFolder(next);
+  }, [currentFolderId, navHistory, syncUrlFolder]);
+
+  // localStorage Tercih Kalıcılığı (dok_workspace_prefs_v5)
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        const raw = localStorage.getItem("dok_workspace_prefs_v5");
+        if (raw) {
+          const parsed = JSON.parse(raw) as {
+            viewMode?: string;
+            density?: string;
+            detailsOpen?: boolean;
+          };
+          if (parsed.viewMode === "list" || parsed.viewMode === "grid") {
+            setViewMode(parsed.viewMode);
+          }
+          if (parsed.density === "comfortable" || parsed.density === "compact") {
+            setDensity(parsed.density);
+          }
+          if (typeof parsed.detailsOpen === "boolean") {
+            setIsDetailsOpen(parsed.detailsOpen);
+          }
+        }
+      } catch {
+        // Geçersiz localStorage verisi yoksayılır
+      } finally {
+        prefsHydratedRef.current = true;
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!prefsHydratedRef.current) return;
+    try {
+      localStorage.setItem(
+        "dok_workspace_prefs_v5",
+        JSON.stringify({ viewMode, density, detailsOpen: isDetailsOpen })
+      );
+    } catch {
+      // Depolama kotası aşımı yoksayılır
+    }
+  }, [viewMode, density, isDetailsOpen]);
 
   useEffect(() => {
     const handlePopState = () => {
       const searchParams = new URLSearchParams(window.location.search);
-      const urlFolderId = searchParams.get("folderId") || null;
+      const urlFolderId = searchParams.get("folderId") || searchParams.get("folder") || null;
       setCurrentFolderId(urlFolderId);
     };
 
@@ -516,7 +624,82 @@ function DokumantasyonFileManagerInner() {
   // 2. Klasör İçeriğini Yenile (TanStack Query Cache Reconciler)
   const fetchItems = useCallback(async () => {
     await refetchItems();
+    setSidebarTreeRefreshKey((k) => k + 1);
   }, [refetchItems]);
+
+  const { pushUndoTrash, pushUndoMove, pushUndoRename } = useUndoToast({
+    onRefresh: fetchItems,
+    disabled:
+      isSearchOpen ||
+      isCommandPaletteOpen ||
+      quickLookFile !== null ||
+      isNewFolderOpen ||
+      renameItem !== null ||
+      moveItems.length > 0 ||
+      deleteItem !== null ||
+      isMultiDeleteOpen ||
+      isCreateShareOpen ||
+      isTrashOpen ||
+      isFilterSheetOpen ||
+      isActiveSharesOpen ||
+      isShortcutsOpen ||
+      inlineRenameItem !== null,
+  });
+
+  const buildUndoMoveSnapshot = useCallback(
+    (items: BulkItem[]): UndoMoveItem[] => {
+      return items.map((item) => {
+        if (item.type === "folder") {
+          const found = folders.find((f) => f.id === item.id);
+          return {
+            id: item.id,
+            type: "folder",
+            previousParentId: found ? found.parent_id : currentFolderId,
+          };
+        }
+        const found = files.find((f) => f.id === item.id);
+        return {
+          id: item.id,
+          type: "file",
+          previousParentId: found ? found.folder_id : currentFolderId,
+        };
+      });
+    },
+    [folders, files, currentFolderId]
+  );
+
+  const handleCommitInlineRename = useCallback(
+    async (item: { id: string; type: "file" | "folder"; oldName: string }, nextName: string) => {
+      setInlineRenameItem(null);
+      if (!nextName || nextName === item.oldName) return;
+      updateItemNameInCache(dokQueryClient, currentQueryKey, item.id, item.type, nextName);
+      const endpoint =
+        item.type === "folder"
+          ? `/api/dokumantasyon/folders/${item.id}`
+          : `/api/dokumantasyon/files/${item.id}`;
+      const res = await requestDokMutation(endpoint, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          item.type === "folder" ? { name: nextName } : { displayName: nextName }
+        ),
+      });
+      if (!res.ok) {
+        updateItemNameInCache(dokQueryClient, currentQueryKey, item.id, item.type, item.oldName);
+        setActionError(res.message);
+        showToast(res.message, "error");
+        return;
+      }
+      pushUndoRename({
+        id: item.id,
+        type: item.type,
+        previousName: item.oldName,
+        newName: nextName,
+      });
+      await fetchItems();
+    },
+    [currentQueryKey, fetchItems, pushUndoRename, showToast]
+  );
 
   useEffect(() => {
     if (starMigrationVersion > 0) void refetchItems();
@@ -567,9 +750,21 @@ function DokumantasyonFileManagerInner() {
   const handleDropOnFolder = useCallback(
     async (items: BulkItem[], targetFolderId: string | null) => {
       try {
+        const snapshot = buildUndoMoveSnapshot(items);
         const result = await executeBulkMove(items, targetFolderId);
         if (result.succeeded.length > 0) {
-          showToast(`${result.succeeded.length} öğe taşındı`, "success");
+          const targetFolder = targetFolderId
+            ? folders.find((f) => f.id === targetFolderId)?.name
+            : "Kök Dizin";
+          const succeededSet = new Set(
+            result.succeeded.map((s) =>
+              typeof s === "string" ? s : (s as unknown as { id: string }).id
+            )
+          );
+          pushUndoMove(
+            snapshot.filter((s) => succeededSet.has(s.id)),
+            targetFolder
+          );
           await fetchItems();
         }
         if (result.failed.length > 0) {
@@ -583,7 +778,45 @@ function DokumantasyonFileManagerInner() {
         showToast(msg, "error");
       }
     },
-    [fetchItems, showToast]
+    [buildUndoMoveSnapshot, fetchItems, folders, pushUndoMove, showToast]
+  );
+
+  const handleSidebarDropToStarred = useCallback(
+    async (items: BulkItem[]) => {
+      if (items.length === 0) return;
+      items.forEach((i) => {
+        updateItemStarInCache(dokQueryClient, currentQueryKey, i.id, i.type, true);
+      });
+      const result = await executeBulkStar(items, true);
+      if (result.succeeded.length > 0) {
+        showToast(`${result.succeeded.length} öğe yıldızlılara eklendi`, "info");
+        await fetchItems();
+      }
+      if (result.failed.length > 0) {
+        showToast(`${result.failed.length} öğe yıldızlanamadı`, "error");
+        await fetchItems();
+      }
+    },
+    [currentQueryKey, fetchItems, showToast]
+  );
+
+  const handleSidebarDropToTrash = useCallback(
+    async (items: BulkItem[]) => {
+      if (items.length === 0) return;
+      const result = await executeBulkTrash(items);
+      if (result.succeeded.length > 0) {
+        const succeededSet = new Set(result.succeeded);
+        pushUndoTrash(
+          items.filter((i) => succeededSet.has(i.id)),
+          `${result.succeeded.length} öğe çöp kutusuna taşındı`
+        );
+        await fetchItems();
+      }
+      if (result.failed.length > 0) {
+        showToast(`${result.failed.length} öğe çöpe taşınamadı`, "error");
+      }
+    },
+    [fetchItems, pushUndoTrash, showToast]
   );
 
   const breadcrumbDropCleanupsRef = useRef<Map<string, () => void>>(new Map());
@@ -953,7 +1186,12 @@ function DokumantasyonFileManagerInner() {
       if (ctx.selectedItems.length !== 1) return;
       const target = ctx.selectedItems[0];
       if (target.type === "file") {
-        router.push(`/dokumantasyon/dosya/${target.id}`);
+        const fileObj = files.find((f) => f.id === target.id);
+        if (fileObj) {
+          setQuickLookFile(fileObj);
+        } else {
+          router.push(`/dokumantasyon/dosya/${target.id}`);
+        }
       }
     }));
 
@@ -971,10 +1209,15 @@ function DokumantasyonFileManagerInner() {
 
     cleanups.push(registry.register("rename", (ctx) => {
       if (ctx.selectedItems.length === 1) {
+        const target = ctx.selectedItems[0];
+        if (!isMobileExplorer && viewMode === "list") {
+          setInlineRenameItem({ id: target.id, type: target.type });
+          return;
+        }
         setRenameItem({
-          id: ctx.selectedItems[0].id,
-          name: ctx.selectedItems[0].name,
-          type: ctx.selectedItems[0].type,
+          id: target.id,
+          name: target.name,
+          type: target.type,
         });
       }
     }));
@@ -1135,11 +1378,25 @@ function DokumantasyonFileManagerInner() {
             : await executeBulkCopy(bulkItems, ctx.currentFolderId);
 
         if (result.succeeded.length > 0) {
-          showToast(`${result.succeeded.length} öğe yapıştırıldı`, "success");
           if (mode === "cut") {
+            const succeededSet = new Set(
+            result.succeeded.map((s) =>
+              typeof s === "string" ? s : (s as unknown as { id: string }).id
+            )
+          );
+            const cutUndoItems: UndoMoveItem[] = items
+              .filter((i) => succeededSet.has(i.id))
+              .map((orig) => ({
+                id: orig.id,
+                type: orig.type,
+                previousParentId: orig.parentId ?? null,
+              }));
+            pushUndoMove(cutUndoItems, currentFolder?.name || "Kök Dizin", `${result.succeeded.length} öğe taşındı`);
             setClipboardState(null);
+          } else {
+            showToast(`${result.succeeded.length} öğe yapıştırıldı`, "success");
           }
-          await refetchItems();
+          await fetchItems();
         }
         if (result.failed.length > 0) {
           const msg = `${bulkItems.length} öğeden ${result.failed.length} tanesi yapıştırılamadı — seçili bırakıldı`;
@@ -1282,6 +1539,12 @@ function DokumantasyonFileManagerInner() {
     }
   };
 
+  const handleInvertSelection = useCallback(() => {
+    if (isMobileExplorer && !isMobileSelectionMode) return;
+    const inverted = allItemIds.filter((id) => !selectedIds.has(id));
+    replaceSelection(inverted);
+  }, [allItemIds, isMobileExplorer, isMobileSelectionMode, replaceSelection, selectedIds]);
+
   // Çoklu Silme
   const handleMultiDeleteConfirm = async () => {
     const ids: string[] = Array.from(selectedIds);
@@ -1295,7 +1558,11 @@ function DokumantasyonFileManagerInner() {
     const result = await executeBulkTrash(itemsToTrash);
 
     if (result.succeeded.length > 0) {
-      showToast(`${result.succeeded.length} öğe çöp kutusuna taşındı`, "info");
+      const succeededSet = new Set(result.succeeded);
+      pushUndoTrash(
+        itemsToTrash.filter((i) => succeededSet.has(i.id)),
+        `${result.succeeded.length} öğe çöp kutusuna taşındı`
+      );
       await fetchItems();
     }
     setSelectedIds(new Set(result.failed.map((f) => f.id)));
@@ -1384,6 +1651,9 @@ function DokumantasyonFileManagerInner() {
       if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
       const dialogIsOpen =
         isSearchOpen ||
+        isCommandPaletteOpen ||
+        quickLookFile !== null ||
+        inlineRenameItem !== null ||
         isNewFolderOpen ||
         renameItem !== null ||
         moveItems.length > 0 ||
@@ -1400,7 +1670,16 @@ function DokumantasyonFileManagerInner() {
       const isCtrl = event.ctrlKey || event.metaKey;
       const lowerKey = event.key.toLowerCase();
 
-      if ((event.key === "/" && !isCtrl && !event.altKey) || (isCtrl && event.shiftKey && lowerKey === "f")) {
+      if (isCtrl && !event.shiftKey && !event.altKey && lowerKey === "k") {
+        event.preventDefault();
+        setIsCommandPaletteOpen(true);
+      } else if (event.altKey && !isCtrl && event.key === "ArrowLeft") {
+        event.preventDefault();
+        handleHistoryBack();
+      } else if (event.altKey && !isCtrl && event.key === "ArrowRight") {
+        event.preventDefault();
+        handleHistoryForward();
+      } else if ((event.key === "/" && !isCtrl && !event.altKey) || (isCtrl && event.shiftKey && lowerKey === "f")) {
         event.preventDefault();
         void executeCommand("search");
       } else if (event.key === "?" && !isCtrl && !event.altKey) {
@@ -1463,17 +1742,37 @@ function DokumantasyonFileManagerInner() {
       } else if (isCtrl && lowerKey === "x" && selectedIds.size > 0) {
         event.preventDefault();
         void executeCommand("cut");
-      } else if (isCtrl && lowerKey === "v") {
+      } else if (isCtrl && lowerKey === "v" && clipboardState !== null && clipboardState.items.length > 0) {
         event.preventDefault();
         void executeCommand("paste");
       }
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    const onCaptureCtrlK = (event: KeyboardEvent) => {
+      if (isMobileExplorer) return;
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "k") {
+        const target = event.target as HTMLElement | null;
+        if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        setIsCommandPaletteOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onCaptureCtrlK, { capture: true });
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keydown", onCaptureCtrlK, { capture: true });
+    };
   }, [
     isMobileExplorer,
     deleteItem,
     executeCommand,
+    handleHistoryBack,
+    handleHistoryForward,
+    isCommandPaletteOpen,
+    quickLookFile,
+    inlineRenameItem,
     isCreateShareOpen,
     isFilterSheetOpen,
     isMultiDeleteOpen,
@@ -1490,6 +1789,142 @@ function DokumantasyonFileManagerInner() {
     contextMenuState.isOpen,
     clipboardState,
   ]);
+
+  // Sistem Panosundan Ctrl+V Ekran Görüntüsü / Dosya Yükleme
+  const onPasteHandlerRef = useRef<(event: ClipboardEvent) => void>(() => {});
+  useEffect(() => {
+    onPasteHandlerRef.current = (event: ClipboardEvent) => {
+      if (isMobileExplorer) return;
+      if (clipboardState !== null && clipboardState.items.length > 0) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      const dialogIsOpen =
+        isSearchOpen ||
+        isCommandPaletteOpen ||
+        quickLookFile !== null ||
+        inlineRenameItem !== null ||
+        isNewFolderOpen ||
+        renameItem !== null ||
+        moveItems.length > 0 ||
+        deleteItem !== null ||
+        isMultiDeleteOpen ||
+        isCreateShareOpen ||
+        isTrashOpen ||
+        isFilterSheetOpen ||
+        isActiveSharesOpen ||
+        isShortcutsOpen ||
+        shareResult !== null;
+      if (dialogIsOpen) return;
+
+      const pastedFiles = Array.from(event.clipboardData?.files ?? []);
+      if (pastedFiles.length === 0) return;
+      event.preventDefault();
+
+      const now = new Date();
+      const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}-${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
+      const normalized = pastedFiles.map((file, idx) => {
+        if (!file.name || file.name === "image.png") {
+          const suffix = pastedFiles.length > 1 ? `-${idx + 1}` : "";
+          return new File([file], `ekran-goruntusu-${stamp}${suffix}.png`, {
+            type: file.type || "image/png",
+          });
+        }
+        return file;
+      });
+      showToast(`Panodan ${normalized.length} dosya yükleniyor...`, "info");
+      void uploadFiles(normalized);
+    };
+  });
+
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => onPasteHandlerRef.current(event);
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []);
+
+  const paletteCommands: PaletteCommand[] = useMemo(
+    () => [
+      {
+        id: "new-folder",
+        label: "Yeni Klasör Oluştur",
+        shortcut: "Shift+N",
+        keywords: "klasor yeni ekle",
+        onExecute: () => setIsNewFolderOpen(true),
+      },
+      {
+        id: "upload",
+        label: "Dosya Yükle",
+        shortcut: "Ctrl+U",
+        keywords: "yukle upload dosya",
+        onExecute: () => fileInputRef.current?.click(),
+      },
+      {
+        id: "toggle-view",
+        label: viewMode === "list" ? "Kart (Grid) Görünümüne Geç" : "Liste Görünümüne Geç",
+        shortcut: "V",
+        keywords: "gorunum liste grid kart",
+        onExecute: () => setViewMode((v) => (v === "list" ? "grid" : "list")),
+      },
+      {
+        id: "toggle-density",
+        label: density === "comfortable" ? "Yoğunluğu Sıkışık Yap" : "Yoğunluğu Rahat Yap",
+        keywords: "yogunluk compact comfortable satir",
+        onExecute: () => setDensity((d) => (d === "comfortable" ? "compact" : "comfortable")),
+      },
+      {
+        id: "group-type",
+        label: "Türe Göre Grupla",
+        keywords: "grupla tur",
+        onExecute: () => setGroupBy("type"),
+      },
+      {
+        id: "group-date",
+        label: "Tarihe Göre Grupla",
+        keywords: "grupla tarih",
+        onExecute: () => setGroupBy("date"),
+      },
+      {
+        id: "group-none",
+        label: "Gruplamayı Kaldır",
+        keywords: "gruplama kaldir temizle",
+        onExecute: () => setGroupBy("none"),
+      },
+      {
+        id: "open-trash",
+        label: "Çöp Kutusunu Aç",
+        keywords: "cop kutusu silinenler",
+        onExecute: () => setIsTrashOpen(true),
+      },
+      {
+        id: "open-shares",
+        label: "Aktif Paylaşımlar",
+        keywords: "paylasim linkler",
+        onExecute: () => setIsActiveSharesOpen(true),
+      },
+      {
+        id: "toggle-details",
+        label: isDetailsOpen ? "Detay Çekmecesini Kapat" : "Detay Çekmecesini Aç",
+        shortcut: "I",
+        keywords: "detay bilgi panel",
+        onExecute: () => setIsDetailsOpen((d) => !d),
+      },
+      {
+        id: "select-all",
+        label: "Tümünü Seç",
+        shortcut: "Ctrl+A",
+        keywords: "sec hepsi tumu",
+        onExecute: () => selectAll(),
+      },
+      {
+        id: "shortcuts",
+        label: "Klavye Kısayolları",
+        shortcut: "?",
+        keywords: "kisayol yardim",
+        onExecute: () => setIsShortcutsOpen(true),
+      },
+    ],
+    [density, isDetailsOpen, selectAll, viewMode]
+  );
 
   // ============================================================================
   // VIRTUALIZED & SHARED ROW / CARD RENDERERS
@@ -1548,706 +1983,145 @@ function DokumantasyonFileManagerInner() {
     }
   };
 
-  const renderFolderRow = (folder: DokFolder, style?: React.CSSProperties) => {
-    const isSelected = selectedIds.has(folder.id);
-    const isStarred = Boolean(folder.starred_at);
-    const isCut = cutItemIds.has(folder.id);
+  const renderFolderItem = (
+    folder: DokFolder,
+    mode: "list" | "grid",
+    style?: React.CSSProperties
+  ) => (
+    <ExplorerFolderItem
+      key={folder.id}
+      folder={folder}
+      viewMode={mode}
+      density={density}
+      style={style}
+      isSelected={selectedIds.has(folder.id)}
+      isFocused={focusedId === folder.id}
+      isCut={cutItemIds.has(folder.id)}
+      isDragOver={dragOverFolderId === folder.id}
+      isStarPop={starPopId === folder.id}
+      isMobileExplorer={isMobileExplorer}
+      isMobileSelectionMode={isMobileSelectionMode}
+      isRenaming={
+        mode === "list" &&
+        inlineRenameItem?.type === "folder" &&
+        inlineRenameItem.id === folder.id
+      }
+      setNodeRef={setFolderNodeRef}
+      onActivate={activateItem}
+      onToggleStar={(t, id, starred, e) => void toggleStar(t, id, starred, e)}
+      onNavigateFolder={(id) => navigateToFolder(id)}
+      onOpenShare={(f) =>
+        handleOpenShareSingle({ id: f.id, name: f.name, type: "folder" })
+      }
+      onOpenRename={(f) => {
+        if (!isMobileExplorer && mode === "list") {
+          setInlineRenameItem({ id: f.id, type: "folder" });
+        } else {
+          setRenameItem({ id: f.id, name: f.name, type: "folder" });
+        }
+      }}
+      onCommitInlineRename={(f, nextName) =>
+        void handleCommitInlineRename(
+          { id: f.id, type: "folder", oldName: f.name },
+          nextName
+        )
+      }
+      onCancelInlineRename={() => setInlineRenameItem(null)}
+      onOpenMove={(f) =>
+        setMoveItems([
+          { id: f.id, name: f.name, type: "folder", parentId: f.parent_id },
+        ])
+      }
+      onOpenDelete={(f) =>
+        setDeleteItem({ id: f.id, name: f.name, type: "folder" })
+      }
+    />
+  );
 
-    return (
-      <div
-        key={folder.id}
-        ref={(node) => setFolderNodeRef(node, folder)}
-        data-testid="dok-folder-row"
-        data-folder-id={folder.id}
-        data-selected={isSelected}
-        data-clipboard-cut={isCut ? "true" : undefined}
-        onClick={(e) => activateItem(folder, "body", e)}
-        onDoubleClick={(e) => activateItem(folder, "double", e)}
-        onContextMenu={(e) => activateItem(folder, "context", e)}
-        style={style}
-        className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm cursor-pointer sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 select-none touch-pan-y ${styles.virtualRow} ${
-          dragOverFolderId === folder.id ? styles.dragOverFolder : ""
-        } ${isCut ? "opacity-60 border-dashed" : ""} ${
-          isSelected ? `${styles.virtualRowSelected} bg-amber-500/15 border-l-2 border-amber-500` : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
-        } ${focusedId === folder.id ? styles.virtualRowFocused : ""}`}
-      >
-        <div className="col-span-2 flex min-w-0 items-center gap-2 sm:col-span-6 sm:gap-3 sm:pr-2">
-          {(!isMobileExplorer || isMobileSelectionMode) && (<button
-            onClick={(e) => activateItem(folder, "select-control", e)}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
-            data-selection-control
-            aria-pressed={isSelected}
-            aria-label={`${folder.name} ${isSelected ? "seçimini kaldır" : "seç"}`}
-          >
-            {isSelected ? (
-              <CheckSquare className="h-4 w-4 text-amber-500" />
-            ) : (
-              <Square className="h-4 w-4" />
-            )}
-          </button>)}
+  const renderFileItem = (
+    file: DokFile,
+    mode: "list" | "grid",
+    style?: React.CSSProperties
+  ) => (
+    <ExplorerFileItem
+      key={file.id}
+      file={file}
+      viewMode={mode}
+      density={density}
+      style={style}
+      isSelected={selectedIds.has(file.id)}
+      isFocused={focusedId === file.id}
+      isCut={cutItemIds.has(file.id)}
+      isStarPop={starPopId === file.id}
+      isMobileExplorer={isMobileExplorer}
+      isMobileSelectionMode={isMobileSelectionMode}
+      isRenaming={
+        mode === "list" &&
+        inlineRenameItem?.type === "file" &&
+        inlineRenameItem.id === file.id
+      }
+      setNodeRef={setFileNodeRef}
+      onActivate={activateItem}
+      onPointerPreload={(ext) => {
+        triggerCadIntentPreload(ext);
+        triggerPdfIntentPreload(ext);
+      }}
+      onToggleStar={(t, id, starred, e) => void toggleStar(t, id, starred, e)}
+      onOpenStudio={(fileId, cadEngine) => {
+        router.push(
+          cadEngine === "v2"
+            ? `/dokumantasyon/dosya/${fileId}?cadEngine=v2`
+            : `/dokumantasyon/dosya/${fileId}`
+        );
+      }}
+      onQuickLook={(f) => setQuickLookFile(f)}
+      onDownload={(f) => void handleDownload(f)}
+      onOpenShare={(f) =>
+        handleOpenShareSingle({
+          id: f.id,
+          name: f.display_name,
+          type: "file",
+          size: Number(f.size_bytes),
+        })
+      }
+      onOpenRename={(f) => {
+        if (!isMobileExplorer && mode === "list") {
+          setInlineRenameItem({ id: f.id, type: "file" });
+        } else {
+          setRenameItem({ id: f.id, name: f.display_name, type: "file" });
+        }
+      }}
+      onCommitInlineRename={(f, nextName) =>
+        void handleCommitInlineRename(
+          { id: f.id, type: "file", oldName: f.display_name },
+          nextName
+        )
+      }
+      onCancelInlineRename={() => setInlineRenameItem(null)}
+      onOpenMove={(f) =>
+        setMoveItems([
+          {
+            id: f.id,
+            name: f.display_name,
+            type: "file",
+            parentId: f.folder_id,
+          },
+        ])
+      }
+      onOpenDelete={(f) =>
+        setDeleteItem({ id: f.id, name: f.display_name, type: "file" })
+      }
+    />
+  );
 
-          <button
-            onClick={(e) => void toggleStar("folder", folder.id, isStarred, e)}
-            aria-label={isStarred ? "Yıldızı kaldır" : "Yıldızla"}
-            className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-amber-400 sm:flex"
-          >
-            <Star
-              className={`h-4 w-4 ${isStarred ? "fill-amber-400 text-amber-400" : ""} ${starPopId === folder.id ? styles.starPopActive : ""}`}
-            />
-          </button>
-
-          <FolderIcon size="list" />
-          <div className="min-w-0">
-            <span className="block truncate font-bold text-foreground">{folder.name}</span>
-            <span className="mt-0.5 block text-[11px] text-muted-foreground sm:hidden">Klasör • {formatDate(folder.updated_at || folder.created_at)}</span>
-          </div>
-        </div>
-
-        <div className="hidden sm:col-span-2 sm:block text-xs text-muted-foreground font-mono">
-          —
-        </div>
-
-        <div className="col-span-3 hidden md:block text-xs text-muted-foreground">
-          {formatDate(folder.updated_at || folder.created_at)}
-        </div>
-
-        <div className="col-span-1 flex items-center justify-end gap-1 sm:col-span-4 md:col-span-1">
-          <div
-            data-testid="dok-row-quick-actions"
-            className={`hidden sm:flex items-center gap-0.5 ${styles.rowQuickActions}`}
-          >
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigateToFolder(folder.id);
-              }}
-              title="Klasörü Aç"
-              aria-label={`${folder.name} klasörünü aç`}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenShareSingle({ id: folder.id, name: folder.name, type: "folder" });
-              }}
-              title="Paylaş"
-              aria-label={`${folder.name} paylaş`}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-amber-500"
-            >
-              <Share2 className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setRenameItem({ id: folder.id, name: folder.name, type: "folder" });
-              }}
-              title="Yeniden Adlandır"
-              aria-label={`${folder.name} yeniden adlandır`}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-blue-500"
-            >
-              <Edit3 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                onClick={(e) => e.stopPropagation()}
-                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
-                aria-label="Klasör İşlemleri"
-                data-folder-name={folder.name}
-              >
-                <MoreVertical className="h-4 w-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenShareSingle({ id: folder.id, name: folder.name, type: "folder" });
-                }}
-                className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
-              >
-                <Share2 className="h-3.5 w-3.5 text-amber-500" />
-                <span>Link Oluştur</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setRenameItem({ id: folder.id, name: folder.name, type: "folder" });
-                }}
-                className="flex items-center gap-2 cursor-pointer text-xs text-blue-500 focus:text-blue-500 rounded-lg"
-              >
-                <Edit3 className="h-3.5 w-3.5 text-blue-500" />
-                <span>Yeniden Adlandır</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMoveItems([{ id: folder.id, name: folder.name, type: "folder", parentId: folder.parent_id }]);
-                }}
-                className="flex items-center gap-2 cursor-pointer text-xs text-purple-500 focus:text-purple-500 rounded-lg"
-              >
-                <Move className="h-3.5 w-3.5 text-purple-500" />
-                <span>Taşı</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => void toggleStar("folder", folder.id, isStarred, e)}
-                className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
-              >
-                <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-amber-400 text-amber-400" : "text-amber-400"}`} />
-                <span>{isStarred ? "Yıldızı Kaldır" : "Yıldızla"}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeleteItem({ id: folder.id, name: folder.name, type: "folder" });
-                }}
-                className="flex items-center gap-2 cursor-pointer text-xs text-red-500 focus:text-red-500 focus:bg-red-500/10 rounded-lg font-medium"
-              >
-                <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                <span>Çöp Kutusuna At</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-    );
-  };
-
-  const renderFileRow = (file: DokFile, style?: React.CSSProperties) => {
-    const isSelected = selectedIds.has(file.id);
-    const isStarred = Boolean(file.starred_at);
-    const isCut = cutItemIds.has(file.id);
-
-    return (
-      <div
-        key={file.id}
-        ref={(node) => setFileNodeRef(node, file)}
-        data-testid="dok-file-row"
-        data-file-id={file.id}
-        data-extension={file.extension}
-        data-selected={isSelected}
-        data-clipboard-cut={isCut ? "true" : undefined}
-        onClick={(e) => activateItem(file, "body", e)}
-        onDoubleClick={(e) => activateItem(file, "double", e)}
-        onContextMenu={(e) => activateItem(file, "context", e)}
-        onPointerEnter={(e) => { if (!isMobileExplorer && e.pointerType === "mouse") { triggerCadIntentPreload(file.extension); triggerPdfIntentPreload(file.extension); } }}
-        onFocus={() => { if (!isMobileExplorer) { triggerCadIntentPreload(file.extension); triggerPdfIntentPreload(file.extension); } }}
-        style={style}
-        className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 px-3 py-3 text-sm cursor-pointer sm:grid-cols-12 sm:gap-x-0 sm:px-4 sm:py-3.5 select-none touch-pan-y ${styles.virtualRow} ${
-          isCut ? "opacity-60 border-dashed" : ""
-        } ${
-          isSelected ? `${styles.virtualRowSelected} bg-amber-500/15 border-l-2 border-amber-500` : "hover:bg-white/60 dark:hover:bg-white/[0.05]"
-        } ${focusedId === file.id ? styles.virtualRowFocused : ""}`}
-      >
-        <div className="col-span-2 flex min-w-0 items-center gap-2 sm:col-span-6 sm:gap-3 sm:pr-2">
-          {(!isMobileExplorer || isMobileSelectionMode) && (<button
-            onClick={(e) => activateItem(file, "select-control", e)}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
-            data-selection-control
-            aria-pressed={isSelected}
-            aria-label={`${file.display_name} ${isSelected ? "seçimini kaldır" : "seç"}`}
-          >
-            {isSelected ? (
-              <CheckSquare className="h-4 w-4 text-amber-500" />
-            ) : (
-              <Square className="h-4 w-4" />
-            )}
-          </button>)}
-
-          <button
-            onClick={(e) => void toggleStar("file", file.id, isStarred, e)}
-            aria-label={isStarred ? "Yıldızı kaldır" : "Yıldızla"}
-            className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-amber-400 sm:flex"
-          >
-            <Star
-              className={`h-4 w-4 ${isStarred ? "fill-amber-400 text-amber-400" : ""} ${starPopId === file.id ? styles.starPopActive : ""}`}
-            />
-          </button>
-
-          <FileTypeIcon extension={file.extension} mimeType={file.mime_type} size="list" />
-
-          <div className="min-w-0">
-            <Link
-              href={`/dokumantasyon/dosya/${file.id}`}
-              prefetch={false}
-              data-testid="dok-file-name"
-              onAuxClick={(e) => { if (isMobileExplorer && isMobileSelectionMode) e.preventDefault(); e.stopPropagation(); }}
-              onClick={(e) => activateItem(file, "name", e)}
-              className="block truncate font-bold text-foreground hover:text-amber-500 hover:underline"
-            >
-              {file.display_name}
-            </Link>
-            <span className="mt-0.5 block text-[11px] text-muted-foreground sm:hidden">
-              {formatBytes(Number(file.size_bytes))} • {formatDate(file.updated_at || file.created_at)}
-            </span>
-          </div>
-        </div>
-
-        <div className="hidden sm:col-span-2 sm:block text-xs text-muted-foreground font-mono">
-          {formatBytes(Number(file.size_bytes))}
-        </div>
-
-        <div className="col-span-3 hidden md:block text-xs text-muted-foreground">
-          {formatDate(file.updated_at || file.created_at)}
-        </div>
-
-        <div className="col-span-1 flex items-center justify-end gap-1 sm:col-span-4 md:col-span-1">
-          <div
-            data-testid="dok-row-quick-actions"
-            className={`hidden sm:flex items-center gap-0.5 ${styles.rowQuickActions}`}
-          >
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/dokumantasyon/dosya/${file.id}`);
-              }}
-              title="Önizle"
-              aria-label={`${file.display_name} önizle`}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-blue-500"
-            >
-              <Eye className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                void handleDownload(file);
-              }}
-              title="İndir"
-              aria-label={`${file.display_name} indir`}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-emerald-500"
-            >
-              <Download className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenShareSingle({ id: file.id, name: file.display_name, type: "file" });
-              }}
-              title="Paylaş"
-              aria-label={`${file.display_name} paylaş`}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-amber-500"
-            >
-              <Share2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                onClick={(e) => e.stopPropagation()}
-                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
-                aria-label="Dosya İşlemleri"
-                data-file-name={file.display_name}
-              >
-                <MoreVertical className="h-4 w-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  router.push(`/dokumantasyon/dosya/${file.id}`);
-                }}
-                className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
-              >
-                <Eye className="h-3.5 w-3.5 text-blue-500" />
-                <span>Önizle / Studio</span>
-              </DropdownMenuItem>
-              {(file.extension.toLowerCase() === ".dwg" || file.extension.toLowerCase() === ".dxf") && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/dokumantasyon/dosya/${file.id}?cadEngine=v2`);
-                  }}
-                  className="flex items-center gap-2 cursor-pointer text-xs font-medium text-amber-500 hover:text-amber-400 rounded-lg"
-                >
-                  <Layers className="h-3.5 w-3.5 text-amber-500" />
-                  <span>{file.extension.toLowerCase() === ".dwg" ? "DWG Motor V2 ile aç" : "DXF Motor V2 ile aç"}</span>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void handleDownload(file);
-                }}
-                className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
-              >
-                <Download className="h-3.5 w-3.5 text-emerald-500" />
-                <span>İndir</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenShareSingle({ id: file.id, name: file.display_name, type: "file" });
-                }}
-                className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
-              >
-                <Share2 className="h-3.5 w-3.5 text-amber-500" />
-                <span>Link Oluştur</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setRenameItem({ id: file.id, name: file.display_name, type: "file" });
-                }}
-                className="flex items-center gap-2 cursor-pointer text-xs text-blue-500 focus:text-blue-500 rounded-lg"
-              >
-                <Edit3 className="h-3.5 w-3.5 text-blue-500" />
-                <span>Yeniden Adlandır</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMoveItems([{ id: file.id, name: file.display_name, type: "file", parentId: file.folder_id }]);
-                }}
-                className="flex items-center gap-2 cursor-pointer text-xs text-purple-500 focus:text-purple-500 rounded-lg"
-              >
-                <Move className="h-3.5 w-3.5 text-purple-500" />
-                <span>Taşı</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => void toggleStar("file", file.id, isStarred, e)}
-                className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
-              >
-                <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-amber-400 text-amber-400" : "text-amber-400"}`} />
-                <span>{isStarred ? "Yıldızı Kaldır" : "Yıldızla"}</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeleteItem({ id: file.id, name: file.display_name, type: "file" });
-                }}
-                className="flex items-center gap-2 cursor-pointer text-xs text-red-500 focus:text-red-500 focus:bg-red-500/10"
-              >
-                <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                <span>Çöp Kutusuna At</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-    );
-  };
-
-  const renderFolderCard = (folder: DokFolder, style?: React.CSSProperties) => {
-    const isSelected = selectedIds.has(folder.id);
-    const isStarred = Boolean(folder.starred_at);
-    const isCut = cutItemIds.has(folder.id);
-
-    return (
-      <div
-        key={folder.id}
-        ref={(node) => setFolderNodeRef(node, folder)}
-        data-testid="dok-folder-card"
-        data-folder-id={folder.id}
-        data-selected={isSelected}
-        data-clipboard-cut={isCut ? "true" : undefined}
-        onClick={(e) => activateItem(folder, "body", e)}
-        onDoubleClick={(e) => activateItem(folder, "double", e)}
-        onContextMenu={(e) => activateItem(folder, "context", e)}
-        style={style}
-        className={`group relative flex h-[260px] flex-col rounded-[22px] p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
-          dragOverFolderId === folder.id ? styles.dragOverFolder : ""
-        } ${isCut ? "opacity-60 border-dashed" : ""} ${
-          isSelected ? `${styles.virtualCardSelected} border-amber-500 ring-2 ring-amber-500/40` : ""
-        } ${focusedId === folder.id ? styles.virtualCardFocused : ""}`}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            {(!isMobileExplorer || isMobileSelectionMode) && (<button
-              type="button"
-              onClick={(e) => activateItem(folder, "select-control", e)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
-              data-selection-control
-            aria-pressed={isSelected}
-            aria-label={`${folder.name} ${isSelected ? "seçimini kaldır" : "seç"}`}
-            >
-              {isSelected ? (
-                <CheckSquare className="h-4 w-4 text-amber-500" />
-              ) : (
-                <Square className="h-4 w-4" />
-              )}
-            </button>)}
-
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={(e) => void toggleStar("folder", folder.id, isStarred, e)}
-              aria-label={isStarred ? "Yıldızı kaldır" : "Yıldızla"}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-amber-400"
-            >
-              <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-amber-400 text-amber-400" : ""} ${starPopId === folder.id ? styles.starPopActive : ""}`} />
-            </button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  aria-label="Klasör İşlemleri"
-                >
-                  <MoreVertical className="h-3.5 w-3.5" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenShareSingle({ id: folder.id, name: folder.name, type: "folder" });
-                  }}
-                  className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
-                >
-                  <Share2 className="h-3.5 w-3.5 text-amber-500" />
-                  <span>Link Oluştur</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setRenameItem({ id: folder.id, name: folder.name, type: "folder" });
-                  }}
-                  className="flex items-center gap-2 cursor-pointer text-xs text-blue-500 focus:text-blue-500 rounded-lg"
-                >
-                  <Edit3 className="h-3.5 w-3.5 text-blue-500" />
-                  <span>Yeniden Adlandır</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMoveItems([{ id: folder.id, name: folder.name, type: "folder", parentId: folder.parent_id }]);
-                  }}
-                  className="flex items-center gap-2 cursor-pointer text-xs text-purple-500 focus:text-purple-500 rounded-lg"
-                >
-                  <Move className="h-3.5 w-3.5 text-purple-500" />
-                  <span>Taşı</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => void toggleStar("folder", folder.id, isStarred, e)}
-                  className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
-                >
-                  <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-amber-400 text-amber-400" : "text-amber-400"}`} />
-                  <span>{isStarred ? "Yıldızı Kaldır" : "Yıldızla"}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteItem({ id: folder.id, name: folder.name, type: "folder" });
-                  }}
-                  className="flex items-center gap-2 cursor-pointer text-xs text-red-500 focus:text-red-500 focus:bg-red-500/10 rounded-lg font-medium"
-                >
-                  <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                  <span>Çöp Kutusuna At</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        <div className={`${styles.cardIconStage} ${styles.folderIconStage}`} data-testid="dok-card-icon-stage">
-          <FolderIcon size={72} />
-        </div>
-
-        <div className={styles.cardInfo}>
-          <span className={styles.cardName}>{folder.name}</span>
-          <div className={styles.cardMetaRow} data-testid="dok-card-meta">
-            <span className={`${styles.cardTypeChip} ${styles.folderTypeChip}`}>Klasör</span>
-          </div>
-          <div className={styles.cardFooter} data-testid="dok-card-footer">
-            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>{formatDate(folder.updated_at || folder.created_at)}</span>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderFileCard = (file: DokFile, style?: React.CSSProperties) => {
-    const isSelected = selectedIds.has(file.id);
-    const isStarred = Boolean(file.starred_at);
-    const isCut = cutItemIds.has(file.id);
-    const fileKind = resolveFileIconKind(file.extension, file.mime_type);
-    const extensionLabel = (file.extension || "DOSYA").replace(/^\./, "").toUpperCase();
-
-    return (
-      <div
-        key={file.id}
-        ref={(node) => setFileNodeRef(node, file)}
-        data-testid="dok-file-card"
-        data-file-id={file.id}
-        data-extension={file.extension}
-        data-file-kind={fileKind}
-        data-selected={isSelected}
-        data-clipboard-cut={isCut ? "true" : undefined}
-        onClick={(e) => activateItem(file, "body", e)}
-        onDoubleClick={(e) => activateItem(file, "double", e)}
-        onContextMenu={(e) => activateItem(file, "context", e)}
-        onPointerEnter={(e) => { if (!isMobileExplorer && e.pointerType === "mouse") { triggerCadIntentPreload(file.extension); triggerPdfIntentPreload(file.extension); } }}
-        onFocus={() => { if (!isMobileExplorer) { triggerCadIntentPreload(file.extension); triggerPdfIntentPreload(file.extension); } }}
-        style={style}
-        className={`group relative flex h-[260px] flex-col rounded-[22px] p-3.5 cursor-pointer select-none touch-pan-y ${styles.card} ${styles.virtualCard} ${
-          isCut ? "opacity-60 border-dashed" : ""
-        } ${
-          isSelected ? `${styles.virtualCardSelected} border-amber-500 ring-2 ring-amber-500/40` : ""
-        } ${focusedId === file.id ? styles.virtualCardFocused : ""}`}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            {(!isMobileExplorer || isMobileSelectionMode) && (<button
-              type="button"
-              onClick={(e) => activateItem(file, "select-control", e)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
-              data-selection-control
-            aria-pressed={isSelected}
-            aria-label={`${file.display_name} ${isSelected ? "seçimini kaldır" : "seç"}`}
-            >
-              {isSelected ? (
-                <CheckSquare className="h-4 w-4 text-amber-500" />
-              ) : (
-                <Square className="h-4 w-4" />
-              )}
-            </button>)}
-
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={(e) => void toggleStar("file", file.id, isStarred, e)}
-              aria-label={isStarred ? "Yıldızı kaldır" : "Yıldızla"}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-amber-400"
-            >
-              <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-amber-400 text-amber-400" : ""} ${starPopId === file.id ? styles.starPopActive : ""}`} />
-            </button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  aria-label="Dosya İşlemleri"
-                >
-                  <MoreVertical className="h-3.5 w-3.5" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/dokumantasyon/dosya/${file.id}`);
-                  }}
-                  className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
-                >
-                  <Eye className="h-3.5 w-3.5 text-blue-500" />
-                  <span>Önizle / Studio</span>
-                </DropdownMenuItem>
-                {(file.extension.toLowerCase() === ".dwg" || file.extension.toLowerCase() === ".dxf") && (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/dokumantasyon/dosya/${file.id}?cadEngine=v2`);
-                    }}
-                    className="flex items-center gap-2 cursor-pointer text-xs font-medium text-amber-500 hover:text-amber-400 rounded-lg"
-                  >
-                    <Layers className="h-3.5 w-3.5 text-amber-500" />
-                    <span>{file.extension.toLowerCase() === ".dwg" ? "DWG Motor V2 ile aç" : "DXF Motor V2 ile aç"}</span>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleDownload(file);
-                  }}
-                  className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
-                >
-                  <Download className="h-3.5 w-3.5 text-emerald-500" />
-                  <span>İndir</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenShareSingle({ id: file.id, name: file.display_name, type: "file" });
-                  }}
-                  className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
-                >
-                  <Share2 className="h-3.5 w-3.5 text-amber-500" />
-                  <span>Link Oluştur</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setRenameItem({ id: file.id, name: file.display_name, type: "file" });
-                  }}
-                  className="flex items-center gap-2 cursor-pointer text-xs text-blue-500 focus:text-blue-500 rounded-lg"
-                >
-                  <Edit3 className="h-3.5 w-3.5 text-blue-500" />
-                  <span>Yeniden Adlandır</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMoveItems([{ id: file.id, name: file.display_name, type: "file", parentId: file.folder_id }]);
-                  }}
-                  className="flex items-center gap-2 cursor-pointer text-xs text-purple-500 focus:text-purple-500 rounded-lg"
-                >
-                  <Move className="h-3.5 w-3.5 text-purple-500" />
-                  <span>Taşı</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => void toggleStar("file", file.id, isStarred, e)}
-                  className="flex items-center gap-2 cursor-pointer text-xs rounded-lg"
-                >
-                  <Star className={`h-3.5 w-3.5 ${isStarred ? "fill-amber-400 text-amber-400" : "text-amber-400"}`} />
-                  <span>{isStarred ? "Yıldızı Kaldır" : "Yıldızla"}</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteItem({ id: file.id, name: file.display_name, type: "file" });
-                  }}
-                  className="flex items-center gap-2 cursor-pointer text-xs text-red-500 focus:text-red-500 focus:bg-red-500/10"
-                >
-                  <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                  <span>Çöp Kutusuna At</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        <div className={styles.cardIconStage} data-testid="dok-card-icon-stage">
-          <FileTypeIcon extension={file.extension} mimeType={file.mime_type} size={68} />
-        </div>
-
-        <div className={styles.cardInfo}>
-          <Link
-            href={`/dokumantasyon/dosya/${file.id}`}
-            prefetch={false}
-            data-testid="dok-file-name"
-            onAuxClick={(e) => { if (isMobileExplorer && isMobileSelectionMode) e.preventDefault(); e.stopPropagation(); }}
-            onClick={(e) => activateItem(file, "name", e)}
-            className={`${styles.cardName} hover:text-amber-500 hover:underline`}
-          >
-            {file.display_name}
-          </Link>
-
-          <div className={styles.cardMetaRow} data-testid="dok-card-meta">
-            <span className={styles.cardTypeChip}>{extensionLabel || "DOSYA"}</span>
-            <span className={styles.cardSizeChip}>{formatBytes(Number(file.size_bytes))}</span>
-          </div>
-
-          <div className={styles.cardFooter} data-testid="dok-card-footer">
-            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>{formatDate(file.updated_at || file.created_at)}</span>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const renderFolderRow = (folder: DokFolder, style?: React.CSSProperties) =>
+    renderFolderItem(folder, "list", style);
+  const renderFileRow = (file: DokFile, style?: React.CSSProperties) =>
+    renderFileItem(file, "list", style);
+  const renderFolderCard = (folder: DokFolder, style?: React.CSSProperties) =>
+    renderFolderItem(folder, "grid", style);
+  const renderFileCard = (file: DokFile, style?: React.CSSProperties) =>
+    renderFileItem(file, "grid", style);
 
   return (
     <MotionConfig reducedMotion="user">
@@ -2257,7 +2131,7 @@ function DokumantasyonFileManagerInner() {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`relative flex min-h-0 lg:h-[calc(100dvh-10rem)] lg:max-h-[calc(100dvh-10rem)] w-full overflow-hidden rounded-2xl border border-border/80 ${styles.workspace}`}
+      className={`relative flex min-h-0 lg:h-full w-full overflow-hidden rounded-2xl border border-border/80 ${styles.workspace}`}
     >
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {isMobileSelectionMode ? `Seçim modu açık. ${selectedIds.size} öğe seçildi.` : ""}
@@ -2306,6 +2180,12 @@ function DokumantasyonFileManagerInner() {
           categoryCounts={summaryCategoryCounts}
           trashCount={summaryTrashCount}
           activeSharesCount={summaryActiveSharesCount}
+          currentFolderId={currentFolderId}
+          onSelectFolder={(folderId) => navigateToFolder(folderId)}
+          onDropToFolder={(items, targetId) => void handleDropOnFolder(items, targetId)}
+          onDropToStarred={(items) => void handleSidebarDropToStarred(items)}
+          onDropToTrash={(items) => void handleSidebarDropToTrash(items)}
+          treeRefreshKey={sidebarTreeRefreshKey}
           className={`${styles.sidebar} lg:h-full`}
         />
       </div>
@@ -2340,6 +2220,15 @@ function DokumantasyonFileManagerInner() {
               categoryCounts={summaryCategoryCounts}
               trashCount={summaryTrashCount}
               activeSharesCount={summaryActiveSharesCount}
+              currentFolderId={currentFolderId}
+              onSelectFolder={(folderId) => {
+                navigateToFolder(folderId);
+                setIsSidebarOpenMobile(false);
+              }}
+              onDropToFolder={(items, targetId) => void handleDropOnFolder(items, targetId)}
+              onDropToStarred={(items) => void handleSidebarDropToStarred(items)}
+              onDropToTrash={(items) => void handleSidebarDropToTrash(items)}
+              treeRefreshKey={sidebarTreeRefreshKey}
               className="h-full w-full border-r border-border bg-card"
               onNavigate={() => setIsSidebarOpenMobile(false)}
             />
@@ -2355,454 +2244,85 @@ function DokumantasyonFileManagerInner() {
             onSelectAll={handleToggleSelectAll} onExit={exitMobileSelectionMode} moreRef={phoneMoreRef}/>
           {activeFilterLabels.length > 0 && !isMobileSelectionMode && <div className={mobileStyles.summary}><button className={mobileStyles.icon} onClick={() => setMobileSurface("settings")}>{activeFilterLabels.length} filtre etkin</button><button className={mobileStyles.icon} onClick={() => { setActiveFilter("all"); setWorkspaceFilters(DEFAULT_WORKSPACE_FILTERS); }}>Temizle</button></div>}
         </> : <>
-        {/* Üst Gezinti ve Kontrol Çubuğu */}
-        <div className={`flex min-w-0 flex-wrap items-center justify-between gap-2 border-b p-2.5 sm:gap-3 sm:p-3 ${styles.commandBar}`}>
-          {/* Breadcrumb ve Mobil Menü */}
-          <div data-breadcrumb className="flex min-w-fit flex-1 items-center gap-1.5 text-xs sm:text-sm">
-            <Button
-              size="sm"
-              variant="ghost"
-              ref={mobileMenuButtonRef}
-              onClick={() => setIsSidebarOpenMobile((m) => !m)}
-              className="h-10 w-10 shrink-0 p-0 rounded-xl hover:bg-secondary lg:hidden"
-              aria-expanded={isSidebarOpenMobile}
-              aria-controls="dok-mobile-sidebar"
-              aria-label="Dokümantasyon menüsünü aç"
-            >
-              <Menu className="h-4 w-4" />
-            </Button>
+        {/* Üst Gezinti ve Kontrol Çubuğu (UX V5 ExplorerToolbar) */}
+        <div className={`flex min-w-0 items-center gap-2 border-b px-2.5 py-2 sm:px-3.5 sm:py-2.5 ${styles.commandBar}`}>
+          <Button
+            size="sm"
+            variant="ghost"
+            ref={mobileMenuButtonRef}
+            onClick={() => setIsSidebarOpenMobile((m) => !m)}
+            className="h-9 w-9 shrink-0 p-0 rounded-xl hover:bg-secondary lg:hidden"
+            aria-expanded={isSidebarOpenMobile}
+            aria-controls="dok-mobile-sidebar"
+            aria-label="Dokümantasyon menüsünü aç"
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
 
-            <button
-              ref={(node) => setBreadcrumbDropRef(node, null)}
-              onClick={() => {
-                if (activeFilter === "recent" || activeFilter === "starred") {
+          {(allItemIds.length > 0 || isMobileSelectionMode) && (
+            <Button
+              ref={selectionModeButtonRef}
+              data-testid="dok-selection-mode"
+              size="sm"
+              variant="outline"
+              className="lg:hidden min-h-11 rounded-xl shrink-0"
+              aria-pressed={isMobileSelectionMode}
+              aria-label={isMobileSelectionMode ? "Seçim modundan çık" : "Seçim moduna gir"}
+              onClick={() => (isMobileSelectionMode ? exitMobileSelectionMode() : setIsMobileSelectionMode(true))}
+            >
+              {isMobileSelectionMode ? "✕" : <CheckSquare className="h-4 w-4" />}
+              <span>{isMobileSelectionMode ? "Çık" : "Seç"}</span>
+            </Button>
+          )}
+          {isMobileExplorer && isMobileSelectionMode && (
+            <span className="text-xs font-semibold shrink-0" data-testid="dok-selection-count">
+              {selectedIds.size} öğe seçildi
+            </span>
+          )}
+
+          <div className={`${isMobileExplorer && isMobileSelectionMode ? "hidden" : "flex"} min-w-0 flex-1`}>
+            <ExplorerToolbar
+              breadcrumbs={breadcrumbs}
+              onNavigateFolder={(id) => {
+                if (id === null && (activeFilter === "recent" || activeFilter === "starred")) {
                   handleNavigationFilter("all");
                 }
-                navigateToFolder(null);
+                navigateToFolder(id);
               }}
-              className={`hidden items-center gap-1.5 rounded-lg px-1.5 py-1 font-medium text-muted-foreground transition-colors hover:text-foreground sm:flex ${
-                dragOverBreadcrumbId === "__root__" ? "bg-amber-500/20 text-amber-600 ring-1 ring-amber-500/50 dark:text-amber-300" : ""
-              }`}
-            >
-              <HardDrive className="h-4 w-4 text-amber-500 shrink-0" />
-              <span>Kök Dizin</span>
-            </button>
-
-            {currentFolderId && breadcrumbs.length > 1 && (
-              <button
-                onClick={() => navigateToFolder(breadcrumbs[breadcrumbs.length - 2]?.id ?? null)}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground sm:hidden"
-                aria-label="Üst klasöre git"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-            )}
-
-            <div className="flex min-w-0 items-center gap-1 sm:hidden">
-              <HardDrive className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-              <span className="shrink-0 text-muted-foreground">Kök</span>
-              {breadcrumbs.length > 2 && <span className="text-muted-foreground/60">/ …</span>}
-              {breadcrumbs.length > 1 && (
-                <span className="truncate font-bold text-foreground">/ {breadcrumbs[breadcrumbs.length - 1].name}</span>
-              )}
-            </div>
-
-            <div className="hidden min-w-0 items-center gap-1.5 sm:flex">
-              {breadcrumbs.length <= 4 ? (
-                breadcrumbs.slice(1).map((b, idx) => (
-                  <React.Fragment key={b.id || idx}>
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-                    <button
-                      ref={(node) => setBreadcrumbDropRef(node, b.id)}
-                      onClick={() => navigateToFolder(b.id)}
-                      className={`rounded-lg px-1.5 py-0.5 transition-colors hover:text-foreground truncate max-w-[140px] sm:max-w-xs ${
-                        dragOverBreadcrumbId === b.id ? "bg-amber-500/20 text-amber-600 ring-1 ring-amber-500/50 dark:text-amber-300" : ""
-                      } ${
-                        idx === breadcrumbs.length - 2
-                          ? "font-bold text-foreground"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {b.name}
-                    </button>
-                  </React.Fragment>
-                ))
-              ) : (
-                <>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-                  <span className="text-muted-foreground/60 font-medium">…</span>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-                  <button
-                    ref={(node) => setBreadcrumbDropRef(node, breadcrumbs[breadcrumbs.length - 2].id)}
-                    onClick={() => navigateToFolder(breadcrumbs[breadcrumbs.length - 2].id)}
-                    className={`rounded-lg px-1.5 py-0.5 transition-colors hover:text-foreground truncate max-w-[120px] text-muted-foreground ${
-                      dragOverBreadcrumbId === breadcrumbs[breadcrumbs.length - 2].id ? "bg-amber-500/20 text-amber-600 ring-1 ring-amber-500/50 dark:text-amber-300" : ""
-                    }`}
-                  >
-                    {breadcrumbs[breadcrumbs.length - 2].name}
-                  </button>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-                  <button
-                    onClick={() => navigateToFolder(breadcrumbs[breadcrumbs.length - 1].id)}
-                    className="transition-colors hover:text-foreground truncate max-w-[160px] font-bold text-foreground"
-                  >
-                    {breadcrumbs[breadcrumbs.length - 1].name}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Sağ Kontroller: Tümünü Seç, Seçilenleri Sil, Sırala, Grupla, Arama, Filtre, Yükle, Yeni Klasör, Görünüm Modu */}
-          <div className="flex w-full min-w-0 flex-wrap items-center gap-1.5 sm:gap-2 lg:w-auto">
-            {(allItemIds.length > 0 || isMobileSelectionMode) && (
-              <Button ref={selectionModeButtonRef} data-testid="dok-selection-mode"
-                size="sm" variant="outline" className="lg:hidden min-h-11 rounded-xl"
-                aria-pressed={isMobileSelectionMode}
-                aria-label={isMobileSelectionMode ? "Seçim modundan çık" : "Seçim moduna gir"}
-                onClick={() => isMobileSelectionMode ? exitMobileSelectionMode() : setIsMobileSelectionMode(true)}>
-                {isMobileSelectionMode ? "✕" : <CheckSquare className="h-4 w-4" />}
-                <span>{isMobileSelectionMode ? "Çık" : "Seç"}</span>
-              </Button>
-            )}
-            {isMobileExplorer && isMobileSelectionMode && (
-              <span className="text-xs font-semibold" data-testid="dok-selection-count">{selectedIds.size} öğe seçildi</span>
-            )}
-
-            {/* Tümünü Seç / Seçimi Kaldır Butonu */}
-            {allItemIds.length > 0 && (!isMobileExplorer || isMobileSelectionMode) && (
-              <Button
-                data-testid="dok-select-all"
-                aria-label={isAllSelected ? "Tüm seçimleri kaldır" : "Tümünü seç"}
-                size="sm"
-                variant="outline"
-                onClick={handleToggleSelectAll}
-                className={`h-10 border-border/80 text-xs hover:bg-secondary rounded-xl px-2.5 sm:px-3 gap-1.5 transition-all ${
-                  isAllSelected ? "border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold shadow-sm" : ""
-                }`}
-                title={isAllSelected ? "Tüm seçimleri temizle" : "Mevcut dizindeki tüm dosya ve klasörleri seç"}
-              >
-                {isAllSelected ? (
-                  <CheckSquare className="h-4 w-4 text-amber-500" />
-                ) : (
-                  <Square className="h-4 w-4 text-muted-foreground" />
-                )}
-                <span className="hidden md:inline">{isAllSelected ? "Seçimi Kaldır" : "Tümünü Seç"}</span>
-                <span className="inline-flex rounded-full bg-secondary px-1.5 py-0.2 text-[10px] font-mono text-muted-foreground font-semibold">
-                  {allItemIds.length}
-                </span>
-              </Button>
-            )}
-
-            <div className={`${isMobileExplorer && isMobileSelectionMode ? "hidden" : "flex"} min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5 sm:gap-2 min-h-[40px]`}>
-            {/* Sıralama Açılır Menüsü */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-10 border-border/80 text-xs hover:bg-secondary rounded-xl px-2.5 sm:px-3 gap-1.5"
-                  title="Sıralama Seçenekleri"
-                >
-                  <ArrowUpDown className="h-3.5 w-3.5 text-amber-500" />
-                  <span className="hidden sm:inline font-medium">Sırala</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
-                <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  İsme Göre
-                </div>
-                <DropdownMenuItem
-                  onClick={() => { setSortBy("name"); setSortOrder("asc"); }}
-                  className={`flex items-center justify-between cursor-pointer text-xs rounded-lg ${sortBy === "name" && sortOrder === "asc" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold" : ""}`}
-                >
-                  <span>İsim (A → Z)</span>
-                  {sortBy === "name" && sortOrder === "asc" && <span className="font-bold">✓</span>}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => { setSortBy("name"); setSortOrder("desc"); }}
-                  className={`flex items-center justify-between cursor-pointer text-xs rounded-lg ${sortBy === "name" && sortOrder === "desc" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold" : ""}`}
-                >
-                  <span>İsim (Z → A)</span>
-                  {sortBy === "name" && sortOrder === "desc" && <span className="font-bold">✓</span>}
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="bg-border/60" />
-                <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Tarihe Göre
-                </div>
-                <DropdownMenuItem
-                  onClick={() => { setSortBy("date"); setSortOrder("desc"); }}
-                  className={`flex items-center justify-between cursor-pointer text-xs rounded-lg ${sortBy === "date" && sortOrder === "desc" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold" : ""}`}
-                >
-                  <span>En Yeni İlk</span>
-                  {sortBy === "date" && sortOrder === "desc" && <span className="font-bold">✓</span>}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => { setSortBy("date"); setSortOrder("asc"); }}
-                  className={`flex items-center justify-between cursor-pointer text-xs rounded-lg ${sortBy === "date" && sortOrder === "asc" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold" : ""}`}
-                >
-                  <span>En Eski İlk</span>
-                  {sortBy === "date" && sortOrder === "asc" && <span className="font-bold">✓</span>}
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="bg-border/60" />
-                <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Boyuta Göre
-                </div>
-                <DropdownMenuItem
-                  onClick={() => { setSortBy("size"); setSortOrder("desc"); }}
-                  className={`flex items-center justify-between cursor-pointer text-xs rounded-lg ${sortBy === "size" && sortOrder === "desc" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold" : ""}`}
-                >
-                  <span>Büyük → Küçük</span>
-                  {sortBy === "size" && sortOrder === "desc" && <span className="font-bold">✓</span>}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => { setSortBy("size"); setSortOrder("asc"); }}
-                  className={`flex items-center justify-between cursor-pointer text-xs rounded-lg ${sortBy === "size" && sortOrder === "asc" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold" : ""}`}
-                >
-                  <span>Küçük → Büyük</span>
-                  {sortBy === "size" && sortOrder === "asc" && <span className="font-bold">✓</span>}
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator className="bg-border/60" />
-                <DropdownMenuItem
-                  onClick={() => { setSortBy("type"); setSortOrder("asc"); }}
-                  className={`flex items-center justify-between cursor-pointer text-xs rounded-lg ${sortBy === "type" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold" : ""}`}
-                >
-                  <span>Türe Göre (Uzantı A-Z)</span>
-                  {sortBy === "type" && <span className="font-bold">✓</span>}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Gruplama Açılır Menüsü */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className={`h-10 border-border/80 text-xs hover:bg-secondary rounded-xl px-2.5 sm:px-3 gap-1.5 ${
-                    groupBy !== "none" ? "border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold" : ""
-                  }`}
-                  title="Gruplama Seçenekleri"
-                >
-                  <Layers className="h-3.5 w-3.5 text-amber-500" />
-                  <span className="hidden sm:inline font-medium">Grupla</span>
-                  {groupBy !== "none" && (
-                    <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-card/95 border-border shadow-2xl rounded-xl backdrop-blur-md">
-                <DropdownMenuItem
-                  onClick={() => setGroupBy("none")}
-                  className={`flex items-center justify-between cursor-pointer text-xs rounded-lg ${groupBy === "none" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold" : ""}`}
-                >
-                  <span>Gruplama Yok</span>
-                  {groupBy === "none" && <span className="font-bold">✓</span>}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-border/60" />
-                <DropdownMenuItem
-                  onClick={() => setGroupBy("type")}
-                  className={`flex items-center justify-between cursor-pointer text-xs rounded-lg ${groupBy === "type" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold" : ""}`}
-                >
-                  <span>Türe Göre (CAD, PDF, vb.)</span>
-                  {groupBy === "type" && <span className="font-bold">✓</span>}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setGroupBy("date")}
-                  className={`flex items-center justify-between cursor-pointer text-xs rounded-lg ${groupBy === "date" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold" : ""}`}
-                >
-                  <span>Tarihe Göre (Bugün, Bu Ay)</span>
-                  {groupBy === "date" && <span className="font-bold">✓</span>}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setGroupBy("size")}
-                  className={`flex items-center justify-between cursor-pointer text-xs rounded-lg ${groupBy === "size" ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold" : ""}`}
-                >
-                  <span>Boyuta Göre (&gt;100MB, &lt;5MB)</span>
-                  {groupBy === "size" && <span className="font-bold">✓</span>}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Satır İçi Anlık Hızlı Filtre */}
-            <div className="relative hidden sm:flex items-center">
-              <Search className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                type="text"
-                value={quickQuery}
-                onChange={(e) => setQuickQuery(e.target.value)}
-                data-testid="dok-inline-filter"
-                placeholder="Listede süz..."
-                aria-label="Mevcut görünümde hızlı süz"
-                className="h-10 w-32 rounded-xl border border-border/80 bg-background/70 pl-8 pr-7 text-xs text-foreground placeholder:text-muted-foreground focus:border-amber-500/60 focus:outline-none focus:ring-2 focus:ring-amber-500/20 lg:w-40"
-              />
-              {quickQuery && (
-                <button
-                  type="button"
-                  onClick={() => setQuickQuery("")}
-                  aria-label="Hızlı süzgeci temizle"
-                  className="absolute right-1.5 flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsSearchOpen(true)}
-              className="h-10 border-border/80 text-xs hover:bg-secondary rounded-xl px-2.5 sm:px-3 gap-2"
-            >
-              <Search className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="hidden sm:inline font-medium">Ara...</span>
-              <kbd className="hidden lg:inline-flex h-4 items-center rounded border border-border bg-secondary/80 px-1 text-[10px] font-mono font-medium text-muted-foreground">
-                /
-              </kbd>
-            </Button>
-
-            <Button
-              size="sm"
-              variant="outline"
-              data-testid="dok-refresh-btn"
-              onClick={() => void executeCommand("refresh")}
-              className="h-10 w-10 p-0 border-border/80 text-xs hover:bg-secondary rounded-xl"
-              title="Yenile (R)"
-              aria-label="Çalışma alanını yenile"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 text-muted-foreground ${isQueryFetching ? "animate-spin text-amber-500" : ""}`} />
-            </Button>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsFilterSheetOpen(true)}
-              className={`h-10 border-border/80 text-xs hover:bg-secondary rounded-xl px-2.5 sm:px-3 gap-1.5 ${
-                activeFilterLabels.length > 0 ? "border-amber-500/50 bg-amber-500/10 text-amber-500 font-semibold" : ""
-              }`}
-              aria-label="Dosya filtreleri"
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="hidden sm:inline font-medium">Filtre</span>
-              {activeFilterLabels.length > 0 && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-bold text-zinc-950">
-                  {activeFilterLabels.length}
-                </span>
-              )}
-            </Button>
-
-            <Button
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              className="h-10 shrink-0 bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400 rounded-xl gap-1.5 shadow-sm"
-              aria-label="Dosya yükle"
-            >
-              <Upload className="h-4 w-4" />
-              <span className="hidden sm:inline">Yükle</span>
-            </Button>
-
-            {supportsFolderUpload && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={openFolderPicker}
-                className="h-10 border-border/80 text-xs hover:bg-secondary rounded-xl px-2.5 sm:px-3 gap-1.5"
-                aria-label="Klasör yükle"
-              >
-                <Folder className="h-4 w-4 text-amber-500" />
-                <span className="hidden sm:inline">Klasör</span>
-              </Button>
-            )}
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsNewFolderOpen(true)}
-              className="hidden h-10 gap-1.5 border-border/80 text-xs font-semibold hover:bg-secondary rounded-xl lg:inline-flex px-3"
-            >
-              <FolderPlus className="h-4 w-4 text-amber-500" />
-              <span>Yeni Klasör</span>
-            </Button>
-
-            <div className="flex items-center rounded-xl border border-border/80 bg-secondary/40 p-0.5">
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                className={`relative flex h-8 w-8 items-center justify-center rounded-lg text-xs transition-colors ${
-                  viewMode === "list"
-                    ? "text-foreground font-bold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="Liste Görünümü"
-                aria-label="Liste Görünümü"
-              >
-                {viewMode === "list" && (
-                  <motion.span
-                    layoutId="dok-view-mode-pill"
-                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
-                    className="absolute inset-0 rounded-lg border border-border/60 bg-card shadow-sm"
-                  />
-                )}
-                <ListIcon className="relative z-10 h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("grid")}
-                className={`relative flex h-8 w-8 items-center justify-center rounded-lg text-xs transition-colors ${
-                  viewMode === "grid"
-                    ? "text-foreground font-bold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="Kart (Grid) Görünümü"
-                aria-label="Kart (Grid) Görünümü"
-              >
-                {viewMode === "grid" && (
-                  <motion.span
-                    layoutId="dok-view-mode-pill"
-                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
-                    className="absolute inset-0 rounded-lg border border-border/60 bg-card shadow-sm"
-                  />
-                )}
-                <LayoutGrid className="relative z-10 h-4 w-4" />
-              </button>
-            </div>
-
-            {selectedIds.size > 0 && (
-              <Button
-                size="sm"
-                variant="destructive"
-                aria-label={`Seçilenleri Sil (${selectedIds.size})`}
-                onClick={() => void executeCommand("trash")}
-                className="relative h-10 w-10 shrink-0 justify-center rounded-xl p-0 shadow-md bg-red-600 hover:bg-red-500 text-white"
-                title={`Seçili öğeleri çöp kutusuna taşı (${selectedIds.size})`}
-              >
-                <Trash2 className="h-4 w-4" />
-                <span aria-hidden="true" className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-background bg-red-700 px-1 text-[9px] font-bold leading-none tabular-nums">
-                  {selectedIds.size}
-                </span>
-              </Button>
-            )}
-
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setIsDetailsOpen((d) => !d)}
-              className={`hidden h-10 w-10 p-0 rounded-xl lg:inline-flex ${
-                isDetailsOpen ? "bg-amber-500/20 text-amber-500" : "text-muted-foreground hover:text-foreground"
-              }`}
-              title="Öğe Bilgi ve Detay Çekmecesi"
-            >
-              <Info className="h-4 w-4" />
-            </Button>
-            </div>
+              setBreadcrumbDropRef={setBreadcrumbDropRef}
+              dragOverBreadcrumbId={dragOverBreadcrumbId}
+              canGoBack={navHistory.past.length > 0}
+              canGoForward={navHistory.future.length > 0}
+              onBack={handleHistoryBack}
+              onForward={handleHistoryForward}
+              quickQuery={quickQuery}
+              onQuickQueryChange={setQuickQuery}
+              onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortChange={handleSort}
+              groupBy={groupBy}
+              onGroupChange={setGroupBy}
+              activeFilterCount={activeFilterLabels.length}
+              onOpenFilterSheet={() => setIsFilterSheetOpen(true)}
+              supportsFolderUpload={supportsFolderUpload}
+              onUploadFiles={() => fileInputRef.current?.click()}
+              onUploadFolder={openFolderPicker}
+              onCreateFolder={() => setIsNewFolderOpen(true)}
+              density={density}
+              onDensityChange={setDensity}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              isRefreshing={isQueryFetching}
+              onRefresh={() => void executeCommand("refresh")}
+              isDetailsOpen={isDetailsOpen}
+              onToggleDetails={() => setIsDetailsOpen((d) => !d)}
+            />
           </div>
         </div>
 
         <FilterChipsBar
-          typeFilter={activeFilter === "cad" || activeFilter === "pdf" || activeFilter === "image" ? activeFilter : workspaceFilters.type}
+          typeFilter={navigationType}
           dateFilter={workspaceFilters.date}
           sizeFilter={workspaceFilters.size}
           scope={workspaceFilters.scope}
@@ -2871,18 +2391,24 @@ function DokumantasyonFileManagerInner() {
           {...(isMobileExplorer ? {} : containerPointerHandlers)}
           className={`relative flex-1 overflow-auto p-3 sm:p-4 pb-4 outline-none select-none min-h-[300px] ${styles.viewport}`}
         >
-          {/* Sanal Marquee Seçim Kutusu (Windows Explorer Mavi Dikdörtgen) */}
+          {/* Sanal Marquee Seçim Kutusu (Warm Amber Glass + Canlı Sayaç) */}
           {marqueeBox && (
             <div
               data-testid="dok-marquee-box"
-              className="pointer-events-none absolute z-50 rounded-sm border border-blue-500/90 bg-blue-500/20 shadow-[0_0_12px_rgba(59,130,246,0.15)] transition-none"
+              className="pointer-events-none absolute z-50 rounded-md border border-amber-500/85 bg-amber-500/15 shadow-[0_0_16px_rgba(245,158,11,0.18)] transition-none"
               style={{
                 left: marqueeBox.left,
                 top: marqueeBox.top,
                 width: marqueeBox.width,
                 height: marqueeBox.height,
               }}
-            />
+            >
+              {marqueeBox.width >= 24 && marqueeBox.height >= 24 && selectedIds.size > 0 && (
+                <span className="absolute -bottom-6 right-0 rounded-full bg-amber-500 px-1.5 py-0.5 font-mono text-[10px] font-bold text-zinc-950 shadow-sm">
+                  {selectedIds.size} öğe
+                </span>
+              )}
+            </div>
           )}
           {listError ? (
             <div role="alert" className="mx-auto flex max-w-lg flex-col items-center justify-center py-24 text-center">
@@ -2985,20 +2511,15 @@ function DokumantasyonFileManagerInner() {
             /* ========================================================= */
             groupBy === "none" ? (
               <div className={`overflow-hidden rounded-2xl border ${styles.list}`}>
-                <div className="hidden grid-cols-12 items-center border-b border-border/70 bg-white/40 dark:bg-card/40 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground sm:grid backdrop-blur-md">
-                  <div className="col-span-8 flex items-center gap-3 sm:col-span-6">
-                    <button
+                <div className="hidden grid-cols-12 items-center border-b border-border/70 bg-white/40 dark:bg-card/40 px-4 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground sm:grid backdrop-blur-md">
+                  <div className="col-span-8 flex items-center gap-2.5 sm:col-span-6 md:col-span-5">
+                    <DriveCheckbox
+                      checked={isAllSelected}
+                      indeterminate={selectedIds.size > 0 && !isAllSelected}
                       onClick={handleToggleSelectAll}
-                      data-selection-control
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label="Tümünü seç"
-                    >
-                      {isAllSelected ? (
-                        <CheckSquare className="h-4 w-4 text-amber-500" />
-                      ) : (
-                        <Square className="h-4 w-4" />
-                      )}
-                    </button>
+                      ariaLabel={isAllSelected ? "Tüm seçimleri kaldır" : "Tümünü seç"}
+                      dataTestId="dok-select-all"
+                    />
                     <button
                       onClick={() => handleSort("name")}
                       className={`flex items-center gap-1 transition-colors hover:text-foreground ${sortBy === "name" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}
@@ -3012,7 +2533,7 @@ function DokumantasyonFileManagerInner() {
                     </button>
                   </div>
 
-                  <div className="hidden sm:col-span-2 sm:block">
+                  <div className="hidden sm:col-span-2 sm:flex sm:justify-end">
                     <button
                       onClick={() => handleSort("size")}
                       className={`flex items-center gap-1 transition-colors hover:text-foreground ${sortBy === "size" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}
@@ -3026,7 +2547,7 @@ function DokumantasyonFileManagerInner() {
                     </button>
                   </div>
 
-                  <div className="col-span-3 hidden md:block">
+                  <div className="col-span-2 hidden md:flex md:justify-end">
                     <button
                       onClick={() => handleSort("date")}
                       className={`flex items-center gap-1 transition-colors hover:text-foreground ${sortBy === "date" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}
@@ -3040,7 +2561,7 @@ function DokumantasyonFileManagerInner() {
                     </button>
                   </div>
 
-                  <div className="col-span-4 text-right sm:col-span-4 md:col-span-1">
+                  <div className="col-span-4 text-right sm:col-span-2 md:col-span-3">
                     <span>İşlem</span>
                   </div>
                 </div>
@@ -3071,20 +2592,15 @@ function DokumantasyonFileManagerInner() {
             ) : (
               <div className={`overflow-hidden rounded-2xl border ${styles.list}`}>
                 {/* Tek Sticky Üst Sütun Başlığı */}
-                <div className="sticky top-0 z-20 hidden grid-cols-12 items-center border-b border-border/70 bg-card/90 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-muted-foreground sm:grid backdrop-blur-md">
-                  <div className="col-span-8 flex items-center gap-3 sm:col-span-6">
-                    <button
+                <div className="sticky top-0 z-20 hidden grid-cols-12 items-center border-b border-border/70 bg-card/90 px-4 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground sm:grid backdrop-blur-md">
+                  <div className="col-span-8 flex items-center gap-2.5 sm:col-span-6 md:col-span-5">
+                    <DriveCheckbox
+                      checked={isAllSelected}
+                      indeterminate={selectedIds.size > 0 && !isAllSelected}
                       onClick={handleToggleSelectAll}
-                      data-selection-control
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label="Tümünü seç"
-                    >
-                      {isAllSelected ? (
-                        <CheckSquare className="h-4 w-4 text-amber-500" />
-                      ) : (
-                        <Square className="h-4 w-4" />
-                      )}
-                    </button>
+                      ariaLabel={isAllSelected ? "Tüm seçimleri kaldır" : "Tümünü seç"}
+                      dataTestId="dok-select-all"
+                    />
                     <button
                       onClick={() => handleSort("name")}
                       className={`flex items-center gap-1 transition-colors hover:text-foreground ${sortBy === "name" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}
@@ -3097,7 +2613,7 @@ function DokumantasyonFileManagerInner() {
                       )}
                     </button>
                   </div>
-                  <div className="hidden sm:col-span-2 sm:block">
+                  <div className="hidden sm:col-span-2 sm:flex sm:justify-end">
                     <button
                       onClick={() => handleSort("size")}
                       className={`flex items-center gap-1 transition-colors hover:text-foreground ${sortBy === "size" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}
@@ -3110,7 +2626,7 @@ function DokumantasyonFileManagerInner() {
                       )}
                     </button>
                   </div>
-                  <div className="col-span-3 hidden md:block">
+                  <div className="col-span-2 hidden md:flex md:justify-end">
                     <button
                       onClick={() => handleSort("date")}
                       className={`flex items-center gap-1 transition-colors hover:text-foreground ${sortBy === "date" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}
@@ -3123,7 +2639,7 @@ function DokumantasyonFileManagerInner() {
                       )}
                     </button>
                   </div>
-                  <div className="col-span-4 text-right sm:col-span-4 md:col-span-1">
+                  <div className="col-span-4 text-right sm:col-span-2 md:col-span-3">
                     <span>İşlem</span>
                   </div>
                 </div>
@@ -3338,116 +2854,29 @@ function DokumantasyonFileManagerInner() {
           />
         )}
         {selectedIds.size > 0 && (!isMobileExplorer || isMobileSelectionMode) && (
-          <div
-            data-testid="dok-mobile-selection-dock"
-            className={`flex shrink-0 items-center justify-between gap-2 border-t border-amber-500/30 bg-card/95 px-4 py-2.5 text-xs font-medium text-foreground backdrop-blur-xl animate-in fade-in ${styles.mobileSelectionBar}`}
-          >
-            {/* Sol: Sayım + X (mobil seçim modu çıkış) */}
-            <div className="flex items-center gap-2 min-w-0">
-              <button
-                type="button"
-                onClick={() => {
-                  exitMobileSelectionMode();
-                }}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-secondary hover:text-foreground lg:hidden"
-                data-mobile-action="exit"
-                aria-label="Seçimden çık"
-              >
-                <span className="text-base font-bold leading-none">✕</span>
-              </button>
-              <CheckSquare className="hidden h-4 w-4 text-amber-500 lg:block" />
-              <span className="font-bold text-amber-500 font-mono">{selectedIds.size}</span>
-              <span className="truncate text-muted-foreground hidden sm:inline">/ {allItemIds.length} öğe seçildi</span>
-            </div>
-
-            {/* Sağ: Aksiyonlar (tek satır, wrap yok) */}
-            <div className="flex shrink-0 items-center gap-1.5">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleToggleSelectAll}
-                className="hidden sm:inline-flex h-9 gap-1.5 border-border text-xs hover:bg-secondary rounded-xl"
-                data-mobile-action="all"
-                aria-label={isAllSelected ? "Seçimi Kaldır" : "Tümünü Seç"}
-              >
-                {isAllSelected ? "Kaldır" : "Tümünü Seç"}
-              </Button>
-
-              {selectedHasFile && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void executeCommand("download")}
-                  className="hidden sm:inline-flex h-9 gap-1.5 border-emerald-500/40 px-3 text-xs text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-xl"
-                  data-mobile-action="download"
-                  aria-label="İndir"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  <span>İndir</span>
-                </Button>
-              )}
-
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void executeCommand(allSelectedStarred ? "unstar" : "star")}
-                className="hidden md:inline-flex h-9 gap-1.5 border-amber-500/40 px-3 text-xs text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 rounded-xl"
-                data-mobile-action="star"
-                aria-label={allSelectedStarred ? "Yıldızı Kaldır" : "Yıldızla"}
-              >
-                <Star className={`h-3.5 w-3.5 ${allSelectedStarred ? "fill-amber-400 text-amber-400" : ""}`} />
-                <span>{allSelectedStarred ? "Yıldızı Kaldır" : "Yıldızla"}</span>
-              </Button>
-
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => void executeCommand("move")}
-                className="h-9 gap-1.5 border-purple-500/40 px-3 text-xs text-purple-500 hover:bg-purple-500/10 rounded-xl"
-                data-mobile-action="move"
-                aria-label="Taşı"
-              >
-                <Move className="h-3.5 w-3.5" />
-                <span>Taşı</span>
-              </Button>
-
-              <Button
-                size="sm"
-                onClick={() => void executeCommand("share")}
-                className="h-9 gap-1.5 bg-amber-500 px-3 text-xs font-bold text-zinc-950 hover:bg-amber-400 rounded-xl shadow-sm"
-                data-mobile-action="share"
-                aria-label="Paylaş"
-              >
-                <Link2 className="h-3.5 w-3.5" />
-                <span>Paylaş</span>
-              </Button>
-
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => void executeCommand("trash")}
-                className="h-9 gap-1.5 px-3 text-xs rounded-xl font-bold bg-red-600 hover:bg-red-500 text-white"
-                data-mobile-action="trash"
-                aria-label="Sil"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span>Sil</span>
-              </Button>
-
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  exitMobileSelectionMode();
-                }}
-                className="h-9 text-xs rounded-xl"
-                data-mobile-action="clear"
-                aria-label="Seçimi Temizle"
-              >
-                <span>Temizle</span>
-              </Button>
-            </div>
-          </div>
+          <SelectionDock
+            selectedCount={selectedIds.size}
+            selectedSizeBytes={selectedSizeBytes}
+            selectedHasFile={selectedHasFile}
+            allSelectedStarred={allSelectedStarred}
+            onClearSelection={() => {
+              if (isMobileExplorer) {
+                exitMobileSelectionMode();
+              } else {
+                clearSelection();
+              }
+            }}
+            onInvertSelection={handleInvertSelection}
+            onDownload={() => void executeCommand("download")}
+            onToggleStar={() =>
+              void executeCommand(allSelectedStarred ? "unstar" : "star")
+            }
+            onCopy={() => void executeCommand("copy")}
+            onCut={() => void executeCommand("cut")}
+            onMove={() => void executeCommand("move")}
+            onShare={() => void executeCommand("share")}
+            onTrash={() => void executeCommand("trash")}
+          />
         )}
 
         {!isPhone && (
@@ -3460,6 +2889,7 @@ function DokumantasyonFileManagerInner() {
             hasActiveFilters={activeFilterLabels.length > 0 || quickQuery.trim().length > 0}
             selectedCount={selectedIds.size}
             selectedSizeBytes={selectedSizeBytes}
+            hideSelectionPill={selectedIds.size > 0}
             sortBy={sortBy}
             sortOrder={sortOrder}
             groupBy={groupBy}
@@ -3486,6 +2916,7 @@ function DokumantasyonFileManagerInner() {
             onBulkMove={() => void executeCommand("move")}
             onBulkDelete={() => void executeCommand("trash")}
             onClearSelection={clearSelection}
+            onQuickLook={(f) => setQuickLookFile(f)}
           />
           <MobileDetailsSheet
             selectedItem={selectedItemForDrawer}
@@ -3548,10 +2979,13 @@ function DokumantasyonFileManagerInner() {
             deleteItem.type === "folder"
               ? `/api/dokumantasyon/folders/${deleteItem.id}`
               : `/api/dokumantasyon/files/${deleteItem.id}`;
-            const result = await requestDokMutation(endpoint, { method: "DELETE" });
-            if (!result.ok) throw new Error(result.message);
-            showToast("1 öğe çöp kutusuna taşındı", "info");
-            await fetchItems();
+          const result = await requestDokMutation(endpoint, { method: "DELETE" });
+          if (!result.ok) throw new Error(result.message);
+          pushUndoTrash(
+            [{ id: deleteItem.id, type: deleteItem.type }],
+            "1 öğe çöp kutusuna taşındı"
+          );
+          await fetchItems();
         }}
       />
 
@@ -3610,6 +3044,48 @@ function DokumantasyonFileManagerInner() {
       />
 
       {!isPhone && (
+        <QuickLookModal
+          isOpen={quickLookFile !== null}
+          file={quickLookFile}
+          files={displayedFiles}
+          onClose={() => setQuickLookFile(null)}
+          onSelectFile={(f) => setQuickLookFile(f)}
+          onDownload={(f) => void handleDownload(f)}
+          onShare={(f) =>
+            handleOpenShareSingle({
+              id: f.id,
+              name: f.display_name,
+              type: "file",
+              size: Number(f.size_bytes),
+            })
+          }
+          onToggleStar={(f) =>
+            void toggleStar("file", f.id, Boolean(f.starred_at))
+          }
+          onOpenStudio={(fileId, cadEngine) => {
+            setQuickLookFile(null);
+            router.push(
+              cadEngine === "v2"
+                ? `/dokumantasyon/dosya/${fileId}?cadEngine=v2`
+                : `/dokumantasyon/dosya/${fileId}`
+            );
+          }}
+        />
+      )}
+
+      {!isPhone && (
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          commands={paletteCommands}
+          recentFiles={displayedFiles.slice(0, 5)}
+          onNavigateFolder={(id) => navigateToFolder(id)}
+          onOpenFile={(f) => router.push(`/dokumantasyon/dosya/${f.id}`)}
+          onQuickLookFile={(f) => setQuickLookFile(f)}
+        />
+      )}
+
+      {!isPhone && (
         <DriveContextMenu
           isOpen={contextMenuState.isOpen}
           x={contextMenuState.x}
@@ -3618,6 +3094,7 @@ function DokumantasyonFileManagerInner() {
           targetItem={contextMenuState.targetItem}
           canExecute={(id) => commandRegistryRef.current.canExecute(id, getCommandContext())}
           onExecute={(id) => void executeCommand(id)}
+          onInvertSelection={handleInvertSelection}
           onClose={() => setContextMenuState((prev) => ({ ...prev, isOpen: false }))}
           supportsFolderUpload={supportsFolderUpload}
         />

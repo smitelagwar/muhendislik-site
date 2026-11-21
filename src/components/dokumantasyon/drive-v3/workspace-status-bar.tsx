@@ -14,6 +14,7 @@ interface WorkspaceStatusBarProps {
   hasActiveFilters?: boolean;
   selectedCount: number;
   selectedSizeBytes: number;
+  hideSelectionPill?: boolean;
   sortBy: ExplorerSortBy;
   sortOrder: ExplorerSortOrder;
   groupBy: ExplorerGroupBy;
@@ -43,6 +44,7 @@ export function WorkspaceStatusBar({
   hasActiveFilters = false,
   selectedCount,
   selectedSizeBytes,
+  hideSelectionPill = false,
   sortBy,
   sortOrder,
   groupBy,
@@ -82,7 +84,7 @@ export function WorkspaceStatusBar({
       </div>
 
       {/* Orta: Seçim Durumu */}
-      {selectedCount > 0 && (
+      {selectedCount > 0 && !hideSelectionPill && (
         <div
           data-testid="dok-status-selection"
           className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono font-semibold text-amber-700 dark:text-amber-300"

@@ -21,7 +21,7 @@ export const DOCUMENT_EXTENSIONS = [
   "js",
 ] as const;
 
-export type DokFileCategory = "cad" | "pdf" | "image" | "other";
+export type DokFileCategory = "cad" | "pdf" | "image" | "document" | "other";
 export type DokGroupFileBucket = "cad" | "pdf" | "image" | "document" | "other";
 
 const MB = 1024 * 1024;
@@ -56,13 +56,14 @@ export function normalizeExtension(extensionOrName?: string | null): string {
 }
 
 /**
- * Dosyayı 4 ana filtre kategorisinden birine sınıflandırır.
+ * Dosyayı 5 ana filtre kategorisinden birine sınıflandırır.
  */
 export function getFileCategory(extensionOrName?: string | null): DokFileCategory {
   const ext = normalizeExtension(extensionOrName);
   if (CAD_SET.has(ext)) return "cad";
   if (PDF_SET.has(ext)) return "pdf";
   if (IMAGE_SET.has(ext)) return "image";
+  if (DOCUMENT_SET.has(ext)) return "document";
   return "other";
 }
 

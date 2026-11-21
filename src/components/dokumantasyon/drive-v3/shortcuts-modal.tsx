@@ -23,9 +23,11 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: "Gezinme & Arama",
     items: [
+      { keys: ["Ctrl+K", "Cmd+K"], description: "Komut paleti ve genel arama aç" },
       { keys: ["/", "Ctrl+Shift+F"], description: "Tüm klasörlerde derin arama aç" },
+      { keys: ["Alt+←", "Alt+→"], description: "Önceki / sonraki klasör geçmişine git" },
       { keys: ["Enter"], description: "Seçili klasörü veya dosyayı aç" },
-      { keys: ["Space", "P"], description: "Seçili dosyayı önizle" },
+      { keys: ["Space", "P"], description: "Seçili dosyayı hızlı önizle (Quick Look)" },
       { keys: ["I"], description: "Detay ve etkinlik çekmecesini aç/kapat" },
       { keys: ["V"], description: "Liste ve Kart görünümü arasında geç" },
       { keys: ["R"], description: "Çalışma alanını yenile" },
@@ -52,7 +54,8 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: ["Escape"], description: "Açık menüyü veya seçimi temizle" },
       { keys: ["Ctrl+C"], description: "Seçili öğeleri kopyala" },
       { keys: ["Ctrl+X"], description: "Seçili öğeleri kes" },
-      { keys: ["Ctrl+V"], description: "Panodaki öğeleri yapıştır" },
+      { keys: ["Ctrl+V"], description: "Panodaki öğeleri veya ekran görüntüsünü yapıştır" },
+      { keys: ["Ctrl+Z", "Cmd+Z"], description: "Son çöp, taşıma veya adlandırma işlemini geri al" },
       { keys: ["Alt+R"], description: "Çöp kutusunda seçili öğeyi geri yükle" },
       { keys: ["Shift+Delete"], description: "Çöp kutusunda kalıcı silme onayı aç" },
     ],

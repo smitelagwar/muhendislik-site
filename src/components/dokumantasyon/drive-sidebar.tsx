@@ -4,8 +4,10 @@
 
 "use client";
 
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { dropTargetForElements } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import {
   HardDrive,
   Clock,
@@ -16,20 +18,38 @@ import {
   Upload,
   Compass,
   FileText,
+  FileSpreadsheet,
+  Archive,
+  Folder,
+  FolderOpen,
+  ChevronRight,
+  ChevronDown,
   Image as ImageIcon,
   Database,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DokFolder } from "@/lib/dokumantasyon/types";
+import type { BulkItem } from "./drive-v3/bulk-operations";
+import type { DraggedItemData } from "./drive-v3/pdd-integration";
 import { formatBytes } from "./ui-helpers";
 import styles from "./dok-workspace.module.css";
 
-export type DriveNavFilter = "all" | "recent" | "starred" | "cad" | "pdf" | "image";
+export type DriveNavFilter =
+  | "all"
+  | "recent"
+  | "starred"
+  | "cad"
+  | "pdf"
+  | "image"
+  | "document"
+  | "other";
 
 export interface DriveCategoryCounts {
   cad: number;
   pdf: number;
   image: number;
+  document?: number;
   other: number;
 }
 
@@ -50,6 +70,158 @@ interface DriveSidebarProps {
   className?: string;
   onNavigate?: () => void;
   compact?: boolean;
+  currentFolderId?: string | null;
+  onSelectFolder?: (folderId: string | null) => void;
+  onDropToFolder?: (items: BulkItem[], targetFolderId: string | null) => void;
+  onDropToStarred?: (items: BulkItem[]) => void;
+  onDropToTrash?: (items: BulkItem[]) => void;
+  treeRefreshKey?: number;
+}
+
+interface FolderTreeNode {
+  folder: DokFolder;
+  children: FolderTreeNode[];
+}
+
+function buildFolderTree(folders: DokFolder[]): FolderTreeNode[] {
+  const byParent = new Map<string | null, DokFolder[]>();
+  for (const folder of folders) {
+    const key = folder.parent_id ?? null;
+    const list = byParent.get(key) ?? [];
+    list.push(folder);
+    byParent.set(key, list);
+  }
+  const sortAlpha = (a: DokFolder, b: DokFolder) =>
+    (a.name || "").localeCompare(b.name || "", "tr", { sensitivity: "base" });
+
+  const buildLevel = (parentId: string | null, depth: number): FolderTreeNode[] => {
+    if (depth >= 3) return [];
+    const list = [...(byParent.get(parentId) ?? [])].sort(sortAlpha);
+    return list.map((folder) => ({
+      folder,
+      children: buildLevel(folder.id, depth + 1),
+    }));
+  };
+
+  return buildLevel(null, 0);
+}
+
+function SidebarTreeItem({
+  node,
+  depth,
+  currentFolderId,
+  expandedIds,
+  onToggleExpand,
+  onSelectFolder,
+  onDropToFolder,
+  onCompleteNavigation,
+}: {
+  node: FolderTreeNode;
+  depth: number;
+  currentFolderId?: string | null;
+  expandedIds: Set<string>;
+  onToggleExpand: (id: string) => void;
+  onSelectFolder?: (folderId: string | null) => void;
+  onDropToFolder?: (items: BulkItem[], targetFolderId: string | null) => void;
+  onCompleteNavigation: () => void;
+}) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const hasChildren = node.children.length > 0 && depth < 2;
+  const isExpanded = expandedIds.has(node.folder.id);
+  const isActive = currentFolderId === node.folder.id;
+
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el || !onDropToFolder) return;
+    return dropTargetForElements({
+      element: el,
+      canDrop: ({ source }) => {
+        const data = source.data as unknown as DraggedItemData;
+        if (!data || data.type !== "drive-items" || !data.items?.length) return false;
+        return !data.items.some((item) => item.id === node.folder.id);
+      },
+      onDragEnter: () => setIsDragOver(true),
+      onDragLeave: () => setIsDragOver(false),
+      onDrop: ({ source }) => {
+        setIsDragOver(false);
+        const data = source.data as unknown as DraggedItemData;
+        if (data?.type === "drive-items" && data.items?.length) {
+          onDropToFolder(data.items, node.folder.id);
+        }
+      },
+    });
+  }, [node.folder.id, onDropToFolder]);
+
+  return (
+    <div>
+      <div
+        ref={rowRef}
+        style={{ paddingLeft: `${depth * 12 + 6}px` }}
+        className={`group flex min-h-[32px] items-center gap-1 rounded-lg pr-2 text-xs transition-all ${
+          isDragOver
+            ? "ring-2 ring-amber-500 bg-amber-500/15 text-foreground"
+            : isActive
+              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold"
+              : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+        }`}
+      >
+        {hasChildren ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleExpand(node.folder.id);
+            }}
+            aria-label={isExpanded ? "Alt klasörleri daralt" : "Alt klasörleri genişlet"}
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded hover:bg-black/5 dark:hover:bg-white/10"
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+          </button>
+        ) : (
+          <span className="w-5 shrink-0" aria-hidden="true" />
+        )}
+
+        <button
+          type="button"
+          onClick={() => {
+            onSelectFolder?.(node.folder.id);
+            onCompleteNavigation();
+          }}
+          className="flex min-w-0 flex-1 items-center gap-1.5 py-1 text-left"
+        >
+          {isActive ? (
+            <FolderOpen className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+          ) : (
+            <Folder className="h-3.5 w-3.5 shrink-0 text-amber-500/80" />
+          )}
+          <span className="truncate">{node.folder.name}</span>
+        </button>
+      </div>
+
+      {hasChildren && isExpanded && (
+        <div className="space-y-0.5">
+          {node.children.map((child) => (
+            <SidebarTreeItem
+              key={child.folder.id}
+              node={child}
+              depth={depth + 1}
+              currentFolderId={currentFolderId}
+              expandedIds={expandedIds}
+              onToggleExpand={onToggleExpand}
+              onSelectFolder={onSelectFolder}
+              onDropToFolder={onDropToFolder}
+              onCompleteNavigation={onCompleteNavigation}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function DriveSidebar({
@@ -69,8 +241,87 @@ export function DriveSidebar({
   className = "",
   onNavigate,
   compact = false,
+  currentFolderId,
+  onSelectFolder,
+  onDropToFolder,
+  onDropToStarred,
+  onDropToTrash,
+  treeRefreshKey = 0,
 }: DriveSidebarProps) {
   const completeNavigation = () => onNavigate?.();
+  const [treeOpen, setTreeOpen] = useState(true);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
+  const [isStarredDragOver, setIsStarredDragOver] = useState(false);
+  const [isTrashDragOver, setIsTrashDragOver] = useState(false);
+  const starredBtnRef = useRef<HTMLButtonElement>(null);
+  const trashBtnRef = useRef<HTMLButtonElement>(null);
+
+  const { data: treeData } = useQuery<{ folders?: DokFolder[] }>({
+    queryKey: ["dok-sidebar-folder-tree", treeRefreshKey],
+    queryFn: async ({ signal }) => {
+      const res = await fetch("/api/dokumantasyon/folders/tree", { signal });
+      if (!res.ok) return { folders: [] };
+      return res.json();
+    },
+    enabled: !compact,
+    staleTime: 30_000,
+  });
+
+  const folderTree = useMemo(
+    () => buildFolderTree(Array.isArray(treeData?.folders) ? treeData.folders : []),
+    [treeData]
+  );
+
+  const toggleTreeExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const el = starredBtnRef.current;
+    if (!el || !onDropToStarred) return;
+    return dropTargetForElements({
+      element: el,
+      canDrop: ({ source }) => {
+        const data = source.data as unknown as DraggedItemData;
+        return Boolean(data && data.type === "drive-items" && data.items?.length);
+      },
+      onDragEnter: () => setIsStarredDragOver(true),
+      onDragLeave: () => setIsStarredDragOver(false),
+      onDrop: ({ source }) => {
+        setIsStarredDragOver(false);
+        const data = source.data as unknown as DraggedItemData;
+        if (data?.type === "drive-items" && data.items?.length) {
+          onDropToStarred(data.items);
+        }
+      },
+    });
+  }, [onDropToStarred]);
+
+  useEffect(() => {
+    const el = trashBtnRef.current;
+    if (!el || !onDropToTrash) return;
+    return dropTargetForElements({
+      element: el,
+      canDrop: ({ source }) => {
+        const data = source.data as unknown as DraggedItemData;
+        return Boolean(data && data.type === "drive-items" && data.items?.length);
+      },
+      onDragEnter: () => setIsTrashDragOver(true),
+      onDragLeave: () => setIsTrashDragOver(false),
+      onDrop: ({ source }) => {
+        setIsTrashDragOver(false);
+        const data = source.data as unknown as DraggedItemData;
+        if (data?.type === "drive-items" && data.items?.length) {
+          onDropToTrash(data.items);
+        }
+      },
+    });
+  }, [onDropToTrash]);
 
   // Masaüstü ana sidebar tam layoutId kullanır; mobil/compact kopyalarda çakışma önlenir.
   const activePillLayoutId = onNavigate
@@ -106,17 +357,19 @@ export function DriveSidebar({
   const cadCount = categoryCounts?.cad ?? 0;
   const pdfCount = categoryCounts?.pdf ?? 0;
   const imageCount = categoryCounts?.image ?? 0;
+  const documentCount = categoryCounts?.document ?? 0;
   const otherCount = categoryCounts?.other ?? 0;
-  const categoryTotal = cadCount + pdfCount + imageCount + otherCount;
+  const categoryTotal = cadCount + pdfCount + imageCount + documentCount + otherCount;
 
   const cadPct = categoryTotal > 0 ? (cadCount / categoryTotal) * 100 : 0;
   const pdfPct = categoryTotal > 0 ? (pdfCount / categoryTotal) * 100 : 0;
   const imagePct = categoryTotal > 0 ? (imageCount / categoryTotal) * 100 : 0;
+  const documentPct = categoryTotal > 0 ? (documentCount / categoryTotal) * 100 : 0;
   const otherPct = categoryTotal > 0 ? (otherCount / categoryTotal) * 100 : 0;
 
   const distributionTooltip =
     categoryTotal > 0
-      ? `CAD: ${cadCount} · PDF: ${pdfCount} · Görsel: ${imageCount} · Diğer: ${otherCount}`
+      ? `CAD: ${cadCount} · PDF: ${pdfCount} · Görsel: ${imageCount} · Belge: ${documentCount} · Diğer: ${otherCount}`
       : "Henüz dosya yok";
 
   return (
@@ -212,12 +465,15 @@ export function DriveSidebar({
         </button>
 
         <button
+          ref={starredBtnRef}
           type="button"
           onClick={() => {
             onFilterChange("starred");
             completeNavigation();
           }}
-          className={getNavButtonClass("starred")}
+          className={`${getNavButtonClass("starred")} ${
+            isStarredDragOver ? "ring-2 ring-amber-500 bg-amber-500/15" : ""
+          }`}
         >
           {renderNavPill(activeFilter === "starred")}
           <span className="relative z-10 flex items-center gap-2.5">
@@ -297,7 +553,85 @@ export function DriveSidebar({
             </span>
           )}
         </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            onFilterChange("document");
+            completeNavigation();
+          }}
+          className={getNavButtonClass("document")}
+        >
+          {renderNavPill(activeFilter === "document")}
+          <span className="relative z-10 flex items-center gap-2.5">
+            <FileSpreadsheet className="h-4 w-4 shrink-0 text-indigo-500" />
+            <span>Belgeler &amp; Tablolar</span>
+          </span>
+          {documentCount > 0 && (
+            <span className="relative z-10 inline-flex items-center rounded-full bg-indigo-500/15 border border-indigo-500/30 px-1.5 py-0.5 text-[10px] font-bold font-mono text-indigo-700 dark:text-indigo-300">
+              {documentCount}
+            </span>
+          )}
+        </button>
+
+        {(otherCount > 0 || activeFilter === "other") && (
+          <button
+            type="button"
+            onClick={() => {
+              onFilterChange("other");
+              completeNavigation();
+            }}
+            className={getNavButtonClass("other")}
+          >
+            {renderNavPill(activeFilter === "other")}
+            <span className="relative z-10 flex items-center gap-2.5">
+              <Archive className="h-4 w-4 shrink-0 text-amber-500" />
+              <span>Diğer / Arşivler</span>
+            </span>
+            {otherCount > 0 && (
+              <span className="relative z-10 inline-flex items-center rounded-full bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-bold font-mono text-amber-700 dark:text-amber-300">
+                {otherCount}
+              </span>
+            )}
+          </button>
+        )}
       </div>
+
+      {/* 3.5 Katlanabilir Hızlı Klasör Ağacı */}
+      {!compact && folderTree.length > 0 && (
+        <div className="space-y-1" data-testid="dok-sidebar-folder-tree">
+          <button
+            type="button"
+            onClick={() => setTreeOpen((prev) => !prev)}
+            className="flex w-full items-center justify-between px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 hover:text-foreground transition-colors"
+          >
+            <span>Klasör Ağacı</span>
+            {treeOpen ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+          </button>
+
+          {treeOpen && (
+            <div className="max-h-44 space-y-0.5 overflow-y-auto pr-1">
+              {folderTree.map((node) => (
+                <SidebarTreeItem
+                  key={node.folder.id}
+                  node={node}
+                  depth={0}
+                  currentFolderId={currentFolderId}
+                  expandedIds={expandedIds}
+                  onToggleExpand={toggleTreeExpand}
+                  onSelectFolder={onSelectFolder}
+                  onDropToFolder={onDropToFolder}
+                  onCompleteNavigation={completeNavigation}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 4. Paylaşımlar ve Çöp Kutusu */}
       <div className="space-y-1">
@@ -326,12 +660,15 @@ export function DriveSidebar({
         </button>
 
         <button
+          ref={trashBtnRef}
           type="button"
           onClick={() => {
             onOpenTrash();
             completeNavigation();
           }}
-          className="flex min-h-[40px] w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-colors"
+          className={`flex min-h-[40px] w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-all ${
+            isTrashDragOver ? "ring-2 ring-red-500 bg-red-500/15 text-foreground" : ""
+          }`}
         >
           <span className="flex items-center gap-2.5">
             <Trash2 className="h-4 w-4 shrink-0 text-red-400" />
@@ -365,31 +702,72 @@ export function DriveSidebar({
             {categoryTotal > 0 && (
               <div className="mt-2.5 space-y-1.5">
                 <div
-                  className="flex h-1.5 w-full overflow-hidden rounded-full bg-secondary/80"
+                  className="flex h-2 w-full overflow-hidden rounded-full bg-secondary/80"
                   aria-label={distributionTooltip}
                 >
                   {cadPct > 0 && (
-                    <div
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onFilterChange("cad");
+                        completeNavigation();
+                      }}
+                      title={`AutoCAD: ${cadCount} dosya · Tıklayarak filtrele`}
+                      aria-label={`AutoCAD: ${cadCount} dosya · Tıklayarak filtrele`}
                       style={{ width: `${cadPct}%` }}
-                      className="h-full bg-cyan-500 transition-[width] duration-300"
+                      className="h-full bg-cyan-500 hover:brightness-110 transition-all duration-300 cursor-pointer"
                     />
                   )}
                   {pdfPct > 0 && (
-                    <div
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onFilterChange("pdf");
+                        completeNavigation();
+                      }}
+                      title={`PDF: ${pdfCount} dosya · Tıklayarak filtrele`}
+                      aria-label={`PDF: ${pdfCount} dosya · Tıklayarak filtrele`}
                       style={{ width: `${pdfPct}%` }}
-                      className="h-full bg-red-500 transition-[width] duration-300"
+                      className="h-full bg-red-500 hover:brightness-110 transition-all duration-300 cursor-pointer"
                     />
                   )}
                   {imagePct > 0 && (
-                    <div
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onFilterChange("image");
+                        completeNavigation();
+                      }}
+                      title={`Görsel: ${imageCount} dosya · Tıklayarak filtrele`}
+                      aria-label={`Görsel: ${imageCount} dosya · Tıklayarak filtrele`}
                       style={{ width: `${imagePct}%` }}
-                      className="h-full bg-emerald-500 transition-[width] duration-300"
+                      className="h-full bg-emerald-500 hover:brightness-110 transition-all duration-300 cursor-pointer"
+                    />
+                  )}
+                  {documentPct > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onFilterChange("document");
+                        completeNavigation();
+                      }}
+                      title={`Belgeler & Tablolar: ${documentCount} dosya · Tıklayarak filtrele`}
+                      aria-label={`Belgeler & Tablolar: ${documentCount} dosya · Tıklayarak filtrele`}
+                      style={{ width: `${documentPct}%` }}
+                      className="h-full bg-indigo-500 hover:brightness-110 transition-all duration-300 cursor-pointer"
                     />
                   )}
                   {otherPct > 0 && (
-                    <div
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onFilterChange("other");
+                        completeNavigation();
+                      }}
+                      title={`Diğer: ${otherCount} dosya · Tıklayarak filtrele`}
+                      aria-label={`Diğer: ${otherCount} dosya · Tıklayarak filtrele`}
                       style={{ width: `${otherPct}%` }}
-                      className="h-full bg-amber-500/80 transition-[width] duration-300"
+                      className="h-full bg-amber-500/80 hover:brightness-110 transition-all duration-300 cursor-pointer"
                     />
                   )}
                 </div>
@@ -410,6 +788,12 @@ export function DriveSidebar({
                     <span className="inline-flex items-center gap-1">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                       Görsel
+                    </span>
+                  )}
+                  {documentCount > 0 && (
+                    <span className="inline-flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                      Belge
                     </span>
                   )}
                   {otherCount > 0 && (

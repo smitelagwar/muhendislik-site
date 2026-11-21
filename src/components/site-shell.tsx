@@ -41,6 +41,26 @@ export function SiteShell({ children, footer }: { children: ReactNode; footer: R
     );
   }
 
+  // Dokümantasyon çalışma alanı: sayfa hiç kaydırılmaz. Yükseklik viewport'a
+  // sabitlenir; kaydırma yalnızca dosya listesinin kendi iç viewport'unda olur.
+  if (pathname === "/dokumantasyon") {
+    return (
+      <>
+        <div className="flex h-[100dvh] flex-col overflow-hidden">
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-amber-500 focus:px-4 focus:py-2 focus:font-bold focus:text-black focus:shadow-lg">
+            Ana içeriğe atla
+          </a>
+          <Navbar />
+          <main id="main-content" tabIndex={-1} className="min-h-0 flex-1 overflow-hidden focus:outline-none">
+            {children}
+          </main>
+        </div>
+        <GlobalOverlays />
+        <Toaster position="top-center" richColors />
+      </>
+    );
+  }
+
   const shell = (
     <>
       <div className="flex min-h-screen flex-col">

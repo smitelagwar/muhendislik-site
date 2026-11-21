@@ -83,12 +83,18 @@ async function runStage9Tests() {
 
   // 4. Selection dock — artık fixed overlay değil, normal layout child (A6)
   console.log("\n--- 4. Selection Dock Layout Sözleşmesi (A6) ---");
+  const selectionDockPath = path.join(
+    rootDir,
+    "src/components/dokumantasyon/drive-v3/selection-dock.tsx"
+  );
+  const selectionDockContent = fs.readFileSync(selectionDockPath, "utf-8");
   assert(
-    !fileManagerContent.includes("fixed inset-x-2 bottom-2 z-[60]"),
+    !fileManagerContent.includes("fixed inset-x-2 bottom-2 z-[60]") &&
+      !selectionDockContent.includes("fixed inset-x-2 bottom-2 z-[60]"),
     "Selection dock artık fixed overlay değil (A6)"
   );
   assert(
-    fileManagerContent.includes("border-t border-amber-500/30"),
+    selectionDockContent.includes("border-t border-amber-500/30"),
     "Selection dock normal layout akışında border-t ile ayrılıyor (A6)"
   );
 

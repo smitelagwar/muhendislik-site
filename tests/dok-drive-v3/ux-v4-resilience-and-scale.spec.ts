@@ -338,8 +338,9 @@ test.describe("Senaryo S7 — Dayanıklılık, Kısmi Başarısızlık, 5.000 Ö
     // Stale B yanıtı C'yi ezmemeli
     await expect(page.locator('[data-file-id="scale-file-0101"]')).toHaveCount(0);
 
-    // Breadcrumb üzerinden Klasör A'ya geri dön (TanStack Query staleTime cache'ten anında döner)
-    await page.locator("[data-breadcrumb] button").filter({ hasText: "Klasör A" }).click();
+    // Breadcrumb '…' menüsü üzerinden Klasör A'ya geri dön (TanStack Query staleTime cache'ten anında döner)
+    await page.getByRole("button", { name: "Gizlenen üst klasörler" }).click();
+    await page.getByRole("menuitem", { name: "Klasör A" }).click();
     await expect(page.locator('[data-folder-id="folder-b"]')).toBeVisible();
     expect(aVisitCount).toBeGreaterThanOrEqual(1);
 

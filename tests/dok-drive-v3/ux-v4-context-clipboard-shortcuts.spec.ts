@@ -243,6 +243,7 @@ test.describe("UX V4 — S3: Sağ Tık Menüsü, Pano & Klavye Kısayolları", (
     await expect(menu).toBeVisible();
     await expect(menu).toContainText("3 öğe seçili");
     await expect(page.locator('[data-selected="true"]')).toHaveCount(3);
+    await page.keyboard.press("Escape");
 
     // Seçimsiz 4. öğeye sağ tık -> seçim yalnız 4. öğeye geçer
     await pngRow.click({ button: "right", position: { x: 10, y: 10 } });
@@ -363,8 +364,9 @@ test.describe("UX V4 — S3: Sağ Tık Menüsü, Pano & Klavye Kısayolları", (
     await expect.poll(() => mock.getStarCalls()).toBe(1);
 
     await page.keyboard.press("F2");
-    await expect(page.getByTestId("dok-dialog-content")).toBeVisible();
+    await expect(page.getByTestId("dok-inline-rename-input")).toBeVisible();
     await page.keyboard.press("Escape");
+    await expect(page.getByTestId("dok-inline-rename-input")).toHaveCount(0);
 
     await page.keyboard.press("m");
     await expect(page.getByTestId("dok-dialog-content")).toBeVisible();

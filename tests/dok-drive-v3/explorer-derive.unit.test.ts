@@ -54,11 +54,12 @@ function makeFile(
   };
 }
 
-test("BUG-03: file-categories ve deriveExplorerView tur filtre paritesi (.dwf dahil, other dahil)", () => {
+test("BUG-03: file-categories ve deriveExplorerView tur filtre paritesi (.dwf dahil, document ve other dahil)", () => {
   assert.equal(normalizeExtension(".DWG"), "dwg");
   assert.equal(normalizeExtension("plan.dwf"), "dwf");
   assert.equal(getFileCategory(".dwf"), "cad");
-  assert.equal(getFileCategory("notlar.md"), "other");
+  assert.equal(getFileCategory("notlar.md"), "document");
+  assert.equal(getFileCategory("arsiv.zip"), "other");
   assert.equal(getGroupFileBucket(".xlsx"), "document");
   assert.equal(getGroupFileBucket(".zip"), "other");
 
@@ -102,6 +103,18 @@ test("BUG-03: file-categories ve deriveExplorerView tur filtre paritesi (.dwf da
   });
   assert.deepEqual(imgView.displayedFiles.map((f) => f.id), ["f-png"]);
 
+  const documentView = deriveExplorerView({ folders, files }, {
+    sortBy: "name",
+    sortOrder: "asc",
+    groupBy: "none",
+    typeFilter: "document",
+  });
+  assert.equal(documentView.displayedFolders.length, 0);
+  assert.deepEqual(
+    documentView.displayedFiles.map((f) => f.id).sort(),
+    ["f-md", "f-xlsx"]
+  );
+
   const otherView = deriveExplorerView({ folders, files }, {
     sortBy: "name",
     sortOrder: "asc",
@@ -111,10 +124,12 @@ test("BUG-03: file-categories ve deriveExplorerView tur filtre paritesi (.dwf da
   assert.equal(otherView.displayedFolders.length, 0);
   assert.deepEqual(
     otherView.displayedFiles.map((f) => f.id).sort(),
-    ["f-md", "f-xlsx", "f-zip"]
+    ["f-zip"]
   );
   assert.equal(matchesTypeFilter(".dwf", "cad"), true);
   assert.equal(matchesTypeFilter(".dwf", "other"), false);
+  assert.equal(matchesTypeFilter(".md", "document"), true);
+  assert.equal(matchesTypeFilter(".md", "other"), false);
 });
 
 test("BUG-04: boyut esik paritesi (small < 5MB, medium 5-100MB / 75MB dahil, large >= 100MB)", () => {
@@ -277,4 +292,56 @@ test("BUG-01 & BUG-02: dokKeys.items ve fetchDokItems scope=all ve order=desc so
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("V5-07 & V5-08: document kategorisi ve week/month tarih filtresi birim testleri", () => {
+  const now = Date.now();
+  const threeDaysAgo = new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString();
+  const fifteenDaysAgo = new Date(now - 15 * 24 * 60 * 60 * 1000).toISOString();
+  const fortyFiveDaysAgo = new Date(now - 45 * 24 * 60 * 60 * 1000).toISOString();
+
+  const folders = [
+    makeFolder({ id: "fld-week", name: "Haftalik Klasor", created_at: threeDaysAgo, updated_at: threeDaysAgo }),
+    makeFolder({ id: "fld-old", name: "Eski Klasor", created_at: fortyFiveDaysAgo, updated_at: fortyFiveDaysAgo }),
+  ];
+  const files = [
+    makeFile({ id: "f-doc", display_name: "hesap.docx", extension: ".docx", created_at: threeDaysAgo, updated_at: threeDaysAgo }),
+    makeFile({ id: "f-csv", display_name: "metraj.csv", extension: ".csv", created_at: fifteenDaysAgo, updated_at: fifteenDaysAgo }),
+    makeFile({ id: "f-old", display_name: "eski.txt", extension: ".txt", created_at: fortyFiveDaysAgo, updated_at: fortyFiveDaysAgo }),
+    makeFile({ id: "f-rar", display_name: "yedek.rar", extension: ".rar", created_at: threeDaysAgo, updated_at: threeDaysAgo }),
+  ];
+
+  assert.equal(matchesDateFilter(files[0], "week", now), true);
+  assert.equal(matchesDateFilter(files[1], "week", now), false);
+  assert.equal(matchesDateFilter(files[1], "month", now), true);
+  assert.equal(matchesDateFilter(files[2], "month", now), false);
+
+  const docView = deriveExplorerView({ folders, files }, {
+    sortBy: "name",
+    sortOrder: "asc",
+    groupBy: "none",
+    typeFilter: "document",
+  });
+  assert.deepEqual(
+    docView.displayedFiles.map((f) => f.id).sort(),
+    ["f-csv", "f-doc", "f-old"]
+  );
+
+  const weekView = deriveExplorerView({ folders, files }, {
+    sortBy: "name",
+    sortOrder: "asc",
+    groupBy: "none",
+    dateFilter: "week",
+  });
+  assert.deepEqual(weekView.displayedFolders.map((f) => f.id), ["fld-week"]);
+  assert.deepEqual(weekView.displayedFiles.map((f) => f.id).sort(), ["f-doc", "f-rar"]);
+
+  const monthView = deriveExplorerView({ folders, files }, {
+    sortBy: "name",
+    sortOrder: "asc",
+    groupBy: "none",
+    dateFilter: "month",
+  });
+  assert.deepEqual(monthView.displayedFolders.map((f) => f.id), ["fld-week"]);
+  assert.deepEqual(monthView.displayedFiles.map((f) => f.id).sort(), ["f-csv", "f-doc", "f-rar"]);
 });

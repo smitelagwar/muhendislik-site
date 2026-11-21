@@ -563,7 +563,7 @@
 /* --- Stage 8 Premium Explorer Görsel Sistemi & GPU Transitions --- */
 .virtualRow,
 .virtualCard {
-  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
   /* will-change kasıtlı olarak kaldırıldı: sanal listedeki tüm satırlarda
      sürekli compositing katmanı açık tutmak gereksiz GPU ve bellek maliyeti
      yaratır. Tarayıcı transition sırasında zaten otomatik optimize eder. */
@@ -580,19 +580,57 @@
   :global(.dark) .virtualRow:hover {
     background-color: rgba(255, 255, 255, 0.04);
   }
+  .virtualRowSelected:hover {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+  }
+  :global(.dark) .virtualRowSelected:hover {
+    background-color: rgba(245, 158, 11, 0.14) !important;
+  }
 }
 
-.virtualCardSelected,
-.virtualRowSelected {
+/* Grid Kartı Seçimi — kartlar arası boşluk olduğu için keskin çerçeve temiz görünür */
+.virtualCardSelected {
   border-color: rgba(245, 158, 11, 0.8) !important;
   background-color: rgba(245, 158, 11, 0.08) !important;
-  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.4), inset 0 0 12px rgba(245, 158, 11, 0.06);
+  box-shadow:
+    0 0 0 1px rgba(245, 158, 11, 0.35),
+    0 12px 28px -10px rgba(245, 158, 11, 0.28);
 }
 
-.virtualCardFocused,
-.virtualRowFocused {
+:global(.dark) .virtualCardSelected {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+  box-shadow:
+    0 0 0 1px rgba(245, 158, 11, 0.4),
+    0 16px 32px -12px rgba(245, 158, 11, 0.25);
+}
+
+/* Liste Satırı Seçimi — 4 kenarlı kutu/kafes yok; sakin dolgu + sol 3px accent rayı */
+.virtualRowSelected {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+  box-shadow:
+    inset 3px 0 0 0 #d97706,
+    inset 0 -1px 0 0 rgba(245, 158, 11, 0.14);
+}
+
+:global(.dark) .virtualRowSelected {
+  background-color: rgba(245, 158, 11, 0.09) !important;
+  box-shadow:
+    inset 3px 0 0 0 #f59e0b,
+    inset 0 -1px 0 0 rgba(245, 158, 11, 0.12);
+}
+
+.virtualCardFocused {
   outline: 2px solid rgba(245, 158, 11, 0.7);
   outline-offset: 2px;
+}
+
+.virtualRowFocused {
+  box-shadow: inset 2px 0 0 0 rgba(245, 158, 11, 0.75);
+}
+
+.virtualRowFocused:focus-visible {
+  outline: 2px solid rgba(245, 158, 11, 0.75);
+  outline-offset: -2px;
 }
 
 .dragOverFolder {

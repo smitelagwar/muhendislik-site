@@ -10,10 +10,10 @@ Bu belge, kullanıcı eylemleri için komut kayıt defteri sözleşmesini (`src/
 | 2 | `upload-files` | Dosya Yükle | `Ctrl+U` | Dosya Seçici | Hayır | Üst Araç Çubuğu / Boş Alan Sağ Tık |
 | 3 | `upload-folder` | Klasör Yükle | - | Klasör Seçici | Hayır | Üst Araç Çubuğu / Boş Alan Sağ Tık |
 | 4 | `open` | Aç | `Enter` | Dosya / Klasör | Hayır (Tekil) | Çift Tık / Sağ Tık Menüsü |
-| 5 | `preview` | Önizle | `Space` / `P` | Dosya | Hayır (Tekil dosya) | Sağ Tık Menüsü / Detay Çekmecesi |
-| 6 | `open-cad-v2` | Motor V2 ile Aç | - | DWG / DXF Dosya | Hayır (Tekil CAD) | Sağ Tık Menüsü / Detay Çekmecesi |
+| 5 | `preview` | Hızlı Bakış (Quick Look) | `Space` / `P` | Dosya | Hayır (Tekil dosya) | Sağ Tık / Satır Hızlı Eylem / Detay |
+| 6 | `open-cad-v2` | Motor V2 ile Aç | - | DWG / DXF Dosya | Hayır (Tekil CAD) | Sağ Tık / Quick Look / Detay |
 | 7 | `download` | İndir | `Ctrl+D` | Dosya | Evet (ZIP arşivi) | Üst Çubuk / Sağ Tık / Yüzen Bar |
-| 8 | `rename` | Yeniden Adlandır | `F2` | Dosya / Klasör | Hayır (Yalnızca 1 öğe) | Sağ Tık / Detay / Kısayol |
+| 8 | `rename` | Yeniden Adlandır | `F2` | Dosya / Klasör | Hayır (Yalnızca 1 öğe) | Satır İçi (Liste) / Modal / Sağ Tık |
 | 9 | `move` | Taşı | `M` | Dosya / Klasör | Evet (1..250 öğe) | Sağ Tık / Yüzen Bar / Sürükle-Bırak |
 | 10 | `trash` | Çöp Kutusuna Taşı | `Delete` | Dosya / Klasör | Evet (1..250 öğe) | Sağ Tık / Yüzen Bar / Kısayol |
 | 11 | `restore` | Geri Yükle | `Alt+R` | Çöp Kutusu | Evet (1..250 öğe) | Çöp Kutusu Modalı |
@@ -32,7 +32,14 @@ Bu belge, kullanıcı eylemleri için komut kayıt defteri sözleşmesini (`src/
 | 24 | `open-active-shares` | Aktif Paylaşımları Aç | - | Global | Hayır | Sol Kenar Çubuğu / Üst Çubuk |
 | 25 | `copy` | Kopyala | `Ctrl+C` | Dosya / Klasör | Evet (1..250 öğe) | Sağ Tık / Yüzen Bar / Kısayol |
 | 26 | `cut` | Kes | `Ctrl+X` | Dosya / Klasör | Evet (1..250 öğe) | Sağ Tık / Yüzen Bar / Kısayol |
-| 27 | `paste` | Yapıştır | `Ctrl+V` | Hedef Klasör (Pano) | Evet (Panodaki öğeler) | Pano Çubuğu / Boş Alan Sağ Tık / Kısayol |
+| 27 | `paste` | Yapıştır | `Ctrl+V` | Hedef Klasör (Pano) | Evet (Panodaki öğeler) | Pano Çubuğu / Boş Alan Sağ Tık / Sistem Panosu Upload |
+
+## UX V5 Güç-Kullanıcı Tetikleyicileri & Geri Alma
+
+- **`Ctrl+K` / `Cmd+K` (`CommandPalette`):** `src/components/dokumantasyon/drive-v3/command-palette.tsx` — Global dosya/klasör araması + hızlı komutlar + son açılanlar (`⌘K` araç çubuğu butonu ile de açılır).
+- **`Ctrl+Z` / `Cmd+Z` (`useUndoToast`):** `src/components/dokumantasyon/drive-v3/use-undo-toast.ts` — Çöp, taşıma ve yeniden adlandırma işlemlerini 8.5 sn içinde geri alır (`dok-toast-undo`).
+- **`Alt+←` / `Alt+→` (`ExplorerToolbar`):** Klasör gezinti geçmişinde geri/ileri gider.
+- **`Tersine Çevir` (`SelectionDock` / `DriveContextMenu`):** Mevcut dizindeki seçimi tersine çevirir (`dok-invert-selection`).
 
 ## Yardımcı Klavye Rehberi (`?`)
 
